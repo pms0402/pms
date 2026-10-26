@@ -1,4 +1,7 @@
 const paths = {
+  fire: '<path d="M12 2c1 6-5 7-5 11a5 5 0 0 0 10 0c0-2-1-4-3-5 0 3-2 4-2 4s2-5 0-10Z"/><path d="M12 15c-3 3-1 6 1 5s2-3-1-5Z"/>',
+  snow: '<path d="M12 2v20M3.4 7l17.2 10M3.4 17 20.6 7M9 4l3 3 3-3M9 20l3-3 3 3M4 10l4-1-1-4m10 14-1-4 4-1M4 14l4 1-1 4m10-14-1 4 4 1"/>',
+  orbit: '<circle cx="12" cy="12" r="2"/><ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(-35 12 12)"/><ellipse cx="12" cy="12" rx="4" ry="10" transform="rotate(-35 12 12)"/>',
   bolt: '<path d="m13 2-9 12h7l-1 8 10-12h-7l1-8Z"/>',
   sword: '<path d="m14.5 3.5 6-1-1 6-9 9-5-5 9-9Z"/><path d="m3 14 7 7m-3-3-4 4m1-1-2-2m12-12 3 3"/>',
   skull: '<path d="M8 21v-4H5l-2-4V9a9 9 0 0 1 18 0v4l-2 4h-3v4H8Z"/><path d="M10 21v-4m4 4v-4"/><circle cx="8" cy="10" r="1.5"/><circle cx="16" cy="10" r="1.5"/><path d="m11 14 1-2 1 2"/>',

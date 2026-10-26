@@ -1,8 +1,8 @@
 import * as THREE from 'three';
-import { STAGE_DURATION, MAX_STAGES, getStageStats, getSpawnInterval, getXpRequired, getUpgradeChoices, applyUpgrade } from './balance.js';
+import { STAGE_DURATION, BOSS_SPAWN_TIME, MAX_STAGES, ARENA_RADIUS, getStageStats, getBossStats, getSpawnInterval, getXpRequired, getUpgradeChoices, getShopOffers, applyUpgrade } from './balance.js';
+import { MagicSystem } from './magic.js';
 
 const TAU = Math.PI * 2;
-const ARENA_RADIUS = 31;
 const UP = new THREE.Vector3(0, 1, 0);
 const clamp = THREE.MathUtils.clamp;
 const rnd = (a, b) => a + Math.random() * (b - a);
@@ -16,6 +16,10 @@ export class Game {
     this.touchMove = { x: 0, y: 0 };
     this.enemies = [];
     this.projectiles = [];
+    this.enemyProjectiles = [];
+    this.boss = null;
+    this.bossSpawned = false;
+    this.bossDefeated = false;
     this.pickups = [];
     this.effects = [];
     this.floatingTexts = [];
@@ -45,6 +49,7 @@ export class Game {
     this.createMaterials();
     this.createWorld();
     this.createPlayer();
+    this.magic = new MagicSystem(this);
     this.setupInput();
     this.observer = new ResizeObserver(() => this.resize());
     this.observer.observe(container);
@@ -56,10 +61,10 @@ export class Game {
     this.raf = requestAnimationFrame(this.loop);
   }
 
-  freshStats() { return { maxHp: 100, damage: 18, attackRate: 1.5, speed: 7.5, magnet: 5.5, projectiles: 1, critChance: 0.08, armor: 0, regen: 0 }; }
+  freshStats() { return { maxHp: 100, damage: 18, attackRate: 1.5, speed: 7.5, magnet: 5.5, projectiles: 1, critChance: 0.08, armor: 0, regen: 0, spells: { fireball: 1, frost: 0, lightning: 0, orbit: 0 }, evolutions: {}, passiveLevels: {} }; }
   freshState(phase) { return { phase, hp: 100, xp: 0, xpNeeded: getXpRequired(1), level: 1, stage: 1, stageTime: 0, elapsed: 0, kills: 0, gold: 0, combo: 0, weaponName: '공허의 검' }; }
   get state() {
-    return { ...this._state, maxHp: this.stats.maxHp, damage: this.stats.damage, attackRate: this.stats.attackRate, speed: this.stats.speed, dashCooldown: Math.max(0, this.dashCooldown || 0), dashReady: !(this.dashCooldown > 0), enemyCount: this.enemies.length, playerStats: { ...this.stats } };
+    return { ...this._state, maxHp: this.stats.maxHp, damage: this.stats.damage, attackRate: this.stats.attackRate, speed: this.stats.speed, dashCooldown: Math.max(0, this.dashCooldown || 0), dashReady: !(this.dashCooldown > 0), enemyCount: this.enemies.length, arenaRadius: ARENA_RADIUS, stageDuration: STAGE_DURATION, bossSpawnTime: BOSS_SPAWN_TIME, bossSpawned: this.bossSpawned, bossDefeated: this.bossDefeated, boss: this.boss ? { name: this.boss.name, hp: Math.max(0, this.boss.hp), maxHp: this.boss.maxHp, alive: this.boss.hp > 0, spawned: this.bossSpawned, defeated: this.bossDefeated, phase: this.boss.mode } : null, spellState: this.magic?.getState() || [], playerStats: { ...this.stats, spells: { ...this.stats.spells }, evolutions: { ...this.stats.evolutions }, passiveLevels: { ...this.stats.passiveLevels } } };
   }
   emit() { this.callbacks.onUpdate?.(this.state); }
 
@@ -70,12 +75,14 @@ export class Game {
       player: standard('#e1e5b8', 0.6), armor: standard('#404947', 0.45, { metalness: 0.5 }), dark: standard('#141c1a'), cape: standard('#b5f45d', 0.8),
       lime: standard('#c1ff66', 0.3, { emissive: '#9edb32', emissiveIntensity: 1.5 }), crystal: standard('#a8ea4f', 0.5, { emissive: '#74a82d', emissiveIntensity: 0.6 }),
       enemy: standard('#634b57'), enemyDark: standard('#332a36'), enemy2: standard('#8d5840'), enemy3: standard('#54416e'), eye: standard('#ffa060', 0.5, { emissive: '#ff4e20', emissiveIntensity: 2 }),
+      ranged: standard('#5c658e'), rangedGlow: new THREE.MeshBasicMaterial({ color: '#ee759a' }), boss: standard('#5d343b', 0.5, { metalness: 0.2 }), bossGlow: standard('#ef785c', 0.4, { emissive: '#f74435', emissiveIntensity: 1.4 }), enemyBolt: new THREE.MeshBasicMaterial({ color: '#ff7294' }),
       gold: standard('#ffd06b', 0.4, { emissive: '#c89d24', emissiveIntensity: 0.6 }), xp: standard('#b2ff67', 0.3, { emissive: '#88c43e', emissiveIntensity: 1 }),
       white: new THREE.MeshBasicMaterial({ color: '#e7ffc9' }),
     };
     this.geo = {
       box: new THREE.BoxGeometry(1, 1, 1), sphere: new THREE.IcosahedronGeometry(1, 0), smallSphere: new THREE.IcosahedronGeometry(0.14, 0),
       monster: new THREE.IcosahedronGeometry(0.7, 0), cone: new THREE.ConeGeometry(0.26, 0.7, 4), xp: new THREE.OctahedronGeometry(0.15),
+      enemyBolt: new THREE.IcosahedronGeometry(0.26, 0), rangedHood: new THREE.ConeGeometry(0.7, 1.3, 5),
       coin: new THREE.CylinderGeometry(0.17, 0.17, 0.07, 8),
     };
   }
@@ -88,7 +95,7 @@ export class Game {
   createWorld() {
     this.hemi = new THREE.HemisphereLight('#d5e8c7', '#262923', 2.7);
     this.scene.add(this.hemi);
-    const sunlight = new THREE.DirectionalLight('#f2f2ce', 3.6);
+    const sunlight = this.sunlight = new THREE.DirectionalLight('#f2f2ce', 3.6);
     sunlight.position.set(-15, 35, 12); sunlight.castShadow = true;
     sunlight.shadow.mapSize.set(1024, 1024);
     Object.assign(sunlight.shadow.camera, { left: -28, right: 28, top: 28, bottom: -28, near: 0.5, far: 100 });
@@ -96,14 +103,14 @@ export class Game {
     sunlight.shadow.normalBias = 0.05;
     this.scene.add(sunlight);
     const fill = new THREE.DirectionalLight('#a5cf79', 1.1); fill.position.set(12, 8, -20); this.scene.add(fill);
-    const island = new THREE.Mesh(new THREE.CylinderGeometry(34, 30, 5, 12), this.mats.edge);
+    const island = new THREE.Mesh(new THREE.CylinderGeometry(68, 62, 5, 24), this.mats.edge);
     island.position.y = -2.65; island.receiveShadow = true; this.scene.add(island);
-    const ground = new THREE.Mesh(new THREE.CylinderGeometry(34.05, 34.05, 0.25, 12), this.mats.ground);
+    const ground = new THREE.Mesh(new THREE.CylinderGeometry(68.05, 68.05, 0.25, 24), this.mats.ground);
     ground.position.y = -0.08; ground.receiveShadow = true; this.scene.add(ground);
-    const grid = new THREE.GridHelper(64, 32, '#63704b', '#576348');
+    const grid = new THREE.GridHelper(128, 64, '#63704b', '#576348');
     grid.position.y = 0.06; grid.material.transparent = true; grid.material.opacity = 0.15; this.scene.add(grid);
     this.floorGrid = grid;
-    const rim = new THREE.Mesh(new THREE.TorusGeometry(32.85, 0.045, 3, 12), new THREE.MeshBasicMaterial({ color: '#9ac967', transparent: true, opacity: 0.32 }));
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(65.7, 0.06, 3, 24), new THREE.MeshBasicMaterial({ color: '#9ac967', transparent: true, opacity: 0.32 }));
     rim.rotation.x = Math.PI / 2; rim.position.y = 0.1; this.scene.add(rim);
     const center = new THREE.Group();
     for (let r = 0; r < 3; r++) {
@@ -114,21 +121,21 @@ export class Game {
     // Fixed pseudo-random scenery keeps restarts recognisable.
     let seed = 72;
     const random = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
-    for (let i = 0; i < 82; i++) {
-      const angle = random() * TAU, radius = 6 + random() * 26;
+    for (let i = 0; i < 150; i++) {
+      const angle = random() * TAU, radius = 6 + random() * 56;
       const x = Math.cos(angle) * radius, z = Math.sin(angle) * radius;
-      if (i < 38) {
+      if (i < 70) {
         const rock = new THREE.Mesh(this.geo.sphere, i % 3 ? this.mats.rock : this.mats.rockDark);
         rock.position.set(x, 0.12, z); rock.scale.set(0.25 + random() * 0.9, 0.3 + random() * 0.8, 0.25 + random() * 0.8);
         rock.rotation.set(random(), random() * TAU, random()); rock.castShadow = i < 14; this.scene.add(rock);
-      } else if (i < 65) {
+      } else if (i < 120) {
         const tile = this.box(this.mats.rockDark, x, 0.07, z, 0.5 + random(), 0.1, 0.6 + random()); tile.rotation.y = random() * TAU;
       } else {
         this.createGrass(x, z, random);
       }
     }
-    for (let i = 0; i < 10; i++) {
-      const a = i / 10 * TAU + 0.13, r = 29 + (i % 2) * 2;
+    for (let i = 0; i < 16; i++) {
+      const a = i / 16 * TAU + 0.13, r = i < 8 ? 29 + (i % 2) * 2 : 60 + (i % 2) * 2;
       const x = Math.cos(a) * r, z = Math.sin(a) * r;
       const height = 1.8 + (i % 3) * 0.9;
       const pillar = this.box(this.mats.rock, x, height / 2, z, 1.3, height, 1.3);
@@ -142,7 +149,7 @@ export class Game {
     }
     // Drifting dust subtly establishes depth without texture downloads.
     const vertices = [];
-    for (let i = 0; i < 110; i++) vertices.push(rnd(-36, 36), rnd(0.3, 9), rnd(-36, 36));
+    for (let i = 0; i < 110; i++) vertices.push(rnd(-68, 68), rnd(0.3, 9), rnd(-68, 68));
     const dustGeo = new THREE.BufferGeometry(); dustGeo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
     this.setStageMood(1, true);
     this.dust = new THREE.Points(dustGeo, new THREE.PointsMaterial({ color: '#bcce82', size: 0.055, transparent: true, opacity: 0.45, sizeAttenuation: true }));
@@ -191,7 +198,7 @@ export class Game {
 
   resetTimers() {
     this.lastGoldText = 0; this.pendingGoldText = 0;
-    this.attackTimer = 0.2; this.spawnTimer = 1.3; this.dashCooldown = 0; this.dashTime = 0; this.invulnerable = 0; this.shake = 0; this.comboTimer = 0; this.attackAnim = 0;
+    this.attackTimer = 0.2; this.spawnTimer = 1.3; this.bossSpawned = false; this.bossDefeated = false; this.boss = null; this.dashCooldown = 0; this.dashTime = 0; this.invulnerable = 0; this.shake = 0; this.comboTimer = 0; this.attackAnim = 0;
     this.dashDirection = new THREE.Vector3(0.707, 0, 0.707);
   }
   attractEnemies() {
@@ -202,30 +209,81 @@ export class Game {
   }
 
   spawnEnemy(x, z, kind) {
-    if (kind == null) kind = Math.random() < 0.16 + this._state.stage * 0.05 ? 2 : Math.random() < 0.35 ? 1 : 0;
+    if (kind == null) {
+      const roll = Math.random();
+      kind = this._state.stage >= 3 && roll < 0.18 + (this._state.stage - 3) * 0.06 ? 3 : roll < 0.39 ? 2 : Math.random() < 0.38 ? 1 : 0;
+    }
     const group = new THREE.Group(); group.position.set(x, 0, z);
     const visual = new THREE.Group(); group.add(visual);
-    const material = kind === 2 ? this.mats.enemy3 : kind === 1 ? this.mats.enemy2 : this.mats.enemy;
-    const size = kind === 2 ? 1.12 : kind === 1 ? 0.82 : 0.9;
-    const body = new THREE.Mesh(this.geo.monster, material); body.position.y = 0.72; body.scale.set(1, kind === 2 ? 1.35 : 0.95, 0.85); visual.add(body); body.castShadow = this.enemies.length < 30;
+    const material = kind === 4 ? this.mats.boss : kind === 3 ? this.mats.ranged : kind === 2 ? this.mats.enemy3 : kind === 1 ? this.mats.enemy2 : this.mats.enemy;
+    const size = kind === 4 ? 3.1 : kind === 3 ? 1.02 : kind === 2 ? 1.18 : kind === 1 ? 0.88 : 0.96;
+    const body = new THREE.Mesh(this.geo.monster, material); body.position.y = 0.72; body.scale.set(1, kind === 2 || kind === 4 ? 1.35 : 0.95, 0.85); visual.add(body); body.castShadow = this.enemies.length < 30;
     this.box(this.mats.enemyDark, -0.29, 0.15, 0, 0.24, 0.3, 0.28, visual);
     this.box(this.mats.enemyDark, 0.29, 0.15, 0, 0.24, 0.3, 0.28, visual);
-    this.box(this.mats.eye, -0.2, 0.85, 0.45, 0.14, kind === 2 ? 0.16 : 0.1, 0.08, visual);
-    this.box(this.mats.eye, 0.2, 0.85, 0.45, 0.14, kind === 2 ? 0.16 : 0.1, 0.1, visual);
-    if (kind === 2) {
+    this.box(this.mats.eye, -0.2, 0.85, 0.45, 0.14, kind >= 2 ? 0.16 : 0.1, 0.08, visual);
+    this.box(this.mats.eye, 0.2, 0.85, 0.45, 0.14, kind >= 2 ? 0.16 : 0.1, 0.1, visual);
+    if (kind === 2 || kind === 4) {
       for (const side of [-1, 1]) {
-        const horn = new THREE.Mesh(this.geo.cone, this.mats.enemyDark); horn.position.set(side * 0.4, 1.55, 0); horn.rotation.z = side * -0.35; visual.add(horn);
+        const horn = new THREE.Mesh(this.geo.cone, kind === 4 ? this.mats.bossGlow : this.mats.enemyDark); horn.position.set(side * 0.4, 1.55, 0); horn.rotation.z = side * -0.35; visual.add(horn);
       }
       this.box(material, -0.72, 0.8, 0, 0.3, 0.62, 0.3, visual);
       this.box(material, 0.72, 0.8, 0, 0.3, 0.62, 0.3, visual);
+      if (kind === 4) {
+        this.box(this.mats.bossGlow, 0, 0.95, 0.55, 0.4, 0.45, 0.12, visual);
+        const crown = this.box(this.mats.bossGlow, 0, 1.75, 0, 0.85, 0.14, 0.5, visual); crown.rotation.z = 0.08;
+      }
+    } else if (kind === 3) {
+      const hood = new THREE.Mesh(this.geo.rangedHood, material); hood.position.y = 1.3; visual.add(hood);
+      this.box(this.mats.enemyDark, 0.75, 0.9, 0, 0.12, 1.8, 0.12, visual);
+      const gem = new THREE.Mesh(this.geo.sphere, this.mats.rangedGlow); gem.scale.setScalar(0.23); gem.position.set(0.75, 1.9, 0); visual.add(gem);
     } else if (kind === 1) {
       const horn = new THREE.Mesh(this.geo.cone, this.mats.enemyDark); horn.position.set(0, 1.4, 0); horn.rotation.z = 0.12; visual.add(horn);
     }
     group.scale.setScalar(size); this.scene.add(group);
     const stageStats = getStageStats(this._state.stage);
-    const hp = stageStats.enemyHealth * (kind === 2 ? 2.2 : kind === 1 ? 0.75 : 1);
-    const enemy = { group, visual, hp, maxHp: hp, kind, size, speed: (kind === 2 ? 2 : kind === 1 ? 3.7 : 2.65) * (1 + this._state.stage * 0.05), hitTime: 0, stagger: new THREE.Vector3(), seed: Math.random() * TAU };
+    const hp = kind === 4 ? getBossStats(this._state.stage).health : stageStats.enemyHealth * (kind === 2 ? 2.2 : kind === 1 ? 0.8 : kind === 3 ? 1.15 : 1);
+    const enemy = { group, visual, hp, maxHp: hp, kind, size, speed: (kind === 4 ? 2.6 : kind === 3 ? 3 : kind === 2 ? 2.25 : kind === 1 ? 4.1 : 2.95) * (1 + this._state.stage * 0.055), hitTime: 0, slowTime: 0, slowFactor: 1, stagger: new THREE.Vector3(), seed: Math.random() * TAU, shootTimer: rnd(1.2, 2.6), windup: 0, aim: new THREE.Vector3() };
     this.enemies.push(enemy); return enemy;
+  }
+
+  spawnPosition(radiusMin = 12, radiusMax = 22) {
+    let x, z;
+    for (let attempt = 0; attempt < 16; attempt++) {
+      const angle = Math.random() * TAU, radius = rnd(radiusMin, radiusMax);
+      x = this.player.position.x + Math.sin(angle) * radius; z = this.player.position.z + Math.cos(angle) * radius;
+      if (Math.hypot(x, z) < ARENA_RADIUS - 2) return { x, z };
+    }
+    const towardCenter = this.player.position.clone().setY(0).normalize().multiplyScalar(-14);
+    return { x: this.player.position.x + towardCenter.x, z: this.player.position.z + towardCenter.z };
+  }
+
+  spawnBoss() {
+    if (this.bossSpawned) return this.boss;
+    const position = this.spawnPosition(15, 20);
+    const boss = this.spawnEnemy(position.x, position.z, 4);
+    const info = getBossStats(this._state.stage);
+    Object.assign(boss, { name: info.name, mode: 'chase', actionTimer: 2.2, actionIndex: 0, telegraph: null, chargeDirection: new THREE.Vector3() });
+    this.boss = boss; this.bossSpawned = true; this.bossDefeated = false;
+    this.burst(boss.group.position, '#fb745b', 20); this.sound('stage');
+    this.callbacks.onBoss?.(this.state.boss); this.emit(); return boss;
+  }
+
+  clearTelegraph(enemy) {
+    if (!enemy?.telegraph) return;
+    this.removeGroup(enemy.telegraph); enemy.telegraph.geometry.dispose(); enemy.telegraph.material.dispose(); enemy.telegraph = null;
+  }
+
+  createBossTelegraph(boss, kind) {
+    this.clearTelegraph(boss);
+    const geometry = kind === 'charge' ? new THREE.PlaneGeometry(3.2, 19) : new THREE.RingGeometry(0.1, 7.5, 48);
+    const material = new THREE.MeshBasicMaterial({ color: '#ff725d', transparent: true, opacity: 0.24, side: THREE.DoubleSide, depthWrite: false });
+    const mesh = new THREE.Mesh(geometry, material); mesh.rotation.x = -Math.PI / 2;
+    mesh.position.copy(boss.group.position); mesh.position.y = 0.15;
+    if (kind === 'charge') {
+      mesh.rotation.z = Math.atan2(boss.chargeDirection.x, boss.chargeDirection.z);
+      mesh.position.addScaledVector(boss.chargeDirection, 8);
+    }
+    this.scene.add(mesh); boss.telegraph = mesh;
   }
 
   setupInput() {
@@ -279,11 +337,32 @@ export class Game {
   chooseUpgrade(id) {
     if (this._state.phase !== 'upgrade' || !this.upgradeChoices?.some((choice) => choice.id === id)) return false;
     const before = this.stats.maxHp;
-    applyUpgrade(this.stats, id);
-    this._state.hp = Math.min(this.stats.maxHp, this._state.hp + Math.max(0, this.stats.maxHp - before) + this.stats.maxHp * 0.12);
+    if (!applyUpgrade(this.stats, id)) return false;
+    this._state.hp = Math.min(this.stats.maxHp, this._state.hp + Math.max(0, this.stats.maxHp - before));
     this.keys.clear(); this.touchMove = { x: 0, y: 0 };
     this._state.phase = 'playing'; this.sound('upgrade'); this.emit(); return true;
   }
+  purchaseUpgrade(id) {
+    if (!['playing', 'paused'].includes(this._state.phase)) return false;
+    const offer = getShopOffers(this.stats, this._state.stage).find(item => item.id === id);
+    if (!offer || !Number.isFinite(offer.price) || offer.price <= 0 || this._state.gold < offer.price) return false;
+    const before = this.stats.maxHp;
+    if (!applyUpgrade(this.stats, id)) return false;
+    this._state.gold -= offer.price;
+    this._state.hp = Math.min(this.stats.maxHp, this._state.hp + Math.max(0, this.stats.maxHp - before));
+    this.sound('upgrade'); this.emit(); return true;
+  }
+
+  openLevelUp() {
+    if (this._state.phase !== 'playing' || this._state.xp < this._state.xpNeeded) return false;
+    const s = this._state;
+    s.xp -= s.xpNeeded; s.level++; s.xpNeeded = getXpRequired(s.level);
+    this.upgradeChoices = getUpgradeChoices(this.stats);
+    if (!this.upgradeChoices.length) return false;
+    s.phase = 'upgrade'; this.keys.clear(); this.touchMove = { x: 0, y: 0 };
+    this.sound('upgrade'); this.callbacks.onLevelUp?.(this.upgradeChoices); this.emit(); return true;
+  }
+
   setMuted(value) { this.muted = !!value; if (!this.muted) this.initAudio(); }
   setQuality(value) { this.quality = value; this.renderer.setPixelRatio(value === 'low' ? 1 : Math.min(window.devicePixelRatio || 1, 1.6)); this.renderer.shadowMap.enabled = value !== 'low'; this.resize(); }
 
@@ -311,7 +390,7 @@ export class Game {
     const s = this._state; s.elapsed += dt; s.stageTime = Math.min(STAGE_DURATION, s.stageTime + dt);
     this.dashCooldown -= dt; this.invulnerable -= dt; this.dashTime -= dt; this.attackAnim = Math.max(0, this.attackAnim - dt);
     this.comboTimer -= dt; if (this.comboTimer <= 0) s.combo = 0;
-    if (this.stats.regen > 0) s.hp = Math.min(this.stats.maxHp, s.hp + this.stats.regen * dt);
+    if (this.stats.regen > 0) s.hp = Math.min(this.stats.maxHp, s.hp + this.stats.maxHp * this.stats.regen / 100 * dt);
     const direction = this.inputDirection();
     const moving = direction.lengthSq() > 0.01;
     if (this.dashTime > 0) {
@@ -327,76 +406,162 @@ export class Game {
     this.swordArm.rotation.y = this.attackAnim > 0 ? Math.sin(this.attackAnim / 0.3 * Math.PI) * -2 : 0;
     if (moving) this.player.rotation.y = this.lerpAngle(this.player.rotation.y, Math.atan2(direction.x, direction.z), dt * 13);
     this.spawnTimer -= dt;
-    const maxEnemies = Math.min(145, getStageStats(s.stage).maxEnemies || 145);
+    if (!this.bossSpawned && s.stageTime >= BOSS_SPAWN_TIME) this.spawnBoss();
+    const maxEnemies = Math.min(160, getStageStats(s.stage).maxEnemies || 145);
     if (this.spawnTimer <= 0 && this.enemies.length < maxEnemies) {
-      const burst = s.stage >= 3 && s.stageTime > 22 ? 2 : 1;
+      const burst = s.stage >= 3 && s.stageTime > STAGE_DURATION * 0.45 ? 2 : 1;
       for (let n = 0; n < burst && this.enemies.length < maxEnemies; n++) {
-        const angle = Math.random() * TAU, radius = rnd(17, 25);
-        let x = this.player.position.x + Math.sin(angle) * radius, z = this.player.position.z + Math.cos(angle) * radius;
-        const len = Math.hypot(x, z); if (len > 32) { x *= 32 / len; z *= 32 / len; }
-        this.spawnEnemy(x, z);
+        const position = this.spawnPosition(s.stage === 1 && s.stageTime < 15 ? 10 : 13, s.stage === 1 && s.stageTime < 15 ? 17 : 24);
+        this.spawnEnemy(position.x, position.z);
       }
       this.spawnTimer = getSpawnInterval(s.stage, s.stageTime);
     }
     this.attackTimer -= dt;
     if (this.attackTimer <= 0) { this.attack(); this.attackTimer = 1 / Math.max(0.2, this.stats.attackRate); }
+    this.magic.update(dt);
     this.updateEnemies(dt);
+    this.updateEnemyProjectiles(dt);
     this.updateProjectiles(dt);
     this.updatePickups(dt);
     if (s.hp <= 0) { s.hp = 0; s.phase = 'over'; this.playerVisual.visible = true; this.sound('over'); this.callbacks.onGameOver?.(this.state); this.emit(); return; }
-    if (s.xp >= s.xpNeeded) {
-      s.xp -= s.xpNeeded; s.level++; s.xpNeeded = getXpRequired(s.level);
-      s.phase = 'upgrade'; this.upgradeChoices = getUpgradeChoices(this.stats); this.sound('upgrade');
-      this.callbacks.onLevelUp?.(this.upgradeChoices); this.emit(); return;
-    }
-    if (s.stageTime >= STAGE_DURATION) this.nextStage();
+    if (this.openLevelUp()) return;
+    if (s.stageTime >= STAGE_DURATION && this.bossDefeated) this.nextStage();
   }
 
   nextStage() {
     const s = this._state;
-    // Cash out every remaining pickup so moving to a new arena never loses a reward.
+    if (!this.bossDefeated || s.stageTime < STAGE_DURATION) return false;
     for (const p of this.pickups) this.collectPickup(p, false);
     this.pickups.length = 0;
-    if (s.stage >= MAX_STAGES) { s.phase = 'won'; this.sound('win'); this.callbacks.onWin?.(this.state); this.emit(); return; }
+    if (s.stage >= MAX_STAGES) { s.phase = 'won'; this.sound('win'); this.callbacks.onWin?.(this.state); this.emit(); return true; }
     s.stage++; s.stageTime = 0; this.setStageMood(s.stage);
-    this.stats.damage *= 2.1; this.stats.maxHp = Math.round(this.stats.maxHp * 2); s.hp = this.stats.maxHp;
-    for (const enemy of this.enemies) this.removeGroup(enemy.group);
+    this.stats.damage *= 1.8; this.stats.maxHp = Math.round(this.stats.maxHp * 2); s.hp = this.stats.maxHp;
+    for (const enemy of this.enemies) { this.clearTelegraph(enemy); this.removeGroup(enemy.group); }
     this.enemies.length = 0;
     this.projectiles.forEach((p) => this.removeGroup(p.mesh)); this.projectiles.length = 0;
+    this.clearEnemyProjectiles(); this.magic.reset(); this.boss = null; this.bossSpawned = false; this.bossDefeated = false;
     this.spawnTimer = 0.8; this.invulnerable = 1.5;
-    this.burst(this.player.position, '#beff6e', 25); this.sound('stage'); this.callbacks.onStage?.(s.stage); this.emit();
+    this.burst(this.player.position, '#beff6e', 25); this.sound('stage'); this.callbacks.onStage?.(s.stage); this.emit(); return true;
+  }
+
+  takeDamage(rawDamage, source) {
+    if (this._state.phase !== 'playing' || this.invulnerable > 0 || this._state.hp <= 0) return false;
+    const damage = Math.max(1, rawDamage * (1 - Math.min(0.5, this.stats.armor)));
+    this._state.hp -= damage; this.invulnerable = 0.75; this.shake = 0.22;
+    this.floatText(`-${Math.round(damage)}`, this.player.position, '#ff8974', 1.1, 3);
+    this.burst(this.player.position, '#ff996c', 6); this.sound('hurt'); return true;
   }
 
   updateEnemies(dt) {
     const pos = this.player.position;
     for (let i = this.enemies.length - 1; i >= 0; i--) {
-      const e = this.enemies[i]; if (e.hp <= 0) continue;
+      const e = this.enemies[i]; if (!e || e.hp <= 0) continue;
+      if (e.kind === 4) { this.updateBoss(e, dt); continue; }
       const dx = pos.x - e.group.position.x, dz = pos.z - e.group.position.z, distance = Math.hypot(dx, dz);
       const stagger = Math.max(0, e.hitTime); e.hitTime -= dt;
+      e.slowTime = Math.max(0, (e.slowTime || 0) - dt);
+      const slow = e.slowTime > 0 ? Math.max(0.15, e.slowFactor || 0.5) : 1;
+      let movement = 1;
+      if (e.kind === 3) {
+        movement = distance < 9 ? -0.8 : distance > 15 ? 1 : 0;
+        e.shootTimer -= dt;
+        if (e.windup > 0) {
+          e.windup -= dt; movement *= 0.2;
+          if (e.warning) e.warning.scale.setScalar(0.18 + (0.65 - e.windup) * 0.45);
+          if (e.windup <= 0) {
+            const spread = this._state.stage >= 5 ? 3 : 1;
+            this.shootEnemyProjectile(e, e.aim, { count: spread, spread: 0.14 });
+            this.removeGroup(e.warning); e.warning = null; e.shootTimer = Math.max(1.6, 3.4 - this._state.stage * 0.18);
+          }
+        } else if (e.shootTimer <= 0 && distance < 27) {
+          e.windup = 0.65; e.aim.set(dx, 0, dz).normalize();
+          e.warning = new THREE.Mesh(this.geo.sphere, this.mats.rangedGlow); e.warning.position.set(0, 1.7, 0.4); e.warning.scale.setScalar(0.18); e.group.add(e.warning);
+        }
+      }
       if (distance > 0.01) {
-        const speed = e.speed * (stagger > 0 ? 0.22 : 1);
+        const speed = e.speed * slow * (stagger > 0 ? 0.22 : 1) * movement;
         e.group.position.x += dx / distance * speed * dt + e.stagger.x * dt;
         e.group.position.z += dz / distance * speed * dt + e.stagger.z * dt;
         e.group.rotation.y = Math.atan2(dx, dz);
       }
+      const boundary = Math.hypot(e.group.position.x, e.group.position.z);
+      if (boundary > ARENA_RADIUS) e.group.position.multiplyScalar(ARENA_RADIUS / boundary);
       e.stagger.multiplyScalar(Math.max(0, 1 - dt * 9));
       e.visual.position.y = Math.abs(Math.sin(this._state.elapsed * (e.kind === 1 ? 13 : 7) + e.seed)) * 0.12;
-      const pop = stagger > 0 ? 1 + stagger * 0.6 : 1; e.visual.scale.setScalar(pop);
-      if (distance < 1.15 && this.invulnerable <= 0) {
+      e.visual.scale.setScalar(stagger > 0 ? 1 + stagger * 0.6 : 1);
+      if (distance < 1.2) {
         const rawDamage = getStageStats(this._state.stage).enemyDamage * (e.kind === 2 ? 1.4 : 1);
-        const damage = Math.max(1, rawDamage * (1 - Math.min(0.75, this.stats.armor > 1 ? this.stats.armor / 100 : this.stats.armor)));
-        this._state.hp -= damage; this.invulnerable = 0.75; this.shake = 0.22;
-        e.stagger.set(-dx / Math.max(distance, 0.01) * 8, 0, -dz / Math.max(distance, 0.01) * 8);
-        this.burst(pos, '#ff996c', 6); this.sound('hurt');
+        if (this.takeDamage(rawDamage, e.group.position)) e.stagger.set(-dx / Math.max(distance, 0.01) * 8, 0, -dz / Math.max(distance, 0.01) * 8);
       }
-      // A sparse local repulsion avoids an unreadable single stack at the hero.
       if (i % 2 === this.frames % 2) for (let j = Math.max(0, i - 6); j < i; j++) {
-        const other = this.enemies[j]; if (!other || other.hp <= 0) continue;
+        const other = this.enemies[j]; if (!other || other.hp <= 0 || other.kind === 4) continue;
         const sx = e.group.position.x - other.group.position.x, sz = e.group.position.z - other.group.position.z, squared = sx * sx + sz * sz;
         if (squared > 0.0001 && squared < 0.9) { const force = dt * 1.8 / Math.sqrt(squared); e.group.position.x += sx * force; e.group.position.z += sz * force; }
       }
     }
   }
+
+  updateBoss(boss, dt) {
+    const dx = this.player.position.x - boss.group.position.x, dz = this.player.position.z - boss.group.position.z, distance = Math.hypot(dx, dz);
+    boss.actionTimer -= dt; boss.hitTime = Math.max(0, boss.hitTime - dt); boss.slowTime = Math.max(0, (boss.slowTime || 0) - dt);
+    const slow = boss.slowTime > 0 ? Math.max(0.55, boss.slowFactor || 0.5) : 1;
+    const enraged = boss.hp / boss.maxHp < 0.5;
+    if (boss.mode === 'chase') {
+      if (distance > 2.5) { boss.group.position.x += dx / distance * boss.speed * slow * dt; boss.group.position.z += dz / distance * boss.speed * slow * dt; }
+      boss.group.rotation.y = Math.atan2(dx, dz);
+      if (boss.actionTimer <= 0) {
+        boss.actionIndex++;
+        if (boss.actionIndex % 2 === 1) {
+          boss.mode = 'charge-warning'; boss.actionTimer = 0.95; boss.chargeDirection.set(dx, 0, dz).normalize(); this.createBossTelegraph(boss, 'charge');
+        } else { boss.mode = 'pulse-warning'; boss.actionTimer = 1.05; this.createBossTelegraph(boss, 'pulse'); }
+      }
+    } else if (boss.mode === 'charge-warning') {
+      if (boss.telegraph) boss.telegraph.material.opacity = 0.15 + (0.95 - boss.actionTimer) * 0.28;
+      if (boss.actionTimer <= 0) { this.clearTelegraph(boss); boss.mode = 'charge'; boss.actionTimer = 0.65; }
+    } else if (boss.mode === 'charge') {
+      boss.group.position.addScaledVector(boss.chargeDirection, dt * (enraged ? 30 : 25));
+      if (boss.actionTimer <= 0) { boss.mode = 'chase'; boss.actionTimer = enraged ? 2 : 2.8; }
+    } else if (boss.mode === 'pulse-warning') {
+      if (boss.telegraph) boss.telegraph.material.opacity = 0.12 + (1.05 - boss.actionTimer) * 0.32;
+      if (boss.actionTimer <= 0) {
+        this.clearTelegraph(boss);
+        if (distance < 7.5) this.takeDamage(getBossStats(this._state.stage).damage * 1.3, boss.group.position);
+        const wave = new THREE.Mesh(new THREE.RingGeometry(6.9, 7.5, 48), new THREE.MeshBasicMaterial({ color: '#ff876c', transparent: true, opacity: 0.85, side: THREE.DoubleSide, depthWrite: false }));
+        wave.position.copy(boss.group.position); wave.position.y = 0.2; wave.rotation.x = -Math.PI / 2; this.scene.add(wave); this.effects.push({ mesh: wave, life: 0.5, total: 0.5, type: 'slash' });
+        if (this._state.stage >= 3) this.shootEnemyProjectile(boss, new THREE.Vector3(dx, 0, dz).normalize(), { count: enraged ? 9 : 7, spread: 0.27, damage: getBossStats(this._state.stage).damage });
+        boss.mode = 'chase'; boss.actionTimer = enraged ? 1.8 : 2.6;
+      }
+    }
+    const radius = Math.hypot(boss.group.position.x, boss.group.position.z);
+    if (radius > ARENA_RADIUS - 2) boss.group.position.multiplyScalar((ARENA_RADIUS - 2) / radius);
+    boss.visual.position.y = Math.abs(Math.sin(this._state.elapsed * 5)) * 0.055;
+    boss.visual.scale.setScalar(1 + (boss.hitTime > 0 ? 0.04 : 0));
+    if (distance < 2.8) this.takeDamage(getBossStats(this._state.stage).damage * (boss.mode === 'charge' ? 1.5 : 1), boss.group.position);
+  }
+
+  shootEnemyProjectile(source, direction, options = {}) {
+    const position = source.group?.position || source.position || source;
+    const aim = direction?.clone?.() || this.player.position.clone().sub(position);
+    aim.y = 0; aim.normalize();
+    const count = Math.min(12, options.count || 1);
+    for (let i = 0; i < count && this.enemyProjectiles.length < 80; i++) {
+      const angle = Math.atan2(aim.x, aim.z) + (i - (count - 1) / 2) * (options.spread || 0);
+      const velocity = new THREE.Vector3(Math.sin(angle), 0, Math.cos(angle)).multiplyScalar(options.speed || 9);
+      const mesh = new THREE.Mesh(this.geo.enemyBolt, this.mats.enemyBolt); mesh.position.copy(position); mesh.position.y = 0.9; mesh.scale.setScalar(source.kind === 4 ? 1.35 : 1); this.scene.add(mesh);
+      this.enemyProjectiles.push({ mesh, velocity, life: options.life || 5, damage: options.damage || getStageStats(this._state.stage).enemyDamage * 0.8 });
+    }
+  }
+
+  updateEnemyProjectiles(dt) {
+    for (let i = this.enemyProjectiles.length - 1; i >= 0; i--) {
+      const p = this.enemyProjectiles[i]; p.life -= dt; p.mesh.position.addScaledVector(p.velocity, dt); p.mesh.rotation.y += dt * 4;
+      const dx = p.mesh.position.x - this.player.position.x, dz = p.mesh.position.z - this.player.position.z;
+      if (dx * dx + dz * dz < 1) { this.takeDamage(p.damage, p.mesh.position); p.life = 0; }
+      if (p.life <= 0 || Math.hypot(p.mesh.position.x, p.mesh.position.z) > 72) { this.removeGroup(p.mesh); this.enemyProjectiles.splice(i, 1); }
+    }
+  }
+
+  clearEnemyProjectiles() { for (const p of this.enemyProjectiles) this.removeGroup(p.mesh); this.enemyProjectiles.length = 0; }
 
   attack() {
     let nearest = null, minDist = Infinity;
@@ -404,23 +569,15 @@ export class Game {
       const distance = e.group.position.distanceToSquared(this.player.position);
       if (e.hp > 0 && distance < minDist) { minDist = distance; nearest = e; }
     }
-    if (!nearest || minDist > 33 * 33) return;
+    if (!nearest || minDist > 6.8 * 6.8) return;
     const delta = nearest.group.position.clone().sub(this.player.position).setY(0).normalize();
     this.player.rotation.y = Math.atan2(delta.x, delta.z); this.attackAnim = 0.3;
-    // The blade is a forgiving close-range cleave; the wisp seeks distant enemies.
+    // The blade cleaves nearby enemies; acquired spells own ranged attacks.
     this.slash(delta);
     for (const e of [...this.enemies]) {
       if (e.hp <= 0) continue;
       const d = e.group.position.clone().sub(this.player.position); const length = d.length();
       if (length < 5.5 && (length < 1.5 || d.normalize().dot(delta) > -0.35)) this.hitEnemy(e, this.stats.damage * 1.25, delta);
-    }
-    const count = Math.max(1, Math.min(7, Math.round(this.stats.projectiles || 1)));
-    for (let i = 0; i < count; i++) {
-      const angle = Math.atan2(delta.x, delta.z) + (i - (count - 1) / 2) * 0.19;
-      const direction = new THREE.Vector3(Math.sin(angle), 0, Math.cos(angle));
-      const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.16, 5, 4), this.mats.lime);
-      mesh.position.copy(this.player.position); mesh.position.y = 0.8; mesh.scale.set(1, 1, 2); mesh.rotation.y = angle;
-      this.scene.add(mesh); this.projectiles.push({ mesh, direction, life: 1.4, damage: this.stats.damage, pierce: this._state.level >= 8 ? 2 : 1, hit: new Set() });
     }
     this.sound('attack');
   }
@@ -447,18 +604,25 @@ export class Game {
     }
   }
 
-  hitEnemy(enemy, damage, direction) {
+  hitEnemy(enemy, damage, direction = new THREE.Vector3()) {
+    if (!enemy || enemy.hp <= 0 || !this.enemies.includes(enemy)) return false;
     const critical = Math.random() < this.stats.critChance;
     const dealt = damage * (critical ? 2 : 1);
     this.floatText(`${critical ? '✦ ' : ''}${Math.round(dealt).toLocaleString('en-US')}`, enemy.group.position, critical ? '#eeffad' : '#f1f4dc', critical ? 1.35 : 1, 1.65);
     enemy.hp -= dealt; enemy.hitTime = 0.16;
-    enemy.stagger.copy(direction).multiplyScalar(critical ? 12 : 7);
+    enemy.stagger.copy(direction).multiplyScalar(enemy.kind === 4 ? 0.4 : critical ? 12 : 7);
     this.puff(enemy.group.position, critical ? '#fff6ba' : '#c3f788', critical ? 0.7 : 0.35, 0.22);
     if (enemy.hp <= 0) {
       const position = enemy.group.position.clone();
       this._state.kills++; this._state.combo++; this.comboTimer = 3;
-      this.dropPickup(position, 'xp', enemy.kind === 2 ? 3 : 1);
-      this.dropPickup(position, 'gold', getStageStats(this._state.stage).coinValue * (enemy.kind === 2 ? 3 : 1));
+      const bossReward = enemy.kind === 4 ? getBossStats(this._state.stage) : null;
+      this.dropPickup(position, 'xp', bossReward ? bossReward.xpValue : enemy.kind === 2 ? 3 : enemy.kind === 3 ? 2 : 1);
+      this.dropPickup(position, 'gold', bossReward ? bossReward.coinValue : getStageStats(this._state.stage).coinValue * (enemy.kind === 2 ? 3 : enemy.kind === 3 ? 2 : 1));
+      if (enemy.kind === 4) {
+        this.bossDefeated = true; this.clearTelegraph(enemy); this.sound('win');
+        this.floatText('BOSS DEFEATED', position, '#ffcf86', 1.8, 5);
+        this.callbacks.onBossDefeat?.(this.state.boss);
+      }
       if (Math.random() < 0.03) this.dropPickup(position, 'heal', this.stats.maxHp * 0.12);
       this.burst(position, enemy.kind === 1 ? '#cb8a53' : '#987392', 4);
       this.removeGroup(enemy.group);
@@ -579,11 +743,12 @@ export class Game {
     target.y = 0.5;
     // A broad arena view makes the crowd readable while retaining true perspective.
     const menuOffset = this._state.phase === 'menu' ? 3.5 : 0;
-    const cameraTarget = new THREE.Vector3(target.x * 0.65 + 20 - menuOffset, 26, target.z * 0.65 + 25 + menuOffset);
+    const cameraTarget = new THREE.Vector3(target.x + 20 - menuOffset, 26, target.z + 25 + menuOffset);
     this.camera.position.lerp(cameraTarget, 1 - Math.exp(-dt * 4));
     if (this.shake > 0) { this.camera.position.x += rnd(-1, 1) * this.shake * 1.4; this.camera.position.z += rnd(-1, 1) * this.shake; }
-    const lookTarget = new THREE.Vector3(target.x * 0.65 - menuOffset, 0.5, target.z * 0.65 + menuOffset);
+    const lookTarget = new THREE.Vector3(target.x - menuOffset, 0.5, target.z + menuOffset);
     this.camera.lookAt(lookTarget);
+    if (this.sunlight) { this.sunlight.position.set(target.x - 15, 35, target.z + 12); this.sunlight.target.position.set(target.x, 0, target.z); this.sunlight.target.updateMatrixWorld(); }
   }
   lerpAngle(a, b, t) { let difference = ((b - a + Math.PI) % TAU + TAU) % TAU - Math.PI; return a + difference * Math.min(1, t); }
   resize() {
@@ -594,7 +759,8 @@ export class Game {
   removeGroup(group) { if (!group) return; group.parent?.remove(group); }
   clearDynamic() {
     while (this.floatingTexts.length) this.removeFloatingText(0);
-    for (const e of this.enemies) this.removeGroup(e.group);
+    for (const e of this.enemies) { this.clearTelegraph(e); this.removeGroup(e.group); }
+    this.clearEnemyProjectiles(); this.magic?.reset(); this.boss = null; this.bossSpawned = false; this.bossDefeated = false;
     for (const p of this.projectiles) { this.removeGroup(p.mesh); p.mesh.geometry.dispose(); }
     for (const p of this.pickups) this.removeGroup(p.mesh);
     for (const e of this.effects) { this.removeGroup(e.mesh); e.mesh.material.dispose(); if (e.type === 'slash') e.mesh.geometry.dispose(); }
@@ -624,14 +790,14 @@ export class Game {
     osc.connect(gain); gain.connect(this.audio.destination); osc.start(now); osc.stop(now + duration);
   }
 
-  getDebugState() { return { ...this.state, player: this.player.position.toArray(), enemies: this.enemies.length, pickups: this.pickups.length, floatingTexts: this.floatingTexts.length, projectiles: this.projectiles.length, frames: this.frames, drawCalls: this.renderer.info.render.calls, triangles: this.renderer.info.render.triangles, renderer: this.renderer.capabilities.isWebGL2 ? 'WebGL2' : 'WebGL', canvas: { width: this.renderer.domElement.width, height: this.renderer.domElement.height } }; }
+  getDebugState() { return { ...this.state, player: this.player.position.toArray(), enemies: this.enemies.length, pickups: this.pickups.length, floatingTexts: this.floatingTexts.length, projectiles: this.projectiles.length, enemyProjectiles: this.enemyProjectiles.length, rangedEnemies: this.enemies.filter(e => e.kind === 3).length, magic: this.magic?.getDebugState?.(), frames: this.frames, drawCalls: this.renderer.info.render.calls, triangles: this.renderer.info.render.triangles, renderer: this.renderer.capabilities.isWebGL2 ? 'WebGL2' : 'WebGL', canvas: { width: this.renderer.domElement.width, height: this.renderer.domElement.height } }; }
   /** Deterministic-time simulation hook for smoke tests; respects pause and choices. */
   stepForTest(seconds) { for (let t = 0; t < seconds && this._state.phase === 'playing'; t += 1 / 60) { this.frames++; this.tick(1 / 60); this.animateEffects(1 / 60); } this.emit(); return this.getDebugState(); }
   dispose() {
     this.disposed = true; cancelAnimationFrame(this.raf); this.observer.disconnect();
     window.removeEventListener('keydown', this.onKeyDown); window.removeEventListener('keyup', this.onKeyUp); window.removeEventListener('blur', this.onBlur); document.removeEventListener('visibilitychange', this.onVisibility);
     this.renderer.domElement.removeEventListener('pointerdown', this.onPointerDown); this.renderer.domElement.removeEventListener('pointermove', this.onPointerMove); this.renderer.domElement.removeEventListener('pointerup', this.onPointerUp); this.renderer.domElement.removeEventListener('pointercancel', this.onPointerUp);
-    this.clearDynamic();
+    this.clearDynamic(); this.magic?.dispose();
     const geometries = new Set(), materials = new Set();
     this.scene.traverse((object) => { if (object.geometry) geometries.add(object.geometry); if (object.material) (Array.isArray(object.material) ? object.material : [object.material]).forEach((m) => materials.add(m)); });
     Object.values(this.geo).forEach((geometry) => geometries.add(geometry)); Object.values(this.mats).forEach((material) => materials.add(material));

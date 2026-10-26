@@ -1,77 +1,168 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  STAGE_DURATION, MAX_STAGES, getStageStats, getSpawnInterval,
-  getXpRequired, formatGold, getUpgradeChoices, applyUpgrade,
+  STAGE_DURATION, BOSS_SPAWN_TIME, MAX_STAGES, ARENA_RADIUS, SPELLS,
+  getStageStats, getBossStats, getSpawnInterval, getXpRequired,
+  formatGold, getUpgradeChoices, getShopOffers, applyUpgrade,
 } from '../src/balance.js';
 
-test('each new stage multiplies gold by 10 and monster health/damage by 3.2', () => {
-  assert.equal(STAGE_DURATION, 45);
+const fresh = () => ({
+  maxHp: 100, damage: 18, attackRate: 1.5, speed: 7.5, magnet: 5.5,
+  critChance: 0.08, armor: 0, regen: 0,
+  spells: { fireball: 1, frost: 0, lightning: 0, orbit: 0 },
+  evolutions: {}, passiveLevels: {},
+});
+const near = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-10, `${actual} ≈ ${expected}`);
+
+test('two-minute stages, late bosses and four times the previous map area', () => {
+  assert.equal(STAGE_DURATION, 120);
+  assert.equal(BOSS_SPAWN_TIME, 90);
+  assert.ok(BOSS_SPAWN_TIME < STAGE_DURATION);
   assert.equal(MAX_STAGES, 5);
-  for (let stage = 2; stage <= MAX_STAGES; stage += 1) {
-    const previous = getStageStats(stage - 1);
-    const current = getStageStats(stage);
-    assert.equal(current.coinValue / previous.coinValue, 10);
-    assert.ok(Math.abs(current.enemyHealth / previous.enemyHealth - 3.2) < 1e-12);
-    assert.ok(Math.abs(current.enemyDamage / previous.enemyDamage - 3.2) < 1e-12);
-    assert.ok(current.maxEnemies > previous.maxEnemies);
-  }
-  assert.equal(getStageStats(-9).coinValue, 1);
+  assert.equal(ARENA_RADIUS ** 2 / 31 ** 2, 4);
 });
 
-test('spawn curve preserves a quiet opening and grows into a dense late horde', () => {
-  assert.equal(getSpawnInterval(1, 0), 2.2);
-  assert.equal(getSpawnInterval(1, 8), 2.2);
-  assert.ok(getSpawnInterval(5, 45) < 0.1);
-  for (let stage = 1; stage <= MAX_STAGES; stage += 1) {
+test('tougher monsters retain exact gold x10 and health/damage x3.2 stage curves', () => {
+  assert.equal(getStageStats(1).enemyHealth, 28);
+  assert.equal(getStageStats(1).enemyDamage, 7.5);
+  for (let stage = 2; stage <= MAX_STAGES; stage++) {
+    const previous = getStageStats(stage - 1), current = getStageStats(stage);
+    assert.equal(current.coinValue / previous.coinValue, 10);
+    near(current.enemyHealth / previous.enemyHealth, 3.2);
+    near(current.enemyDamage / previous.enemyDamage, 3.2);
+    assert.ok(current.maxEnemies > previous.maxEnemies && current.maxEnemies <= 160);
+  }
+  assert.deepEqual(getStageStats(-9), getStageStats(1));
+  assert.deepEqual(getStageStats(Infinity), getStageStats(1));
+  assert.deepEqual(getStageStats(99), getStageStats(5));
+});
+
+test('every stage has a named boss with substantial health and real rewards', () => {
+  const names = new Set();
+  for (let stage = 1; stage <= MAX_STAGES; stage++) {
+    const boss = getBossStats(stage), monsters = getStageStats(stage);
+    names.add(boss.name);
+    near(boss.health, monsters.enemyHealth * 35);
+    assert.ok(boss.damage > monsters.enemyDamage);
+    assert.equal(boss.coinValue, monsters.coinValue * 25);
+    assert.equal(boss.xpValue, 15);
+  }
+  assert.equal(names.size, MAX_STAGES);
+});
+
+test('spawns preserve the quiet opening and ramp over the full longer stage', () => {
+  assert.equal(getSpawnInterval(1, 0), 2.6);
+  assert.equal(getSpawnInterval(1, 12), 2.6);
+  assert.ok(getSpawnInterval(5, STAGE_DURATION) < 0.1);
+  assert.ok(getSpawnInterval(1, 45) > getSpawnInterval(1, 110) * 2);
+  for (let stage = 1; stage <= MAX_STAGES; stage++) {
     let previous = Infinity;
-    for (let time = 0; time <= STAGE_DURATION; time += 1) {
+    for (let time = 0; time <= STAGE_DURATION; time++) {
       const interval = getSpawnInterval(stage, time);
       assert.ok(interval > 0 && interval <= previous);
       previous = interval;
     }
   }
   assert.equal(getSpawnInterval(1, -1), getSpawnInterval(1, 0));
-  assert.equal(getSpawnInterval(5, 1000), getSpawnInterval(5, 45));
+  assert.equal(getSpawnInterval(5, 1000), getSpawnInterval(5, STAGE_DURATION));
 });
 
-test('level requirements increase and never collapse on invalid input', () => {
-  assert.equal(getXpRequired(1), 8);
-  for (let level = 2; level <= 100; level += 1) {
-    assert.ok(getXpRequired(level) > getXpRequired(level - 1));
-  }
-  assert.equal(getXpRequired(-5), 8);
+test('first level-up is accessible and later levels still require increasing XP', () => {
+  assert.equal(getXpRequired(1), 5);
+  for (let level = 2; level <= 100; level++) assert.ok(getXpRequired(level) > getXpRequired(level - 1));
+  assert.equal(getXpRequired(-5), 5);
+  assert.equal(getXpRequired(NaN), 5);
 });
 
-test('level-up choices are distinct and honor capped player stats', () => {
+test('every level offers a real spell and small passive with three distinct choices', () => {
   for (const seed of [0, 0.2, 0.5, 0.9, 1]) {
-    const choices = getUpgradeChoices({}, () => seed);
+    const choices = getUpgradeChoices(fresh(), () => seed);
     assert.equal(choices.length, 3);
-    assert.equal(new Set(choices.map((choice) => choice.id)).size, 3);
-    assert.ok(choices.every((choice) => choice.title && choice.description && choice.icon));
-  }
-  const capped = { critChance: 0.9, armor: 0.75, projectiles: 6 };
-  for (let run = 0; run < 25; run += 1) {
-    assert.ok(getUpgradeChoices(capped).every((choice) => !['critical', 'armor', 'multishot'].includes(choice.id)));
+    assert.equal(new Set(choices.map(choice => choice.id)).size, 3);
+    assert.ok(choices.some(choice => choice.category === 'spell'));
+    assert.ok(choices.some(choice => choice.category === 'passive'));
+    for (const choice of choices) {
+      assert.ok(choice.title && choice.description && choice.icon);
+      assert.ok(choice.rank > 0 && choice.rank <= choice.maxRank);
+      assert.equal(applyUpgrade(fresh(), choice.id), true);
+    }
   }
 });
 
-test('all upgrades improve a real combat stat and preserve caps', () => {
-  const initial = { maxHp: 100, damage: 18, attackRate: 1.5, speed: 7, magnet: 5, projectiles: 1, critChance: 0.08, armor: 0, regen: 0 };
-  const keys = { power: 'damage', haste: 'attackRate', vitality: 'maxHp', magnet: 'magnet', multishot: 'projectiles', critical: 'critChance', armor: 'armor', regen: 'regen' };
-  for (const [id, key] of Object.entries(keys)) {
-    const stats = { ...initial };
+test('passives are micro improvements and caps reject additional purchases', () => {
+  const effects = {
+    power: ['damage', 18 * 1.05], haste: ['attackRate', 1.5 * 1.05],
+    vitality: ['maxHp', 105], magnet: ['magnet', 5.5 * 1.08],
+    critical: ['critChance', 0.10], armor: ['armor', 0.02],
+    regen: ['regen', 0.2], speed: ['speed', 7.5 * 1.03],
+  };
+  for (const [id, [key, expected]] of Object.entries(effects)) {
+    const stats = fresh();
     assert.equal(applyUpgrade(stats, id), true);
-    assert.ok(stats[key] > initial[key], id);
-    assert.ok(Object.values(stats).every(Number.isFinite));
-    for (let run = 0; run < 100; run += 1) applyUpgrade(stats, id);
-    if (id === 'armor') assert.ok(stats.armor <= 0.75);
-    if (id === 'critical') assert.ok(stats.critChance <= 0.9);
-    if (id === 'multishot') assert.ok(stats.projectiles <= 6);
+    near(stats[key], expected);
+    assert.equal(stats.passiveLevels[id], 1);
+    for (let count = 1; count < (id === 'regen' ? 10 : 12); count++) assert.equal(applyUpgrade(stats, id), true);
+    const capped = structuredClone(stats);
+    assert.equal(applyUpgrade(stats, id), false, id);
+    assert.deepEqual(stats, capped);
+    assert.ok(!getShopOffers(stats).some(offer => offer.id === id));
   }
-  const stats = { ...initial };
+  const highCrit = { ...fresh(), critChance: 0.595 };
+  applyUpgrade(highCrit, 'critical');
+  assert.equal(highCrit.critChance, 0.6);
+  assert.equal(applyUpgrade(highCrit, 'critical'), false);
+  const highArmor = { ...fresh(), armor: 0.495 };
+  applyUpgrade(highArmor, 'armor');
+  assert.equal(highArmor.armor, 0.5);
+  assert.equal(applyUpgrade(highArmor, 'armor'), false);
+});
+
+test('four spells unlock, rank up and evolve once after rank five', () => {
+  for (const spell of SPELLS) {
+    const stats = fresh(); stats.spells[spell.id] = 0;
+    assert.equal(applyUpgrade(stats, `evolve_${spell.id}`), false);
+    for (let rank = 1; rank <= 5; rank++) {
+      assert.equal(applyUpgrade(stats, `spell_${spell.id}`), true);
+      assert.equal(stats.spells[spell.id], rank);
+    }
+    assert.equal(applyUpgrade(stats, `spell_${spell.id}`), false);
+    const evolution = getUpgradeChoices(stats, () => 0).find(choice => choice.id === `evolve_${spell.id}`);
+    if (spell.id === 'fireball') assert.equal(evolution?.category, 'evolution');
+    assert.equal(applyUpgrade(stats, `evolve_${spell.id}`), true);
+    assert.equal(stats.evolutions[spell.id], true);
+    assert.equal(applyUpgrade(stats, `evolve_${spell.id}`), false);
+    assert.ok(getUpgradeChoices(stats).every(choice => choice.id !== `spell_${spell.id}` && choice.id !== `evolve_${spell.id}`));
+  }
+});
+
+test('shop offers are deterministic, spendable, capped, and scale with stage economy', () => {
+  const stats = fresh();
+  const first = getShopOffers(stats, 1), second = getShopOffers(stats, 2);
+  assert.equal(first.length, 4);
+  assert.deepEqual(first, getShopOffers(stats, 1));
+  assert.equal(new Set(first.map(offer => offer.id)).size, 4);
+  assert.ok(first.some(offer => offer.category === 'spell'));
+  for (let index = 0; index < first.length; index++) {
+    assert.equal(second[index].id, first[index].id);
+    assert.equal(second[index].price, first[index].price * 10);
+    assert.ok(Number.isInteger(first[index].price) && first[index].price > 0);
+    assert.equal(applyUpgrade(fresh(), first[index].id), true);
+  }
+  const oldCost = first.find(offer => offer.id === 'power').price;
+  applyUpgrade(stats, 'power');
+  const upgradedOffers = getShopOffers(stats, 1);
+  assert.ok(upgradedOffers.find(offer => offer.id === 'power').price > oldCost);
+  const nextStageOffers = getShopOffers(stats, 2);
+  for (let index = 0; index < upgradedOffers.length; index++) assert.equal(nextStageOffers[index].price, upgradedOffers[index].price * 10);
+});
+
+test('fully completed builds have no invalid or endlessly purchasable upgrades', () => {
+  const stats = fresh();
+  for (const spell of SPELLS) { stats.spells[spell.id] = 5; stats.evolutions[spell.id] = true; }
+  for (const id of ['power', 'haste', 'vitality', 'magnet', 'critical', 'armor', 'regen', 'speed']) stats.passiveLevels[id] = 12;
+  assert.deepEqual(getUpgradeChoices(stats), []);
+  assert.deepEqual(getShopOffers(stats), []);
   assert.equal(applyUpgrade(stats, 'missing'), false);
-  assert.deepEqual(stats, initial);
 });
 
 test('gold display supports the large stage economy and Korean large-number units', () => {
