@@ -84,8 +84,10 @@ const EVOLUTIONS = {
 };
 
 const PASSIVES = [
-  { id: 'power', title: '예리한 칼날', description: '검과 마법의 공격력 +5%', rarity: 'rare', icon: 'sword', weight: 4, maxRank: 12 },
-  { id: 'haste', title: '정교한 호흡', description: '검과 마법의 공격 속도 +5%', rarity: 'rare', icon: 'bolt', weight: 3, maxRank: 12 },
+  { id: 'power', title: '예리한 칼날', description: '검 공격력 +5% · 마법과 별도 성장', rarity: 'rare', icon: 'sword', weight: 4, maxRank: 12, branch: 'sword' },
+  { id: 'haste', title: '검술의 호흡', description: '검 공격 속도 +5%', rarity: 'rare', icon: 'sword', weight: 3, maxRank: 12, branch: 'sword' },
+  { id: 'spell_power', title: '마력 응축', description: '모든 마법 공격력 +5% · 검과 별도 성장', rarity: 'epic', icon: 'orbit', weight: 4, maxRank: 12, branch: 'magic' },
+  { id: 'spell_haste', title: '주문 가속', description: '모든 마법 시전 속도 +5%', rarity: 'epic', icon: 'bolt', weight: 3, maxRank: 12, branch: 'magic' },
   { id: 'vitality', title: '생명의 씨앗', description: '최대 체력 +5% · 증가한 체력만큼 회복', rarity: 'rare', icon: 'heart', weight: 3, maxRank: 12 },
   { id: 'magnet', title: '작은 탐욕', description: '경험치와 골드 획득 범위 +8%', rarity: 'rare', icon: 'magnet', weight: 2, maxRank: 12 },
   { id: 'critical', title: '집중', description: '치명타 확률 +2%p', rarity: 'rare', icon: 'target', weight: 2, maxRank: 12 },
@@ -107,6 +109,7 @@ function spellChoices(stats = {}) {
       rarity: rank ? 'epic' : 'rare',
       icon: spell.icon,
       category: 'spell',
+      branch: 'magic',
       rank: rank + 1,
       maxRank: spell.maxRank,
       spellId: spell.id,
@@ -115,7 +118,7 @@ function spellChoices(stats = {}) {
     if (!stats.evolutions?.[spell.id]) return [{
       id: `evolve_${spell.id}`, title: spell.evolutionName,
       description: EVOLUTIONS[spell.id], rarity: 'legendary', icon: spell.icon,
-      category: 'evolution', rank: 5, maxRank: 5, spellId: spell.id, weight: 12,
+      category: 'evolution', branch: 'magic', rank: 5, maxRank: 5, spellId: spell.id, weight: 12,
     }];
     return [];
   });
@@ -127,7 +130,7 @@ function passiveChoices(stats = {}) {
     if (passive.id === 'critical' && finite(stats.critChance, 0.08) >= 0.6) return false;
     if (passive.id === 'armor' && finite(stats.armor, 0) >= 0.5) return false;
     return true;
-  }).map(passive => ({ ...passive, category: 'passive', rank: passiveRank(stats, passive.id) + 1 }));
+  }).map(passive => ({ ...passive, branch: passive.branch || 'core', category: passive.branch === 'sword' ? 'blade' : passive.branch === 'magic' ? 'spell' : 'passive', rank: passiveRank(stats, passive.id) + 1 }));
 }
 
 function takeWeighted(candidates, random) {
@@ -143,14 +146,18 @@ function takeWeighted(candidates, random) {
 
 const withoutWeight = ({ weight: _weight, ...choice }) => choice;
 
-/** Every level offers a spell when one is available, alongside small passives. */
+/** Keep a learnable spell, a separate attack branch and a utility choice available. */
 export function getUpgradeChoices(playerStats = {}, random = Math.random) {
   const spells = spellChoices(playerStats);
   const passives = passiveChoices(playerStats);
   const selected = [];
   if (spells.length) selected.push(takeWeighted(spells, random));
-  if (passives.length) selected.push(takeWeighted(passives, random));
-  const remaining = [...spells, ...passives];
+  const attacks = passives.filter(choice => choice.branch !== 'core');
+  const utility = passives.filter(choice => choice.branch === 'core');
+  if (attacks.length) selected.push(takeWeighted(attacks, random));
+  if (utility.length) selected.push(takeWeighted(utility, random));
+  const chosen = new Set(selected.map(choice => choice.id));
+  const remaining = [...spells, ...passives].filter(choice => !chosen.has(choice.id));
   while (selected.length < 3 && remaining.length) selected.push(takeWeighted(remaining, random));
   return selected.map(withoutWeight);
 }
@@ -177,6 +184,8 @@ export function applyUpgrade(stats, id) {
   switch (id) {
     case 'power': stats.damage = finite(stats.damage, 18) * 1.05; break;
     case 'haste': stats.attackRate = finite(stats.attackRate, 1.5) * 1.05; break;
+    case 'spell_power': stats.spellDamage = finite(stats.spellDamage, 18) * 1.05; break;
+    case 'spell_haste': stats.spellRate = finite(stats.spellRate, 1.5) * 1.05; break;
     case 'vitality': stats.maxHp = finite(stats.maxHp, 100) * 1.05; break;
     case 'magnet': stats.magnet = finite(stats.magnet, 5.5) * 1.08; break;
     case 'critical': stats.critChance = Math.min(0.6, finite(stats.critChance, 0.08) + 0.02); break;

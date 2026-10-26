@@ -71,7 +71,7 @@ try {
 
   await page.locator('#result-permanent').click();
   assert.equal(await page.locator('.modal-permanent').isVisible(), true);
-  assert.equal(await page.locator('#permanent-grid [data-permanent-buy]').count(), 6);
+  assert.equal(await page.locator('#permanent-grid [data-permanent-buy]').count(), 10);
   const endedDamage = await page.evaluate(() => window.__game.state.damage);
   await page.locator('[data-permanent-buy="power"]').click();
   saved = await progress();
@@ -109,7 +109,7 @@ try {
   assert.deepEqual(secondRun.playerStats.spells, { fireball: 1, frost: 0, lightning: 0, orbit: 0 });
   await page.locator('[data-nav="permanent"]').first().click();
   assert.equal(await phase(), 'paused');
-  const disabled = await page.locator('[data-permanent-buy]').evaluateAll(buttons => buttons.length === 6 && buttons.every(button => button.disabled));
+  const disabled = await page.locator('[data-permanent-buy]').evaluateAll(buttons => buttons.length === 10 && buttons.every(button => button.disabled));
   assert.equal(disabled, true, 'permanent upgrades can only be purchased between runs');
   const rejected = await page.evaluate(() => window.__game.setPermanentBonuses({ damageMultiplier: 2 }));
   assert.equal(rejected, false, 'the engine rejects changes to permanent bonuses during a run');

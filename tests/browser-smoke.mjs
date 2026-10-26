@@ -63,7 +63,7 @@ try {
   assert.equal(await phase(), 'playing');
   await page.reload();
   await page.waitForFunction(() => window.__game?.getDebugState().frames > 1);
-  assert.deepEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('voidrun.preferences'))), { muted: false, quality: 'low' });
+  assert.deepEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('voidrun.preferences'))), { muted: false, quality: 'low', risk: 'none' });
   assert.equal(await page.locator('#sound-toggle').getAttribute('aria-label'), '사운드 끄기');
   assert.equal(await page.evaluate(() => window.__game.quality), 'low');
   console.log('PASS desktop: sound/quality preferences persist after reload and activate renderer settings');
@@ -120,7 +120,8 @@ try {
   await phone.locator('#touch-dash').tap();
   assert.ok(await phone.evaluate(() => window.__game.state.dashCooldown > 0), 'touch dash starts cooldown');
   assert.equal(await phone.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
-  await phone.locator('#settings').tap();
+  await phone.locator('#pause-button').tap();
+  await phone.locator('#pause-settings').tap();
   assert.equal(await phone.locator('.modal-settings').isVisible(), true);
   assert.equal(await phone.evaluate(() => window.__game.state.phase), 'paused');
   await phone.locator('#modal-close').tap();

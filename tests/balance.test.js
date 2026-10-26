@@ -7,7 +7,7 @@ import {
 } from '../src/balance.js';
 
 const fresh = () => ({
-  maxHp: 100, damage: 18, attackRate: 1.5, speed: 7.5, magnet: 5.5,
+  maxHp: 100, damage: 18, spellDamage: 18, attackRate: 1.5, spellRate: 1.5, speed: 7.5, magnet: 5.5,
   critChance: 0.08, armor: 0, regen: 0,
   spells: { fireball: 1, frost: 0, lightning: 0, orbit: 0 },
   evolutions: {}, passiveLevels: {},
@@ -92,6 +92,7 @@ test('every level offers a real spell and small passive with three distinct choi
 test('passives are micro improvements and caps reject additional purchases', () => {
   const effects = {
     power: ['damage', 18 * 1.05], haste: ['attackRate', 1.5 * 1.05],
+    spell_power: ['spellDamage', 18 * 1.05], spell_haste: ['spellRate', 1.5 * 1.05],
     vitality: ['maxHp', 105], magnet: ['magnet', 5.5 * 1.08],
     critical: ['critChance', 0.10], armor: ['armor', 0.02],
     regen: ['regen', 0.2], speed: ['speed', 7.5 * 1.03],
@@ -137,7 +138,7 @@ test('four spells unlock, rank up and evolve once after rank five', () => {
 test('fully completed temporary builds have no invalid additional upgrades', () => {
   const stats = fresh();
   for (const spell of SPELLS) { stats.spells[spell.id] = 5; stats.evolutions[spell.id] = true; }
-  for (const id of ['power', 'haste', 'vitality', 'magnet', 'critical', 'armor', 'regen', 'speed']) stats.passiveLevels[id] = 12;
+  for (const id of ['power', 'haste', 'spell_power', 'spell_haste', 'vitality', 'magnet', 'critical', 'armor', 'regen', 'speed']) stats.passiveLevels[id] = 12;
   assert.deepEqual(getUpgradeChoices(stats), []);
   assert.equal(applyUpgrade(stats, 'missing'), false);
 });

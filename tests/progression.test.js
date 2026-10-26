@@ -69,14 +69,20 @@ test('upgrade prices rise geometrically and completed upgrades cannot be bought 
 });
 
 test('permanent bonuses remain small and independently affect the intended starting stat', () => {
-  assert.deepEqual(getPermanentBonuses(createProgress()), { damageMultiplier: 1, maxHpMultiplier: 1, attackRateMultiplier: 1, armorBonus: 0, magnetMultiplier: 1, goldMultiplier: 1 });
+  assert.deepEqual(getPermanentBonuses(createProgress()), { damageMultiplier: 1, spellDamageMultiplier: 1, maxHpMultiplier: 1, attackRateMultiplier: 1, spellRateMultiplier: 1, swordRangeMultiplier: 1, spellAreaMultiplier: 1, armorBonus: 0, magnetMultiplier: 1, goldMultiplier: 1, characterId: 'wanderer', weaponId: 'voidblade' });
   assert.deepEqual(getPermanentBonuses({ upgrades: { power: 2, vitality: 2, haste: 2, armor: 2, magnet: 2, fortune: 2 } }), {
     damageMultiplier: 1.04,
+    spellDamageMultiplier: 1,
     maxHpMultiplier: 1.04,
     attackRateMultiplier: 1.02,
+    spellRateMultiplier: 1,
+    swordRangeMultiplier: 1,
+    spellAreaMultiplier: 1,
     armorBonus: 0.01,
     magnetMultiplier: 1.04,
     goldMultiplier: 1.02,
+    characterId: 'wanderer',
+    weaponId: 'voidblade',
   });
   const offer = getPermanentUpgradeOffers({ upgrades: { armor: 2 } }).find(item => item.id === 'armor');
   assert.equal(offer.currentBonus, 1, 'armor is displayed in percentage points');
@@ -114,7 +120,7 @@ test('stored values are sanitized, levels capped, and receipts deduplicated and 
   });
   assert.equal(progress.bank, 18);
   assert.equal(progress.lifetimeGold, 0);
-  assert.deepEqual(progress.upgrades, { power: 50, vitality: 0, haste: 0, armor: 3, magnet: 0, fortune: 2 });
+  assert.deepEqual(progress.upgrades, { power: 50, vitality: 0, haste: 0, armor: 3, magnet: 0, fortune: 2, arcana: 0, focus: 0, bladeReach: 0, spellArea: 0 });
   assert.equal(progress.settledRunIds.length, 200);
   assert.equal(new Set(progress.settledRunIds).size, 200);
   assert.equal(progress.settledRunIds.at(-1), 'receipt-204');
