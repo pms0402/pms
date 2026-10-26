@@ -1,0 +1,31 @@
+const paths = {
+  bolt: '<path d="m13 2-9 12h7l-1 8 10-12h-7l1-8Z"/>',
+  sword: '<path d="m14.5 3.5 6-1-1 6-9 9-5-5 9-9Z"/><path d="m3 14 7 7m-3-3-4 4m1-1-2-2m12-12 3 3"/>',
+  skull: '<path d="M8 21v-4H5l-2-4V9a9 9 0 0 1 18 0v4l-2 4h-3v4H8Z"/><path d="M10 21v-4m4 4v-4"/><circle cx="8" cy="10" r="1.5"/><circle cx="16" cy="10" r="1.5"/><path d="m11 14 1-2 1 2"/>',
+  heart: '<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/>',
+  coin: '<ellipse cx="12" cy="12" rx="8" ry="9"/><path d="M12 7v10m3-8h-4a2 2 0 0 0 0 4h2a2 2 0 0 1 0 4H9"/>',
+  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  arrow: '<path d="M4 12h16m-6-6 6 6-6 6"/>',
+  chevron: '<path d="m9 5 7 7-7 7"/>',
+  play: '<path d="m8 4 13 8-13 8V4Z"/>',
+  pause: '<path d="M7 5h3v14H7zm7 0h3v14h-3z"/>',
+  sound: '<path d="m11 4-6 5H2v6h3l6 5V4Zm4 4a5 5 0 0 1 0 8m3-11a9 9 0 0 1 0 14"/>',
+  muted: '<path d="m11 4-6 5H2v6h3l6 5V4Zm5 5 6 6m0-6-6 6"/>',
+  settings: '<path d="m10 2-1 3-3 1-3-1-2 4 3 2v3l-2 2 2 4 3-1 3 1 1 3h4l1-3 3-1 3 1 2-4-3-2v-3l2-2-2-4-3 1-3-1-1-3h-4Z" transform="translate(-.5,-.5) scale(.96)"/><circle cx="12" cy="12" r="3"/>',
+  close: '<path d="m6 6 12 12M18 6 6 18"/>',
+  trophy: '<path d="M7 3h10v6a5 5 0 0 1-10 0V3Zm0 2H3v3a4 4 0 0 0 4 4m10-7h4v3a4 4 0 0 1-4 4m-5 2v6m-5 1h10"/>',
+  target: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
+  info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v1"/>',
+  book: '<path d="M12 5C9 3 5 3 2 4v15c4-1 7-1 10 1 3-2 6-2 10-1V4c-3-1-7-1-10 1Zm0 0v15"/>',
+  shield: '<path d="m12 3 9 3v6c0 5-9 10-9 10S3 17 3 12V6l9-3Z"/><path d="m8 12 3 3 5-6"/>',
+  magnet: '<path d="M4 3h5v10a3 3 0 0 0 6 0V3h5v10a8 8 0 0 1-16 0V3Zm0 5h5m6 0h5"/>',
+  cross: '<path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6V3Z"/>',
+  diamond: '<path d="m12 2 10 10-10 10L2 12 12 2Z"/><path d="m8 12 4-5 4 5-4 5-4-5Z"/>',
+  move: '<path d="M12 2v20M2 12h20m-13-7 3-3 3 3M5 9l-3 3 3 3m4 4 3 3 3-3m4-10 3 3-3 3"/>',
+  refresh: '<path d="M20 7a9 9 0 1 0 1 9M20 2v6h-6"/>',
+  check: '<path d="m5 12 4 4L19 6"/>',
+  expand: '<path d="M9 3H3v6m12-6h6v6M3 15v6h6m12-6v6h-6"/>',
+};
+export function icon(name, cls = '') {
+  return `<svg class="icon ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name] || paths.bolt}</svg>`;
+}
