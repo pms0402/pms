@@ -12,6 +12,19 @@ GitHub Pages가 활성화되고 배포가 완료되면 게임 주소는 **https:
 
 빌드 결과는 루트와 `/pms/` 하위 경로를 모두 지원합니다. `npm run build` 후 `npm run test:deploy`로 두 경로의 실제 3D 렌더링과 자산 로딩을 검사할 수 있습니다. 배포된 커밋은 사이트의 `version.json`에서 확인할 수 있습니다.
 
+## HTML 미리보기에서 오류가 날 때
+
+원본 `index.html`은 `/src/main.js`와 CSS 등을 서버에서 불러오는 진입 파일입니다. 파일 하나만 보여주는 채팅의 HTML 미리보기에서는 다른 파일을 찾지 못해 실행되지 않을 수 있습니다. 공개 사이트가 아직 활성화되지 않았다면 해당 미리보기를 게임의 공개 주소로 사용할 수 없습니다.
+
+외부 자산 요청 없이 실행되는 단일 HTML 파일은 아래 명령으로 만듭니다. `standalone/VOIDRUN.html`에 게임 JS·CSS·favicon이 포함되며, 글꼴은 시스템 글꼴을 사용합니다. `npm run test:standalone`은 HTML 하나만 제공하는 서버와 격리된 iframe에서 3D 렌더링·조작을 검증합니다. 실제 채팅 서비스의 시각화 정책에 따라 실행이 제한될 수 있습니다.
+
+```sh
+npm run build:standalone
+npm run test:standalone
+```
+
+자동 배포에도 단일 파일을 포함하므로 Pages 배포 완료 후에는 `https://pms0402.github.io/pms/VOIDRUN.html`로 열 수 있습니다. 기본 게임 주소는 계속 `https://pms0402.github.io/pms/` 입니다.
+
 ## 실행
 
 Node.js 24 (`.nvmrc`)와 npm을 사용합니다.

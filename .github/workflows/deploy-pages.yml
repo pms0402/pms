@@ -35,6 +35,9 @@ jobs:
       - name: Build static game
         run: npm run build
 
+      - name: Build self-contained HTML
+        run: npm run build:standalone -- dist/VOIDRUN.html
+
       - name: Record deployed version
         run: node -e "require('node:fs').writeFileSync('dist/version.json', JSON.stringify({commit:process.env.GITHUB_SHA, builtAt:new Date().toISOString()})+'\n')"
 
