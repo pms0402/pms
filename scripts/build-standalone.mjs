@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { Script } from 'node:vm';
 import { build } from 'vite';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -51,8 +52,14 @@ let html = String(htmlAsset.source)
   .replace(/<script\b[^>]*\bsrc=["'][^"']+["'][^>]*>\s*<\/script>/gi, '')
   .replace(/<link\b(?=[^>]*\brel=["'](?:stylesheet|modulepreload)["'])[^>]*>/gi, '')
   .replace(/<link\b(?=[^>]*\brel=["']icon["'])[^>]*>/gi, `<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,${favicon}">`)
-  .replace('</head>', `<style>${inlineStyle}</style>\n</head>`)
-  .replace('</body>', `<script>${inlineScript}</script>\n</body>`);
+  // Replacement callbacks preserve literal $&, $` and $' in minified code.
+  // A replacement string would interpret them and silently corrupt the bundle.
+  .replace('</head>', () => `<style>${inlineStyle}</style>\n</head>`)
+  .replace('</body>', () => `<script>${inlineScript}</script>\n</body>`);
+
+const emittedScript = html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
+assert.equal(emittedScript, inlineScript, 'HTML embedding must preserve every byte of the bundled script');
+new Script(emittedScript, { filename: 'VOIDRUN.html:script' });
 
 // Vite inlines the SVG favicon. Reject accidental external asset regressions.
 assert.ok(!/<(?:script|link)\b[^>]*(?:src|href)=["'](?:\.?\.?\/|https?:)/i.test(html), 'HTML must not request external scripts or styles');
