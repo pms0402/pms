@@ -5,6 +5,11 @@ export const MAX_STAGES = 5;
 // Doubling the playable radius gives four times the previous map area.
 export const ARENA_RADIUS = 62;
 
+// Players retain their build's strength as enemy stats multiply each stage.
+export function getStageGrowth() {
+  return { damageMultiplier: 3.2, maxHpMultiplier: 3.2 };
+}
+
 const finite = (value, fallback) => Number.isFinite(Number(value)) ? Number(value) : fallback;
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const stageNumber = stage => clamp(Math.floor(finite(stage, 1)), 1, MAX_STAGES);
@@ -14,7 +19,7 @@ export function getStageStats(stage = 1) {
   return {
     enemyHealth: 28 * 3.2 ** index,
     enemyDamage: 7.5 * 3.2 ** index,
-    coinValue: 10 ** index,
+    coinValue: 5 * 10 ** index,
     spawnInterval: getSpawnInterval(stage, 0),
     maxEnemies: Math.min(160, 56 + index * 26),
   };
@@ -84,11 +89,11 @@ const EVOLUTIONS = {
 };
 
 const PASSIVES = [
-  { id: 'power', title: '예리한 칼날', description: '검 공격력 +5% · 마법과 별도 성장', rarity: 'rare', icon: 'sword', weight: 4, maxRank: 12, branch: 'sword' },
-  { id: 'haste', title: '검술의 호흡', description: '검 공격 속도 +5%', rarity: 'rare', icon: 'sword', weight: 3, maxRank: 12, branch: 'sword' },
-  { id: 'spell_power', title: '마력 응축', description: '모든 마법 공격력 +5% · 검과 별도 성장', rarity: 'epic', icon: 'orbit', weight: 4, maxRank: 12, branch: 'magic' },
-  { id: 'spell_haste', title: '주문 가속', description: '모든 마법 시전 속도 +5%', rarity: 'epic', icon: 'bolt', weight: 3, maxRank: 12, branch: 'magic' },
-  { id: 'vitality', title: '생명의 씨앗', description: '최대 체력 +5% · 증가한 체력만큼 회복', rarity: 'rare', icon: 'heart', weight: 3, maxRank: 12 },
+  { id: 'power', title: '예리한 칼날', description: '검 공격력 ×1.2 · 마법과 별도 성장', rarity: 'rare', icon: 'sword', weight: 4, maxRank: 12, branch: 'sword' },
+  { id: 'haste', title: '검술의 호흡', description: '검 공격 속도 +8%', rarity: 'rare', icon: 'sword', weight: 3, maxRank: 12, branch: 'sword' },
+  { id: 'spell_power', title: '마력 응축', description: '모든 마법 공격력 ×1.2 · 검과 별도 성장', rarity: 'epic', icon: 'orbit', weight: 4, maxRank: 12, branch: 'magic' },
+  { id: 'spell_haste', title: '주문 가속', description: '모든 마법 시전 속도 +8%', rarity: 'epic', icon: 'bolt', weight: 3, maxRank: 12, branch: 'magic' },
+  { id: 'vitality', title: '생명의 씨앗', description: '최대 체력 ×1.15 · 증가한 체력만큼 회복', rarity: 'rare', icon: 'heart', weight: 3, maxRank: 12 },
   { id: 'magnet', title: '작은 탐욕', description: '경험치와 골드 획득 범위 +8%', rarity: 'rare', icon: 'magnet', weight: 2, maxRank: 12 },
   { id: 'critical', title: '집중', description: '치명타 확률 +2%p', rarity: 'rare', icon: 'target', weight: 2, maxRank: 12 },
   { id: 'armor', title: '흑요석 조각', description: '받는 피해 감소 +2%p', rarity: 'rare', icon: 'shield', weight: 3, maxRank: 12 },
@@ -182,11 +187,11 @@ export function applyUpgrade(stats, id) {
   const passive = passiveChoices(stats).find(candidate => candidate.id === id);
   if (!passive) return false;
   switch (id) {
-    case 'power': stats.damage = finite(stats.damage, 18) * 1.05; break;
-    case 'haste': stats.attackRate = finite(stats.attackRate, 1.5) * 1.05; break;
-    case 'spell_power': stats.spellDamage = finite(stats.spellDamage, 18) * 1.05; break;
-    case 'spell_haste': stats.spellRate = finite(stats.spellRate, 1.5) * 1.05; break;
-    case 'vitality': stats.maxHp = finite(stats.maxHp, 100) * 1.05; break;
+    case 'power': stats.damage = finite(stats.damage, 18) * 1.2; break;
+    case 'haste': stats.attackRate = finite(stats.attackRate, 1.5) * 1.08; break;
+    case 'spell_power': stats.spellDamage = finite(stats.spellDamage, 18) * 1.2; break;
+    case 'spell_haste': stats.spellRate = finite(stats.spellRate, 1.5) * 1.08; break;
+    case 'vitality': stats.maxHp = finite(stats.maxHp, 100) * 1.15; break;
     case 'magnet': stats.magnet = finite(stats.magnet, 5.5) * 1.08; break;
     case 'critical': stats.critChance = Math.min(0.6, finite(stats.critChance, 0.08) + 0.02); break;
     case 'armor': stats.armor = Math.min(0.5, finite(stats.armor, 0) + 0.02); break;

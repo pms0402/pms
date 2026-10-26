@@ -44,16 +44,18 @@ export class MagicSystem {
   evolved(id) { return this.rank(id) >= 5 && !!this.game.stats.evolutions?.[id]; }
   isAlive(enemy) { return enemy?.hp > 0; }
   query(position, radius) { return this.game.queryEnemies?.(position, radius) || this.game.enemies; }
-  damage() {
+  damage(spellId) {
     const base = Number(this.game.stats.spellDamage ?? this.game.stats.damage);
     const synergy = this.rank('lightning') && this.rank('orbit') ? Math.max(0, Math.min(0.12, this.game.stats.runeSynergyBonus || 0)) : 0;
-    return (Number.isFinite(base) ? Math.max(0, base) : 18) * (1 + synergy);
+    const bonus = Number(this.game.stats[`${spellId}Bonus`]);
+    const spellBonus = Number.isFinite(bonus) ? Math.max(0, Math.min(1, bonus)) : 0;
+    return (Number.isFinite(base) ? Math.max(0, base) : 18) * (1 + synergy) * (1 + spellBonus);
   }
-  area() { return Math.max(1, Math.min(1.5, Number(this.game.stats.spellAreaMultiplier) || 1)); }
+  area() { return Math.max(1, Math.min(2.5, Number(this.game.stats.spellAreaMultiplier) || 1)); }
   distanceSquared(a, b) { const x = a.x - b.x, z = a.z - b.z; return x * x + z * z; }
   maxCooldown(id) {
     const rank = this.rank(id);
-    const haste = Math.max(0.7, Math.min(2.5, this.game.stats.spellRate / 1.5 || 1));
+    const haste = Math.max(0.7, Math.min(12, this.game.stats.spellRate / 1.5 || 1));
     if (id === 'fireball') return (1.5 - Math.max(0, rank - 1) * 0.1) / haste;
     if (id === 'frost') return (5 - Math.max(0, rank - 1) * 0.3) / haste;
     if (id === 'lightning') return (3 - Math.max(0, rank - 1) * 0.18) / haste;
@@ -116,7 +118,7 @@ export class MagicSystem {
       mesh.rotation.set(0, 0, 0); shell.scale.setScalar(evolved ? 1.35 : 1);
       mesh.position.copy(origin); mesh.position.y = 1;
       this.scene.add(mesh);
-      this.projectiles.push({ mesh, target: next, direction, life: 1.8, trailTimer: 0, rank, evolved, damage: this.damage() * 1.1 * (1 + 0.16 * (rank - 1)), radius: (3.3 + 0.35 * (rank - 1)) * this.area() });
+      this.projectiles.push({ mesh, target: next, direction, life: 1.8, trailTimer: 0, rank, evolved, damage: this.damage('fireball') * 1.1 * (1 + 0.16 * (rank - 1)), radius: (3.3 + 0.35 * (rank - 1)) * this.area() });
     }
     this.spellsCast.fireball++;
     this.cooldowns.fireball = this.maxCooldown('fireball');
@@ -193,7 +195,7 @@ export class MagicSystem {
     const radius = (6 + (rank - 1) * 0.5 + (evolved ? 1.5 : 0)) * this.area();
     const origin = this.game.player.position;
     if (!this.nearest(origin, radius + 0.5)) return false;
-    const damage = this.damage() * 0.8 * (1 + 0.18 * (rank - 1));
+    const damage = this.damage('frost') * 0.8 * (1 + 0.18 * (rank - 1));
     this.ring(origin, radius, 'frost', 0.65, 0.8);
     this.ring(origin, radius * 0.8, 'frost', 0.45, 0.35);
     this.particles(origin, 'frost', 10, radius * 0.6);
@@ -218,7 +220,7 @@ export class MagicSystem {
     if (!first) return false;
     const rank = this.rank('lightning'), evolved = this.evolved('lightning');
     const count = 3 + Math.floor((rank - 1) / 2) + (evolved ? 3 : 0);
-    const damage = this.damage() * 1.1 * (1 + 0.18 * (rank - 1));
+    const damage = this.damage('lightning') * 1.1 * (1 + 0.18 * (rank - 1));
     const hit = new Set();
     let previous = origin.clone(), target = first;
     for (let index = 0; index < count && target; index++) {
@@ -271,7 +273,7 @@ export class MagicSystem {
       const centerPulse = evolved && this.cooldowns.orbit <= 0 && this.distanceSquared(this.game.player.position, enemy.group.position) < (4.5 * this.area()) ** 2;
       if (!near && !centerPulse) continue;
       this.orbitHitTimes.set(enemy, this.time + this.maxCooldown('orbit'));
-      this.hit(enemy, this.damage() * 0.55 * (1 + (rank - 1) * 0.15), near?.position || this.game.player.position);
+      this.hit(enemy, this.damage('orbit') * 0.55 * (1 + (rank - 1) * 0.15), near?.position || this.game.player.position);
       this.spark(enemy.group.position, 'orbit', 0.22, 1.3); hitAny = true;
     }
     if (hitAny && this.cooldowns.orbit <= 0) {
@@ -288,7 +290,7 @@ export class MagicSystem {
       if (!target) continue;
       this.lightningLine(orb.position, target.group.position, 0.32, 0.8);
       this.ring(orb.position, 0.9, 'orbit', 0.3, 0.6);
-      this.hit(target, this.damage() * 0.2, orb.position);
+      this.hit(target, this.damage('lightning') * 0.2, orb.position);
       this.synergyHits++; this.synergyCooldown = 4; return;
     }
   }

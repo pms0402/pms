@@ -1,18 +1,18 @@
 const MAX_SAFE = Number.MAX_SAFE_INTEGER;
 const RECEIPT_LIMIT = 200;
 
-/** Permanent upgrades are intentionally small; a run's build still matters. */
+/** Core combat upgrades compound; affordable quadratic costs keep each run rewarding. */
 export const PERMANENT_UPGRADES = [
-  { id: 'power', branch: 'sword', requires: [], name: '검술의 뿌리', description: '검 공격력 +2% · 마법 공격력은 별도 성장', icon: 'sword', maxLevel: 50, baseCost: 20, increment: 2, unit: '%' },
-  { id: 'haste', branch: 'sword', requires: [{ id: 'power', level: 1 }], name: '연속 베기', description: '검 공격 속도 +1%', icon: 'sword', maxLevel: 40, baseCost: 30, increment: 1, unit: '%' },
-  { id: 'bladeReach', branch: 'sword', requires: [{ id: 'power', level: 1 }], name: '검기의 가지', description: '검 타격 범위 +1%', icon: 'target', maxLevel: 20, baseCost: 35, increment: 1, unit: '%' },
-  { id: 'arcana', branch: 'magic', requires: [], name: '마력의 뿌리', description: '마법 공격력 +2% · 검 공격력은 별도 성장', icon: 'orbit', maxLevel: 50, baseCost: 20, increment: 2, unit: '%' },
-  { id: 'focus', branch: 'magic', requires: [{ id: 'arcana', level: 1 }], name: '주문의 흐름', description: '마법 시전 속도 +1%', icon: 'bolt', maxLevel: 40, baseCost: 30, increment: 1, unit: '%' },
-  { id: 'spellArea', branch: 'magic', requires: [{ id: 'arcana', level: 1 }], name: '확산의 가지', description: '마법 효과 범위 +1%', icon: 'orbit', maxLevel: 20, baseCost: 35, increment: 1, unit: '%' },
-  { id: 'vitality', branch: 'core', requires: [], name: '생명의 뿌리', description: '모든 런의 기본 최대 체력 +2%', icon: 'heart', maxLevel: 50, baseCost: 25, increment: 2, unit: '%' },
-  { id: 'armor', branch: 'core', requires: [], name: '견고한 피부', description: '모든 런의 기본 피해 감소 +0.5%p', icon: 'shield', maxLevel: 40, baseCost: 40, increment: 0.5, unit: '%p' },
-  { id: 'magnet', branch: 'core', requires: [], name: '잔향 자석', description: '모든 런의 기본 획득 범위 +2%', icon: 'magnet', maxLevel: 30, baseCost: 18, increment: 2, unit: '%' },
-  { id: 'fortune', branch: 'core', requires: [], name: '황금의 운', description: '모든 런의 골드 획득량 +1%', icon: 'coin', maxLevel: 30, baseCost: 35, increment: 1, unit: '%' },
+  { id: 'power', branch: 'sword', requires: [], name: '검술의 뿌리', description: '단계마다 검 공격력 ×1.12 · 마법과 독립 성장', icon: 'sword', maxLevel: 50, baseCost: 12, increment: 12, compound: true, unit: '%' },
+  { id: 'haste', branch: 'sword', requires: [{ id: 'power', level: 1 }], name: '연속 베기', description: '단계마다 검 공격 속도 ×1.025', icon: 'sword', maxLevel: 40, baseCost: 18, increment: 2.5, compound: true, unit: '%' },
+  { id: 'bladeReach', branch: 'sword', requires: [{ id: 'power', level: 1 }], name: '검기의 가지', description: '검 타격 범위 +2%', icon: 'target', maxLevel: 20, baseCost: 20, increment: 2, unit: '%' },
+  { id: 'arcana', branch: 'magic', requires: [], name: '마력의 뿌리', description: '단계마다 마법 공격력 ×1.12 · 검과 독립 성장', icon: 'orbit', maxLevel: 50, baseCost: 12, increment: 12, compound: true, unit: '%' },
+  { id: 'focus', branch: 'magic', requires: [{ id: 'arcana', level: 1 }], name: '주문의 흐름', description: '단계마다 마법 시전 속도 ×1.025', icon: 'bolt', maxLevel: 40, baseCost: 18, increment: 2.5, compound: true, unit: '%' },
+  { id: 'spellArea', branch: 'magic', requires: [{ id: 'arcana', level: 1 }], name: '확산의 가지', description: '마법 효과 범위 +2%', icon: 'orbit', maxLevel: 20, baseCost: 20, increment: 2, unit: '%' },
+  { id: 'vitality', branch: 'core', requires: [], name: '생명의 뿌리', description: '단계마다 기본 최대 체력 ×1.10', icon: 'heart', maxLevel: 50, baseCost: 15, increment: 10, compound: true, unit: '%' },
+  { id: 'armor', branch: 'core', requires: [], name: '견고한 피부', description: '모든 런의 기본 피해 감소 +0.75%p', icon: 'shield', maxLevel: 40, baseCost: 24, increment: 0.75, unit: '%p' },
+  { id: 'magnet', branch: 'core', requires: [], name: '잔향 자석', description: '모든 런의 기본 획득 범위 +3%', icon: 'magnet', maxLevel: 30, baseCost: 10, increment: 3, unit: '%' },
+  { id: 'fortune', branch: 'core', requires: [], name: '황금의 운', description: '모든 런의 골드 획득량 +5%', icon: 'coin', maxLevel: 30, baseCost: 20, increment: 5, unit: '%' },
 ];
 
 /** Unlocks are sidegrades: stronger specialties come with a weaker counterpart. */
@@ -113,7 +113,11 @@ export function createProgress(history = []) {
 
 function upgradeCost(definition, level) {
   if (level >= definition.maxLevel) return null;
-  return Math.min(MAX_SAFE, Math.ceil(definition.baseCost * 1.6 ** level));
+  return Math.min(MAX_SAFE, Math.ceil(definition.baseCost * (1 + 0.22 * level + 0.018 * level ** 2)));
+}
+
+function upgradeBonus(definition, level) {
+  return definition.compound ? ((1 + definition.increment / 100) ** level - 1) * 100 : level * definition.increment;
 }
 
 export function getPermanentUpgradeOffers(progress) {
@@ -129,8 +133,8 @@ export function getPermanentUpgradeOffers(progress) {
       ...definition,
       level,
       cost,
-      currentBonus: level * definition.increment,
-      nextBonus: Math.min(definition.maxLevel, level + 1) * definition.increment,
+      currentBonus: upgradeBonus(definition, level),
+      nextBonus: upgradeBonus(definition, Math.min(definition.maxLevel, level + 1)),
       maxed: level >= definition.maxLevel,
       locked,
       requirementsText,
@@ -144,16 +148,16 @@ export function getPermanentBonuses(progress) {
   const character = CHARACTERS.find(item => item.id === loadout.character);
   const weapon = WEAPONS.find(item => item.id === loadout.weapon);
   return {
-    damageMultiplier: (1 + 0.02 * upgrades.power) * character.damageMultiplier * weapon.damageMultiplier,
-    spellDamageMultiplier: (1 + 0.02 * upgrades.arcana) * character.spellDamageMultiplier,
-    maxHpMultiplier: (1 + 0.02 * upgrades.vitality) * character.maxHpMultiplier,
-    attackRateMultiplier: (1 + 0.01 * upgrades.haste) * weapon.attackRateMultiplier,
-    spellRateMultiplier: 1 + 0.01 * upgrades.focus,
-    swordRangeMultiplier: (1 + 0.01 * upgrades.bladeReach) * weapon.swordRangeMultiplier,
-    spellAreaMultiplier: 1 + 0.01 * upgrades.spellArea,
-    armorBonus: 0.005 * upgrades.armor,
-    magnetMultiplier: 1 + 0.02 * upgrades.magnet,
-    goldMultiplier: 1 + 0.01 * upgrades.fortune,
+    damageMultiplier: 1.12 ** upgrades.power * character.damageMultiplier * weapon.damageMultiplier,
+    spellDamageMultiplier: 1.12 ** upgrades.arcana * character.spellDamageMultiplier,
+    maxHpMultiplier: 1.1 ** upgrades.vitality * character.maxHpMultiplier,
+    attackRateMultiplier: 1.025 ** upgrades.haste * weapon.attackRateMultiplier,
+    spellRateMultiplier: 1.025 ** upgrades.focus,
+    swordRangeMultiplier: (1 + 0.02 * upgrades.bladeReach) * weapon.swordRangeMultiplier,
+    spellAreaMultiplier: 1 + 0.02 * upgrades.spellArea,
+    armorBonus: 0.0075 * upgrades.armor,
+    magnetMultiplier: 1 + 0.03 * upgrades.magnet,
+    goldMultiplier: 1 + 0.05 * upgrades.fortune,
     characterId: character.id,
     weaponId: weapon.id,
   };

@@ -25,10 +25,10 @@ test('sword damage and magic damage upgrades affect separate real attack outputs
   magic.castFireball(); const baseline = magic.projectiles.at(-1).damage;
   assert.equal(applyUpgrade(game.stats, 'power'), true);
   magic.castFireball(); close(magic.projectiles.at(-1).damage, baseline);
-  close(game.stats.damage, 18 * 1.05); close(game.stats.spellDamage, 18);
+  close(game.stats.damage, 18 * 1.2); close(game.stats.spellDamage, 18);
   assert.equal(applyUpgrade(game.stats, 'spell_power'), true);
-  magic.castFireball(); close(magic.projectiles.at(-1).damage, baseline * 1.05);
-  close(game.stats.damage, 18 * 1.05);
+  magic.castFireball(); close(magic.projectiles.at(-1).damage, baseline * 1.2);
+  close(game.stats.damage, 18 * 1.2);
   magic.dispose();
 });
 
@@ -36,8 +36,8 @@ test('sword speed cannot accelerate magic; independent magic speed does', () => 
   const { game, magic } = fixture();
   const baseline = magic.maxCooldown('fireball');
   applyUpgrade(game.stats, 'haste'); close(magic.maxCooldown('fireball'), baseline);
-  applyUpgrade(game.stats, 'spell_haste'); close(magic.maxCooldown('fireball'), baseline / 1.05);
-  close(game.stats.attackRate, 1.5 * 1.05);
+  applyUpgrade(game.stats, 'spell_haste'); close(magic.maxCooldown('fireball'), baseline / 1.08);
+  close(game.stats.attackRate, 1.5 * 1.08);
   for (let i = 1; i < 12; i++) assert.equal(applyUpgrade(game.stats, 'spell_haste'), true);
   assert.equal(applyUpgrade(game.stats, 'spell_haste'), false);
   magic.dispose();

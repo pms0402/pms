@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  STAGE_DURATION, BOSS_SPAWN_TIME, MAX_STAGES, ARENA_RADIUS, SPELLS,
+  STAGE_DURATION, BOSS_SPAWN_TIME, MAX_STAGES, ARENA_RADIUS, SPELLS, getStageGrowth,
   getStageStats, getBossStats, getSpawnInterval, getXpRequired,
   formatGold, getUpgradeChoices, applyUpgrade,
 } from '../src/balance.js';
@@ -25,6 +25,8 @@ test('two-minute stages, late bosses and four times the previous map area', () =
 test('tougher monsters retain exact gold x10 and health/damage x3.2 stage curves', () => {
   assert.equal(getStageStats(1).enemyHealth, 28);
   assert.equal(getStageStats(1).enemyDamage, 7.5);
+  assert.equal(getStageStats(1).coinValue, 5);
+  assert.deepEqual(getStageGrowth(), { damageMultiplier: 3.2, maxHpMultiplier: 3.2 });
   for (let stage = 2; stage <= MAX_STAGES; stage++) {
     const previous = getStageStats(stage - 1), current = getStageStats(stage);
     assert.equal(current.coinValue / previous.coinValue, 10);
@@ -89,11 +91,11 @@ test('every level offers a real spell and small passive with three distinct choi
   }
 });
 
-test('passives are micro improvements and caps reject additional purchases', () => {
+test('passives give meaningful compound improvements and caps reject additional purchases', () => {
   const effects = {
-    power: ['damage', 18 * 1.05], haste: ['attackRate', 1.5 * 1.05],
-    spell_power: ['spellDamage', 18 * 1.05], spell_haste: ['spellRate', 1.5 * 1.05],
-    vitality: ['maxHp', 105], magnet: ['magnet', 5.5 * 1.08],
+    power: ['damage', 18 * 1.2], haste: ['attackRate', 1.5 * 1.08],
+    spell_power: ['spellDamage', 18 * 1.2], spell_haste: ['spellRate', 1.5 * 1.08],
+    vitality: ['maxHp', 115], magnet: ['magnet', 5.5 * 1.08],
     critical: ['critChance', 0.10], armor: ['armor', 0.02],
     regen: ['regen', 0.2], speed: ['speed', 7.5 * 1.03],
   };

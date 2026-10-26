@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
+import { RELICS } from '../src/content.js';
 
 // Runtime fixtures shorten waiting; combat, pickups, choices and persistence
 // still execute the game's real code. This is not a full-run balance claim.
@@ -74,24 +75,24 @@ try {
   saved = await page.evaluate(() => JSON.parse(localStorage.getItem('voidrun.progression')));
   if (saved.loadout.weapon !== 'greatsword') await greatsword.click();
   saved = await page.evaluate(() => JSON.parse(localStorage.getItem('voidrun.progression')));
-  assert.equal(saved.bank, 1600, 'three skill purchases and two unlocks debit exactly once');
+  assert.equal(saved.bank, 1628, 'three skill purchases and two unlocks debit exactly once');
   assert.equal(saved.loadout.character, 'arcanist');
   assert.equal(saved.loadout.weapon, 'greatsword');
   await page.reload();
   await page.waitForFunction(() => window.__game?.getDebugState().frames > 1);
   await start();
   const built = await page.evaluate(() => window.__game.state.playerStats);
-  near(built.damage, 18 * 1.02 * .85 * 1.3, 'sword bonuses combine with the chosen sidegrades');
-  near(built.spellDamage, 18 * 1.02 * 1.16, 'magic damage grows separately');
+  near(built.damage, 18 * 1.12 * .85 * 1.3, 'sword bonuses combine with the chosen sidegrades');
+  near(built.spellDamage, 18 * 1.12 * 1.16, 'magic damage grows separately');
   near(built.attackRate, 1.5 * .72, 'heavy weapon affects only sword speed');
-  near(built.spellRate, 1.5 * 1.01, 'magic branch affects only casting speed');
+  near(built.spellRate, 1.5 * 1.025, 'magic branch affects only casting speed');
   near(built.maxHp, 90, 'character weakness is retained');
   await page.evaluate(() => {
     const game = window.__game; game.dropPickup(game.player.position, 'gold', 25);
     game.stepForTest(.2); game.endRun();
   });
   saved = await page.evaluate(() => JSON.parse(localStorage.getItem('voidrun.progression')));
-  assert.equal(saved.bank, 1625); assert.equal(saved.loadout.character, 'arcanist');
+  assert.equal(saved.bank, 1653); assert.equal(saved.loadout.character, 'arcanist');
   assert.equal(saved.upgrades.power, 1); assert.equal(saved.upgrades.arcana, 1);
   console.log('PASS branch tree: prerequisite isolation, exact purchases, character/weapon sidegrades, reload and settlement');
 
@@ -106,13 +107,16 @@ try {
       const enemy = game.spawnEnemy(.1, 0, 0); enemy.speed = 0;
       const hp = game.state.hp; game.invulnerable = 0; game.updateEnemies(.001);
       const damage = hp - game.state.hp;
-      game.dropPickup(game.player.position, 'gold', 10); game.updatePickups(.05);
+      game.dropPickup(game.player.position, 'gold', 10);
+      // Random drop scatter can begin just outside the immediate pickup radius.
+      game.updatePickups(.05); game.updatePickups(.05);
       return { health: enemy.maxHp, damage, gold: game.state.gold, locked: game.setRiskPact('none'), risk: game.state.risk };
     });
     assert.equal(risks[risk].locked, false, 'risk cannot be changed during play');
   }
   assert.ok(risks.swarm.health > risks.none.health && risks.fury.health > risks.swarm.health);
   assert.ok(risks.swarm.damage > risks.none.damage && risks.fury.damage > risks.swarm.damage);
+  assert.equal(risks.none.gold, 10, 'the fixture collects its real scattered pickup before comparing contract payouts');
   near(risks.swarm.gold, risks.none.gold * 1.8, 'swarm increased earnings');
   near(risks.fury.gold, risks.none.gold * 2.2, 'fury increased earnings');
   console.log('PASS risk/reward: chosen contracts produce stronger actual enemies and contact damage with proportional gold');
@@ -155,7 +159,7 @@ try {
     return { stronger, phase: game.state.phase, choices: game.relicChoices.length, gold: game.pickups.filter(p => p.type === 'gold').reduce((sum, p) => sum + p.value, 0) };
   });
   assert.equal(elite.stronger, true); assert.equal(elite.phase, 'relic');
-  assert.ok(elite.gold >= 12, 'elite pays four times the ordinary heavy enemy');
+  assert.ok(elite.gold >= 60, 'elite pays four times the ordinary heavy enemy');
   assert.equal(elite.choices, 3);
   console.log('PASS elite: extra health/damage, enhanced gold and an actual relic selection');
 
@@ -171,7 +175,7 @@ try {
     const count = game.pickups.length; game.updateEnemies(.01);
     return { flees, payout, escaped: !game.enemies.includes(escapee), noEscapeReward: game.pickups.length === count };
   });
-  assert.deepEqual(golden, { flees: true, payout: 8, escaped: true, noEscapeReward: true });
+  assert.deepEqual(golden, { flees: true, payout: 40, escaped: true, noEscapeReward: true });
   console.log('PASS rare gold monster: flees, pays eightfold only on a kill, escapes without a reward');
 
   await load(); await start();
@@ -189,11 +193,11 @@ try {
   console.log('PASS boss reward: actual defeat grants its unique ability exactly once');
 
   await load(); await start();
-  await page.evaluate(() => {
+  await page.evaluate(relicRoll => {
     const game = window.__game, random = Math.random;
-    try { Math.random = () => .65; game.openRelic('서리불꽃 조합'); }
+    try { Math.random = () => relicRoll; game.openRelic('서리불꽃 조합'); }
     finally { Math.random = random; }
-  });
+  }, (RELICS.findIndex(relic => relic.id === 'frostfire') + .01) / RELICS.length);
   await page.locator('[data-relic="frostfire"]').click();
   const synergy = await page.evaluate(() => {
     const game = window.__game; game.stats.critChance = 0;

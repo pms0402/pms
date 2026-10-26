@@ -42,23 +42,23 @@ test('purchases debit the permanent wallet exactly and preserve lifetime earning
   const snapshot = structuredClone(before);
   const result = purchasePermanentUpgrade(before, 'power');
   assert.equal(result.success, true);
-  assert.equal(result.cost, 20);
-  assert.equal(result.progress.bank, 80);
+  assert.equal(result.cost, 12);
+  assert.equal(result.progress.bank, 88);
   assert.equal(result.progress.lifetimeGold, 100);
   assert.equal(result.progress.upgrades.power, 1);
   assert.deepEqual(before, snapshot, 'buying must not mutate a prior saved record');
-  assert.equal(getPermanentUpgradeOffers(result.progress).find(offer => offer.id === 'power').cost, 32);
+  assert.equal(getPermanentUpgradeOffers(result.progress).find(offer => offer.id === 'power').cost, 15);
   assert.equal(purchasePermanentUpgrade(createProgress(), 'power').reason, 'insufficient_gold');
   assert.equal(purchasePermanentUpgrade(before, 'not-a-real-upgrade').reason, 'unknown_upgrade');
 });
 
-test('upgrade prices rise geometrically and completed upgrades cannot be bought again', () => {
+test('upgrade prices rise smoothly and completed upgrades cannot be bought again', () => {
   for (const definition of PERMANENT_UPGRADES) {
     const progress = normalizeProgress({ bank: Number.MAX_SAFE_INTEGER, upgrades: { [definition.id]: 2 } });
     const offer = getPermanentUpgradeOffers(progress).find(candidate => candidate.id === definition.id);
-    assert.equal(offer.cost, Math.ceil(definition.baseCost * 1.6 ** 2));
-    assert.equal(offer.currentBonus, definition.increment * 2);
-    assert.equal(offer.nextBonus, definition.increment * 3);
+    assert.equal(offer.cost, Math.ceil(definition.baseCost * (1 + .22 * 2 + .018 * 4)));
+    assert.ok(offer.currentBonus >= definition.increment * 2);
+    assert.ok(offer.nextBonus > offer.currentBonus);
     const capped = normalizeProgress({ bank: Number.MAX_SAFE_INTEGER, upgrades: { [definition.id]: definition.maxLevel } });
     const finalOffer = getPermanentUpgradeOffers(capped).find(candidate => candidate.id === definition.id);
     assert.equal(finalOffer.cost, null);
@@ -68,25 +68,25 @@ test('upgrade prices rise geometrically and completed upgrades cannot be bought 
   }
 });
 
-test('permanent bonuses remain small and independently affect the intended starting stat', () => {
+test('permanent bonuses compound and independently affect the intended starting stat', () => {
   assert.deepEqual(getPermanentBonuses(createProgress()), { damageMultiplier: 1, spellDamageMultiplier: 1, maxHpMultiplier: 1, attackRateMultiplier: 1, spellRateMultiplier: 1, swordRangeMultiplier: 1, spellAreaMultiplier: 1, armorBonus: 0, magnetMultiplier: 1, goldMultiplier: 1, characterId: 'wanderer', weaponId: 'voidblade' });
   assert.deepEqual(getPermanentBonuses({ upgrades: { power: 2, vitality: 2, haste: 2, armor: 2, magnet: 2, fortune: 2 } }), {
-    damageMultiplier: 1.04,
+    damageMultiplier: 1.12 ** 2,
     spellDamageMultiplier: 1,
-    maxHpMultiplier: 1.04,
-    attackRateMultiplier: 1.02,
+    maxHpMultiplier: 1.1 ** 2,
+    attackRateMultiplier: 1.025 ** 2,
     spellRateMultiplier: 1,
     swordRangeMultiplier: 1,
     spellAreaMultiplier: 1,
-    armorBonus: 0.01,
-    magnetMultiplier: 1.04,
-    goldMultiplier: 1.02,
+    armorBonus: 0.015,
+    magnetMultiplier: 1.06,
+    goldMultiplier: 1.1,
     characterId: 'wanderer',
     weaponId: 'voidblade',
   });
   const offer = getPermanentUpgradeOffers({ upgrades: { armor: 2 } }).find(item => item.id === 'armor');
-  assert.equal(offer.currentBonus, 1, 'armor is displayed in percentage points');
-  assert.equal(offer.nextBonus, 1.5);
+  assert.equal(offer.currentBonus, 1.5, 'armor is displayed in percentage points');
+  assert.equal(offer.nextBonus, 2.25);
 });
 
 test('old completed-run history is imported only by the initial factory', () => {
@@ -107,7 +107,7 @@ test('old completed-run history is imported only by the initial factory', () => 
   assert.equal(migrated.importedHistory, true);
   assert.deepEqual(migrated.settledRunIds, ['old-death', 'old-victory']);
   const spent = purchasePermanentUpgrade(migrated, 'power').progress;
-  assert.equal(normalizeProgress(spent).bank, 35, 'normalization never replays or reimports the history');
+  assert.equal(normalizeProgress(spent).bank, 43, 'normalization never replays or reimports the history');
   assert.equal(settleRun(spent, { runId: 'old-death', gold: 20 }).duplicate, true);
 });
 

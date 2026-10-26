@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { STAGE_DURATION, BOSS_SPAWN_TIME, MAX_STAGES, ARENA_RADIUS, getStageStats, getBossStats, getSpawnInterval, getXpRequired, getUpgradeChoices, applyUpgrade } from './balance.js';
+import { STAGE_DURATION, BOSS_SPAWN_TIME, MAX_STAGES, ARENA_RADIUS, getStageStats, getBossStats, getStageGrowth, getSpawnInterval, getXpRequired, getUpgradeChoices, applyUpgrade } from './balance.js';
 import { MagicSystem } from './magic.js';
 import { RISK_PACTS, getThreatModifiers, getRelicChoices, applyRelic, getBossReward, applyBossReward } from './content.js';
 
@@ -13,16 +13,16 @@ const permanentValue = (value, fallback, min, max) => Number.isFinite(Number(val
 function normalizePermanentBonuses(bonuses = {}) {
   const source = bonuses && typeof bonuses === 'object' ? bonuses : {};
   return {
-    damageMultiplier: permanentValue(source.damageMultiplier, 1, 0.6, 3.12),
-    spellDamageMultiplier: permanentValue(source.spellDamageMultiplier, 1, 0.82, 2.32),
-    maxHpMultiplier: permanentValue(source.maxHpMultiplier, 1, 0.85, 2),
-    attackRateMultiplier: permanentValue(source.attackRateMultiplier, 1, 0.72, 1.68),
-    spellRateMultiplier: permanentValue(source.spellRateMultiplier, 1, 1, 1.4),
-    swordRangeMultiplier: permanentValue(source.swordRangeMultiplier, 1, 1, 1.44),
-    spellAreaMultiplier: permanentValue(source.spellAreaMultiplier, 1, 1, 1.2),
-    armorBonus: permanentValue(source.armorBonus, 0, 0, 0.2),
-    magnetMultiplier: permanentValue(source.magnetMultiplier, 1, 1, 1.6),
-    goldMultiplier: permanentValue(source.goldMultiplier, 1, 1, 1.3),
+    damageMultiplier: permanentValue(source.damageMultiplier, 1, 0.6, 512),
+    spellDamageMultiplier: permanentValue(source.spellDamageMultiplier, 1, 0.82, 400),
+    maxHpMultiplier: permanentValue(source.maxHpMultiplier, 1, 0.85, 128),
+    attackRateMultiplier: permanentValue(source.attackRateMultiplier, 1, 0.72, 4),
+    spellRateMultiplier: permanentValue(source.spellRateMultiplier, 1, 1, 3),
+    swordRangeMultiplier: permanentValue(source.swordRangeMultiplier, 1, 1, 2),
+    spellAreaMultiplier: permanentValue(source.spellAreaMultiplier, 1, 1, 1.5),
+    armorBonus: permanentValue(source.armorBonus, 0, 0, 0.3),
+    magnetMultiplier: permanentValue(source.magnetMultiplier, 1, 1, 1.9),
+    goldMultiplier: permanentValue(source.goldMultiplier, 1, 1, 2.5),
     characterId: ['wanderer', 'arcanist', 'berserker'].includes(source.characterId) ? source.characterId : 'wanderer',
     weaponId: ['voidblade', 'tempest', 'greatsword'].includes(source.weaponId) ? source.weaponId : 'voidblade',
   };
@@ -97,7 +97,7 @@ export class Game {
 
   freshStats() {
     const bonus = normalizePermanentBonuses(this.permanentBonuses);
-    return { maxHp: 100 * bonus.maxHpMultiplier, damage: 18 * bonus.damageMultiplier, spellDamage: 18 * bonus.spellDamageMultiplier, attackRate: 1.5 * bonus.attackRateMultiplier, spellRate: 1.5 * bonus.spellRateMultiplier, swordRangeMultiplier: bonus.swordRangeMultiplier, spellAreaMultiplier: bonus.spellAreaMultiplier, characterId: bonus.characterId, weaponId: bonus.weaponId, speed: 7.5, magnet: 5.5 * bonus.magnetMultiplier, projectiles: 1, critChance: 0.08, armor: bonus.armorBonus, regen: 0, goldMultiplier: bonus.goldMultiplier, relics: [], bossRewards: [], spells: { fireball: 1, frost: 0, lightning: 0, orbit: 0 }, evolutions: {}, passiveLevels: {} };
+    return { maxHp: 100 * bonus.maxHpMultiplier, damage: 18 * bonus.damageMultiplier, spellDamage: 18 * bonus.spellDamageMultiplier, attackRate: 1.5 * bonus.attackRateMultiplier, spellRate: 1.5 * bonus.spellRateMultiplier, swordRangeMultiplier: bonus.swordRangeMultiplier, spellAreaMultiplier: bonus.spellAreaMultiplier, characterId: bonus.characterId, weaponId: bonus.weaponId, speed: 7.5, magnet: 5.5 * bonus.magnetMultiplier, projectiles: 1, critChance: 0.08, armor: bonus.armorBonus, regen: 0, goldMultiplier: bonus.goldMultiplier, xpMultiplier: 1, reviveCharges: 0, eliteDamageBonus: 0, relics: [], bossRewards: [], spells: { fireball: 1, frost: 0, lightning: 0, orbit: 0 }, evolutions: {}, passiveLevels: {} };
   }
   freshState(phase) { return { phase, runId: null, hp: 100, xp: 0, xpNeeded: getXpRequired(1), level: 1, stage: 1, stageTime: 0, elapsed: 0, kills: 0, gold: 0, combo: 0, weaponName: '공허의 검' }; }
   get state() {
@@ -472,6 +472,10 @@ export class Game {
     if (direction.lengthSq() > 0.01) this.dashDirection.copy(direction).normalize();
     else this.dashDirection.set(Math.sin(this.player.rotation.y), 0, Math.cos(this.player.rotation.y));
     this.dashTime = 0.2; this.dashCooldown = 3; this.invulnerable = 0.4;
+    if (this.stats.dashShockwave) {
+      this.puff(this.player.position, '#a4e8ff', 3, 0.35);
+      for (const enemy of this.queryEnemies(this.player.position, 5)) this.hitEnemy(enemy, this.stats.damage * 0.8, this.dashDirection, 'explosion');
+    }
     this.sound('dash'); this.emit(); return true;
   }
 
@@ -524,7 +528,9 @@ export class Game {
 
   chooseRelic(id) {
     if (this._state.phase !== 'relic' || !this.relicChoices.some(choice => choice.id === id)) return false;
+    const beforeMaxHp = this.stats.maxHp;
     if (!applyRelic(this.stats, id)) return false;
+    this._state.hp = Math.min(this.stats.maxHp, this._state.hp + Math.max(0, this.stats.maxHp - beforeMaxHp));
     const title = this.relicChoices.find(choice => choice.id === id)?.title || '유물';
     this.relicChoices = []; this._state.phase = 'playing'; this.lastTime = performance.now();
     this.callbacks.onLoot?.(`${title} 획득`); this.sound('upgrade'); this.emit(); return true;
@@ -650,6 +656,12 @@ export class Game {
     this.updateEnemyProjectiles(dt);
     this.updateProjectiles(dt);
     this.updatePickups(dt);
+    if (s.hp <= 0 && this.stats.reviveCharges > 0) {
+      this.stats.reviveCharges = Math.max(0, Math.floor(this.stats.reviveCharges) - 1);
+      s.hp = this.stats.maxHp * 0.35; this.invulnerable = 1.5; this.playerVisual.visible = true;
+      this.burst(this.player.position, '#a7e8ff', 18); this.sound('upgrade');
+      this.callbacks.onLoot?.('불굴의 불씨 · 부활! 최대 체력의 35% 회복');
+    }
     if (s.hp <= 0) { s.hp = 0; s.phase = 'over'; this.playerVisual.visible = true; this.sound('over'); this.callbacks.onGameOver?.(this.state); this.emit(); return; }
     this.updateAdventure(dt);
     if (this.pendingRelicSources.length) {
@@ -667,7 +679,10 @@ export class Game {
     this.pickups.length = 0;
     if (s.stage >= MAX_STAGES) { s.phase = 'won'; this.sound('win'); this.callbacks.onWin?.(this.state); this.emit(); return true; }
     s.stage++; s.stageTime = 0; this.setStageMood(s.stage);
-    this.stats.damage *= 1.8; this.stats.spellDamage *= 1.8; this.stats.maxHp = Math.round(this.stats.maxHp * 2); s.hp = this.stats.maxHp;
+    const growth = getStageGrowth();
+    this.stats.damage *= growth.damageMultiplier;
+    this.stats.spellDamage *= growth.damageMultiplier;
+    this.stats.maxHp *= growth.maxHpMultiplier; s.hp = this.stats.maxHp;
     for (const enemy of this.enemies) this.releaseEnemy(enemy);
     this.enemies.length = 0;
     this.projectiles.forEach((p) => this.removeGroup(p.mesh)); this.projectiles.length = 0;
@@ -681,7 +696,7 @@ export class Game {
 
   takeDamage(rawDamage, source) {
     if (this._state.phase !== 'playing' || this.invulnerable > 0 || this._state.hp <= 0) return false;
-    const damage = Math.max(1, rawDamage * getThreatModifiers(this.stats, this.runRisk).enemyDamage * (1 - Math.min(0.5, this.stats.armor)));
+    const damage = Math.max(1, rawDamage * getThreatModifiers(this.stats, this.runRisk).enemyDamage * (1 - Math.min(0.6, this.stats.armor)));
     this._state.hp -= damage; this.invulnerable = 0.75; this.shake = 0.22;
     this.floatText(`-${Math.round(damage)}`, this.player.position, '#ff8974', 1.1, 3);
     this.burst(this.player.position, '#ff996c', 6); this.sound('hurt'); return true;
@@ -872,7 +887,8 @@ export class Game {
     const comboBonus = source === 'sword' && this._state.combo >= 10 ? this.stats.comboCritBonus || 0 : 0;
     const critical = source !== 'explosion' && Math.random() < Math.min(0.65, this.stats.critChance + comboBonus);
     const lowHealth = this._state.hp <= this.stats.maxHp * 0.35 ? 1 + (this.stats.lowHealthDamageBonus || 0) : 1;
-    const dealt = Math.max(0, damage) * (critical ? 2 : 1) * lowHealth;
+    const eliteBonus = enemy.elite || enemy.kind === 4 ? 1 + Math.max(0, this.stats.eliteDamageBonus || 0) : 1;
+    const dealt = Math.max(0, damage) * (critical ? 2 : 1) * lowHealth * eliteBonus;
     this.floatText(`${critical ? '✦ ' : ''}${Math.round(dealt).toLocaleString('en-US')}`, enemy.group.position, critical ? '#eeffad' : '#f1f4dc', critical ? 1.35 : 1, 1.65);
     enemy.hp -= dealt; enemy.hitTime = 0.16;
     enemy.stagger.copy(direction).setY(0).multiplyScalar(enemy.kind === 4 ? 0.4 : critical ? 12 : 7);
@@ -948,7 +964,7 @@ export class Game {
         }
       }
     }
-    else if (p.type === 'xp') this._state.xp += p.value;
+    else if (p.type === 'xp') this._state.xp += p.value * (this.stats.xpMultiplier || 1);
     else this._state.hp = Math.min(this.stats.maxHp, this._state.hp + p.value);
     if (audio && p.type === 'gold' && this.frames % 4 === 0) this.sound('coin');
     this.removeGroup(p.mesh);

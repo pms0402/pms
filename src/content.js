@@ -1,6 +1,9 @@
 const clamp = (value, minimum, maximum) => Math.min(maximum, Math.max(minimum, value));
 const finite = (value, fallback = 0) => Number.isFinite(Number(value)) ? Number(value) : fallback;
 const validStats = value => value && typeof value === 'object' && !Array.isArray(value);
+const multiplyStat = (stats, key, factor, fallback = 1, maximum = 1e12) => {
+  stats[key] = Math.min(maximum, clamp(finite(stats[key], fallback), 0, maximum / factor) * factor);
+};
 const uniqueIds = (value, definitions) => Array.isArray(value)
   ? [...new Set(value.filter(id => definitions.some(definition => definition.id === id)))] : [];
 
@@ -14,6 +17,26 @@ export const RELICS = Object.freeze([
   { id: 'frostfire', title: '서리불꽃', description: '서리로 둔화된 적에게 화염구 피해 +20%.', icon: 'snowflake', rarity: 'epic', synergy: ['fireball', 'frost'] },
   { id: 'thunderRune', title: '폭풍의 문양', description: '연쇄 번개와 궤도 룬을 함께 보유하면 마법 피해 +12%.', icon: 'orbit', rarity: 'epic', synergy: ['lightning', 'orbit'] },
   { id: 'greed', title: '탐욕의 인장', description: '골드 +15% · 모든 적 피해 +10%. 이후 출현하는 적 체력 +15%.', icon: 'coin', rarity: 'legendary' },
+  { id: 'whetstone', title: '별철 숫돌', description: '검 공격력 ×1.4. 마법 공격력과 별도로 적용됩니다.', icon: 'sword', rarity: 'epic' },
+  { id: 'warDrum', title: '전쟁의 북', description: '검 공격 속도 ×1.2. 더 빠른 연속 베기.', icon: 'bolt', rarity: 'rare' },
+  { id: 'longblade', title: '거인의 검집', description: '검 타격 범위 ×1.2. 더 멀리 있는 적까지 벱니다.', icon: 'sword', rarity: 'rare' },
+  { id: 'executioner', title: '집행자의 인장', description: '정예와 보스에게 주는 검·마법 피해 +30%.', icon: 'target', rarity: 'epic' },
+  { id: 'arcanePrism', title: '비전 프리즘', description: '마법 공격력 ×1.4. 검 공격력과 별도로 적용됩니다.', icon: 'orbit', rarity: 'epic' },
+  { id: 'hourglass', title: '별빛 모래시계', description: '모든 마법의 시전 속도 ×1.2.', icon: 'bolt', rarity: 'epic' },
+  { id: 'wideSigil', title: '퍼지는 성문', description: '마법 효과 범위 ×1.18. 폭발·파동·번개·궤도를 넓힙니다.', icon: 'orbit', rarity: 'rare' },
+  { id: 'inferno', title: '불사조의 깃털', description: '화염구 피해 +25%. 화염구를 습득하면 적용됩니다.', icon: 'flame', rarity: 'epic', synergy: ['fireball'] },
+  { id: 'glacier', title: '빙하의 파편', description: '서리 파동과 눈보라 피해 +25%. 서리 습득 후 적용.', icon: 'snowflake', rarity: 'epic', synergy: ['frost'] },
+  { id: 'conductor', title: '천둥의 지휘봉', description: '연쇄 번개 피해 +25%. 번개를 습득하면 적용됩니다.', icon: 'bolt', rarity: 'epic', synergy: ['lightning'] },
+  { id: 'satellites', title: '달의 파수꾼', description: '궤도 룬과 궤도 파동 피해 +25%. 룬 습득 후 적용.', icon: 'orbit', rarity: 'epic', synergy: ['orbit'] },
+  { id: 'giantsHeart', title: '거인의 심장', description: '최대 체력 ×1.4. 늘어난 최대 체력만큼 즉시 회복.', icon: 'heart', rarity: 'epic' },
+  { id: 'ironroot', title: '강철 뿌리', description: '받는 피해 감소 +8%p. 최대 피해 감소 60%.', icon: 'shield', rarity: 'rare' },
+  { id: 'spring', title: '생명의 샘', description: '매초 최대 체력의 0.8%를 추가로 재생합니다.', icon: 'cross', rarity: 'epic' },
+  { id: 'windstep', title: '바람의 발목', description: '이동 속도 ×1.15. 빠르게 이동하며 공격을 피하세요.', icon: 'move', rarity: 'rare' },
+  { id: 'vacuum', title: '공허의 자석', description: '경험치·골드 획득 범위 ×1.4.', icon: 'magnet', rarity: 'rare' },
+  { id: 'huntersWisdom', title: '사냥꾼의 기록', description: '획득하는 경험치 ×1.35. 레벨업과 마법 진화 가속.', icon: 'diamond', rarity: 'rare' },
+  { id: 'alchemy', title: '금빛 연금로', description: '골드 +30% · 모든 적 피해 +15%. 이후 출현하는 적 체력 +20%.', icon: 'coin', rarity: 'legendary' },
+  { id: 'secondWind', title: '불굴의 불씨', description: '이번 런에 한 번, 사망 시 체력 35%로 부활하고 1.5초 무적.', icon: 'heart', rarity: 'legendary' },
+  { id: 'shockwave', title: '돌진의 뇌심', description: '대시할 때 검 공격력의 80% 피해를 주는 충격파 발생.', icon: 'bolt', rarity: 'epic' },
 ].map(Object.freeze));
 
 /** Bad RNG inputs still produce a bounded, distinct set of unowned choices. */
@@ -43,12 +66,38 @@ export function applyRelic(stats, id) {
     case 'frostfire': stats.frostfireBonus = clamp(finite(stats.frostfireBonus) + 0.2, 0, 0.4); break;
     case 'thunderRune': stats.runeSynergyBonus = clamp(finite(stats.runeSynergyBonus) + 0.12, 0, 0.24); break;
     case 'greed':
-      stats.goldMultiplier = clamp(finite(stats.goldMultiplier, 1), 1, 3) * 1.15;
+      multiplyStat(stats, 'goldMultiplier', 1.15);
       stats.relicThreat = {
         enemyHealth: clamp(finite(stats.relicThreat?.enemyHealth, 1), 1, 3) * 1.15,
         enemyDamage: clamp(finite(stats.relicThreat?.enemyDamage, 1), 1, 3) * 1.1,
       };
       break;
+    case 'whetstone': multiplyStat(stats, 'damage', 1.4, 18); break;
+    case 'warDrum': multiplyStat(stats, 'attackRate', 1.2, 1.5); break;
+    case 'longblade': multiplyStat(stats, 'swordRangeMultiplier', 1.2); break;
+    case 'executioner': stats.eliteDamageBonus = clamp(finite(stats.eliteDamageBonus) + 0.3, 0, 1); break;
+    case 'arcanePrism': multiplyStat(stats, 'spellDamage', 1.4, 18); break;
+    case 'hourglass': multiplyStat(stats, 'spellRate', 1.2, 1.5); break;
+    case 'wideSigil': multiplyStat(stats, 'spellAreaMultiplier', 1.18); break;
+    case 'inferno': stats.fireballBonus = clamp(finite(stats.fireballBonus) + 0.25, 0, 1); break;
+    case 'glacier': stats.frostBonus = clamp(finite(stats.frostBonus) + 0.25, 0, 1); break;
+    case 'conductor': stats.lightningBonus = clamp(finite(stats.lightningBonus) + 0.25, 0, 1); break;
+    case 'satellites': stats.orbitBonus = clamp(finite(stats.orbitBonus) + 0.25, 0, 1); break;
+    case 'giantsHeart': multiplyStat(stats, 'maxHp', 1.4, 100); break;
+    case 'ironroot': stats.armor = clamp(finite(stats.armor) + 0.08, 0, 0.6); break;
+    case 'spring': stats.regen = clamp(finite(stats.regen) + 0.8, 0, 20); break;
+    case 'windstep': multiplyStat(stats, 'speed', 1.15, 7.5, 20); break;
+    case 'vacuum': multiplyStat(stats, 'magnet', 1.4, 5.5, 100); break;
+    case 'huntersWisdom': multiplyStat(stats, 'xpMultiplier', 1.35); break;
+    case 'alchemy':
+      multiplyStat(stats, 'goldMultiplier', 1.3);
+      stats.relicThreat = {
+        enemyHealth: clamp(finite(stats.relicThreat?.enemyHealth, 1), 1, 3) * 1.2,
+        enemyDamage: clamp(finite(stats.relicThreat?.enemyDamage, 1), 1, 3) * 1.15,
+      };
+      break;
+    case 'secondWind': stats.reviveCharges = clamp(Math.floor(finite(stats.reviveCharges)) + 1, 0, 1); break;
+    case 'shockwave': stats.dashShockwave = true; break;
   }
   stats.relics = [...owned, id];
   return true;
@@ -98,7 +147,7 @@ export function applyBossReward(stats, stage) {
     case 'breaker': stats.damage = clamp(finite(stats.damage, 18), 0, 1e9) * 1.12; break;
     case 'plague': stats.poisonExplosion = true; break;
     case 'abyss': stats.spellDamage = clamp(finite(stats.spellDamage, 18), 0, 1e9) * 1.12; break;
-    case 'crown': stats.goldMultiplier = clamp(finite(stats.goldMultiplier, 1), 1, 3) * 1.1; break;
+    case 'crown': multiplyStat(stats, 'goldMultiplier', 1.1); break;
   }
   stats.bossRewards = [...owned, reward.id];
   return true;

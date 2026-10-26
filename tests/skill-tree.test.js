@@ -23,15 +23,15 @@ test('sword and magic branches unlock independently and require their own roots'
   assert.equal(getPermanentUpgradeOffers(sword).find(item => item.id === 'haste').locked, false);
   assert.equal(getPermanentUpgradeOffers(sword).find(item => item.id === 'focus').locked, true);
   const before = getPermanentBonuses(initial), after = getPermanentBonuses(sword);
-  assert.equal(after.damageMultiplier, 1.02);
+  assert.equal(after.damageMultiplier, 1.12);
   assert.equal(after.spellDamageMultiplier, before.spellDamageMultiplier);
   assert.equal(after.spellRateMultiplier, before.spellRateMultiplier);
   const magic = purchasePermanentUpgrade(initial, 'arcana').progress;
   const magicBonus = getPermanentBonuses(purchasePermanentUpgrade(magic, 'focus').progress);
   assert.equal(magicBonus.damageMultiplier, before.damageMultiplier);
   assert.equal(magicBonus.attackRateMultiplier, before.attackRateMultiplier);
-  assert.equal(magicBonus.spellDamageMultiplier, 1.02);
-  assert.equal(magicBonus.spellRateMultiplier, 1.01);
+  assert.equal(magicBonus.spellDamageMultiplier, 1.12);
+  assert.equal(magicBonus.spellRateMultiplier, 1.025);
 });
 
 test('old wallet, receipts and upgrade levels survive additive tree migration', () => {
