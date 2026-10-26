@@ -4,10 +4,10 @@ import { formatGold, getStageStats, SPELLS, STAGE_DURATION, BOSS_SPAWN_TIME, MAX
 import { createProgress, normalizeProgress, getPermanentUpgradeOffers, getPermanentBonuses, settleRun, purchasePermanentUpgrade, getUnlockOffers, purchaseUnlock, selectLoadout, CHARACTERS, WEAPONS } from './progression.js';
 import { icon } from './icons.js';
 import { RELICS, BOSS_REWARDS, RISK_PACTS, getRiskStats } from './content.js';
+import { STAGES, BOSS_TYPES, ENEMY_TYPES, getStageDefinition, getBossDefinition } from './encounters.js';
 
 const $ = (s) => document.querySelector(s);
-const stageNames = ['잊혀진 초원', '황혼의 폐허', '독안개의 숲', '심연의 성채', '공허의 심장'];
-const stageEnglish = ['THE FORGOTTEN GROVE', 'TWILIGHT RUINS', 'POISONWOOD', 'ABYSSAL CITADEL', 'HEART OF THE VOID'];
+const stageNames = STAGES.map(stage => stage.name);
 const time = (seconds = 0) => `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`;
 const escapeHTML = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 function readStorage(key, fallback) { try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; } }
@@ -55,7 +55,7 @@ $('#app').innerHTML = `
       <button class="nav-link" data-nav="history">런 기록 <span class="nav-count" id="history-count">${history.length.toString().padStart(2, '0')}</span></button>
       <button class="nav-link" data-nav="permanent">영구 강화</button>
     </nav>
-    <div class="header-actions"><span class="build-label"><i></i> BUILD YOUR LEGEND <b>v0.5</b></span><span class="header-divider"></span><button id="sound-toggle" class="icon-button" title="사운드 켜기" aria-label="사운드 켜기">${icon('muted')}</button><button id="settings" class="icon-button" title="설정" aria-label="설정">${icon('settings')}</button></div>
+    <div class="header-actions"><span class="build-label"><i></i> BUILD YOUR LEGEND <b>v0.6</b></span><span class="header-divider"></span><button id="sound-toggle" class="icon-button" title="사운드 켜기" aria-label="사운드 켜기">${icon('muted')}</button><button id="settings" class="icon-button" title="설정" aria-label="설정">${icon('settings')}</button></div>
   </header>
   <main class="page">
     <section class="page-intro">
@@ -84,7 +84,7 @@ $('#app').innerHTML = `
           <button class="start-loadout" id="start-loadout">${icon('sword')} <span id="selected-loadout">방랑자 · 공허의 검</span> ${icon('chevron')}</button>
           <div class="risk-selector"><span>이번 런의 계약</span><div id="risk-options" class="risk-options">${RISK_PACTS.map(pact => `<button data-risk="${pact.id}" aria-pressed="${prefs.risk === pact.id}" class="${prefs.risk === pact.id ? 'selected' : ''}">${pact.name.replace('의 계약','')}</button>`).join('')}</div><p id="risk-description"></p></div>
           <button class="primary-button start-button" id="start-button"><span>${icon('play')} 런 시작하기</span>${icon('arrow')}</button>
-          <div class="start-footnote"><span class="live-dot"></span> 설치 없이 바로 플레이 <span>·</span> 2분 × 5 스테이지 + 보스</div>
+          <div class="start-footnote"><span class="live-dot"></span> 설치 없이 바로 플레이 <span>·</span> ${STAGE_DURATION / 60}분 × ${MAX_STAGES}층 · 층마다 다른 수호자</div>
         </div>
         <div class="scene-coordinate">SECTOR_001 <span>35° 41′ N / 139° 41′ E</span></div>
         <div class="combo-display hidden" id="combo-display"><strong id="combo-value"></strong><span>CHAIN KILLS</span></div>
@@ -101,10 +101,10 @@ $('#app').innerHTML = `
       </div>
       <aside class="run-panel">
         <div class="panel-heading"><span>이번 런의 여정</span><span class="micro">THE RUN</span></div>
-        <div class="stage-heading"><span class="stage-caption">CURRENT STAGE</span><div class="stage-number"><strong id="stage-number">01</strong><span>/ 0${MAX_STAGES}</span><span class="stage-symbol">✳</span></div><h3 id="stage-name">잊혀진 초원</h3><p id="stage-english">THE FORGOTTEN GROVE</p></div>
+        <div class="stage-heading"><span class="stage-caption">CURRENT STAGE</span><div class="stage-number"><strong id="stage-number">01</strong><span>/ ${String(MAX_STAGES).padStart(2, '0')}</span><span class="stage-symbol">✳</span></div><h3 id="stage-name">잊혀진 초원</h3><p id="stage-english">THE FORGOTTEN GROVE</p></div>
         <div class="stage-time"><span id="stage-timer-label">보스 출현까지</span><strong id="stage-time">01:30</strong></div><div class="stage-track"><div id="stage-progress"></div></div>
         <div class="scaling-stats"><div><span>${icon('coin')} 처치 보상</span><strong id="reward-multiplier">×1</strong></div><div><span>${icon('skull')} 몬스터 위력</span><strong id="enemy-multiplier">×1</strong></div></div>
-        <div class="stage-route">${stageNames.map((name, i) => `<div class="route-stop ${i === 0 ? 'current' : ''}" data-stage="${i + 1}"><span class="route-point">${i === 0 ? '<i></i>' : `<b>${i + 1}</b>`}</span><span>${name}</span><span class="route-multiplier">${i === 0 ? '현재' : `×${formatGold(10 ** i)}`}</span></div>`).join('')}</div>
+        <div class="stage-route" aria-label="전체 층 진행 경로" tabindex="0">${stageNames.map((name, i) => `<div class="route-stop ${i === 0 ? 'current' : ''}" data-stage="${i + 1}"><span class="route-point">${i === 0 ? '<i></i>' : `<b>${i + 1}</b>`}</span><span>${name}</span><span class="route-multiplier">${i === 0 ? '현재' : `×${formatGold(10 ** i)}`}</span></div>`).join('')}</div>
         <div class="build-summary"><div><span>이번 런의 빌드</span><button id="build-info" title="마법과 강화 설명">${icon('book')}</button></div><p id="build-summary">화염탄으로 시작합니다.<br>경험치를 모아 새 마법을 선택하세요.</p><div class="build-summary-foot"><span id="build-levels">마법 1종 · 진화 0종</span><span>LV. <b id="build-level">1</b></span></div></div>
         <div class="panel-tip"><span>${icon('bolt')} BIGGER GAINS. NEW POSSIBILITIES.</span><p>강력한 성장, 새로운 마법.<br>선택이 쌓여 <b>당신만의 빌드로.</b></p><div class="mini-bars">${Array.from({length: 22}, (_, i) => `<i style="--bar:${12 + Math.pow(i / 21, 2.5) * 38}px;--alpha:${.16 + i / 26}"></i>`).join('')}</div></div>
       </aside>
@@ -166,8 +166,9 @@ function update(state) {
   hud('#kill-count', state.kills.toLocaleString());
   hud('#gold-count', formatGold(state.gold));
   hud('#stage-number', String(state.stage).padStart(2, '0'));
-  hud('#stage-name', stageNames[state.stage - 1]); hud('#area-name', stageNames[state.stage - 1]);
-  hud('#stage-english', stageEnglish[state.stage - 1]);
+  const floor = getStageDefinition(state.stage);
+  hud('#stage-name', floor.name); hud('#area-name', floor.name);
+  hud('#stage-english', floor.english);
   hud('#area-stage', `STAGE ${String(state.stage).padStart(2, '0')}`);
   const boss = state.boss;
   const bossAlive = !!boss && boss.hp > 0;
@@ -189,7 +190,7 @@ function update(state) {
     $('#boss-health-fill').style.width = `${bossPercent}%`;
     $('#boss-hud').setAttribute('aria-valuenow', String(Math.ceil(bossPercent)));
     $('#boss-hud').setAttribute('aria-valuetext', `${boss.name} 체력 ${Math.ceil(bossPercent)}%`);
-    $('#boss-hud').title = `${boss.name} · ${Math.ceil(boss.hp).toLocaleString('ko-KR')} / ${Math.ceil(boss.maxHp).toLocaleString('ko-KR')}`;
+    $('#boss-hud').title = `${boss.name} · ${Math.ceil(boss.hp).toLocaleString('ko-KR')} / ${Math.ceil(boss.maxHp).toLocaleString('ko-KR')} · ${boss.hint || getBossDefinition(state.stage).hint}`;
   }
   const weapon = WEAPONS.find(item => item.id === (state.playerStats?.weaponId || progress.loadout?.weapon)) || WEAPONS[0];
   hud('#weapon-name', `${escapeHTML(weapon.name)} <span>${['I', 'II', 'III', 'IV', 'V'][Math.min(4, Math.floor((state.level - 1) / 3))]}</span>`, true);
@@ -229,6 +230,8 @@ function update(state) {
     stop.querySelector('.route-point').innerHTML = n < state.stage ? icon('check') : n === state.stage ? '<i></i>' : `<b>${n}</b>`;
     stop.querySelector('.route-multiplier').textContent = n === state.stage ? '현재' : n < state.stage ? '완료' : `×${formatGold(10 ** (n - 1))}`;
   }
+  const route = $('.stage-route'), currentStop = route?.querySelector('.current');
+  if (route && currentStop) route.scrollTop = Math.max(0, currentStop.offsetTop - route.offsetTop - route.clientHeight / 2 + currentStop.clientHeight / 2);
   }
   if (state.kills > lastKills) sound(520 + Math.random() * 200, .06, .025);
   lastKills = state.kills;
@@ -271,8 +274,34 @@ function startRun() {
   showToast('초록 경험치 조각을 모으세요. 레벨업마다 마법과 강화를 선택합니다.');
   $('#game-canvas').focus({ preventScroll: true });
 }
+function encounterGuide() {
+  const enemyCounters = {
+    0: '거리를 벌리고 자동 검격의 범위에 한꺼번에 모으세요.',
+    1: '빠른 추격을 대시로 끊고, 낮은 체력을 먼저 공략하세요.',
+    2: '느리지만 단단합니다. 둘러싸이기 전에 마법으로 체력을 깎으세요.',
+    3: '발사 직전의 빛을 보고 옆으로 이동하면 탄환을 피할 수 있습니다.',
+    5: '직선 돌진 예고가 고정되면 옆으로 이동하고 빈틈을 공격하세요.',
+    6: '원형 예고 밖으로 빠지세요. 스스로 폭발한 적은 보상을 남기지 않습니다.',
+    7: '쓰러진 뒤 작은 적 둘로 갈라집니다. 광역 마법으로 마무리하세요.',
+    8: '긴 조준선이 고정된 뒤 옆으로 이동하거나 대시하세요.',
+    9: '주변 적을 회복시키므로 먼저 처치하면 군단을 약화시킬 수 있습니다.',
+  };
+  const enemyIcons = { 0: 'skull', 1: 'move', 2: 'shield', 3: 'bolt', 5: 'sword', 6: 'fire', 7: 'diamond', 8: 'target', 9: 'cross' };
+  const bossCounters = {
+    warden: '직선 돌진은 옆으로 피하고, 원형 충격파는 범위 밖으로 빠지세요.',
+    artillery: '거리를 유지하며 부채꼴 탄막을 쏩니다. 조준 방향이 고정되면 이동하세요.',
+    plague: '플레이어 주변에 독 장판을 예고합니다. 표시된 원에서 빠져나와 싸우세요.',
+    brood: '추종자를 소환하고 가까운 적을 충격파로 밀어냅니다. 광역 마법으로 소환수를 정리하세요.',
+    storm: '회전하는 탄막과 충격파를 사용합니다. 탄막 사이의 틈을 따라 움직이세요.',
+    reaper: '이동할 자리를 미리 표시한 뒤 순간이동합니다. 표식에서 떨어져 다음 공격을 피하세요.',
+  };
+  const enemies = Object.values(ENEMY_TYPES).filter(enemy => enemy.kind !== 4);
+  const bosses = Object.values(BOSS_TYPES);
+  return `<section class="encounter-reference" aria-label="적과 수호자 도감"><details class="encounter-section"><summary tabindex="0">${icon('skull')} 몬스터 도감 <span>${enemies.length}종</span>${icon('chevron')}</summary><p class="encounter-intro">층이 깊어지면 새 적이 기존 군단에 합류합니다. 서로 다른 예고를 구분해 우선순위를 정하세요.</p><div class="encounter-grid">${enemies.map(enemy => `<article class="encounter-card" data-enemy-kind="${enemy.kind}" style="--encounter:${escapeHTML(enemy.color || '#a5c681')}"><div class="encounter-symbol">${icon(enemyIcons[enemy.kind] || 'skull')}</div><div><small>${enemy.unlockStage}층부터 등장</small><h3>${escapeHTML(enemy.name)}</h3><p>${escapeHTML(enemy.description)}</p><strong>${escapeHTML(enemy.counterplay || enemyCounters[enemy.kind] || '')}</strong></div></article>`).join('')}</div></details><details class="encounter-section"><summary tabindex="0">${icon('trophy')} 수호자 공략 <span>${bosses.length}가지 전투 방식</span>${icon('chevron')}</summary><p class="encounter-intro">${MAX_STAGES}개 층마다 고유한 수호자가 기다립니다. 후반 수호자는 같은 계열의 전투 방식도 더 거세게 사용합니다.</p><div class="encounter-grid">${bosses.map(boss => { const floors = STAGES.map((_, index) => index + 1).filter(stage => getBossDefinition(stage).archetype === boss.id); return `<article class="encounter-card boss-reference-card" data-boss-archetype="${escapeHTML(boss.id)}" style="--encounter:${escapeHTML(boss.color || '#deac8d')}"><div class="encounter-symbol">${icon(boss.id === 'storm' ? 'bolt' : boss.id === 'plague' ? 'fire' : boss.id === 'artillery' ? 'target' : boss.id === 'brood' ? 'skull' : boss.id === 'reaper' ? 'orbit' : 'sword')}</div><div><small>${floors.join(' · ')}층 수호자</small><h3>${escapeHTML(boss.name)}</h3><p>${escapeHTML(boss.hint)}</p><strong>${escapeHTML(bossCounters[boss.id] || '')}</strong></div></article>`; }).join('')}</div></details></section>`;
+}
+
 function showGuide() {
-  openModal('guide', `<div class="modal-eyebrow">FIELD MANUAL / 002</div><h2 id="modal-title">작은 선택이, 거대한 빌드로<span>.</span></h2><p class="modal-description">네 가지 마법과 다섯 수호자. 오래 살아남을수록 더 깊어집니다.</p><div class="guide-steps"><div><span>01</span><div><h3>4배 넓어진 전장을 누비세요</h3><p><kbd>W A S D</kbd> / 방향키로 이동, <kbd>SPACE</kbd>로 무적 대시. 모바일은 방향 버튼이나 전장 드래그를 사용합니다. 검과 보유 마법은 자동으로 공격합니다.</p></div></div><div><span>02</span><div><h3>경험치 → 선택 → 마법 진화</h3><p>초록 조각을 모으면 3개 강화 중 하나를 선택합니다. 검·마법 공격력은 각각 <b>20%</b>, 공격·시전 속도는 <b>8%</b>, 최대 체력은 <b>15%</b>씩 곱해 성장합니다. 마법은 <b>5단계</b>까지 강화하고, 다음 선택에서 진화시킬 수 있습니다. 마법 선택지가 남아 있다면 레벨업에 반드시 하나 이상 등장합니다.</p></div></div><div><span>03</span><div><h3>죽고 번 골드로 영구 강화하세요</h3><p>사망하거나 완주하면 모은 골드가 보유 지갑으로 들어옵니다. 결과 화면에서 <b>영구 강화하고 재도전</b>을 눌러 검·마법 공격력을 단계마다 <b>12%</b>, 최대 체력을 <b>10%</b>씩 곱해 키우세요. 가격의 급격한 폭증은 낮췄고 기본 골드 수입은 <b>5배</b> 늘렸습니다. 검술·마력 가지를 따로 키우거나 캐릭터·무기를 해금하세요. 구매한 강화와 남은 골드는 <b>다음 런에도 유지</b>됩니다. <kbd>B</kbd>는 이번 런의 마법 빌드를 보여줍니다.</p></div></div><div><span>04</span><div><h3>2분 생존, 그리고 수호자 처치</h3><p>스테이지마다 <b>90초</b>에 보스가 등장합니다. <b>2분 생존 + 보스 처치</b>를 모두 달성해야 다음 단계로 진행됩니다. 3스테이지부터는 원거리 몬스터가 공격합니다. 돌진과 장판의 붉은 예고를 피하세요.</p></div></div><div><span>05</span><div><h3>더 강한 적, 더 큰 보상</h3><p>다음 단계의 골드는 <b>10배</b>, 몬스터 능력치는 <b>3.2배</b>. 보스 돌파 축복은 검·마법 공격력과 최대 체력을 각각 <b>3.2배</b>로 키우고 완전히 회복시킵니다. 몬스터가 기하급수적으로 성장하는 만큼 플레이어도 함께 성장합니다. 군세·광란 계약을 선택하면 골드와 함께 적 체력·피해·출현 빈도도 올라갑니다.</p></div></div><div><span>06</span><div><h3>정예와 상자에서 유물을 찾으세요</h3><p>정예는 더 높은 체력과 피해를 가집니다. 상자의 수호병을 처치하면 보상에 접근할 수 있습니다. 황금 몬스터는 도망가기 전에 추격하세요. <kbd>F</kbd>나 전장 오른쪽 위 버튼으로 전체 화면을 켜고 끕니다.</p></div></div></div><div class="guide-bottom">${icon('info')} ${STAGE_DURATION / 60}분 × ${MAX_STAGES} 스테이지. 시간이 끝나도 살아 있는 보스는 처치해야 합니다.</div>`);
+  openModal('guide', `<div class="modal-eyebrow">FIELD MANUAL / 002</div><h2 id="modal-title">작은 선택이, 거대한 빌드로<span>.</span></h2><p class="modal-description">네 가지 마법, ${MAX_STAGES}개의 층과 서로 다른 수호자. 도감에서 다음 위협의 공략법을 확인하세요.</p><div class="guide-steps"><div><span>01</span><div><h3>4배 넓어진 전장을 누비세요</h3><p><kbd>W A S D</kbd> / 방향키로 이동, <kbd>SPACE</kbd>로 무적 대시. 모바일은 방향 버튼이나 전장 드래그를 사용합니다. 검과 보유 마법은 자동으로 공격합니다.</p></div></div><div><span>02</span><div><h3>경험치 → 선택 → 마법 진화</h3><p>초록 조각을 모으면 3개 강화 중 하나를 선택합니다. 검·마법 공격력은 각각 <b>20%</b>, 공격·시전 속도는 <b>8%</b>, 최대 체력은 <b>15%</b>씩 곱해 성장합니다. 마법은 <b>5단계</b>까지 강화하고, 다음 선택에서 진화시킬 수 있습니다. 마법 선택지가 남아 있다면 레벨업에 반드시 하나 이상 등장합니다.</p></div></div><div><span>03</span><div><h3>죽고 번 골드로 영구 강화하세요</h3><p>사망하거나 완주하면 모은 골드가 보유 지갑으로 들어옵니다. 결과 화면에서 <b>영구 강화하고 재도전</b>을 눌러 검·마법 공격력을 단계마다 <b>12%</b>, 최대 체력을 <b>10%</b>씩 곱해 키우세요. 가격의 급격한 폭증은 낮췄고 기본 골드 수입은 <b>5배</b> 늘렸습니다. 검술·마력 가지를 따로 키우거나 캐릭터·무기를 해금하세요. 구매한 강화와 남은 골드는 <b>다음 런에도 유지</b>됩니다. <kbd>B</kbd>는 이번 런의 마법 빌드를 보여줍니다.</p></div></div><div><span>04</span><div><h3>${STAGE_DURATION / 60}분 생존, 그리고 수호자 처치</h3><p>스테이지마다 <b>90초</b>에 보스가 등장합니다. <b>2분 생존 + 보스 처치</b>를 모두 달성해야 다음 단계로 진행됩니다. 층이 깊어질수록 돌진병·폭탄병·분열체·저격수·주술사가 합류합니다. 붉은 조준선과 원형 예고를 보고 먼저 움직이세요.</p></div></div><div><span>05</span><div><h3>더 강한 적, 더 큰 보상</h3><p>다음 단계의 골드는 <b>10배</b>, 몬스터 능력치는 <b>3.2배</b>. 보스 돌파 축복은 검·마법 공격력과 최대 체력을 각각 <b>3.2배</b>로 키우고 완전히 회복시킵니다. 몬스터가 기하급수적으로 성장하는 만큼 플레이어도 함께 성장합니다. 군세·광란 계약을 선택하면 골드와 함께 적 체력·피해·출현 빈도도 올라갑니다.</p></div></div><div><span>06</span><div><h3>정예와 상자에서 유물을 찾으세요</h3><p>정예는 더 높은 체력과 피해를 가집니다. 상자의 수호병을 처치하면 보상에 접근할 수 있습니다. 황금 몬스터는 도망가기 전에 추격하세요. <kbd>F</kbd>나 전장 오른쪽 위 버튼으로 전체 화면을 켜고 끕니다.</p></div></div></div><div class="guide-bottom">${icon('info')} ${STAGE_DURATION / 60}분 × ${MAX_STAGES}층. 시간이 끝나도 살아 있는 보스는 처치해야 합니다.</div>${encounterGuide()}`);
 }
 
 function showBuild() {
@@ -380,7 +409,7 @@ function showPause() {
   if (['playing', 'paused'].includes(latest?.phase) && !dialogName) {
     pausedForDialog = true;
     game.pause();
-    openModal('pause', `<div class="modal-eyebrow">TAKE A BREATH</div><h2 id="modal-title">잠깐, 숨 고르기<span>.</span></h2><p class="modal-description">공허는 당신을 기다려줍니다.</p><div class="pause-stats"><div><span>스테이지</span><strong>${latest.stage} <small>/ 5</small></strong></div><div><span>생존 시간</span><strong>${time(latest.elapsed)}</strong></div><div><span>처치 수</span><strong>${latest.kills}</strong></div></div><button id="resume" class="primary-button">${icon('play')} 계속 플레이 ${icon('arrow')}</button><button id="pause-settings" class="secondary-button">${icon('settings')} 사운드 · 그래픽 설정</button><button id="pause-restart" class="secondary-button">${icon('refresh')} 런 종료하고 골드 회수</button>`, { pause: false });
+    openModal('pause', `<div class="modal-eyebrow">TAKE A BREATH</div><h2 id="modal-title">잠깐, 숨 고르기<span>.</span></h2><p class="modal-description">공허는 당신을 기다려줍니다.</p><div class="pause-stats"><div><span>스테이지</span><strong>${latest.stage} <small>/ ${MAX_STAGES}</small></strong></div><div><span>생존 시간</span><strong>${time(latest.elapsed)}</strong></div><div><span>처치 수</span><strong>${latest.kills}</strong></div></div>${latest?.boss?.hp > 0 ? `<div class="pause-boss-tip">${icon('skull')}<span><strong>${escapeHTML(latest.boss.name)}</strong>${escapeHTML(latest.boss.hint || getBossDefinition(latest.stage).hint)}</span></div>` : ''}<button id="resume" class="primary-button">${icon('play')} 계속 플레이 ${icon('arrow')}</button><button id="pause-settings" class="secondary-button">${icon('settings')} 사운드 · 그래픽 설정</button><button id="pause-restart" class="secondary-button">${icon('refresh')} 런 종료하고 골드 회수</button>`, { pause: false });
     $('#resume').addEventListener('click', closeModal); $('#pause-settings').addEventListener('click', showSettings); $('#pause-restart').addEventListener('click', () => game.endRun());
   } else if (dialogName === 'pause') closeModal();
 }
@@ -408,7 +437,7 @@ function showResult() {
   if (!lastResult) return;
   const { state, won, settlement } = lastResult;
   campFromResult = false;
-  openModal('result', `<div class="result-emblem">${icon(won ? 'trophy' : 'skull')}</div><div class="modal-eyebrow">${won ? 'THE VOID IS YOURS' : 'DEATH IS PROGRESS'}</div><h2 id="modal-title">${won ? '공허를 정복했습니다' : state.endedReason === 'abandoned' ? '돌아와서, 더 강하게' : '쓰러져도, 성장은 남습니다'}<span>.</span></h2><p class="modal-description">${won ? '다섯 수호자를 돌파했습니다. 회수한 골드로 다음 도전을 준비하세요.' : `${stageNames[state.stage - 1]}에서 여정을 마쳤습니다. 번 골드는 잃지 않았습니다.`}</p><div class="settlement-panel"><span>${icon('coin')} 이번 런 골드 회수</span><strong id="settlement-gold">+${formatGold(settlement.amount)} G</strong><small>보유 골드 <b id="result-bank">${formatGold(progress.bank)} G</b> · 영구 강화에 사용할 수 있습니다</small></div><div class="result-stats"><div><span>생존 시간</span><strong>${time(state.elapsed)}</strong></div><div><span>처치 수</span><strong>${state.kills}</strong></div><div><span>도달 스테이지</span><strong>${state.stage} / 5</strong></div><div><span>도달 레벨</span><strong>LV. ${state.level}</strong></div></div><button class="primary-button" id="result-permanent">${icon('coin')} 영구 강화하고 재도전 ${icon('arrow')}</button><button class="secondary-button" id="retry">${icon('refresh')} 강화 없이 바로 재도전</button>`, { pause: false, closeable: false });
+  openModal('result', `<div class="result-emblem">${icon(won ? 'trophy' : 'skull')}</div><div class="modal-eyebrow">${won ? 'THE VOID IS YOURS' : 'DEATH IS PROGRESS'}</div><h2 id="modal-title">${won ? '공허를 정복했습니다' : state.endedReason === 'abandoned' ? '돌아와서, 더 강하게' : '쓰러져도, 성장은 남습니다'}<span>.</span></h2><p class="modal-description">${won ? `${MAX_STAGES}층의 모든 수호자를 돌파했습니다. 회수한 골드로 다음 도전을 준비하세요.` : `${getStageDefinition(state.stage).name}에서 여정을 마쳤습니다. 번 골드는 잃지 않았습니다.`}</p><div class="settlement-panel"><span>${icon('coin')} 이번 런 골드 회수</span><strong id="settlement-gold">+${formatGold(settlement.amount)} G</strong><small>보유 골드 <b id="result-bank">${formatGold(progress.bank)} G</b> · 영구 강화에 사용할 수 있습니다</small></div><div class="result-stats"><div><span>생존 시간</span><strong>${time(state.elapsed)}</strong></div><div><span>처치 수</span><strong>${state.kills}</strong></div><div><span>도달 스테이지</span><strong>${state.stage} / ${MAX_STAGES}</strong></div><div><span>도달 레벨</span><strong>LV. ${state.level}</strong></div></div><button class="primary-button" id="result-permanent">${icon('coin')} 영구 강화하고 재도전 ${icon('arrow')}</button><button class="secondary-button" id="retry">${icon('refresh')} 강화 없이 바로 재도전</button>`, { pause: false, closeable: false });
   $('#result-permanent').addEventListener('click', () => showPermanentUpgrades(true));
   $('#retry').addEventListener('click', startRun);
 }
@@ -419,7 +448,7 @@ try {
     onRelic,
     onLoot: message => showToast(typeof message === 'string' ? message : message?.message || message?.title || '새로운 보상을 획득했습니다.'),
     onBoss: boss => {
-      showToast(`${boss.name} 출현! 붉은 공격 예고를 피하세요.`);
+      showToast(`${boss.name} · ${boss.hint || getBossDefinition(latest?.stage || 1).hint}`);
       sound(130, .5, .08);
     },
     onBossDefeat: () => {
@@ -428,7 +457,7 @@ try {
     },
     onStage: stage => {
       const num = typeof stage === 'number' ? stage : stage.stage;
-      $('#banner-title').textContent = stageNames[num - 1];
+      $('#banner-title').textContent = getStageDefinition(num).name;
       $('#banner-kicker').textContent = `STAGE ${String(num).padStart(2, '0')} / REWARD ×${formatGold(10 ** (num - 1))}`;
       $('#stage-banner').classList.remove('hidden');
       setTimeout(() => $('#stage-banner').classList.add('hidden'), 2600);

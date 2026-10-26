@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
-import { ARENA_RADIUS, BOSS_SPAWN_TIME, STAGE_DURATION } from '../src/balance.js';
+import { ARENA_RADIUS, BOSS_SPAWN_TIME, STAGE_DURATION, MAX_STAGES } from '../src/balance.js';
 
 // These tests shorten waiting with simulation steps and explicit combat fixtures.
 // They verify real collision/spell/progression code, not normal-health victory balance.
@@ -244,7 +244,7 @@ try {
     const savedRandom = Math.random;
     let earlyKind, lateKind;
     try {
-      Math.random = () => .1;
+      Math.random = () => .8;
       game._state.stage = 1; earlyKind = game.spawnEnemy(20, 20).kind;
       game._state.stage = 3; lateKind = game.spawnEnemy(20, -20).kind;
     } finally { Math.random = savedRandom; }
@@ -261,18 +261,18 @@ try {
   console.log('PASS ranged enemies: stage-three introduction, standoff/retreat, windup, damaging bolts and dash protection');
 
   await freshRun();
-  const finalGate = await page.evaluate(duration => {
+  const finalGate = await page.evaluate(({ duration, finalStage }) => {
     const game = window.__game;
     game.stats.spells = { fireball: 0, frost: 0, lightning: 0, orbit: 0 };
     game.spawnTimer = 1e6; game.attackTimer = 1e6;
-    game._state.stage = 5; game._state.stageTime = duration - .01;
+    game._state.stage = finalStage; game._state.stageTime = duration - .01;
     const boss = game.spawnBoss();
     game.tick(.02);
-    const blocked = game.state.phase !== 'won' && game.state.stage === 5;
+    const blocked = game.state.phase !== 'won' && game.state.stage === finalStage;
     game.hitEnemy(boss, boss.hp + 1, game.player.position.clone().set(1, 0, 0));
     game.tick(1 / 60);
     return { blocked, phase: game.state.phase, bossDefeated: game.bossDefeated };
-  }, STAGE_DURATION);
+  }, { duration: STAGE_DURATION, finalStage: MAX_STAGES });
   assert.equal(finalGate.blocked, true);
   assert.equal(finalGate.phase, 'won');
   assert.equal(finalGate.bossDefeated, true);

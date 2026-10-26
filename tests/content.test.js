@@ -81,7 +81,7 @@ test('greed and a contract compound their threats and pay gold exactly once per 
 });
 
 test('boss rewards are distinct, stage-specific and idempotent with isolated damage channels', () => {
-  assert.equal(new Set(BOSS_REWARDS.map(reward => reward.id)).size, 5);
+  assert.equal(new Set(BOSS_REWARDS.map(reward => reward.id)).size, 10);
   const stats = fresh();
   for (const reward of BOSS_REWARDS) {
     assert.equal(getBossReward(reward.stage).id, reward.id);
@@ -95,7 +95,7 @@ test('boss rewards are distinct, stage-specific and idempotent with isolated dam
   }
   assert.ok(stats.swordRangeMultiplier > 1);
   assert.equal(stats.poisonExplosion, true);
-  assert.equal(stats.bossRewards.length, 5);
+  assert.equal(stats.bossRewards.length, 10);
   assert.equal(getBossReward(99), null);
   const before = structuredClone(stats);
   assert.equal(applyBossReward(stats, 0), false);

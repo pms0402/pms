@@ -98,7 +98,7 @@ test('higher permanent casting speed and the hourglass both apply within the bou
 });
 
 test('large damage growth stays finite and remains independent of sword damage', () => {
-  const spellDamage = 18 * 1.12 ** 50 * 3.2 ** 4;
+  const spellDamage = 18 * 1.12 ** 50 * 3.2 ** 9;
   const baseline = actualHit('fireball', { spellDamage, damage: 1 });
   close(baseline, spellDamage * 1.1);
   close(actualHit('fireball', { spellDamage, damage: 1e12, fireballBonus: .25 }), baseline * 1.25);

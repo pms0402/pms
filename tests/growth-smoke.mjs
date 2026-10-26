@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 import { RELICS } from '../src/content.js';
 import { getPermanentUpgradeOffers } from '../src/progression.js';
+import { MAX_STAGES } from '../src/balance.js';
 
 // Shortened runtime fixtures exercise actual attacks, loot, death settlement,
 // purchases and stage transitions. They do not establish full-run difficulty.
@@ -100,11 +101,11 @@ try {
   console.log('PASS economy: real kill5G → contact death500G → affordable purchases → reload → independent compounded growth');
 
   await load(); await start();
-  const growth = await page.evaluate(() => {
+  const growth = await page.evaluate(floors => {
     const game = window.__game, stages = [];
     game.stats.spells = { fireball: 0, frost: 0, lightning: 0, orbit: 0 };
     game.stats.critChance = 0;
-    for (let index = 0; index < 4; index++) {
+    for (let index = 0; index < floors - 1; index++) {
       const sample = game.spawnEnemy(20, 0, 0);
       stages.push({ stage: game.state.stage, damage: game.stats.damage, spellDamage: game.stats.spellDamage, hp: game.stats.maxHp, enemyHp: sample.maxHp });
       const boss = game.spawnBoss();
@@ -119,16 +120,17 @@ try {
     const sample = game.spawnEnemy(20, 0, 0);
     stages.push({ stage: game.state.stage, damage: game.stats.damage, spellDamage: game.stats.spellDamage, hp: game.stats.maxHp, enemyHp: sample.maxHp });
     return stages;
-  });
+  }, MAX_STAGES);
   for (const stage of growth.slice(0, -1)) {
     near(stage.after.damage, stage.before.damage * 3.2, 'sword growth matches the monster stage exponent');
     near(stage.after.spellDamage, stage.before.spellDamage * 3.2, 'magic receives the same stage growth');
     near(stage.after.hp, stage.before.hp * 3.2, 'survivability receives the same stage growth');
     near(stage.after.health, stage.after.hp, 'stage transition fills the improved health pool');
   }
-  near(growth.at(-1).hp / growth[0].hp, 3.2 ** 4, 'fifth-stage player health is exponentially larger');
+  assert.equal(growth.length, MAX_STAGES);
+  assert.ok(growth.at(-1).hp / growth[0].hp >= 3.2 ** (MAX_STAGES - 1), 'last-floor health retains exponential growth and earned boss rewards');
   for (let index = 1; index < growth.length; index++) near(growth[index].enemyHp / growth[index - 1].enemyHp, 3.2, 'monster curve remains exponential');
-  console.log('PASS stage growth: actual boss gates advance five stages while sword, magic and health each scale×3.2');
+  console.log(`PASS stage growth: actual boss gates advance ${MAX_STAGES} floors while sword, magic and health each scale×3.2`);
 
   await load({ seed: { bank: 123, lifetimeGold: 999, upgrades: { power: 30, arcana: 30, vitality: 30, haste: 30, focus: 30 }, settledRunIds: ['old-paid-run'], importedHistory: true } });
   await start();

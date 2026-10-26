@@ -129,7 +129,12 @@ export const BOSS_REWARDS = Object.freeze([
   { id: 'breaker', stage: 2, title: '파괴자의 송곳니', description: '검 공격력 +12%. 마법 공격력에는 영향을 주지 않습니다.', icon: 'sword', rarity: 'legendary' },
   { id: 'plague', stage: 3, title: '역병의 씨앗', description: '적 처치 시 작은 독 폭발. 폭발 처치는 다시 폭발하지 않습니다.', icon: 'flame', rarity: 'legendary' },
   { id: 'abyss', stage: 4, title: '심연의 성배', description: '마법 공격력 +12%. 검 공격력에는 영향을 주지 않습니다.', icon: 'orbit', rarity: 'legendary' },
-  { id: 'crown', stage: 5, title: '공허의 왕관', description: '최종 보스 이후 줍는 골드 +10%. 이미 획득한 골드에는 소급되지 않습니다.', icon: 'diamond', rarity: 'legendary' },
+  { id: 'voidheart', stage: 5, title: '공허의 심장', description: '최대 체력 +15%. 다음 층의 성장에도 곱해집니다.', icon: 'heart', rarity: 'legendary' },
+  { id: 'reaperBeat', stage: 6, title: '사신의 박자', description: '검 공격 속도와 마법 시전 속도 +8%.', icon: 'bolt', rarity: 'legendary' },
+  { id: 'sight', stage: 7, title: '파괴자의 조준경', description: '치명타 확률 +5%p. 최대 65%.', icon: 'target', rarity: 'legendary' },
+  { id: 'aegis', stage: 8, title: '망각의 수호석', description: '받는 피해 감소 +4%p. 최대 60%.', icon: 'shield', rarity: 'legendary' },
+  { id: 'legion', stage: 9, title: '군단의 전술서', description: '검의 추가 타격 대상 +1 · 마법 공격력 +8%.', icon: 'sword', rarity: 'legendary' },
+  { id: 'crown', stage: 10, title: '종말의 왕관', description: '최종 보스 이후 줍는 골드 +10%. 이미 획득한 골드에는 소급되지 않습니다.', icon: 'diamond', rarity: 'legendary' },
 ].map(Object.freeze));
 
 export function getBossReward(stage) {
@@ -144,9 +149,20 @@ export function applyBossReward(stats, stage) {
   if (owned.includes(reward.id)) return false;
   switch (reward.id) {
     case 'warden': stats.swordRangeMultiplier = clamp(finite(stats.swordRangeMultiplier, 1), 1, 3) * 1.1; break;
-    case 'breaker': stats.damage = clamp(finite(stats.damage, 18), 0, 1e9) * 1.12; break;
+    case 'breaker': multiplyStat(stats, 'damage', 1.12, 18); break;
     case 'plague': stats.poisonExplosion = true; break;
-    case 'abyss': stats.spellDamage = clamp(finite(stats.spellDamage, 18), 0, 1e9) * 1.12; break;
+    case 'abyss': multiplyStat(stats, 'spellDamage', 1.12, 18); break;
+    case 'voidheart': multiplyStat(stats, 'maxHp', 1.15, 100); break;
+    case 'reaperBeat':
+      multiplyStat(stats, 'attackRate', 1.08, 1.5);
+      multiplyStat(stats, 'spellRate', 1.08, 1.5);
+      break;
+    case 'sight': stats.critChance = clamp(finite(stats.critChance, .08) + .05, 0, .65); break;
+    case 'aegis': stats.armor = clamp(finite(stats.armor) + .04, 0, .6); break;
+    case 'legion':
+      stats.swordTargetsBonus = clamp(finite(stats.swordTargetsBonus) + 1, 0, 4);
+      multiplyStat(stats, 'spellDamage', 1.08, 18);
+      break;
     case 'crown': multiplyStat(stats, 'goldMultiplier', 1.1); break;
   }
   stats.bossRewards = [...owned, reward.id];

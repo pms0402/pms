@@ -1,7 +1,9 @@
+import { STAGES, getBossDefinition } from './encounters.js';
+
 /** Stage economy is independent of the player's selected build. */
 export const STAGE_DURATION = 120;
 export const BOSS_SPAWN_TIME = 90;
-export const MAX_STAGES = 5;
+export const MAX_STAGES = STAGES.length;
 // Doubling the playable radius gives four times the previous map area.
 export const ARENA_RADIUS = 62;
 
@@ -34,13 +36,10 @@ export function getSpawnInterval(stage = 1, stageTime = 0) {
   return Math.max(0.085, openingInterval * (1 - 0.88 * ramp ** 1.35));
 }
 
-const BOSS_NAMES = ['초원의 파수꾼', '황혼의 파괴자', '역병의 군주', '심연의 집행자', '공허의 왕'];
-
 export function getBossStats(stage = 1) {
-  const index = stageNumber(stage) - 1;
   const stats = getStageStats(stage);
   return {
-    name: BOSS_NAMES[index],
+    ...getBossDefinition(stage),
     health: stats.enemyHealth * 35,
     damage: stats.enemyDamage * 1.3,
     coinValue: stats.coinValue * 25,

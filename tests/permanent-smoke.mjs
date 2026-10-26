@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
+import { MAX_STAGES } from '../src/balance.js';
 
 // Runtime fixtures shorten the run, but gold is collected, deaths use enemy
 // collision, and wins use the real final-boss and stage-progression paths.
@@ -128,16 +129,16 @@ try {
   await page.locator('#retry').click();
   await stopClock();
   const bankBeforeVictory = (await progress()).bank;
-  const victory = await page.evaluate(() => {
+  const victory = await page.evaluate(finalStage => {
     const game = window.__game;
     game.stats.spells = { fireball: 0, frost: 0, lightning: 0, orbit: 0 };
-    game._state.stage = 5;
+    game._state.stage = finalStage;
     game._state.stageTime = game.state.stageDuration;
     const boss = game.spawnBoss();
     game.hitEnemy(boss, boss.hp + 1, game.player.position.clone().set(1, 0, 0));
     game.tick(1 / 60);
     return { runId: game.state.runId, gold: Math.floor(game.state.gold), phase: game.state.phase };
-  });
+  }, MAX_STAGES);
   assert.equal(victory.phase, 'won');
   saved = await progress();
   assert.equal(saved.bank, bankBeforeVictory + victory.gold);

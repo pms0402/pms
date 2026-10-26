@@ -54,9 +54,9 @@ test('high-growth health, damage and fortune keep their gains when relics are co
   const first = { ...fresh(), damage: 1e8, maxHp: 1e7, goldMultiplier: 2.5 };
   applyRelic(first, 'whetstone'); applyRelic(first, 'giantsHeart');
   near(first.damage, 1.4e8); near(first.maxHp, 1.4e7);
-  applyRelic(first, 'alchemy'); applyRelic(first, 'greed'); applyBossReward(first, 5);
+  applyRelic(first, 'alchemy'); applyRelic(first, 'greed'); applyBossReward(first, 10);
   const second = { ...fresh(), goldMultiplier: 2.5 };
-  applyRelic(second, 'greed'); applyRelic(second, 'alchemy'); applyBossReward(second, 5);
+  applyRelic(second, 'greed'); applyRelic(second, 'alchemy'); applyBossReward(second, 10);
   near(first.goldMultiplier, 2.5 * 1.3 * 1.15 * 1.1);
   near(first.goldMultiplier, second.goldMultiplier);
   const danger = getThreatModifiers(first, 'swarm');

@@ -18,7 +18,7 @@ test('two-minute stages, late bosses and four times the previous map area', () =
   assert.equal(STAGE_DURATION, 120);
   assert.equal(BOSS_SPAWN_TIME, 90);
   assert.ok(BOSS_SPAWN_TIME < STAGE_DURATION);
-  assert.equal(MAX_STAGES, 5);
+  assert.equal(MAX_STAGES, 10);
   assert.equal(ARENA_RADIUS ** 2 / 31 ** 2, 4);
 });
 
@@ -32,11 +32,11 @@ test('tougher monsters retain exact gold x10 and health/damage x3.2 stage curves
     assert.equal(current.coinValue / previous.coinValue, 10);
     near(current.enemyHealth / previous.enemyHealth, 3.2);
     near(current.enemyDamage / previous.enemyDamage, 3.2);
-    assert.ok(current.maxEnemies > previous.maxEnemies && current.maxEnemies <= 160);
+    assert.ok(current.maxEnemies >= previous.maxEnemies && current.maxEnemies <= 160);
   }
   assert.deepEqual(getStageStats(-9), getStageStats(1));
   assert.deepEqual(getStageStats(Infinity), getStageStats(1));
-  assert.deepEqual(getStageStats(99), getStageStats(5));
+  assert.deepEqual(getStageStats(99), getStageStats(MAX_STAGES));
 });
 
 test('every stage has a named boss with substantial health and real rewards', () => {
