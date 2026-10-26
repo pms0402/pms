@@ -142,6 +142,8 @@ test('fully completed temporary builds have no invalid additional upgrades', () 
   const stats = fresh();
   for (const spell of SPELLS) { stats.spells[spell.id] = 5; stats.evolutions[spell.id] = true; }
   for (const id of ['power', 'haste', 'spell_power', 'spell_haste', 'vitality', 'magnet', 'critical', 'armor', 'regen', 'speed']) stats.passiveLevels[id] = 12;
+  stats.passiveLevels.blade_range = 8;
+  stats.swordEvolution = 'broadsword';
   assert.deepEqual(getUpgradeChoices(stats), []);
   assert.equal(applyUpgrade(stats, 'missing'), false);
 });

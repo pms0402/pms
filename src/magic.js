@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { SPELLS } from './balance.js';
+import { getActiveSynergies } from './synergies.js';
 
 const TAU = Math.PI * 2;
 const COLORS = { fireball: '#ff9c54', frost: '#89e8ff', lightning: '#a7f5ff', orbit: '#c39bff', steam: '#defff4' };
@@ -23,6 +24,9 @@ export class MagicSystem {
     this.hitDirection = new THREE.Vector3();
     this.synergyCooldown = 0;
     this.synergyHits = 0;
+    this.buildSynergyCooldown = 0;
+    this.comboHitTimes = new WeakMap();
+    this.comboTriggers = { shatter: 0, flamewave: 0, runelight: 0 };
     this.time = 0;
     this.disposed = false;
     this.orbitSignature = '';
@@ -72,7 +76,7 @@ export class MagicSystem {
     return result;
   }
 
-  hit(enemy, damage, origin, slowTime = 0, slowFactor = 0.5) {
+  hit(enemy, damage, origin, slowTime = 0, slowFactor = 0.5, source = 'magic', spellId = null) {
     if (!this.isAlive(enemy)) return;
     if (slowTime > 0) {
       enemy.slowTime = Math.max(enemy.slowTime || 0, slowTime);
@@ -82,7 +86,56 @@ export class MagicSystem {
     if (direction.lengthSq() < 0.001) direction.set(0, 0, 1);
     direction.normalize();
     this.hits++;
-    this.game.hitEnemy(enemy, damage, direction, 'magic');
+    this.game.hitEnemy(enemy, damage, direction, source, spellId);
+  }
+
+  resetEnemyStatus(enemy) {
+    if (!enemy) return;
+    enemy.burnTime = 0;
+    this.comboHitTimes.delete(enemy);
+  }
+
+  recordCombo(id) {
+    this.comboTriggers[id]++;
+    this.synergyHits++;
+    this.game.recordSynergy?.(id);
+  }
+
+  /** Called only by a direct sword hit, before the target is returned to its pool. */
+  onSwordHit(enemy, swordDamage) {
+    if (this.disposed || this.game._state.phase !== 'playing' || !enemy?.group || !Number.isFinite(swordDamage) || swordDamage <= 0) return false;
+    const active = getActiveSynergies(this.game.stats);
+    const serial = enemy.spawnSerial || 0;
+    let cooldowns = this.comboHitTimes.get(enemy);
+    if (!cooldowns || cooldowns.serial !== serial) {
+      cooldowns = { serial, shatter: -Infinity, flamewave: -Infinity };
+      this.comboHitTimes.set(enemy, cooldowns);
+    }
+    const origin = enemy.group.position.clone();
+    let triggered = false;
+    for (const combo of active) {
+      if (combo.id === 'runelight' || cooldowns[combo.id] > this.time) continue;
+      if (combo.id === 'shatter' && !(enemy.slowTime > 0)) continue;
+      if (combo.id === 'flamewave' && !(enemy.burnTime > 0)) continue;
+      cooldowns[combo.id] = this.time + 1;
+      const frost = combo.id === 'shatter';
+      const radius = frost ? 2.2 : 2.6;
+      const damage = swordDamage * (frost ? 0.35 : 0.3);
+      const color = frost ? 'frost' : 'fireball';
+      this.ring(origin, radius, color, 0.35, 0.7);
+      this.particles(origin, color, 6, 0.25);
+      // A single burst can hit at most six nearby enemies. Combo sources never
+      // enter this hook again, even when another slow/burn marker is present.
+      let hits = 0;
+      for (const target of this.query(origin, radius)) {
+        if (target === enemy || !this.isAlive(target) || this.distanceSquared(origin, target.group.position) > radius ** 2) continue;
+        this.hit(target, damage, origin, 0, 0.5, 'combo');
+        if (++hits >= 6) break;
+      }
+      this.recordCombo(combo.id);
+      triggered = true;
+    }
+    return triggered;
   }
 
   update(dt) {
@@ -90,6 +143,7 @@ export class MagicSystem {
     dt = Math.max(0, Math.min(0.1, dt));
     this.time += dt;
     this.synergyCooldown = Math.max(0, this.synergyCooldown - dt);
+    this.buildSynergyCooldown = Math.max(0, this.buildSynergyCooldown - dt);
     for (const id of SPELL_IDS) this.cooldowns[id] = Math.max(0, this.cooldowns[id] - dt);
     this.syncOrbit();
     if (this.rank('fireball') && this.cooldowns.fireball <= 0) this.castFireball();
@@ -98,6 +152,7 @@ export class MagicSystem {
     this.updateProjectiles(dt);
     this.updateOrbit(dt);
     this.updateRuneSynergy();
+    this.updateBuildSynergy();
     this.updateZones(dt);
     this.updateEffects(dt);
   }
@@ -154,7 +209,8 @@ export class MagicSystem {
     let steamed = false;
     for (const enemy of nearby) {
       const bonus = enemy.slowTime > 0 ? Math.max(0, Math.min(0.2, this.game.stats.frostfireBonus || 0)) : 0;
-      this.hit(enemy, damage * (1 + bonus), position);
+      enemy.burnTime = Math.max(enemy.burnTime || 0, 4);
+      this.hit(enemy, damage * (1 + bonus), position, 0, 0.5, 'magic', 'fireball');
       if (bonus) { steamed = true; this.synergyHits++; }
     }
     if (steamed) { this.ring(position, radius * 0.8, 'steam', 0.55, 0.45); this.particles(position, 'steam', 6, radius * 0.25); }
@@ -201,7 +257,7 @@ export class MagicSystem {
     this.particles(origin, 'frost', 10, radius * 0.6);
     for (const enemy of this.query(origin, radius)) {
       if (!this.isAlive(enemy)) continue;
-      if (this.distanceSquared(origin, enemy.group.position) <= radius ** 2) this.hit(enemy, damage, origin, evolved ? 3 : 2, evolved ? 0.3 : 0.5);
+      if (this.distanceSquared(origin, enemy.group.position) <= radius ** 2) this.hit(enemy, damage, origin, evolved ? 3 : 2, evolved ? 0.3 : 0.5, 'magic', 'frost');
     }
     if (evolved && this.zones.length < 12) {
       const marker = new THREE.Mesh(this.geometry.ring, this.material.frost);
@@ -226,7 +282,7 @@ export class MagicSystem {
     for (let index = 0; index < count && target; index++) {
       const point = target.group.position.clone(); point.y = 1;
       this.lightningLine(previous, point, evolved ? 0.4 : 0.26, index === 0 ? 1 : 0.8);
-      hit.add(target); this.hit(target, damage * Math.max(0.65, 1 - index * 0.05), previous);
+      hit.add(target); this.hit(target, damage * Math.max(0.65, 1 - index * 0.05), previous, 0, 0.5, 'magic', 'lightning');
       if (evolved && index > 0) this.lightningLine(origin, point, 0.2, 0.35);
       previous = point;
       target = this.nearest(point, (evolved ? 11 : 8) * this.area(), hit);
@@ -273,7 +329,7 @@ export class MagicSystem {
       const centerPulse = evolved && this.cooldowns.orbit <= 0 && this.distanceSquared(this.game.player.position, enemy.group.position) < (4.5 * this.area()) ** 2;
       if (!near && !centerPulse) continue;
       this.orbitHitTimes.set(enemy, this.time + this.maxCooldown('orbit'));
-      this.hit(enemy, this.damage('orbit') * 0.55 * (1 + (rank - 1) * 0.15), near?.position || this.game.player.position);
+      this.hit(enemy, this.damage('orbit') * 0.55 * (1 + (rank - 1) * 0.15), near?.position || this.game.player.position, 0, 0.5, 'magic', 'orbit');
       this.spark(enemy.group.position, 'orbit', 0.22, 1.3); hitAny = true;
     }
     if (hitAny && this.cooldowns.orbit <= 0) {
@@ -290,9 +346,24 @@ export class MagicSystem {
       if (!target) continue;
       this.lightningLine(orb.position, target.group.position, 0.32, 0.8);
       this.ring(orb.position, 0.9, 'orbit', 0.3, 0.6);
-      this.hit(target, this.damage('lightning') * 0.2, orb.position);
+      this.hit(target, this.damage('lightning') * 0.2, orb.position, 0, 0.5, 'magic', 'lightning');
       this.synergyHits++; this.synergyCooldown = 4; return;
     }
+  }
+
+  updateBuildSynergy() {
+    if (this.buildSynergyCooldown > 0 || !this.rank('lightning') || !this.rank('orbit')) return false;
+    for (const orb of this.orbs) {
+      const target = this.nearest(orb.position, 5 * this.area());
+      if (!target) continue;
+      this.lightningLine(orb.position, target.group.position, 0.3, 0.75);
+      this.ring(orb.position, 0.9, 'orbit', 0.3, 0.6);
+      this.hit(target, this.damage('lightning') * 0.35, orb.position, 0, 0.5, 'combo');
+      this.buildSynergyCooldown = 3;
+      this.recordCombo('runelight');
+      return true;
+    }
+    return false;
   }
 
   updateZones(dt) {
@@ -303,7 +374,7 @@ export class MagicSystem {
       } else if (zone.type === 'blizzard' && zone.tick <= 0) {
         for (const enemy of this.query(zone.position, zone.radius)) {
           if (!this.isAlive(enemy)) continue;
-          if (this.distanceSquared(zone.position, enemy.group.position) <= zone.radius ** 2) this.hit(enemy, zone.damage, zone.position, 1, 0.3);
+          if (this.distanceSquared(zone.position, enemy.group.position) <= zone.radius ** 2) this.hit(enemy, zone.damage, zone.position, 1, 0.3, 'magic', 'frost');
         }
         this.ring(zone.position, zone.radius, 'frost', 0.45, 0.22); zone.tick = 0.65;
       }
@@ -388,7 +459,7 @@ export class MagicSystem {
       return { id, name: this.evolved(id) ? definition?.evolutionName || definition?.name || id : definition?.name || id, rank: this.rank(id), evolved: this.evolved(id), cooldown: Math.max(0, this.cooldowns[id]), maxCooldown: this.maxCooldown(id), color: COLORS[id] };
     });
   }
-  getDebugState() { return { spellsCast: { ...this.spellsCast }, hits: this.hits, synergyHits: this.synergyHits, projectiles: this.projectiles.length, activeOrbit: this.orbs.length, effects: this.effects.length, zones: this.zones.length, pooledEffects: [...this.meshPools.values()].reduce((count, meshes) => count + meshes.length, 0), pooledProjectiles: this.projectilePool.length }; }
+  getDebugState() { return { spellsCast: { ...this.spellsCast }, hits: this.hits, synergyHits: this.synergyHits, comboTriggers: { ...this.comboTriggers }, projectiles: this.projectiles.length, activeOrbit: this.orbs.length, effects: this.effects.length, zones: this.zones.length, pooledEffects: [...this.meshPools.values()].reduce((count, meshes) => count + meshes.length, 0), pooledProjectiles: this.projectilePool.length }; }
   reset() {
     for (const projectile of this.projectiles) this.releaseProjectile(projectile);
     while (this.effects.length) this.removeEffect(0);
@@ -398,6 +469,8 @@ export class MagicSystem {
     this.cooldowns = { fireball: 0.2, frost: 0.2, lightning: 0.2, orbit: 0 };
     this.spellsCast = { fireball: 0, frost: 0, lightning: 0, orbit: 0 };
     this.hits = 0; this.synergyHits = 0; this.synergyCooldown = 0; this.time = 0; this.orbitSignature = ''; this.orbitHitTimes = new WeakMap();
+    this.buildSynergyCooldown = 0; this.comboHitTimes = new WeakMap();
+    this.comboTriggers = { shatter: 0, flamewave: 0, runelight: 0 };
   }
   dispose() {
     if (this.disposed) return;

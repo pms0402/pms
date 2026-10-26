@@ -36,7 +36,7 @@ async function load({ seed, viewport = { width: 1440, height: 1000 }, mobile = f
 async function stopClock() {
   await page.evaluate(() => {
     const game = window.__game; cancelAnimationFrame(game.raf);
-    game.spawnTimer = 1e6; game.attackTimer = 1e6;
+    game.spawnTimer = 1e6; game.attackTimer = 1e6; game.nextAltarTime = 1e6;
   });
 }
 async function start() {
@@ -149,27 +149,30 @@ try {
     const blocked = !chest.opened && chest.guards.length === 3;
     const guardHealth = chest.guards.map(enemy => enemy.maxHp);
     for (const guard of chest.guards) game.hitEnemy(guard, guard.hp + 1);
+    const level = game.state.level, xp = game.state.xp, gold = game.state.gold;
     game.tick(.01);
-    return { blocked, guardHealth, opened: chest.opened, phase: game.state.phase, rewardTokens: game.state.rewardTokens, statsUnchanged: JSON.stringify(game.stats) === before };
+    return { blocked, guardHealth, opened: chest.opened, phase: game.state.phase, rewardTokens: game.state.rewardTokens, statsUnchanged: JSON.stringify(game.stats) === before, level, xp, gold, afterLevel: game.state.level, afterXp: game.state.xp, afterGold: game.state.gold, choices: game.chestChoices.map(choice => choice.id) };
   });
   assert.equal(chest.blocked, true, 'living guardians prevent free chest rewards');
   assert.ok(chest.guardHealth.every(hp => hp > 28), 'guardians are stronger than ordinary stage-one enemies');
-  assert.equal(chest.opened, true); assert.equal(chest.phase, 'playing');
-  assert.equal(chest.rewardTokens, 1); assert.equal(chest.statsUnchanged, true, 'opening a chest does not grant a stat without a choice');
-  const chestOffer = await rewardLevel();
-  assert.equal(chestOffer.count, 4, 'a queued relic joins the ordinary level-up choices');
-  await page.locator(`[data-upgrade="${chestOffer.id}"]`).click();
+  assert.equal(chest.opened, true); assert.equal(chest.phase, 'relic');
+  assert.equal(chest.rewardTokens, 0); assert.equal(chest.statsUnchanged, true, 'opening a chest does not grant a stat without choosing');
+  assert.equal(chest.afterLevel, chest.level); assert.equal(chest.afterXp, chest.xp);
+  assert.ok(chest.afterGold >= chest.gold + 40, 'gold is paid as soon as the guarded chest opens');
+  assert.equal(chest.choices.length, 3); assert.equal(new Set(chest.choices).size, 3);
+  assert.equal(await page.locator('[data-chest-relic]').count(), 3, 'chest selection offers three immediate cards without requiring a level');
+  const acquiredId = chest.choices[0];
+  await page.locator(`[data-chest-relic="${acquiredId}"]`).click();
   assert.equal(await page.evaluate(() => window.__game.state.phase), 'playing');
-  const acquiredId = chestOffer.id.replace(/^relic_/, '');
   const relic = await page.evaluate(id => {
     const game = window.__game;
-    return { acquired: game.stats.relics.includes(id), duplicate: game.chooseRelic(id), tokens: game.state.rewardTokens };
+    return { acquired: game.stats.relics.includes(id), owned: game.stats.relics, duplicate: game.chooseChestReward(id), tokens: game.state.rewardTokens, level: game.state.level };
   }, acquiredId);
-  assert.deepEqual(relic, { acquired: true, duplicate: false, tokens: 0 });
-  await page.evaluate(() => window.__game.openRelic('다음 보물상자'));
+  assert.equal(relic.acquired, true); assert.deepEqual(relic.owned, [acquiredId]); assert.equal(relic.duplicate, false); assert.equal(relic.tokens, 0); assert.equal(relic.level, chest.level);
+  await page.evaluate(() => window.__game.openRelic('다음 정예 처치 보상'));
   const nextOffer = await rewardLevel();
-  assert.notEqual(nextOffer.id, chestOffer.id, 'owned relics leave later eligible reward choices');
-  console.log('PASS guarded chest: stronger guardians gate a token; its relic applies only after an actual level-up choice');
+  assert.notEqual(nextOffer.id, `relic_${acquiredId}`, 'owned chest relics leave later eligible level-up rewards');
+  console.log('PASS guarded chest: guardians gate immediate gold and three relic options; exactly one selected relic applies without a level-up');
 
   await load(); await start();
   const elite = await page.evaluate(() => {
@@ -245,7 +248,7 @@ try {
     game.stats.evolutions = { fireball: true, frost: true, lightning: true, orbit: true };
     game.stats.damage = game.stats.spellDamage = .01; game.stats.critChance = 0;
     game._state.xpNeeded = 1e9; game._state.stage = 5; game.invulnerable = 999;
-    game.nextChestTime = game.nextEliteTime = game.nextGoldenTime = 1e6;
+    game.nextChestTime = game.nextEliteTime = game.nextGoldenTime = game.nextAltarTime = 1e6;
     for (let index = 0; index < 160; index++) {
       const angle = index * 2.399, radius = 4 + index % 12;
       const enemy = game.spawnEnemy(Math.cos(angle) * radius, Math.sin(angle) * radius, index % 4);

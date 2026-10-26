@@ -1,4 +1,5 @@
 import { STAGES, getBossDefinition } from './encounters.js';
+import { getSwordEvolutionChoices, applySwordEvolution } from './sword.js';
 
 /** Stage economy is independent of the player's selected build. */
 export const STAGE_DURATION = 120;
@@ -92,6 +93,7 @@ const EVOLUTIONS = {
 const PASSIVES = [
   { id: 'power', title: '예리한 칼날', description: '검 공격력 ×1.2 · 마법과 별도 성장', rarity: 'rare', icon: 'sword', weight: 4, maxRank: 12, branch: 'sword' },
   { id: 'haste', title: '검술의 호흡', description: '검 공격 속도 +8%', rarity: 'rare', icon: 'sword', weight: 3, maxRank: 12, branch: 'sword' },
+  { id: 'blade_range', title: '뻗어가는 칼끝', description: '검 타격 사거리 ×1.12 · 검 궤적과 실제 타격 범위가 함께 증가', rarity: 'rare', icon: 'sword', weight: 4, maxRank: 8, branch: 'sword' },
   { id: 'spell_power', title: '마력 응축', description: '모든 마법 공격력 ×1.2 · 검과 별도 성장', rarity: 'epic', icon: 'orbit', weight: 4, maxRank: 12, branch: 'magic' },
   { id: 'spell_haste', title: '주문 가속', description: '모든 마법 시전 속도 +8%', rarity: 'epic', icon: 'bolt', weight: 3, maxRank: 12, branch: 'magic' },
   { id: 'vitality', title: '생명의 씨앗', description: '최대 체력 ×1.15 · 증가한 체력만큼 회복', rarity: 'rare', icon: 'heart', weight: 3, maxRank: 12 },
@@ -158,19 +160,21 @@ export function getUpgradeChoices(playerStats = {}, random = Math.random) {
   const passives = passiveChoices(playerStats);
   const selected = [];
   if (spells.length) selected.push(takeWeighted(spells, random));
-  const attacks = passives.filter(choice => choice.branch !== 'core');
+  const bladeEvolutions = getSwordEvolutionChoices(playerStats);
+  const attacks = [...passives.filter(choice => choice.branch !== 'core'), ...bladeEvolutions];
   const utility = passives.filter(choice => choice.branch === 'core');
   if (attacks.length) selected.push(takeWeighted(attacks, random));
   if (utility.length) selected.push(takeWeighted(utility, random));
   const chosen = new Set(selected.map(choice => choice.id));
-  const remaining = [...spells, ...passives].filter(choice => !chosen.has(choice.id));
+  const remaining = [...spells, ...passives, ...bladeEvolutions].filter(choice => !chosen.has(choice.id));
   while (selected.length < 3 && remaining.length) selected.push(takeWeighted(remaining, random));
   return selected.map(withoutWeight);
 }
 
 /** Apply exactly one valid choice; bounded temporary upgrades stay within their caps. */
 export function applyUpgrade(stats, id) {
-  if (!stats || typeof stats !== 'object') return false;
+  if (!stats || typeof stats !== 'object' || Array.isArray(stats)) return false;
+  if (id?.startsWith?.('blade_') && id !== 'blade_range') return applySwordEvolution(stats, id);
   const spell = SPELLS.find(candidate => id === `spell_${candidate.id}` || id === `evolve_${candidate.id}`);
   if (spell) {
     const rank = spellRank(stats, spell.id);
@@ -190,6 +194,7 @@ export function applyUpgrade(stats, id) {
   switch (id) {
     case 'power': stats.damage = finite(stats.damage, 18) * 1.2; break;
     case 'haste': stats.attackRate = finite(stats.attackRate, 1.5) * 1.08; break;
+    case 'blade_range': stats.swordRangeMultiplier = finite(stats.swordRangeMultiplier, 1) * 1.12; break;
     case 'spell_power': stats.spellDamage = finite(stats.spellDamage, 18) * 1.2; break;
     case 'spell_haste': stats.spellRate = finite(stats.spellRate, 1.5) * 1.08; break;
     case 'vitality': stats.maxHp = finite(stats.maxHp, 100) * 1.15; break;

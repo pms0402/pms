@@ -7,6 +7,7 @@ const paths = {
   skull: '<path d="M8 21v-4H5l-2-4V9a9 9 0 0 1 18 0v4l-2 4h-3v4H8Z"/><path d="M10 21v-4m4 4v-4"/><circle cx="8" cy="10" r="1.5"/><circle cx="16" cy="10" r="1.5"/><path d="m11 14 1-2 1 2"/>',
   heart: '<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/>',
   coin: '<ellipse cx="12" cy="12" rx="8" ry="9"/><path d="M12 7v10m3-8h-4a2 2 0 0 0 0 4h2a2 2 0 0 1 0 4H9"/>',
+  chest: '<path d="M3 11V8a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v3M3 11h18v9H3v-9Zm5-7v7m8-7v7M10 11h4v5h-4v-5Z"/>',
   clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
   arrow: '<path d="M4 12h16m-6-6 6 6-6 6"/>',
   chevron: '<path d="m9 5 7 7-7 7"/>',

@@ -5,6 +5,9 @@ import { MagicSystem } from './magic.js';
 import { BossSystem } from './bosses.js';
 import { ENEMY_TYPES, getEnemyDefinition, chooseEnemyKind, getStageDefinition, getBossDefinition } from './encounters.js';
 import { RISK_PACTS, getThreatModifiers, getRelicChoices, applyRelic, getBossReward, applyBossReward } from './content.js';
+import { getSwordProfile, isSwordHit } from './sword.js';
+import { CURSES, ROUTES, getRunModifiers, getCurseChoices } from './run-events.js';
+import { getActiveSynergies } from './synergies.js';
 
 const TAU = Math.PI * 2;
 const UP = new THREE.Vector3(0, 1, 0);
@@ -53,6 +56,10 @@ export class Game {
     this.enemyTemplates = new Map();
     this.ownedGeometries = new Set();
     this.chests = [];
+    this.altar = null;
+    this.activeCurses = [];
+    this.routeId = 'standard';
+    this.enemySerial = 0;
     this.spatialBuckets = new Map();
     this.spatialDirty = true;
     this.selectedRisk = 'none';
@@ -100,13 +107,33 @@ export class Game {
 
   freshStats() {
     const bonus = normalizePermanentBonuses(this.permanentBonuses);
-    return { maxHp: 100 * bonus.maxHpMultiplier, damage: 18 * bonus.damageMultiplier, spellDamage: 18 * bonus.spellDamageMultiplier, attackRate: 1.5 * bonus.attackRateMultiplier, spellRate: 1.5 * bonus.spellRateMultiplier, swordRangeMultiplier: bonus.swordRangeMultiplier, spellAreaMultiplier: bonus.spellAreaMultiplier, characterId: bonus.characterId, weaponId: bonus.weaponId, speed: 7.5, magnet: 5.5 * bonus.magnetMultiplier, projectiles: 1, critChance: 0.08, armor: bonus.armorBonus, regen: 0, goldMultiplier: bonus.goldMultiplier, xpMultiplier: 1, reviveCharges: 0, eliteDamageBonus: 0, relics: [], bossRewards: [], spells: { fireball: 1, frost: 0, lightning: 0, orbit: 0 }, evolutions: {}, passiveLevels: {} };
+    return { maxHp: 100 * bonus.maxHpMultiplier, damage: 18 * bonus.damageMultiplier, spellDamage: 18 * bonus.spellDamageMultiplier, attackRate: 1.5 * bonus.attackRateMultiplier, spellRate: 1.5 * bonus.spellRateMultiplier, swordRangeMultiplier: bonus.swordRangeMultiplier, spellAreaMultiplier: bonus.spellAreaMultiplier, characterId: bonus.characterId, weaponId: bonus.weaponId, speed: 7.5, magnet: 5.5 * bonus.magnetMultiplier, projectiles: 1, critChance: 0.08, armor: bonus.armorBonus, regen: 0, goldMultiplier: bonus.goldMultiplier, xpMultiplier: 1, reviveCharges: 0, eliteDamageBonus: 0, relics: [], bossRewards: [], spells: { fireball: 1, frost: 0, lightning: 0, orbit: 0 }, evolutions: {}, passiveLevels: {}, swordEvolution: '' };
   }
   freshState(phase) { return { phase, runId: null, hp: 100, xp: 0, xpNeeded: getXpRequired(1), level: 1, stage: 1, stageTime: 0, elapsed: 0, kills: 0, gold: 0, combo: 0, weaponName: '공허의 검' }; }
+  getThreat() {
+    const base = getThreatModifiers(this.stats, this.runRisk);
+    const run = getRunModifiers(this.activeCurses, this.routeId);
+    return { ...base, enemyHealth: base.enemyHealth * run.enemyHealth,
+      enemyDamage: base.enemyDamage * run.enemyDamage, goldMultiplier: base.goldMultiplier * run.goldMultiplier,
+      spawnRate: base.spawnRate * run.spawnMultiplier };
+  }
+  freshRunReport() {
+    return { damageBySource: { sword: 0, fireball: 0, frost: 0, lightning: 0, orbit: 0, combo: 0, other: 0 },
+      damageTaken: 0, deathCause: '', peakCombo: 0, curseIds: [], routeHistory: [{ stage: 1, id: 'standard' }], synergyTriggers: {} };
+  }
+  recordSynergy(id) {
+    if (!this.runReport) return;
+    this.runReport.synergyTriggers[id] = (this.runReport.synergyTriggers[id] || 0) + 1;
+    if (this._state.elapsed >= (this.nextSynergyToast || 0)) {
+      const combo = getActiveSynergies(this.stats).find(item => item.id === id);
+      this.callbacks.onLoot?.(`${combo?.title || '조합'} 발동`);
+      this.nextSynergyToast = this._state.elapsed + 5;
+    }
+  }
   get state() {
     const enemyKinds = Object.fromEntries(ENEMY_TYPES.map(type => [type.id, 0]));
     for (const enemy of this.enemies) if (enemy.definition) enemyKinds[enemy.definition.id]++;
-    return { ...this._state, enemyKinds, rewardTokens: this.pendingRelicSources?.length || 0, pendingBossRewards: (this.pendingBossRewards || []).map(reward => ({ ...reward })), maxHp: this.stats.maxHp, damage: this.stats.damage, attackRate: this.stats.attackRate, spellDamage: this.stats.spellDamage, spellRate: this.stats.spellRate, speed: this.stats.speed, risk: getThreatModifiers(this.stats, this.runRisk), selectedRisk: this.selectedRisk, chests: this.chests.map(chest => ({ x: chest.group.position.x, z: chest.group.position.z, remaining: chest.guards.filter(guard => guard.hp > 0).length, opened: chest.opened })), eliteEnemies: this.enemies.filter(enemy => enemy.elite).length, goldenEnemies: this.enemies.filter(enemy => enemy.golden).length, dashCooldown: Math.max(0, this.dashCooldown || 0), dashReady: !(this.dashCooldown > 0), enemyCount: this.enemies.length, arenaRadius: ARENA_RADIUS, stageDuration: STAGE_DURATION, bossSpawnTime: BOSS_SPAWN_TIME, bossSpawned: this.bossSpawned, bossDefeated: this.bossDefeated, boss: this.boss ? { archetype: this.boss.archetype, hint: this.boss.hint, name: this.boss.name, hp: Math.max(0, this.boss.hp), maxHp: this.boss.maxHp, alive: this.boss.hp > 0, spawned: this.bossSpawned, defeated: this.bossDefeated, phase: this.boss.mode } : null, spellState: this.magic?.getState() || [], playerStats: { ...this.stats, relics: [...(this.stats.relics || [])], bossRewards: [...(this.stats.bossRewards || [])], spells: { ...this.stats.spells }, evolutions: { ...this.stats.evolutions }, passiveLevels: { ...this.stats.passiveLevels } } };
+    return { ...this._state, enemyKinds, sword: getSwordProfile(this.stats), activeSynergies: getActiveSynergies(this.stats), activeCurses: [...this.activeCurses], routeId: this.routeId, runModifiers: getRunModifiers(this.activeCurses, this.routeId), runReport: this.runReport ? structuredClone(this.runReport) : this.freshRunReport(), pendingChests: this.pendingChestRewards?.length || 0, altar: this.altar ? { x: this.altar.group.position.x, z: this.altar.group.position.z, opened: this.altar.opened } : null, rewardTokens: this.pendingRelicSources?.length || 0, pendingBossRewards: (this.pendingBossRewards || []).map(reward => ({ ...reward })), maxHp: this.stats.maxHp, damage: this.stats.damage, attackRate: this.stats.attackRate, spellDamage: this.stats.spellDamage, spellRate: this.stats.spellRate, speed: this.stats.speed, risk: this.getThreat(), selectedRisk: this.selectedRisk, chests: this.chests.map(chest => ({ x: chest.group.position.x, z: chest.group.position.z, remaining: chest.guards.filter(guard => guard.hp > 0).length, opened: chest.opened })), eliteEnemies: this.enemies.filter(enemy => enemy.elite).length, goldenEnemies: this.enemies.filter(enemy => enemy.golden).length, dashCooldown: Math.max(0, this.dashCooldown || 0), dashReady: !(this.dashCooldown > 0), enemyCount: this.enemies.length, arenaRadius: ARENA_RADIUS, stageDuration: STAGE_DURATION, bossSpawnTime: BOSS_SPAWN_TIME, bossSpawned: this.bossSpawned, bossDefeated: this.bossDefeated, boss: this.boss ? { archetype: this.boss.archetype, hint: this.boss.hint, name: this.boss.name, hp: Math.max(0, this.boss.hp), maxHp: this.boss.maxHp, alive: this.boss.hp > 0, spawned: this.bossSpawned, defeated: this.bossDefeated, phase: this.boss.mode } : null, spellState: this.magic?.getState() || [], playerStats: { ...this.stats, relics: [...(this.stats.relics || [])], bossRewards: [...(this.stats.bossRewards || [])], spells: { ...this.stats.spells }, evolutions: { ...this.stats.evolutions }, passiveLevels: { ...this.stats.passiveLevels } } };
   }
   emit() { this.callbacks.onUpdate?.(this.state); }
 
@@ -130,9 +157,15 @@ export class Game {
       monster: new THREE.IcosahedronGeometry(0.7, 0), cone: new THREE.ConeGeometry(0.26, 0.7, 4), xp: new THREE.OctahedronGeometry(0.15),
       enemyBolt: new THREE.IcosahedronGeometry(0.26, 0), rangedHood: new THREE.ConeGeometry(0.7, 1.3, 5),
       aura: new THREE.RingGeometry(0.8, 0.89, 20),
-      slash: new THREE.RingGeometry(3.9, 4.18, 26, 1, -Math.PI * 0.75, Math.PI * 1.5),
+      slash: new THREE.RingGeometry(0.12, 1, 40, 1, -Math.PI / 3, Math.PI * 2 / 3),
       coin: new THREE.CylinderGeometry(0.17, 0.17, 0.07, 8),
     };
+    this.swordGeometries = new Map([['default', this.geo.slash]]);
+    for (const mode of ['broadsword', 'twinblade', 'wave']) {
+      const profile = getSwordProfile({ swordEvolution: mode });
+      const geometry = new THREE.RingGeometry(0.12, 1, 40, 1, -profile.arc / 2, profile.arc);
+      this.swordGeometries.set(mode, geometry); this.ownedGeometries.add(geometry);
+    }
   }
 
   box(material, x, y, z, sx, sy, sz, parent = this.scene) {
@@ -256,11 +289,26 @@ export class Game {
     const weapon = this.stats.weaponId;
     this.blade.scale.set(weapon === 'greatsword' ? 0.28 : weapon === 'tempest' ? 0.09 : 0.13, 0.06, weapon === 'greatsword' ? 1.4 : weapon === 'tempest' ? 1.12 : 0.95);
     this.blade.position.z = weapon === 'greatsword' ? 1.32 : weapon === 'tempest' ? 1.18 : 1.1;
+    const profile = getSwordProfile(this.stats);
+    const reach = Math.min(1.8, Math.sqrt(Math.max(1, this.stats.swordRangeMultiplier || 1)));
+    this.blade.scale.z *= reach;
+    if (profile.mode === 'broadsword') this.blade.scale.x *= 2;
+    if (profile.mode !== 'default') {
+      this.blade.material.color.set(profile.color); this.blade.material.emissive.set(profile.color);
+    }
+    if (!this.offhandBlade) {
+      this.offhandBlade = this.blade.clone(); this.offhandBlade.position.set(-0.9, -0.1, 0.9);
+      this.swordArm.add(this.offhandBlade);
+    }
+    this.offhandBlade.visible = profile.mode === 'twinblade';
+    this.offhandBlade.scale.copy(this.blade.scale); this.offhandBlade.rotation.y = -0.4;
   }
 
   resetTimers() {
     this.lastGoldText = 0; this.pendingGoldText = 0;
     this.nextChestTime = 20; this.nextEliteTime = 30; this.nextGoldenTime = 40;
+    this.nextAltarTime = 45; this.activeCurses = []; this.routeId = 'standard'; this.runReport = this.freshRunReport(); this.nextSynergyToast = 0;
+    this.pendingChestRewards = []; this.chestChoices = []; this.activeChestReward = null; this.curseChoices = []; this.routeChoices = []; this.pendingRouteStage = null;
     this.stageChestCount = 0; this.eliteKills = 0; this.pendingRelicSources = []; this.pendingBossRewards = []; this.relicChoices = []; this.upgradeChoices = [];
     this.attackTimer = 0.2; this.spawnTimer = 1.3; this.bossSpawned = false; this.bossDefeated = false; this.boss = null; this.dashCooldown = 0; this.dashTime = 0; this.invulnerable = 0; this.shake = 0; this.comboTimer = 0; this.attackAnim = 0;
     this.dashDirection = new THREE.Vector3(0.707, 0, 0.707);
@@ -363,9 +411,9 @@ export class Game {
     const size = (kind === 4 ? 3.1 : definition.size) * (elite ? 1.3 : golden ? 1.12 : options.splitChild ? .65 : options.minion ? .8 : 1);
     group.scale.setScalar(size); this.scene.add(group);
     for (const mesh of visual.children) mesh.castShadow = kind === 4 || this.enemies.length < 30;
-    const stageStats = getStageStats(this._state.stage), threat = getThreatModifiers(this.stats, this.runRisk);
+    const stageStats = getStageStats(this._state.stage), threat = this.getThreat();
     const hp = (kind === 4 ? getBossStats(this._state.stage).health : stageStats.enemyHealth * definition.healthMultiplier) * threat.enemyHealth * (elite ? 2.8 : golden ? 2 : options.guard ? 1.6 : options.minion ? .55 : 1);
-    const enemy = { group, visual, hp, maxHp: hp, kind, definition, name: definition?.name || '수호자', size, elite, golden, minion: !!options.minion, splitChild: !!options.splitChild, guard: !!options.guard,
+    const enemy = { spawnSerial: ++this.enemySerial, group, visual, hp, maxHp: hp, kind, definition, name: definition?.name || '수호자', size, elite, golden, minion: !!options.minion, splitChild: !!options.splitChild, guard: !!options.guard,
       rewardMultiplier: (elite ? 4 : golden ? 8 : options.guard ? 1.6 : options.minion ? .25 : 1),
       damageMultiplier: (elite ? 1.5 : golden || options.guard ? 1.2 : options.minion ? .65 : 1),
       baseDamageMultiplier: definition?.damageMultiplier || 1,
@@ -378,6 +426,7 @@ export class Game {
       ring.rotation.x = -Math.PI / 2; ring.position.y = 0.09; group.add(ring); enemy.aura = ring;
     }
     enemy.guardHome = options.guard ? new THREE.Vector3(x, 0, z) : null;
+    this.magic?.resetEnemyStatus(enemy);
     this.enemies.push(enemy); this.activeEnemies.add(enemy); this.spatialDirty = true;
     return enemy;
   }
@@ -565,6 +614,7 @@ export class Game {
     this.upgradeChoices = []; this.relicChoices = [];
     this.keys.clear(); this.touchMove = { x: 0, y: 0 };
     this._state.phase = 'playing'; this.lastTime = performance.now();
+    this.applyLoadoutAppearance();
     if (choice.category === 'relic' || choice.category === 'boss') this.callbacks.onLoot?.(`${choice.title} 선택 완료`);
     this.sound('upgrade'); this.emit(); return true;
   }
@@ -579,7 +629,7 @@ export class Game {
     this.selectedRisk = id; this.emit(); return true;
   }
 
-  /** Treasure only unlocks an extra reward card at a future earned level-up. */
+  /** Elite rewards are kept until an earned level-up; guarded chests open immediately. */
   openRelic(source = '보물상자') {
     if (this._state.phase !== 'playing') return false;
     this.pendingRelicSources.push(typeof source === 'string' && source.trim() ? source : '보물상자');
@@ -590,6 +640,73 @@ export class Game {
   chooseRelic(id) {
     if (this._state.phase !== 'upgrade' || !this.upgradeChoices?.some(choice => choice.id === `relic_${id}` && choice.category === 'relic')) return false;
     return this.chooseUpgrade(`relic_${id}`);
+  }
+
+  openChestReward(source = '수호 보물상자', metadata = {}) {
+    if (!['playing', 'relic'].includes(this._state.phase)) return false;
+    this.pendingChestRewards.push({ source, gold: Math.max(0, Number(metadata.gold) || 0) });
+    if (this._state.phase === 'playing') this.openNextChestReward();
+    return true;
+  }
+
+  openNextChestReward() {
+    if (this._state.phase !== 'playing' || !this.pendingChestRewards.length) return false;
+    this.activeChestReward = this.pendingChestRewards.shift();
+    this.chestChoices = getRelicChoices(this.stats);
+    if (!this.chestChoices.length) {
+      this.activeChestReward = null;
+      this.callbacks.onLoot?.('유물 수집 완료 · 보물상자 골드를 획득했습니다');
+      return this.pendingChestRewards.length ? this.openNextChestReward() : false;
+    }
+    this._state.phase = 'relic'; this.keys.clear(); this.touchMove = { x: 0, y: 0 };
+    this.callbacks.onChestReward?.(this.chestChoices, { ...this.activeChestReward }); this.emit(); return true;
+  }
+
+  chooseChestReward(id) {
+    if (this._state.phase !== 'relic' || !this.activeChestReward || !this.chestChoices.some(item => item.id === id)) return false;
+    const hpBefore = this.stats.maxHp;
+    if (!applyRelic(this.stats, id)) return false;
+    this._state.hp = Math.min(this.stats.maxHp, this._state.hp + Math.max(0, this.stats.maxHp - hpBefore));
+    this.chestChoices = []; this.activeChestReward = null;
+    this._state.phase = 'playing'; this.lastTime = performance.now();
+    this.applyLoadoutAppearance(); this.sound('upgrade'); this.emit(); return true;
+  }
+
+  spawnAltar() {
+    if (this.altar || !getCurseChoices(this.activeCurses).length) return null;
+    const position = this.spawnPosition(8, 12), group = new THREE.Group();
+    group.position.set(position.x, 0, position.z);
+    this.box(this.mats.dark, 0, 0.25, 0, 1.6, 0.5, 1.6, group);
+    this.box(this.mats.bossGlow, 0, 0.85, 0, 0.5, 1, 0.5, group).rotation.y = Math.PI / 4;
+    const marker = new THREE.Mesh(this.geo.aura, this.mats.eliteAura);
+    marker.rotation.x = -Math.PI / 2; marker.position.y = 0.12; marker.scale.setScalar(2.5); group.add(marker);
+    this.scene.add(group); this.altar = { group, marker, opened: false };
+    this.callbacks.onLoot?.('저주 제단 출현 · 다가가면 위험과 보상을 선택합니다'); return this.altar;
+  }
+
+  openCurseAltar() {
+    if (this._state.phase !== 'playing') return false;
+    this.curseChoices = getCurseChoices(this.activeCurses);
+    if (!this.curseChoices.length) return false;
+    if (this.altar?.opened) return false;
+    if (this.altar) this.altar.opened = true;
+    this._state.phase = 'curse'; this.keys.clear(); this.touchMove = { x: 0, y: 0 };
+    this.callbacks.onCurse?.(this.curseChoices, { stage: this._state.stage }); this.emit(); return true;
+  }
+
+  chooseCurse(id) {
+    if (this._state.phase !== 'curse' || (id !== 'skip' && !this.curseChoices.some(item => item.id === id))) return false;
+    if (id !== 'skip') {
+      const before = this.getThreat().enemyHealth;
+      this.activeCurses.push(id); this.runReport.curseIds = [...this.activeCurses];
+      const ratio = this.getThreat().enemyHealth / before;
+      for (const enemy of this.enemies) {
+        enemy.maxHp *= ratio; enemy.hp *= ratio;
+      }
+      this.callbacks.onLoot?.(`${CURSES.find(item => item.id === id).title} · 위험과 보상 증가`);
+    }
+    if (this.altar) { this.altar.opened = true; this.altar.marker.visible = false; }
+    this.curseChoices = []; this._state.phase = 'playing'; this.lastTime = performance.now(); this.emit(); return true;
   }
 
   rewardUpgradeChoice() {
@@ -634,13 +751,14 @@ export class Game {
 
   updateAdventure(dt) {
     const s = this._state, limit = getStageStats(s.stage).maxEnemies;
-    if (s.stageTime >= this.nextChestTime && this.stageChestCount < 2 && this.enemies.length < limit - 4) {
-      this.spawnChest(); this.nextChestTime += 50;
+    const route = getRunModifiers(this.activeCurses, this.routeId);
+    if (s.stageTime >= this.nextChestTime && this.stageChestCount < 2 + route.chestBonus && this.enemies.length < limit - 4) {
+      this.spawnChest(); this.nextChestTime += route.chestBonus ? 35 : 50;
     }
     if (s.stageTime >= this.nextEliteTime && this.enemies.length < limit) {
       const position = this.spawnPosition(13, 19);
       this.spawnEnemy(position.x, position.z, 2, { elite: true });
-      this.nextEliteTime += 45; this.callbacks.onLoot?.('정예 출현 · 강한 적을 잡고 유물 획득');
+      this.nextEliteTime += 45 / route.eliteMultiplier; this.callbacks.onLoot?.('정예 출현 · 강한 적을 잡고 유물 획득');
     }
     if (s.stageTime >= this.nextGoldenTime && this.enemies.length < limit) {
       const position = this.spawnPosition(10, 16);
@@ -654,10 +772,18 @@ export class Game {
       const dx = chest.group.position.x - this.player.position.x, dz = chest.group.position.z - this.player.position.z;
       if (ready && dx * dx + dz * dz < 3.5 ** 2) {
         chest.opened = true; chest.group.visible = false;
-        this.dropPickup(chest.group.position, 'gold', getStageStats(s.stage).coinValue * 8);
-        this.openRelic('수호 보물상자');
+        const beforeGold = s.gold;
+        this.collectPickup({ type: 'gold', value: getStageStats(s.stage).coinValue * 8, mesh: null });
+        this.openChestReward('수호 보물상자', { gold: Math.round((s.gold - beforeGold) * 100) / 100 });
         this.burst(chest.group.position, '#ffd577', 12); this.sound('coin');
       }
+    }
+    // Immediate rewards take priority over level-ups, altars and floor transitions.
+    if (s.phase !== 'playing') return;
+    if (s.stageTime >= this.nextAltarTime) { this.nextAltarTime = Infinity; this.spawnAltar(); }
+    if (this.altar && !this.altar.opened) {
+      this.altar.marker.rotation.z += dt * 0.5;
+      if (this.altar.group.position.distanceToSquared(this.player.position) < 3.2 ** 2) this.openCurseAltar();
     }
   }
 
@@ -697,8 +823,9 @@ export class Game {
   }
 
   tick(dt) {
+    if (this._state.phase !== 'playing' || this.openNextChestReward()) return;
     const s = this._state; s.elapsed += dt; s.stageTime = Math.min(STAGE_DURATION, s.stageTime + dt);
-    const threat = getThreatModifiers(this.stats, this.runRisk);
+    const threat = this.getThreat();
     this.dashCooldown -= dt; this.invulnerable -= dt; this.dashTime -= dt; this.attackAnim = Math.max(0, this.attackAnim - dt);
     this.comboTimer -= dt; if (this.comboTimer <= 0) s.combo = 0;
     if (this.stats.regen > 0) s.hp = Math.min(this.stats.maxHp, s.hp + this.stats.maxHp * this.stats.regen / 100 * dt);
@@ -729,7 +856,7 @@ export class Game {
     }
     this.rebuildSpatialIndex();
     this.attackTimer -= dt;
-    if (this.attackTimer <= 0) { this.attack(); this.attackTimer = 1 / Math.max(0.2, this.stats.attackRate); }
+    if (this.attackTimer <= 0) { this.attack(); this.attackTimer = 1 / Math.max(0.2, this.stats.attackRate * getSwordProfile(this.stats).attackRateMultiplier); }
     this.magic.update(dt);
     this.updateEnemies(dt);
     this.updateEnemyProjectiles(dt);
@@ -744,33 +871,51 @@ export class Game {
     }
     if (s.hp <= 0) { s.hp = 0; s.phase = 'over'; this.playerVisual.visible = true; this.sound('over'); this.callbacks.onGameOver?.(this.state); this.emit(); return; }
     this.updateAdventure(dt);
+    if (s.phase !== 'playing' || this.pendingChestRewards.length) return;
     if (this.openLevelUp()) return;
     if (s.stageTime >= STAGE_DURATION && this.bossDefeated) this.nextStage();
   }
 
   nextStage() {
     const s = this._state;
-    if (!this.bossDefeated || s.stageTime < STAGE_DURATION) return false;
+    if (s.phase !== 'playing' || this.pendingChestRewards.length || !this.bossDefeated || s.stageTime < STAGE_DURATION) return false;
     // Uncollected healing must not become a free recovery on a floor change.
     for (const p of this.pickups) { if (p.type !== 'heal') this.collectPickup(p, false); else this.removeGroup(p.mesh); }
     this.pickups.length = 0;
     if (s.stage >= MAX_STAGES) { s.phase = 'won'; this.sound('win'); this.callbacks.onWin?.(this.state); this.emit(); return true; }
-    s.stage++; s.stageTime = 0; this.setStageMood(s.stage);
+    // Swept XP must still produce an explicit earned choice before entering a new floor.
+    if (this.openLevelUp()) return true;
+    this.pendingRouteStage = s.stage + 1;
+    this.routeChoices = ROUTES.map(route => ({ ...route }));
+    s.phase = 'route'; this.keys.clear(); this.touchMove = { x: 0, y: 0 };
+    this.callbacks.onRoute?.(this.routeChoices, { stage: this.pendingRouteStage }); this.emit(); return true;
+  }
+
+  chooseRoute(id) {
+    const s = this._state;
+    if (s.phase !== 'route' || !this.routeChoices.some(route => route.id === id) || this.pendingRouteStage !== s.stage + 1) return false;
+    this.routeId = id; s.stage = this.pendingRouteStage; s.stageTime = 0; this.setStageMood(s.stage);
+    this.runReport.routeHistory.push({ stage: s.stage, id });
+    this.routeChoices = []; this.pendingRouteStage = null;
     this.bossSystem.clear();
     for (const enemy of this.enemies) this.releaseEnemy(enemy);
     this.enemies.length = 0;
     this.projectiles.forEach((p) => this.removeGroup(p.mesh)); this.projectiles.length = 0;
     this.clearEnemyProjectiles(); this.magic.reset(); this.boss = null; this.bossSpawned = false; this.bossDefeated = false;
     for (const chest of this.chests) this.removeGroup(chest.group);
+    this.removeGroup(this.altar?.group); this.altar = null;
     this.chests.length = 0; this.stageChestCount = 0;
-    this.nextChestTime = 20; this.nextEliteTime = 30; this.nextGoldenTime = 40;
+    this.nextChestTime = 20; this.nextEliteTime = 30 / getRunModifiers(this.activeCurses, this.routeId).eliteMultiplier; this.nextGoldenTime = 40; this.nextAltarTime = 45;
     this.spawnTimer = 0.8; this.invulnerable = 1.5;
+    s.phase = 'playing'; this.lastTime = performance.now();
     this.burst(this.player.position, '#beff6e', 25); this.sound('stage'); this.callbacks.onStage?.(s.stage); this.emit(); return true;
   }
 
-  takeDamage(rawDamage, source) {
+  takeDamage(rawDamage, source, cause = '적의 공격') {
     if (this._state.phase !== 'playing' || this.invulnerable > 0 || this._state.hp <= 0) return false;
-    const damage = Math.max(1, rawDamage * getThreatModifiers(this.stats, this.runRisk).enemyDamage * (1 - Math.min(0.6, this.stats.armor)));
+    const damage = Math.max(1, rawDamage * this.getThreat().enemyDamage * (1 - Math.min(0.6, this.stats.armor)));
+    this.runReport.damageTaken += Math.min(this._state.hp, damage);
+    this.runReport.deathCause = typeof cause === 'string' ? cause : '적의 공격';
     this._state.hp -= damage; this.invulnerable = 0.75; this.shake = 0.22;
     this.floatText(`-${Math.round(damage)}`, this.player.position, '#ff8974', 1.1, 3);
     this.burst(this.player.position, '#ff996c', 6); this.sound('hurt'); return true;
@@ -797,6 +942,7 @@ export class Game {
     const pos = this.player.position;
     for (let i = this.enemies.length - 1; i >= 0; i--) {
       const e = this.enemies[i]; if (!e || e.hp <= 0) continue;
+      e.burnTime = Math.max(0, (e.burnTime || 0) - dt);
       if (e.kind === 4) { this.updateBoss(e, dt); continue; }
       const dx = pos.x - e.group.position.x, dz = pos.z - e.group.position.z, distance = Math.hypot(dx, dz);
       if (e.golden) {
@@ -835,7 +981,7 @@ export class Game {
         if (e.action === 'detonate-warning') {
           movement = 0;
           if (e.actionTimer <= 0) {
-            if (distance < 3.6) this.takeDamage(getStageStats(this._state.stage).enemyDamage * 1.65 * e.baseDamageMultiplier * e.damageMultiplier, e.group.position);
+            if (distance < 3.6) this.takeDamage(getStageStats(this._state.stage).enemyDamage * 1.65 * e.baseDamageMultiplier * e.damageMultiplier, e.group.position, `${e.name} 자폭`);
             this.puff(e.group.position, '#c5ef6c', 3.6, .45); this.burst(e.group.position, '#d4f48b', 10);
             this.removeEnemyWithoutReward(e); continue;
           }
@@ -915,7 +1061,7 @@ export class Game {
       e.visual.scale.setScalar(stagger > 0 ? 1 + stagger * 0.6 : 1);
       if (distance < 1.2) {
         const rawDamage = getStageStats(this._state.stage).enemyDamage * e.baseDamageMultiplier * e.damageMultiplier * (e.kind === 5 && e.action === 'rush' ? 1.35 : 1);
-        if (this.takeDamage(rawDamage, e.group.position)) e.stagger.set(-dx / Math.max(distance, 0.01) * 8, 0, -dz / Math.max(distance, 0.01) * 8);
+        if (this.takeDamage(rawDamage, e.group.position, `${e.name} ${e.action === 'rush' ? '돌진' : '접촉'}`)) e.stagger.set(-dx / Math.max(distance, 0.01) * 8, 0, -dz / Math.max(distance, 0.01) * 8);
       }
       if (!lockedWarning && i % 2 === this.frames % 2) for (let j = Math.max(0, i - 6); j < i; j++) {
         const other = this.enemies[j]; if (!other || other.hp <= 0 || other.kind === 4) continue;
@@ -951,7 +1097,7 @@ export class Game {
       if (boss.telegraph) boss.telegraph.material.opacity = 0.12 + (1.05 - boss.actionTimer) * 0.32;
       if (boss.actionTimer <= 0) {
         this.clearTelegraph(boss);
-        if (distance < 7.5) this.takeDamage(getBossStats(this._state.stage).damage * 1.3, boss.group.position);
+        if (distance < 7.5) this.takeDamage(getBossStats(this._state.stage).damage * 1.3, boss.group.position, `${boss.name} 충격파`);
         const wave = new THREE.Mesh(new THREE.RingGeometry(6.9, 7.5, 48), new THREE.MeshBasicMaterial({ color: '#ff876c', transparent: true, opacity: 0.85, side: THREE.DoubleSide, depthWrite: false }));
         wave.position.copy(boss.group.position); wave.position.y = 0.2; wave.rotation.x = -Math.PI / 2; this.scene.add(wave); this.effects.push({ mesh: wave, life: 0.5, total: 0.5, type: 'slash' });
         if (this._state.stage >= 3) this.shootEnemyProjectile(boss, new THREE.Vector3(dx, 0, dz).normalize(), { count: enraged ? 9 : 7, spread: 0.27, damage: getBossStats(this._state.stage).damage });
@@ -962,7 +1108,7 @@ export class Game {
     if (radius > ARENA_RADIUS - 2) boss.group.position.multiplyScalar((ARENA_RADIUS - 2) / radius);
     boss.visual.position.y = Math.abs(Math.sin(this._state.elapsed * 5)) * 0.055;
     boss.visual.scale.setScalar(1 + (boss.hitTime > 0 ? 0.04 : 0));
-    if (distance < 2.8) this.takeDamage(getBossStats(this._state.stage).damage * (boss.mode === 'charge' ? 1.5 : 1), boss.group.position);
+    if (distance < 2.3) this.takeDamage(getBossStats(this._state.stage).damage * (boss.mode === 'charge' ? 1.5 : 1), boss.group.position, `${boss.name} ${boss.mode === 'charge' ? '돌진' : '접촉'}`);
   }
 
   shootEnemyProjectile(source, direction, options = {}) {
@@ -974,7 +1120,7 @@ export class Game {
       const angle = Math.atan2(aim.x, aim.z) + (i - (count - 1) / 2) * (options.spread || 0);
       const velocity = new THREE.Vector3(Math.sin(angle), 0, Math.cos(angle)).multiplyScalar(options.speed || 9);
       const mesh = new THREE.Mesh(this.geo.enemyBolt, this.mats.enemyBolt); mesh.position.copy(position); mesh.position.y = 0.9; mesh.scale.setScalar(source.kind === 4 ? 1.35 : 1); this.scene.add(mesh);
-      this.enemyProjectiles.push({ mesh, velocity, life: options.life || 5, damage: (options.damage || getStageStats(this._state.stage).enemyDamage * 0.8) * (source.damageMultiplier || 1) });
+      this.enemyProjectiles.push({ mesh, velocity, life: options.life || 5, cause: options.cause || `${source.name || '원거리 적'} ${source.kind === 8 ? '저격' : '투사체'}`, damage: (options.damage || getStageStats(this._state.stage).enemyDamage * 0.8) * (source.damageMultiplier || 1) });
     }
   }
 
@@ -982,7 +1128,7 @@ export class Game {
     for (let i = this.enemyProjectiles.length - 1; i >= 0; i--) {
       const p = this.enemyProjectiles[i]; p.life -= dt; p.mesh.position.addScaledVector(p.velocity, dt); p.mesh.rotation.y += dt * 4;
       const dx = p.mesh.position.x - this.player.position.x, dz = p.mesh.position.z - this.player.position.z;
-      if (dx * dx + dz * dz < 1) { this.takeDamage(p.damage, p.mesh.position); p.life = 0; }
+      if (dx * dx + dz * dz < 1) { this.takeDamage(p.damage, p.mesh.position, p.cause); p.life = 0; }
       if (p.life <= 0 || Math.hypot(p.mesh.position.x, p.mesh.position.z) > 72) { this.removeGroup(p.mesh); this.enemyProjectiles.splice(i, 1); }
     }
   }
@@ -990,38 +1136,37 @@ export class Game {
   clearEnemyProjectiles() { for (const p of this.enemyProjectiles) this.removeGroup(p.mesh); this.enemyProjectiles.length = 0; }
 
   attack() {
-    const range = 5.5 * (this.stats.swordRangeMultiplier || 1);
-    const candidates = this.queryEnemies(this.player.position, range + 1.3);
-    let nearest = null, minDist = Infinity;
-    for (const enemy of candidates) {
-      const distance = enemy.group.position.distanceToSquared(this.player.position);
-      if (distance < minDist) { minDist = distance; nearest = enemy; }
-    }
-    if (!nearest) return;
-    const delta = nearest.group.position.clone().sub(this.player.position).setY(0).normalize();
-    this.player.rotation.y = Math.atan2(delta.x, delta.z); this.attackAnim = 0.3;
-    this.slash(delta);
-    let remaining = 5 + Math.min(4, this.stats.swordTargetsBonus || 0);
-    // Fewer nearby targets also means less per-swing allocation in large crowds.
+    const profile = getSwordProfile(this.stats);
+    const candidates = this.queryEnemies(this.player.position, profile.range);
     candidates.sort((a, b) => a.group.position.distanceToSquared(this.player.position) - b.group.position.distanceToSquared(this.player.position));
+    const nearest = candidates[0];
+    if (!nearest) return false;
+    const delta = nearest.group.position.clone().sub(this.player.position).setY(0);
+    if (delta.lengthSq() < 0.0001) delta.set(Math.sin(this.player.rotation.y), 0, Math.cos(this.player.rotation.y));
+    delta.normalize(); this.player.rotation.y = Math.atan2(delta.x, delta.z); this.attackAnim = 0.3;
+    this.slash(delta, profile);
+    let remaining = profile.targets;
     for (const enemy of candidates) {
       if (enemy.hp <= 0 || remaining <= 0) continue;
       const dx = enemy.group.position.x - this.player.position.x, dz = enemy.group.position.z - this.player.position.z;
-      const distance = Math.hypot(dx, dz);
-      if (distance < range && (distance < 1.5 || (dx * delta.x + dz * delta.z) / distance > -0.35)) {
-        this.hitEnemy(enemy, this.stats.damage * 1.25, delta, 'sword'); remaining--;
+      if (isSwordHit(profile, dx, dz, delta.x, delta.z)) {
+        this.hitEnemy(enemy, this.stats.damage * 1.25 * profile.damageMultiplier, delta, 'sword'); remaining--;
       }
     }
-    this.sound('attack');
+    this.sound('attack'); return true;
   }
 
-  slash(direction) {
-    const effect = this.acquireEffect('slash', '#c6ff89');
+  slash(direction, profile = getSwordProfile(this.stats)) {
+    if (this.effects.length >= 120) return;
+    const effect = this.acquireEffect('slash', profile.color);
     const mesh = effect.mesh;
-    mesh.rotation.x = -Math.PI / 2; mesh.rotation.y = 0; mesh.rotation.z = -Math.atan2(direction.x, direction.z) - Math.PI / 2;
+    mesh.geometry = this.swordGeometries.get(profile.mode) || this.geo.slash;
+    // Ring theta=0 points along local +X. This transform maps it to the attack
+    // direction in world X/Z, with exactly the same radius and arc as collision.
+    mesh.rotation.set(-Math.PI / 2, 0, Math.atan2(direction.x, direction.z) - Math.PI / 2);
     mesh.position.copy(this.player.position); mesh.position.y = 0.38;
-    mesh.scale.setScalar(this.stats.swordRangeMultiplier || 1);
-    Object.assign(effect, { life: 0.26, total: 0.26, type: 'slash' }); this.effects.push(effect);
+    mesh.scale.setScalar(profile.range);
+    Object.assign(effect, { life: 0.22, total: 0.22, type: 'slash', fixedScale: true }); this.effects.push(effect);
   }
 
   updateProjectiles(dt) {
@@ -1038,7 +1183,7 @@ export class Game {
     }
   }
 
-  hitEnemy(enemy, damage, direction = UP, source = 'sword') {
+  hitEnemy(enemy, damage, direction = UP, source = 'sword', spellId = null) {
     if (!enemy || enemy.hp <= 0 || !this.activeEnemies.has(enemy)) return false;
     const comboBonus = source === 'sword' && this._state.combo >= 10 ? this.stats.comboCritBonus || 0 : 0;
     const critical = source !== 'explosion' && Math.random() < Math.min(0.65, this.stats.critChance + comboBonus);
@@ -1046,13 +1191,19 @@ export class Game {
     const eliteBonus = enemy.elite || enemy.kind === 4 ? 1 + Math.max(0, this.stats.eliteDamageBonus || 0) : 1;
     const dealt = Math.max(0, damage) * (critical ? 2 : 1) * lowHealth * eliteBonus;
     this.floatText(`${critical ? '✦ ' : ''}${Math.round(dealt).toLocaleString('en-US')}`, enemy.group.position, critical ? '#eeffad' : '#f1f4dc', critical ? 1.35 : 1, 1.65);
+    const bucket = ['fireball', 'frost', 'lightning', 'orbit'].includes(spellId) ? spellId : ['sword', 'combo'].includes(source) ? source : 'other';
+    this.runReport.damageBySource[bucket] += Math.min(enemy.hp, dealt);
     enemy.hp -= dealt; enemy.hitTime = 0.16;
     enemy.stagger.copy(direction).setY(0).multiplyScalar(enemy.kind === 4 ? 0.4 : critical ? 12 : 7);
     this.puff(enemy.group.position, critical ? '#fff6ba' : '#c3f788', critical ? 0.7 : 0.35, 0.22);
     if (critical) { this.shake = Math.max(this.shake, 0.045); this.sound('critical'); }
-    if (enemy.hp > 0) return true;
+    if (enemy.hp > 0) {
+      if (source === 'sword') this.magic.onSwordHit(enemy, damage);
+      return true;
+    }
     const position = enemy.group.position.clone();
     this._state.kills++; this._state.combo++; this.comboTimer = 3;
+    this.runReport.peakCombo = Math.max(this.runReport.peakCombo, this._state.combo);
     const bossReward = enemy.kind === 4 ? getBossStats(this._state.stage) : null;
     const rewardMultiplier = enemy.rewardMultiplier || 1;
     const definition = enemy.definition || getEnemyDefinition(enemy.kind);
@@ -1079,8 +1230,13 @@ export class Game {
     this._state.hp = Math.min(this.stats.maxHp, this._state.hp + (this.stats.lifeOnKill || 0));
     if (Math.random() < 0.03) this.dropPickup(position, 'heal', this.stats.maxHp * 0.12);
     this.burst(position, enemy.golden ? '#ffcd62' : enemy.elite ? '#d69aff' : enemy.kind === 1 ? '#cb8a53' : '#987392', 4);
-    this.releaseEnemy(enemy);
+    // Remove a dead target from queries before a combo can cause nested explosions,
+    // but retain its original position until the sword hook has finished.
+    this.activeEnemies.delete(enemy);
     const index = this.enemies.indexOf(enemy); if (index >= 0) this.enemies.splice(index, 1);
+    this.spatialDirty = true;
+    if (source === 'sword') this.magic.onSwordHit(enemy, damage);
+    this.releaseEnemy(enemy);
     if (enemy.kind === 7 && !enemy.minion && !enemy.splitChild) {
       const limit = Math.min(160, getStageStats(this._state.stage).maxEnemies);
       for (const side of [-1, 1]) if (this.enemies.length < limit) this.spawnEnemy(position.x + side * .7, position.z, 1, { minion: true, splitChild: true });
@@ -1100,7 +1256,7 @@ export class Game {
     const mesh = new THREE.Mesh(type === 'gold' ? this.geo.coin : this.geo.xp, type === 'gold' ? this.mats.gold : type === 'heal' ? this.mats.player : this.mats.xp);
     mesh.position.copy(position); mesh.position.x += rnd(-0.6, 0.6); mesh.position.z += rnd(-0.6, 0.6); mesh.position.y = 0.4;
     if (type === 'heal') mesh.scale.setScalar(1.7);
-    this.scene.add(mesh); this.pickups.push({ mesh, type, value, age: 0, seed: Math.random() * TAU, collecting: false });
+    this.scene.add(mesh); this.pickups.push({ mesh, type, value, goldFactor: type === 'gold' ? this.stats.goldMultiplier * this.getThreat().goldMultiplier : null, age: 0, seed: Math.random() * TAU, collecting: false });
   }
   updatePickups(dt) {
     for (let i = this.pickups.length - 1; i >= 0; i--) {
@@ -1117,7 +1273,8 @@ export class Game {
   }
   collectPickup(p, audio = true) {
     if (p.type === 'gold') {
-      const earned = Math.round(p.value * this.stats.goldMultiplier * getThreatModifiers(this.stats, this.runRisk).goldMultiplier * 100) / 100;
+      const factor = p.goldFactor ?? (this.stats.goldMultiplier * this.getThreat().goldMultiplier);
+      const earned = Math.round(p.value * factor * 100) / 100;
       this._state.gold = Math.round((this._state.gold + earned) * 100) / 100;
       if (audio) {
         this.pendingGoldText = Math.round((this.pendingGoldText + earned) * 100) / 100;
@@ -1225,7 +1382,7 @@ export class Game {
       const e = this.effects[i]; e.life -= dt;
       if (e.mesh.material.opacity !== undefined) e.mesh.material.opacity = Math.max(0, e.life / e.total) * (e.type === 'slash' ? 0.8 : 1);
       if (e.type === 'particle') { e.mesh.position.addScaledVector(e.velocity, dt); e.velocity.y -= dt * 14; }
-      else e.mesh.scale.multiplyScalar(1 + dt * (e.type === 'slash' ? 2 : 4));
+      else if (!e.fixedScale) e.mesh.scale.multiplyScalar(1 + dt * (e.type === 'slash' ? 2 : 4));
       if (e.life <= 0) { this.releaseEffect(e); this.effects.splice(i, 1); }
     }
     this.shake = Math.max(0, this.shake - dt);
@@ -1261,6 +1418,7 @@ export class Game {
     for (const p of this.pickups) this.removeGroup(p.mesh);
     for (const e of this.effects) this.releaseEffect(e);
     for (const chest of this.chests) this.removeGroup(chest.group);
+    this.removeGroup(this.altar?.group); this.altar = null;
     this.chests.length = 0; this.spatialBuckets.clear(); this.spatialDirty = true;
     this.enemies.length = 0; this.activeEnemies.clear(); this.projectiles.length = 0; this.pickups.length = 0; this.effects.length = 0;
     this.playerVisual.visible = true;

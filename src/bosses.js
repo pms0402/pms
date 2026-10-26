@@ -128,7 +128,9 @@ export class BossSystem {
 
   zone(position, radius, warning, life, damage = 0, type = 'pool') {
     if (this.zones.length >= MAX_ZONES) return null;
-    const zone = { position: position.clone().setY(0), radius, warning, life, damage, type, active: false, tick: 0, marker: this.marker(position, radius) };
+    const owner = this.boss?.name || getBossStats(this.stage()).name;
+    const cause = `${owner} · ${type === 'pool' ? '독 장판' : '충격파'}`;
+    const zone = { position: position.clone().setY(0), radius, warning, life, damage, type, cause, active: false, tick: 0, marker: this.marker(position, radius) };
     this.zones.push(zone); return zone;
   }
 
@@ -148,7 +150,9 @@ export class BossSystem {
   fire(boss, direction, options = {}) {
     const bolts = this.game.enemyProjectiles || [];
     const before = bolts.length;
-    this.game.shootEnemyProjectile(boss, direction, { speed: 8, damage: this.damage() * .8, ...options });
+    const attack = { artillery: '포격', plague: '독침', storm: '전격 탄막', reaper: '십자 탄막' }[boss.archetype] || '원거리 공격';
+    const cause = `${boss.name || getBossStats(this.stage()).name} · ${attack}`;
+    this.game.shootEnemyProjectile(boss, direction, { speed: 8, damage: this.damage() * .8, cause, ...options });
     for (let i = before; i < bolts.length; i++) bolts[i].bossOwner = boss;
   }
 
@@ -276,7 +280,7 @@ export class BossSystem {
       boss.visual.scale.setScalar(1 + (boss.hitTime > 0 ? .04 : 0));
     }
     const contactDistance = Math.hypot(target.x - pos.x, target.z - pos.z);
-    if (contactDistance < 2.8) this.game.takeDamage(this.damage(), pos);
+    if (contactDistance < 2.3) this.game.takeDamage(this.damage(), pos, `${boss.name || getBossStats(this.stage()).name} · 접촉`);
   }
 
   updateEffects(dt) {
@@ -305,7 +309,7 @@ export class BossSystem {
       const player = this.game.player.position;
       const dx = player.x - zone.position.x, dz = player.z - zone.position.z;
       if (zone.damage > 0 && zone.tick <= 0 && dx * dx + dz * dz < zone.radius * zone.radius) {
-        this.game.takeDamage(zone.damage, zone.position); zone.tick = .6;
+        this.game.takeDamage(zone.damage, zone.position, zone.cause); zone.tick = .6;
         if (zone.type === 'pulse') zone.damage = 0;
       }
       if (zone.life <= 0) { this.removeMarker(zone.marker); this.zones.splice(i, 1); }

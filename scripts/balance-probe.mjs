@@ -46,16 +46,20 @@ try {
         try {
           if (!game.setRiskPact(risk)) throw new Error(`Cannot select risk ${risk}`);
           game.start(); game.frames = 0;
-          const startingStats = { hp: game.stats.maxHp, swordDamage: game.stats.damage, magicDamage: game.stats.spellDamage };
+          const startingStats = { hp: game.stats.maxHp, swordDamage: game.stats.damage, magicDamage: game.stats.spellDamage, swordRange: game.state.sword.range };
           let minHp = game._state.hp;
           for (let frame = 0; frame < Math.ceil(duration * 60); frame++) {
             if (game._state.phase === 'upgrade') {
-              const priorities = ['spell_fireball', 'evolve_fireball', 'spell_frost', 'spell_lightning', 'spell_orbit', 'spell_power', 'spell_haste', 'power', 'haste', 'armor', 'vitality', 'regen'];
+              const priorities = ['spell_fireball', 'evolve_fireball', 'spell_frost', 'spell_lightning', 'spell_orbit', 'spell_power', 'spell_haste', 'power', 'blade_range', 'blade_broadsword', 'blade_twinblade', 'blade_wave', 'haste', 'armor', 'vitality', 'regen'];
               const choice = priorities.map(id => game.upgradeChoices.find(candidate => candidate.id === id)).find(Boolean) || game.upgradeChoices[0];
               if (!choice || !game.chooseUpgrade(choice.id)) throw new Error('Invalid earned upgrade choice');
             } else if (game._state.phase === 'relic') {
-              const choice = game.relicChoices.find(candidate => candidate.id === 'frostfire') || game.relicChoices.find(candidate => candidate.id === 'blast') || game.relicChoices[0];
-              if (!choice || !game.chooseRelic(choice.id)) throw new Error('Invalid earned relic choice');
+              const choice = game.chestChoices.find(candidate => candidate.id === 'frostfire') || game.chestChoices.find(candidate => candidate.id === 'blast') || game.chestChoices[0];
+              if (!choice || !game.chooseChestReward(choice.id)) throw new Error('Invalid earned chest relic choice');
+            } else if (game._state.phase === 'curse') {
+              if (!game.chooseCurse('skip')) throw new Error('Cannot decline optional curse');
+            } else if (game._state.phase === 'route') {
+              if (!game.chooseRoute('standard')) throw new Error('Cannot choose the standard route');
             }
             if (game._state.phase !== 'playing' || game._state.stage > 1) break;
             const boss = game.boss, elapsed = game._state.elapsed;
@@ -63,7 +67,11 @@ try {
             if (boss?.hp > 0) {
               const rx = game.player.position.x - boss.group.position.x, rz = game.player.position.z - boss.group.position.z;
               const radius = Math.hypot(rx, rz) || 1;
-              const wanted = boss.mode === 'pulse-warning' ? 10 : 4.7;
+              // The state getter uses getSwordProfile, the same source as real
+              // sword collision and rendering. This policy stays inside that
+              // reach; it does not assume the former invisible 5.5-unit hit.
+              // A short blade can still incur actual boss contact damage.
+              const wanted = boss.mode === 'pulse-warning' ? 10 : game.state.sword.range * 0.9;
               const correction = Math.max(-2, Math.min(2, (wanted - radius) * 0.6));
               dx = rx / radius * correction - rz / radius;
               dz = rz / radius * correction + rx / radius;
@@ -79,13 +87,15 @@ try {
             minHp = Math.min(minHp, game._state.hp);
           }
           const result = {
-            risk, seed, policy: 'circle_then_orbit_boss', startingStats,
+            risk, seed, policy: 'circle_then_orbit_within_measured_sword_range', startingStats,
             outcome: game._state.stage > 1 ? 'stage_one_cleared' : game._state.phase === 'over' ? 'died' : 'time_limit',
             elapsed: Number(game._state.elapsed.toFixed(3)), phase: game._state.phase, stage: game._state.stage,
             hp: Number(game._state.hp.toFixed(3)), minHp: Number(minHp.toFixed(3)),
             level: game._state.level, kills: game._state.kills, gold: game._state.gold,
             boss: game.boss ? { hp: Math.max(0, Number(game.boss.hp.toFixed(3))), maxHp: game.boss.maxHp } : null,
             relics: [...game.stats.relics], spells: { ...game.stats.spells },
+            endingStats: { hp: game.stats.maxHp, swordDamage: game.stats.damage, magicDamage: game.stats.spellDamage, swordRange: game.state.sword.range },
+            swordEvolution: game.stats.swordEvolution, passiveLevels: { ...game.stats.passiveLevels },
           };
           game.setMoveInput(0, 0);
           return result;

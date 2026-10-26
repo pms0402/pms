@@ -31,7 +31,7 @@ async function fixture(stage = 1) {
     const game = window.__game;
     game.start(); cancelAnimationFrame(game.raf);
     game._state.stage = stage; game._state.xpNeeded = 1e9;
-    game.spawnTimer = game.attackTimer = game.nextChestTime = game.nextEliteTime = game.nextGoldenTime = 1e6;
+    game.spawnTimer = game.attackTimer = game.nextChestTime = game.nextEliteTime = game.nextGoldenTime = game.nextAltarTime = 1e6;
     game.stats.spells = { fireball: 0, frost: 0, lightning: 0, orbit: 0 };
     game.stats.critChance = 0; game.stats.regen = 0;
     game.emit();
@@ -203,7 +203,7 @@ try {
     const warning = game.bossSystem.zones[0].warning;
     game.pause(); game.stepForTest(2);
     const pausedWarning = game.bossSystem.zones[0].warning;
-    game.start(); game.spawnTimer = game.attackTimer = 1e6; game.stats.spells = { fireball: 0, frost: 0, lightning: 0, orbit: 0 };
+    game.start(); game.spawnTimer = game.attackTimer = game.nextAltarTime = 1e6; game.stats.spells = { fireball: 0, frost: 0, lightning: 0, orbit: 0 };
     const hp = game.state.hp; game.stepForTest(.5);
     return { warning, pausedWarning, debug: game.bossSystem.getDebugState(), hp, afterHp: game.state.hp };
   });
@@ -232,9 +232,11 @@ try {
     const game = window.__game, boss = game.spawnBoss(); game.hitEnemy(boss, boss.hp + 1);
     game._state.stageTime = game.state.stageDuration;
     const advanced = game.nextStage();
-    return { advanced, stage: game.state.stage, phase: game.state.phase };
+    const routeOffered = game.state.phase === 'route' && game.state.stage === 5;
+    const chosen = game.chooseRoute('standard');
+    return { advanced, routeOffered, chosen, stage: game.state.stage, phase: game.state.phase };
   });
-  assert.deepEqual(fifth, { advanced: true, stage: 6, phase: 'playing' }, 'the old fifth-floor ending now continues into floor six');
+  assert.deepEqual(fifth, { advanced: true, routeOffered: true, chosen: true, stage: 6, phase: 'playing' }, 'the old fifth-floor ending now continues into floor six');
   await fixture(10);
   const final = await page.evaluate(() => {
     const game = window.__game, boss = game.spawnBoss(); game._state.stageTime = game.state.stageDuration;

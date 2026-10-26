@@ -31,7 +31,7 @@ async function load(viewport = { width: 1440, height: 1000 }) {
 async function fixture() {
   await page.evaluate(() => {
     const game = window.__game; game.start(); cancelAnimationFrame(game.raf);
-    game.spawnTimer = game.attackTimer = game.nextChestTime = game.nextEliteTime = game.nextGoldenTime = 1e6;
+    game.spawnTimer = game.attackTimer = game.nextChestTime = game.nextEliteTime = game.nextGoldenTime = game.nextAltarTime = 1e6;
     game.stats.critChance = 0; game.stats.regen = 0; game.stats.lifeOnKill = 0;
     game.stats.spells = { fireball: 0, frost: 0, lightning: 0, orbit: 0 };
     game._state.hp = 61; game.emit();
@@ -71,7 +71,7 @@ try {
   console.log('PASS non-growth events: gold, below-threshold XP and paused time leave the entire stat object and health unchanged');
 
   await fixture();
-  const earnedTokens = await page.evaluate(() => {
+  const chestReward = await page.evaluate(ids => {
     const game = window.__game, before = structuredClone(game.stats), hp = game.state.hp;
     game._state.xpNeeded = 1e9;
     const random = Math.random;
@@ -79,18 +79,38 @@ try {
       Math.random = () => .5;
       const chest = game.spawnChest(10, 0); game.player.position.set(10, 0, 0);
       for (const guard of chest.guards) game.hitEnemy(guard, guard.hp + 1);
+      const level = game.state.level, xp = game.state.xp, gold = game.state.gold;
+      Math.random = () => (ids.indexOf('whetstone') + .01) / ids.length;
       game.tick(.01);
-      const afterChest = { stats: structuredClone(game.stats), hp: game.state.hp, phase: game.state.phase, tokens: game.state.rewardTokens, opened: chest.opened };
+      return { before, hp, level, xp, gold, opened: chest.opened, after: { stats: structuredClone(game.stats), hp: game.state.hp, phase: game.state.phase, tokens: game.state.rewardTokens, level: game.state.level, xp: game.state.xp, gold: game.state.gold, choices: game.chestChoices.map(choice => choice.id) } };
+    } finally { Math.random = random; }
+  }, RELICS.map(relic => relic.id));
+  assert.equal(chestReward.opened, true); assert.equal(chestReward.after.phase, 'relic');
+  assert.equal(chestReward.after.choices.length, 3); assert.equal(new Set(chestReward.after.choices).size, 3);
+  assert.ok(chestReward.after.choices.includes('whetstone'));
+  assert.deepEqual(chestReward.after.stats, chestReward.before, 'opening the immediate chest selection does not itself apply a relic');
+  assert.equal(chestReward.after.hp, chestReward.hp); assert.equal(chestReward.after.tokens, 0);
+  assert.equal(chestReward.after.level, chestReward.level); assert.equal(chestReward.after.xp, chestReward.xp);
+  assert.equal(chestReward.after.gold - chestReward.gold, 40, 'the actual opened chest grants its gold immediately');
+  assert.equal(await page.locator('[data-chest-relic]').count(), 3);
+  await page.locator('[data-chest-relic="whetstone"]').click();
+  const chosenChest = await page.evaluate(() => ({ stats: structuredClone(window.__game.stats), hp: window.__game.state.hp, level: window.__game.state.level, xp: window.__game.state.xp, phase: window.__game.state.phase, repeated: window.__game.chooseChestReward('whetstone') }));
+  const chestExpected = structuredClone(chestReward.before); chestExpected.damage *= 1.4; chestExpected.relics.push('whetstone');
+  assert.deepEqual(chosenChest.stats, chestExpected, 'exactly the selected chest relic applies');
+  assert.equal(chosenChest.hp, chestReward.hp); assert.equal(chosenChest.phase, 'playing'); assert.equal(chosenChest.repeated, false);
+  assert.equal(chosenChest.level, chestReward.level); assert.equal(chosenChest.xp, chestReward.xp);
+  const eliteToken = await page.evaluate(() => {
+    const game = window.__game, before = structuredClone(game.stats), hp = game.state.hp;
+    const random = Math.random;
+    try {
+      Math.random = () => .5;
       const elite = game.spawnEnemy(15, 0, 2, { elite: true }); game.hitEnemy(elite, elite.hp + 1); game.tick(.01);
-      return { before, hp, afterChest, afterElite: { stats: structuredClone(game.stats), hp: game.state.hp, phase: game.state.phase, tokens: game.state.rewardTokens } };
+      return { before, hp, after: structuredClone(game.stats), afterHp: game.state.hp, phase: game.state.phase, tokens: game.state.rewardTokens };
     } finally { Math.random = random; }
   });
-  assert.equal(earnedTokens.afterChest.opened, true); assert.equal(earnedTokens.afterChest.tokens, 1);
-  assert.equal(earnedTokens.afterElite.tokens, 2);
-  for (const result of [earnedTokens.afterChest, earnedTokens.afterElite]) {
-    assert.deepEqual(result.stats, earnedTokens.before); assert.equal(result.hp, earnedTokens.hp); assert.equal(result.phase, 'playing');
-  }
-  console.log('PASS actual treasure/elite: guarded chest opening and elite death award only future-choice tokens, without applying stats or opening a separate relic phase');
+  assert.deepEqual(eliteToken.after, eliteToken.before); assert.equal(eliteToken.afterHp, eliteToken.hp);
+  assert.equal(eliteToken.phase, 'playing'); assert.equal(eliteToken.tokens, 1, 'elite rewards retain their later level-up token flow');
+  console.log('PASS chest/elite distinction: actual chest grants40G and three immediate relic options; only the chosen relic changes stats, while elites still queue level-up tokens');
 
   await fixture();
   const tenFloors = await page.evaluate(() => {
@@ -109,12 +129,17 @@ try {
         game.dropPickup(game.player.position.clone().set(30, 0, 30), 'heal', 30);
         game._state.stageTime = game.state.stageDuration;
         const advanced = game.nextStage();
+        const routePhase = game.state.phase;
+        if (floor < 10) {
+          if (routePhase !== 'route') throw new Error('Nonfinal floor must ask for the next route');
+          if (!game.chooseRoute('standard')) throw new Error('Standard route was rejected');
+        }
         const afterAdvance = structuredClone(game.stats), advanceHp = game.state.hp;
         if (game.state.phase === 'playing') {
-          game.spawnTimer = game.attackTimer = game.nextChestTime = game.nextEliteTime = game.nextGoldenTime = 1e6;
+          game.spawnTimer = game.attackTimer = game.nextChestTime = game.nextEliteTime = game.nextGoldenTime = game.nextAltarTime = 1e6;
           game.stepForTest(.02);
         }
-        records.push({ floor, before, beforeHp, afterSpawn, afterKill, killHp, advanced, afterAdvance, advanceHp, afterTick: structuredClone(game.stats), tickHp: game.state.hp, phase: game.state.phase });
+        records.push({ floor, before, beforeHp, afterSpawn, afterKill, killHp, advanced, routePhase, afterAdvance, advanceHp, afterTick: structuredClone(game.stats), tickHp: game.state.hp, phase: game.state.phase });
       }
       return { baseline, hp, records, end: { stage: game.state.stage, phase: game.state.phase, stats: structuredClone(game.stats), hp: game.state.hp, pendingBossRewards: game.state.pendingBossRewards.length } };
     } finally { Math.random = random; }
@@ -127,6 +152,7 @@ try {
     assert.deepEqual(record.afterTick, record.before, 'queued boss rewards do not silently apply on the next simulation tick');
     assert.equal(record.killHp, record.beforeHp); assert.equal(record.advanceHp, tenFloors.hp); assert.equal(record.tickHp, tenFloors.hp);
     assert.equal(record.advanced, true);
+    assert.equal(record.routePhase, record.floor === 10 ? 'won' : 'route');
     assert.equal(record.phase, record.floor === 10 ? 'won' : 'playing');
   }
   assert.equal(tenFloors.end.stats.maxHp, 100); assert.equal(tenFloors.end.stats.damage, 18); assert.equal(tenFloors.end.stats.spellDamage, 18);
@@ -154,7 +180,7 @@ try {
     // Limit eligibility to one target relic, without applying the other effects.
     game.stats.relics = ids.filter(id => id !== 'giantsHeart');
     const before = structuredClone(game.stats), hp = game.state.hp;
-    const opened = game.openRelic('수호 보물상자');
+    const opened = game.openRelic('정예 처치 선택권');
     const direct = game.chooseRelic('giantsHeart'), bypass = game.chooseUpgrade('relic_giantsHeart');
     return { before, after: structuredClone(game.stats), hp, afterHp: game.state.hp, opened, direct, bypass, phase: game.state.phase, tokens: game.state.rewardTokens };
   }, RELICS.map(relic => relic.id));
@@ -174,7 +200,7 @@ try {
   assert.equal(giant.tokens, 0); assert.equal(giant.direct, false);
   const giantExpected = structuredClone(nextRelicOffer.before); giantExpected.maxHp *= 1.4; giantExpected.relics.push('giantsHeart');
   assert.deepEqual(giant.stats, giantExpected);
-  console.log('PASS relic choice: treasure queues eligibility only; optional fourth card must be chosen, survives a skipped level and consumes one token');
+  console.log('PASS elite relic choice: optional fourth card must be chosen, survives a skipped level and consumes one token');
 
   await fixture();
   const bossToken = await page.evaluate(() => {

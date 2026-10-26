@@ -75,7 +75,7 @@ try {
       game.stats.spells = { fireball: 0, frost: 0, lightning: 0, orbit: 0, [id]: 1 };
       game.stats.critChance = 0;
       game.magic.reset();
-      game.spawnTimer = 1e6; game.attackTimer = 1e6;
+      game.spawnTimer = 1e6; game.attackTimer = 1e6; game.nextAltarTime = 1e6;
       const points = id === 'fireball' ? [[9, 0], [10, 1]] : id === 'lightning' ? [[7, 0], [11, 0], [15, 0]] : [[id === 'frost' ? 4 : 3.5, 0]];
       const targets = points.map(([x, z]) => { const enemy = game.spawnEnemy(x, z, 2); enemy.speed = 0; return enemy; });
       const before = targets.map(enemy => enemy.hp);
@@ -156,8 +156,8 @@ try {
   const bossGate = await page.evaluate(({ spawnTime, duration }) => {
     const game = window.__game;
     game.stats.spells = { fireball: 0, frost: 0, lightning: 0, orbit: 0 };
-    game.spawnTimer = 1e6; game.attackTimer = 1e6;
-    game._state.hp = 37;
+    game.spawnTimer = 1e6; game.attackTimer = 1e6; game.nextAltarTime = 1e6;
+    game._state.hp = 37; game._state.xpNeeded = 1e9;
     const unchangedStats = JSON.stringify(game.stats);
     game._state.stageTime = spawnTime - .01;
     game.tick(.02);
@@ -174,12 +174,15 @@ try {
     const blockedEarly = game.bossDefeated && !game.nextStage() && game.state.stage === 1;
     game._state.stageTime = duration;
     game.tick(1 / 60);
-    return { spawned, once, blockedAlive, blockedEarly, stage: game.state.stage, hp: game.state.hp, maxHp: game.state.maxHp, statsUnchanged: JSON.stringify(game.stats) === unchangedStats, bossReset: !game.bossSpawned && !game.bossDefeated };
+    const routeOffered = game.state.phase === 'route' && game.state.stage === 1;
+    if (!routeOffered || !game.chooseRoute('standard')) throw new Error('Completed floor must choose a route before advancing');
+    return { spawned, once, blockedAlive, blockedEarly, routeOffered, stage: game.state.stage, hp: game.state.hp, maxHp: game.state.maxHp, statsUnchanged: JSON.stringify(game.stats) === unchangedStats, bossReset: !game.bossSpawned && !game.bossDefeated };
   }, { spawnTime: BOSS_SPAWN_TIME, duration: STAGE_DURATION });
   assert.equal(bossGate.spawned, true);
   assert.equal(bossGate.once, true);
   assert.equal(bossGate.blockedAlive, true);
   assert.equal(bossGate.blockedEarly, true);
+  assert.equal(bossGate.routeOffered, true);
   assert.equal(bossGate.stage, 2);
   assert.equal(bossGate.hp, 37, 'clearing a floor preserves current health without an automatic full heal');
   assert.equal(bossGate.maxHp, 100);
@@ -268,7 +271,7 @@ try {
   const finalGate = await page.evaluate(({ duration, finalStage }) => {
     const game = window.__game;
     game.stats.spells = { fireball: 0, frost: 0, lightning: 0, orbit: 0 };
-    game.spawnTimer = 1e6; game.attackTimer = 1e6;
+    game.spawnTimer = 1e6; game.attackTimer = 1e6; game.nextAltarTime = 1e6;
     game._state.stage = finalStage; game._state.stageTime = duration - .01;
     const boss = game.spawnBoss();
     game.tick(.02);

@@ -33,7 +33,7 @@ async function load({ seed, viewport = { width: 1440, height: 1000 }, mobile = f
 async function freeze() {
   await page.evaluate(() => {
     const game = window.__game; cancelAnimationFrame(game.raf);
-    game.spawnTimer = game.attackTimer = game.nextChestTime = game.nextEliteTime = game.nextGoldenTime = 1e6;
+    game.spawnTimer = game.attackTimer = game.nextChestTime = game.nextEliteTime = game.nextGoldenTime = game.nextAltarTime = 1e6;
     game._state.xpNeeded = 1e9;
   });
 }
@@ -121,7 +121,8 @@ try {
       stages.at(-1).bossChangedStats = JSON.stringify(game.stats) !== beforeKill;
       const before = { stats: JSON.stringify(game.stats), hp: game.state.hp };
       game._state.stageTime = game.state.stageDuration;
-      if (!game.nextStage()) throw new Error('Actual cleared boss did not unlock the next stage');
+      if (!game.nextStage()) throw new Error('Actual cleared boss did not unlock the route choice');
+      if (game.state.phase !== 'route' || !game.chooseRoute('standard')) throw new Error('The standard route must be chosen to advance');
       stages.at(-1).before = before;
       stages.at(-1).after = { stats: JSON.stringify(game.stats), hp: game.state.hp };
     }
