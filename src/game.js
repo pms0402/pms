@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { STAGE_DURATION, BOSS_SPAWN_TIME, MAX_STAGES, ARENA_RADIUS, getStageStats, getBossStats, getStageGrowth, getSpawnInterval, getXpRequired, getUpgradeChoices, applyUpgrade } from './balance.js';
+import { STAGE_DURATION, BOSS_SPAWN_TIME, MAX_STAGES, ARENA_RADIUS, getStageStats, getBossStats, getXpDropMultiplier, getSpawnInterval, getXpRequired, getUpgradeChoices, applyUpgrade } from './balance.js';
 import { MagicSystem } from './magic.js';
 import { BossSystem } from './bosses.js';
 import { ENEMY_TYPES, getEnemyDefinition, chooseEnemyKind, getStageDefinition, getBossDefinition } from './encounters.js';
@@ -106,7 +106,7 @@ export class Game {
   get state() {
     const enemyKinds = Object.fromEntries(ENEMY_TYPES.map(type => [type.id, 0]));
     for (const enemy of this.enemies) if (enemy.definition) enemyKinds[enemy.definition.id]++;
-    return { ...this._state, enemyKinds, maxHp: this.stats.maxHp, damage: this.stats.damage, attackRate: this.stats.attackRate, spellDamage: this.stats.spellDamage, spellRate: this.stats.spellRate, speed: this.stats.speed, risk: getThreatModifiers(this.stats, this.runRisk), selectedRisk: this.selectedRisk, chests: this.chests.map(chest => ({ x: chest.group.position.x, z: chest.group.position.z, remaining: chest.guards.filter(guard => guard.hp > 0).length, opened: chest.opened })), eliteEnemies: this.enemies.filter(enemy => enemy.elite).length, goldenEnemies: this.enemies.filter(enemy => enemy.golden).length, dashCooldown: Math.max(0, this.dashCooldown || 0), dashReady: !(this.dashCooldown > 0), enemyCount: this.enemies.length, arenaRadius: ARENA_RADIUS, stageDuration: STAGE_DURATION, bossSpawnTime: BOSS_SPAWN_TIME, bossSpawned: this.bossSpawned, bossDefeated: this.bossDefeated, boss: this.boss ? { archetype: this.boss.archetype, hint: this.boss.hint, name: this.boss.name, hp: Math.max(0, this.boss.hp), maxHp: this.boss.maxHp, alive: this.boss.hp > 0, spawned: this.bossSpawned, defeated: this.bossDefeated, phase: this.boss.mode } : null, spellState: this.magic?.getState() || [], playerStats: { ...this.stats, relics: [...(this.stats.relics || [])], bossRewards: [...(this.stats.bossRewards || [])], spells: { ...this.stats.spells }, evolutions: { ...this.stats.evolutions }, passiveLevels: { ...this.stats.passiveLevels } } };
+    return { ...this._state, enemyKinds, rewardTokens: this.pendingRelicSources?.length || 0, pendingBossRewards: (this.pendingBossRewards || []).map(reward => ({ ...reward })), maxHp: this.stats.maxHp, damage: this.stats.damage, attackRate: this.stats.attackRate, spellDamage: this.stats.spellDamage, spellRate: this.stats.spellRate, speed: this.stats.speed, risk: getThreatModifiers(this.stats, this.runRisk), selectedRisk: this.selectedRisk, chests: this.chests.map(chest => ({ x: chest.group.position.x, z: chest.group.position.z, remaining: chest.guards.filter(guard => guard.hp > 0).length, opened: chest.opened })), eliteEnemies: this.enemies.filter(enemy => enemy.elite).length, goldenEnemies: this.enemies.filter(enemy => enemy.golden).length, dashCooldown: Math.max(0, this.dashCooldown || 0), dashReady: !(this.dashCooldown > 0), enemyCount: this.enemies.length, arenaRadius: ARENA_RADIUS, stageDuration: STAGE_DURATION, bossSpawnTime: BOSS_SPAWN_TIME, bossSpawned: this.bossSpawned, bossDefeated: this.bossDefeated, boss: this.boss ? { archetype: this.boss.archetype, hint: this.boss.hint, name: this.boss.name, hp: Math.max(0, this.boss.hp), maxHp: this.boss.maxHp, alive: this.boss.hp > 0, spawned: this.bossSpawned, defeated: this.bossDefeated, phase: this.boss.mode } : null, spellState: this.magic?.getState() || [], playerStats: { ...this.stats, relics: [...(this.stats.relics || [])], bossRewards: [...(this.stats.bossRewards || [])], spells: { ...this.stats.spells }, evolutions: { ...this.stats.evolutions }, passiveLevels: { ...this.stats.passiveLevels } } };
   }
   emit() { this.callbacks.onUpdate?.(this.state); }
 
@@ -261,7 +261,7 @@ export class Game {
   resetTimers() {
     this.lastGoldText = 0; this.pendingGoldText = 0;
     this.nextChestTime = 20; this.nextEliteTime = 30; this.nextGoldenTime = 40;
-    this.stageChestCount = 0; this.eliteKills = 0; this.pendingRelicSources = []; this.relicChoices = [];
+    this.stageChestCount = 0; this.eliteKills = 0; this.pendingRelicSources = []; this.pendingBossRewards = []; this.relicChoices = []; this.upgradeChoices = [];
     this.attackTimer = 0.2; this.spawnTimer = 1.3; this.bossSpawned = false; this.bossDefeated = false; this.boss = null; this.dashCooldown = 0; this.dashTime = 0; this.invulnerable = 0; this.shake = 0; this.comboTimer = 0; this.attackAnim = 0;
     this.dashDirection = new THREE.Vector3(0.707, 0, 0.707);
   }
@@ -545,12 +545,28 @@ export class Game {
   pause() { if (this._state.phase === 'playing') { this._state.phase = 'paused'; this.keys.clear(); this.touchMove = { x: 0, y: 0 }; this.emit(); } }
   resume() { if (this._state.phase === 'paused') { this._state.phase = 'playing'; this.lastTime = performance.now(); this.emit(); } }
   chooseUpgrade(id) {
-    if (this._state.phase !== 'upgrade' || !this.upgradeChoices?.some((choice) => choice.id === id)) return false;
+    if (this._state.phase !== 'upgrade') return false;
+    const choice = this.upgradeChoices?.find(candidate => candidate.id === id);
+    if (!choice) return false;
     const before = this.stats.maxHp;
-    if (!applyUpgrade(this.stats, id)) return false;
+    let applied = false;
+    if (choice.category === 'relic') {
+      if (!this.pendingRelicSources.length || id !== `relic_${choice.rewardId}`) return false;
+      applied = applyRelic(this.stats, choice.rewardId);
+      if (applied) this.pendingRelicSources.shift();
+    } else if (choice.category === 'boss') {
+      const index = this.pendingBossRewards.findIndex(reward => reward.id === choice.rewardId && reward.stage === choice.sourceStage);
+      if (index < 0 || id !== `boss_${choice.rewardId}`) return false;
+      applied = applyBossReward(this.stats, this.pendingBossRewards[index].stage);
+      if (applied) this.pendingBossRewards.splice(index, 1);
+    } else applied = applyUpgrade(this.stats, id);
+    if (!applied) return false;
     this._state.hp = Math.min(this.stats.maxHp, this._state.hp + Math.max(0, this.stats.maxHp - before));
+    this.upgradeChoices = []; this.relicChoices = [];
     this.keys.clear(); this.touchMove = { x: 0, y: 0 };
-    this._state.phase = 'playing'; this.sound('upgrade'); this.emit(); return true;
+    this._state.phase = 'playing'; this.lastTime = performance.now();
+    if (choice.category === 'relic' || choice.category === 'boss') this.callbacks.onLoot?.(`${choice.title} 선택 완료`);
+    this.sound('upgrade'); this.emit(); return true;
   }
   setPermanentBonuses(bonuses = {}) {
     if (!['menu', 'over', 'won'].includes(this._state.phase)) return false;
@@ -563,22 +579,38 @@ export class Game {
     this.selectedRisk = id; this.emit(); return true;
   }
 
+  /** Treasure only unlocks an extra reward card at a future earned level-up. */
   openRelic(source = '보물상자') {
     if (this._state.phase !== 'playing') return false;
-    this.relicChoices = getRelicChoices(this.stats);
-    if (!this.relicChoices.length) return false;
-    this._state.phase = 'relic'; this.keys.clear(); this.touchMove = { x: 0, y: 0 };
-    this.sound('upgrade'); this.callbacks.onRelic?.(this.relicChoices, source); this.emit(); return true;
+    this.pendingRelicSources.push(typeof source === 'string' && source.trim() ? source : '보물상자');
+    this.callbacks.onLoot?.('유물 선택권 획득 · 다음 레벨업에서 선택할 수 있습니다');
+    this.emit(); return true;
   }
 
   chooseRelic(id) {
-    if (this._state.phase !== 'relic' || !this.relicChoices.some(choice => choice.id === id)) return false;
-    const beforeMaxHp = this.stats.maxHp;
-    if (!applyRelic(this.stats, id)) return false;
-    this._state.hp = Math.min(this.stats.maxHp, this._state.hp + Math.max(0, this.stats.maxHp - beforeMaxHp));
-    const title = this.relicChoices.find(choice => choice.id === id)?.title || '유물';
-    this.relicChoices = []; this._state.phase = 'playing'; this.lastTime = performance.now();
-    this.callbacks.onLoot?.(`${title} 획득`); this.sound('upgrade'); this.emit(); return true;
+    if (this._state.phase !== 'upgrade' || !this.upgradeChoices?.some(choice => choice.id === `relic_${id}` && choice.category === 'relic')) return false;
+    return this.chooseUpgrade(`relic_${id}`);
+  }
+
+  rewardUpgradeChoice() {
+    const candidates = [];
+    if (this.pendingRelicSources.length) {
+      for (const relic of getRelicChoices(this.stats)) candidates.push({
+        ...relic, id: `relic_${relic.id}`, rewardId: relic.id,
+        category: 'relic', source: this.pendingRelicSources[0],
+      });
+    }
+    for (const pending of this.pendingBossRewards) {
+      if (this.stats.bossRewards?.includes(pending.id)) continue;
+      const reward = getBossReward(pending.stage);
+      if (!reward || reward.id !== pending.id) continue;
+      candidates.push({ ...reward, id: `boss_${reward.id}`, rewardId: reward.id,
+        sourceStage: pending.stage, source: `${pending.stage}층 수호자 보상`, category: 'boss' });
+    }
+    if (!candidates.length) return null;
+    const roll = Number(Math.random());
+    const index = Math.floor((Number.isFinite(roll) ? clamp(roll, 0, .999999) : 0) * candidates.length);
+    return candidates[index];
   }
 
   spawnChest(x, z) {
@@ -623,7 +655,7 @@ export class Game {
       if (ready && dx * dx + dz * dz < 3.5 ** 2) {
         chest.opened = true; chest.group.visible = false;
         this.dropPickup(chest.group.position, 'gold', getStageStats(s.stage).coinValue * 8);
-        this.pendingRelicSources.push('수호 보물상자');
+        this.openRelic('수호 보물상자');
         this.burst(chest.group.position, '#ffd577', 12); this.sound('coin');
       }
     }
@@ -634,6 +666,8 @@ export class Game {
     const s = this._state;
     s.xp -= s.xpNeeded; s.level++; s.xpNeeded = getXpRequired(s.level);
     this.upgradeChoices = getUpgradeChoices(this.stats);
+    const reward = this.rewardUpgradeChoice();
+    if (reward) this.upgradeChoices.push(reward);
     if (!this.upgradeChoices.length) return false;
     s.phase = 'upgrade'; this.keys.clear(); this.touchMove = { x: 0, y: 0 };
     this.sound('upgrade'); this.callbacks.onLevelUp?.(this.upgradeChoices); this.emit(); return true;
@@ -710,10 +744,6 @@ export class Game {
     }
     if (s.hp <= 0) { s.hp = 0; s.phase = 'over'; this.playerVisual.visible = true; this.sound('over'); this.callbacks.onGameOver?.(this.state); this.emit(); return; }
     this.updateAdventure(dt);
-    if (this.pendingRelicSources.length) {
-      const source = this.pendingRelicSources.shift();
-      if (this.openRelic(source)) return;
-    }
     if (this.openLevelUp()) return;
     if (s.stageTime >= STAGE_DURATION && this.bossDefeated) this.nextStage();
   }
@@ -721,14 +751,11 @@ export class Game {
   nextStage() {
     const s = this._state;
     if (!this.bossDefeated || s.stageTime < STAGE_DURATION) return false;
-    for (const p of this.pickups) this.collectPickup(p, false);
+    // Uncollected healing must not become a free recovery on a floor change.
+    for (const p of this.pickups) { if (p.type !== 'heal') this.collectPickup(p, false); else this.removeGroup(p.mesh); }
     this.pickups.length = 0;
     if (s.stage >= MAX_STAGES) { s.phase = 'won'; this.sound('win'); this.callbacks.onWin?.(this.state); this.emit(); return true; }
     s.stage++; s.stageTime = 0; this.setStageMood(s.stage);
-    const growth = getStageGrowth();
-    this.stats.damage *= growth.damageMultiplier;
-    this.stats.spellDamage *= growth.damageMultiplier;
-    this.stats.maxHp *= growth.maxHpMultiplier; s.hp = this.stats.maxHp;
     this.bossSystem.clear();
     for (const enemy of this.enemies) this.releaseEnemy(enemy);
     this.enemies.length = 0;
@@ -1029,19 +1056,20 @@ export class Game {
     const bossReward = enemy.kind === 4 ? getBossStats(this._state.stage) : null;
     const rewardMultiplier = enemy.rewardMultiplier || 1;
     const definition = enemy.definition || getEnemyDefinition(enemy.kind);
-    this.dropPickup(position, 'xp', (bossReward ? bossReward.xpValue : definition?.xp || 1) * (enemy.elite ? 2 : 1) * (enemy.minion ? .25 : 1));
+    this.dropPickup(position, 'xp', (bossReward ? bossReward.xpValue : definition?.xp || 1) * (enemy.elite ? 2 : 1) * (enemy.minion ? .25 : 1) * getXpDropMultiplier(this._state.stage));
     this.dropPickup(position, 'gold', (bossReward ? bossReward.coinValue : getStageStats(this._state.stage).coinValue * (definition?.goldMultiplier || 1)) * rewardMultiplier);
     if (enemy.kind === 4) {
       this.bossDefeated = true; this.clearTelegraph(enemy); this.bossSystem.clear(); this.sound('win');
       this.floatText('BOSS DEFEATED', position, '#ffcf86', 1.8, 5);
-      if (applyBossReward(this.stats, this._state.stage)) {
-        const reward = getBossReward(this._state.stage);
-        this.callbacks.onLoot?.(`${reward.title} · ${reward.description}`);
+      const reward = getBossReward(this._state.stage);
+      if (reward && !this.stats.bossRewards.includes(reward.id) && !this.pendingBossRewards.some(pending => pending.id === reward.id)) {
+        this.pendingBossRewards.push({ ...reward });
+        this.callbacks.onLoot?.(`${reward.title} 선택권 · 다음 레벨업에서 선택하세요`);
       }
       this.callbacks.onBossDefeat?.(this.state.boss);
     }
     if (enemy.elite) {
-      this.eliteKills++; this.pendingRelicSources.push('정예 처치 보상');
+      this.eliteKills++; this.openRelic('정예 처치 보상');
       this.floatText('ELITE DEFEATED', position, '#d9b0ff', 1.25, 3.4);
     }
     if (enemy.golden) this.floatText('GOLD RUSH!', position, '#ffda6d', 1.7, 3.4);

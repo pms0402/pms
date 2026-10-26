@@ -44,7 +44,7 @@ function hud(selector, value, html = false) {
   if (html) element.innerHTML = value; else element.textContent = value;
 }
 const upgradeIcons = { arcana: 'orbit', focus: 'bolt', bladeReach: 'target', spellArea: 'orbit', spell_power: 'orbit', spell_haste: 'bolt', power: 'sword', haste: 'bolt', vitality: 'heart', magnet: 'magnet', critical: 'diamond', armor: 'shield', regen: 'cross', speed: 'move', fireball: 'fire', frost: 'snow', lightning: 'bolt', orbit: 'orbit' };
-const upgradeIcon = (choice) => upgradeIcons[choice.id] || upgradeIcons[choice.id.replace(/^(spell_|evolve_)/, '')] || choice.icon || 'diamond';
+const upgradeIcon = (choice) => upgradeIcons[choice.id] || upgradeIcons[choice.id.replace(/^(spell_|evolve_)/, '')] || ({ flame: 'fire', snowflake: 'snow' }[choice.icon]) || choice.icon || 'diamond';
 
 $('#app').innerHTML = `
   <header class="site-header">
@@ -55,7 +55,7 @@ $('#app').innerHTML = `
       <button class="nav-link" data-nav="history">런 기록 <span class="nav-count" id="history-count">${history.length.toString().padStart(2, '0')}</span></button>
       <button class="nav-link" data-nav="permanent">영구 강화</button>
     </nav>
-    <div class="header-actions"><span class="build-label"><i></i> BUILD YOUR LEGEND <b>v0.6</b></span><span class="header-divider"></span><button id="sound-toggle" class="icon-button" title="사운드 켜기" aria-label="사운드 켜기">${icon('muted')}</button><button id="settings" class="icon-button" title="설정" aria-label="설정">${icon('settings')}</button></div>
+    <div class="header-actions"><span class="build-label"><i></i> BUILD YOUR LEGEND <b>v0.7</b></span><span class="header-divider"></span><button id="sound-toggle" class="icon-button" title="사운드 켜기" aria-label="사운드 켜기">${icon('muted')}</button><button id="settings" class="icon-button" title="설정" aria-label="설정">${icon('settings')}</button></div>
   </header>
   <main class="page">
     <section class="page-intro">
@@ -89,13 +89,13 @@ $('#app').innerHTML = `
         <div class="scene-coordinate">SECTOR_001 <span>35° 41′ N / 139° 41′ E</span></div>
         <div class="combo-display hidden" id="combo-display"><strong id="combo-value"></strong><span>CHAIN KILLS</span></div>
         <div class="game-toast hidden" id="game-toast" role="status"></div>
-        <div class="stage-banner hidden" id="stage-banner"><span id="banner-kicker">NEXT STAGE</span><strong id="banner-title"></strong><p>보상 ×10 <span>몬스터 ×3.2</span></p></div>
+        <div class="stage-banner hidden" id="stage-banner"><span id="banner-kicker">NEXT STAGE</span><strong id="banner-title"></strong><p>보상 ×10 <span>적 체력 ×1.7 · 피해 ×1.35</span></p></div>
         <div class="arena-bottom">
           <div class="character-loadout"><div class="weapon-icon">${icon('sword')}</div><div><span class="loadout-label">시작 무기</span><strong id="weapon-name">공허의 검 <span>I</span></strong></div><span class="loadout-divider"></span><div class="attack-type">${icon('target')} 자동 공격</div></div>
           <div class="dash-indicator hidden" id="dash-indicator"><kbd>SPACE</kbd><div><strong id="dash-status">대시 준비</strong><div class="dash-track"><div id="dash-fill"></div></div></div>${icon('bolt')}</div>
           <div class="scene-tag" id="scene-tag"><span class="live-dot"></span> REAL-TIME 3D</div>
         </div>
-        <div class="growth-toolbar hidden" id="growth-toolbar"><div class="spell-loadout" id="spell-loadout" aria-label="보유 마법">${['fireball', 'frost', 'lightning', 'orbit'].map(id => `<button class="spell-slot locked" data-spell="${id}" title="마법 빌드 보기" aria-label="${id} 마법 정보"><span class="spell-slot-icon">${icon(upgradeIcons[id])}</span><span class="spell-slot-rank">—</span><span class="spell-cooldown"></span></button>`).join('')}</div><button id="run-build-button" class="shop-button">${icon('book')} 이번 런 빌드 <kbd>B</kbd></button></div>
+        <div class="growth-toolbar hidden" id="growth-toolbar"><div class="spell-loadout" id="spell-loadout" aria-label="보유 마법">${['fireball', 'frost', 'lightning', 'orbit'].map(id => `<button class="spell-slot locked" data-spell="${id}" title="마법 빌드 보기" aria-label="${id} 마법 정보"><span class="spell-slot-icon">${icon(upgradeIcons[id])}</span><span class="spell-slot-rank">—</span><span class="spell-cooldown"></span></button>`).join('')}</div><button id="run-build-button" class="shop-button">${icon('book')} 이번 런 빌드 <span id="reward-pending" class="reward-pending hidden" title="다음 레벨업의 선택 보상"></span><kbd>B</kbd></button></div>
         <div class="touch-controls hidden" id="touch-controls"><div class="dpad"><button data-move="0,-1" aria-label="위로 이동">↑</button><button data-move="-1,0" aria-label="왼쪽 이동">←</button><button data-move="0,1" aria-label="아래로 이동">↓</button><button data-move="1,0" aria-label="오른쪽 이동">→</button></div><button id="touch-dash" aria-label="대시">${icon('bolt')}</button></div>
         <div class="canvas-error hidden" id="canvas-error"><h2>3D 화면을 시작할 수 없어요</h2><p>브라우저의 하드웨어 가속을 켠 뒤 새로고침해 주세요.</p><button class="primary-button" id="reload">새로고침 ${icon('refresh')}</button></div>
       </div>
@@ -103,7 +103,7 @@ $('#app').innerHTML = `
         <div class="panel-heading"><span>이번 런의 여정</span><span class="micro">THE RUN</span></div>
         <div class="stage-heading"><span class="stage-caption">CURRENT STAGE</span><div class="stage-number"><strong id="stage-number">01</strong><span>/ ${String(MAX_STAGES).padStart(2, '0')}</span><span class="stage-symbol">✳</span></div><h3 id="stage-name">잊혀진 초원</h3><p id="stage-english">THE FORGOTTEN GROVE</p></div>
         <div class="stage-time"><span id="stage-timer-label">보스 출현까지</span><strong id="stage-time">01:30</strong></div><div class="stage-track"><div id="stage-progress"></div></div>
-        <div class="scaling-stats"><div><span>${icon('coin')} 처치 보상</span><strong id="reward-multiplier">×1</strong></div><div><span>${icon('skull')} 몬스터 위력</span><strong id="enemy-multiplier">×1</strong></div></div>
+        <div class="scaling-stats"><div><span>${icon('coin')} 처치 보상</span><strong id="reward-multiplier">×1</strong></div><div><span>${icon('skull')} 적 체력 · 피해</span><strong id="enemy-multiplier">×1</strong></div></div>
         <div class="stage-route" aria-label="전체 층 진행 경로" tabindex="0">${stageNames.map((name, i) => `<div class="route-stop ${i === 0 ? 'current' : ''}" data-stage="${i + 1}"><span class="route-point">${i === 0 ? '<i></i>' : `<b>${i + 1}</b>`}</span><span>${name}</span><span class="route-multiplier">${i === 0 ? '현재' : `×${formatGold(10 ** i)}`}</span></div>`).join('')}</div>
         <div class="build-summary"><div><span>이번 런의 빌드</span><button id="build-info" title="마법과 강화 설명">${icon('book')}</button></div><p id="build-summary">화염탄으로 시작합니다.<br>경험치를 모아 새 마법을 선택하세요.</p><div class="build-summary-foot"><span id="build-levels">마법 1종 · 진화 0종</span><span>LV. <b id="build-level">1</b></span></div></div>
         <div class="panel-tip"><span>${icon('bolt')} BIGGER GAINS. NEW POSSIBILITIES.</span><p>강력한 성장, 새로운 마법.<br>선택이 쌓여 <b>당신만의 빌드로.</b></p><div class="mini-bars">${Array.from({length: 22}, (_, i) => `<i style="--bar:${12 + Math.pow(i / 21, 2.5) * 38}px;--alpha:${.16 + i / 26}"></i>`).join('')}</div></div>
@@ -179,7 +179,8 @@ function update(state) {
   $('#stage-progress').style.width = `${state.stageTime / STAGE_DURATION * 100}%`;
   const risk = state.phase === 'menu' ? getRiskStats(prefs.risk) : state.risk || getRiskStats(prefs.risk);
   hud('#reward-multiplier', `×${formatGold(getStageStats(state.stage).coinValue)} · 계약 ×${risk.goldMultiplier || 1}`);
-  hud('#enemy-multiplier', `×${(3.2 ** (state.stage - 1)).toLocaleString('en-US', { maximumFractionDigits: 1 })}`);
+  const enemyStats = getStageStats(state.stage), baseEnemyStats = getStageStats(1);
+  hud('#enemy-multiplier', `×${(enemyStats.enemyHealth / baseEnemyStats.enemyHealth).toLocaleString('ko-KR', { maximumFractionDigits: 1 })} / ×${(enemyStats.enemyDamage / baseEnemyStats.enemyDamage).toLocaleString('ko-KR', { maximumFractionDigits: 1 })}`);
   hud('#difficulty', bossAlive ? '수호자 출현' : state.stage >= 3 ? '원거리 몬스터 주의' : state.stageTime > 60 ? '몰려오는 적들' : '생존과 성장');
   $('#boss-hud').classList.toggle('hidden', !bossAlive);
   $('#arena').classList.toggle('has-boss', bossAlive);
@@ -214,6 +215,15 @@ function update(state) {
   }
   const owned = spells.filter(s => s.rank > 0);
   const relicIds = state.playerStats?.relics || [];
+  const rewardTokens = Math.max(0, Math.floor(Number(state.rewardTokens) || 0));
+  const pendingBossRewards = Array.isArray(state.pendingBossRewards) ? state.pendingBossRewards : [];
+  const pendingRewards = rewardTokens + pendingBossRewards.length;
+  $('#reward-pending').classList.toggle('hidden', !inRun || pendingRewards === 0);
+  hud('#reward-pending', String(pendingRewards));
+  const rewardHint = `다음 레벨업 선택 대기 · 유물 ${rewardTokens}개 · 보스 유산 ${pendingBossRewards.length}개`;
+  $('#reward-pending').title = rewardHint;
+  $('#run-build-button').title = pendingRewards ? rewardHint : '이번 런의 마법 · 유물 · 강화 보기';
+  $('#run-build-button').setAttribute('aria-label', `이번 런 빌드${pendingRewards ? ` · ${rewardHint}` : ''}`);
   const buildSignature = `${state.level}:${owned.map(s => `${s.id}:${s.rank}:${s.evolved}`).join(',')}:${relicIds.join(',')}`;
   if (buildSignature !== lastBuildSignature) {
     lastBuildSignature = buildSignature;
@@ -256,7 +266,7 @@ function openModal(name, content, { pause = true, closeable = true } = {}) {
   $('#modal-close')?.addEventListener('click', closeModal);
 }
 function closeModal() {
-  if (['upgrade', 'relic', 'result'].includes(dialogName)) return;
+  if (['upgrade', 'result'].includes(dialogName)) return;
   if (dialogName === 'permanent' && campFromResult && lastResult) { showResult(); return; }
   $('#modal-backdrop').classList.add('hidden');
   dialogName = '';
@@ -301,23 +311,30 @@ function encounterGuide() {
 }
 
 function showGuide() {
-  openModal('guide', `<div class="modal-eyebrow">FIELD MANUAL / 002</div><h2 id="modal-title">작은 선택이, 거대한 빌드로<span>.</span></h2><p class="modal-description">네 가지 마법, ${MAX_STAGES}개의 층과 서로 다른 수호자. 도감에서 다음 위협의 공략법을 확인하세요.</p><div class="guide-steps"><div><span>01</span><div><h3>4배 넓어진 전장을 누비세요</h3><p><kbd>W A S D</kbd> / 방향키로 이동, <kbd>SPACE</kbd>로 무적 대시. 모바일은 방향 버튼이나 전장 드래그를 사용합니다. 검과 보유 마법은 자동으로 공격합니다.</p></div></div><div><span>02</span><div><h3>경험치 → 선택 → 마법 진화</h3><p>초록 조각을 모으면 3개 강화 중 하나를 선택합니다. 검·마법 공격력은 각각 <b>20%</b>, 공격·시전 속도는 <b>8%</b>, 최대 체력은 <b>15%</b>씩 곱해 성장합니다. 마법은 <b>5단계</b>까지 강화하고, 다음 선택에서 진화시킬 수 있습니다. 마법 선택지가 남아 있다면 레벨업에 반드시 하나 이상 등장합니다.</p></div></div><div><span>03</span><div><h3>죽고 번 골드로 영구 강화하세요</h3><p>사망하거나 완주하면 모은 골드가 보유 지갑으로 들어옵니다. 결과 화면에서 <b>영구 강화하고 재도전</b>을 눌러 검·마법 공격력을 단계마다 <b>12%</b>, 최대 체력을 <b>10%</b>씩 곱해 키우세요. 가격의 급격한 폭증은 낮췄고 기본 골드 수입은 <b>5배</b> 늘렸습니다. 검술·마력 가지를 따로 키우거나 캐릭터·무기를 해금하세요. 구매한 강화와 남은 골드는 <b>다음 런에도 유지</b>됩니다. <kbd>B</kbd>는 이번 런의 마법 빌드를 보여줍니다.</p></div></div><div><span>04</span><div><h3>${STAGE_DURATION / 60}분 생존, 그리고 수호자 처치</h3><p>스테이지마다 <b>90초</b>에 보스가 등장합니다. <b>2분 생존 + 보스 처치</b>를 모두 달성해야 다음 단계로 진행됩니다. 층이 깊어질수록 돌진병·폭탄병·분열체·저격수·주술사가 합류합니다. 붉은 조준선과 원형 예고를 보고 먼저 움직이세요.</p></div></div><div><span>05</span><div><h3>더 강한 적, 더 큰 보상</h3><p>다음 단계의 골드는 <b>10배</b>, 몬스터 능력치는 <b>3.2배</b>. 보스 돌파 축복은 검·마법 공격력과 최대 체력을 각각 <b>3.2배</b>로 키우고 완전히 회복시킵니다. 몬스터가 기하급수적으로 성장하는 만큼 플레이어도 함께 성장합니다. 군세·광란 계약을 선택하면 골드와 함께 적 체력·피해·출현 빈도도 올라갑니다.</p></div></div><div><span>06</span><div><h3>정예와 상자에서 유물을 찾으세요</h3><p>정예는 더 높은 체력과 피해를 가집니다. 상자의 수호병을 처치하면 보상에 접근할 수 있습니다. 황금 몬스터는 도망가기 전에 추격하세요. <kbd>F</kbd>나 전장 오른쪽 위 버튼으로 전체 화면을 켜고 끕니다.</p></div></div></div><div class="guide-bottom">${icon('info')} ${STAGE_DURATION / 60}분 × ${MAX_STAGES}층. 시간이 끝나도 살아 있는 보스는 처치해야 합니다.</div>${encounterGuide()}`);
+  openModal('guide', `<div class="modal-eyebrow">FIELD MANUAL / 002</div><h2 id="modal-title">작은 선택이, 거대한 빌드로<span>.</span></h2><p class="modal-description">네 가지 마법, ${MAX_STAGES}개의 층과 서로 다른 수호자. 도감에서 다음 위협의 공략법을 확인하세요.</p><div class="guide-steps"><div><span>01</span><div><h3>4배 넓어진 전장을 누비세요</h3><p><kbd>W A S D</kbd> / 방향키로 이동, <kbd>SPACE</kbd>로 무적 대시. 모바일은 방향 버튼이나 전장 드래그를 사용합니다. 검과 보유 마법은 자동으로 공격합니다.</p></div></div><div><span>02</span><div><h3>경험치 → 선택 → 마법 진화</h3><p>초록 조각을 모아 레벨업하면 강화 하나를 선택합니다. 상자·정예·보스 보상을 보관 중이면 <b>네 번째 선택지</b>가 추가될 수 있습니다. 검·마법 공격력은 각각 <b>20%</b>, 공격·시전 속도는 <b>8%</b>, 최대 체력은 <b>15%</b>씩 곱해 성장합니다. 마법은 <b>5단계</b>까지 강화하고, 다음 선택에서 진화시킬 수 있습니다. 마법 선택지가 남아 있다면 레벨업에 반드시 하나 이상 등장합니다.</p></div></div><div><span>03</span><div><h3>죽고 번 골드로 영구 강화하세요</h3><p>사망하거나 완주하면 모은 골드가 보유 지갑으로 들어옵니다. 결과 화면에서 <b>영구 강화하고 재도전</b>을 눌러 검·마법 공격력을 단계마다 <b>12%</b>, 최대 체력을 <b>10%</b>씩 곱해 키우세요. 가격의 급격한 폭증은 낮췄고 기본 골드 수입은 <b>5배</b> 늘렸습니다. 검술·마력 가지를 따로 키우거나 캐릭터·무기를 해금하세요. 구매한 강화와 남은 골드는 <b>다음 런에도 유지</b>됩니다. <kbd>B</kbd>는 이번 런의 마법 빌드를 보여줍니다.</p></div></div><div><span>04</span><div><h3>${STAGE_DURATION / 60}분 생존, 그리고 수호자 처치</h3><p>스테이지마다 <b>90초</b>에 보스가 등장합니다. <b>2분 생존 + 보스 처치</b>를 모두 달성해야 다음 단계로 진행됩니다. 층이 깊어질수록 돌진병·폭탄병·분열체·저격수·주술사가 합류합니다. 붉은 조준선과 원형 예고를 보고 먼저 움직이세요.</p></div></div><div><span>05</span><div><h3>더 강한 적, 더 큰 보상</h3><p>다음 층의 골드는 <b>10배</b>, 적 체력은 <b>1.7배</b>, 피해는 <b>1.35배</b>로 증가합니다. 다음 층에서도 현재 체력과 빌드를 이어 갑니다. 능력치는 <b>레벨업에서 직접 고른 강화</b>와 <b>런 사이의 영구 강화</b>로 키우세요. 군세·광란 계약을 선택하면 골드와 함께 적 체력·피해·출현 빈도도 올라갑니다.</p></div></div><div><span>06</span><div><h3>정예와 상자에서 유물을 찾으세요</h3><p>정예와 상자의 <b>유물 선택권</b>은 보관해 두었다가 <b>다음 레벨업 카드</b>에서 사용할 수 있습니다. 보스를 잡으면 해당 수호자의 유산도 레벨업 선택 후보가 됩니다. 한 번에 <b>하나만</b> 선택하며, 고른 효과가 이번 런에 적용됩니다. 황금 몬스터는 도망가기 전에 추격하세요. <kbd>F</kbd>나 전장 오른쪽 위 버튼으로 전체 화면을 켜고 끕니다.</p></div></div></div><div class="guide-bottom">${icon('info')} ${STAGE_DURATION / 60}분 × ${MAX_STAGES}층. 시간이 끝나도 살아 있는 보스는 처치해야 합니다.</div>${encounterGuide()}`);
+}
+
+function pendingRewardSummary(state = latest) {
+  const tokens = Math.max(0, Math.floor(Number(state?.rewardTokens) || 0));
+  const bosses = Array.isArray(state?.pendingBossRewards) ? state.pendingBossRewards : [];
+  if (!tokens && !bosses.length) return '<p class="reward-flow-note">상자·정예·보스 보상을 모으면 다음 레벨업에 추가 선택지가 열립니다.</p>';
+  return `<div class="pending-rewards"><span>${icon('diamond')} 다음 레벨업 선택 대기</span><strong>유물 ${tokens}개 · 보스 유산 ${bosses.length}개</strong>${bosses.length ? `<small>${bosses.map(reward => escapeHTML(reward.title)).join(' · ')}</small>` : ''}</div><p class="reward-flow-note">보관한 보상은 레벨업 선택지에 차례로 등장하며, 선택한 효과가 능력치에 적용됩니다.</p>`;
 }
 
 function showBuild() {
-  if (['upgrade', 'relic', 'result'].includes(dialogName)) return;
+  if (['upgrade', 'result'].includes(dialogName)) return;
   const spells = getSpellStates();
   const passiveNames = { power: '검 공격력', haste: '검 공격 속도', spell_power: '마법 공격력', spell_haste: '마법 시전 속도', vitality: '생명력', magnet: '획득 범위', critical: '치명타', armor: '방어력', regen: '재생', speed: '이동 속도' };
   const collected = [...RELICS.filter(item => latest?.playerStats?.relics?.includes(item.id)), ...BOSS_REWARDS.filter(item => latest?.playerStats?.bossRewards?.includes(item.id))];
   const passives = Object.entries(latest?.playerStats?.passiveLevels || {}).filter(([, n]) => n > 0);
-  openModal('build', `<div class="modal-eyebrow">YOUR BUILD / THIS RUN</div><h2 id="modal-title">마법은 조합할수록 강하게<span>.</span></h2><p class="modal-description">마법은 5단계 후 진화할 수 있습니다. 여기 표시된 마법과 레벨업 강화는 이번 런의 빌드입니다. 영구 강화는 다음 런에도 유지됩니다.</p><div class="spell-codex">${spells.map(s => `<div class="codex-card ${s.rank ? '' : 'unowned'}" style="--spell:${escapeHTML(s.color || '#c2f568')}"><div class="codex-icon">${icon(upgradeIcons[s.id])}</div><div><span>${s.evolved ? '진화 완료' : s.rank ? `${s.rank} / 5단계` : '레벨업으로 습득'}</span><h3>${escapeHTML(s.evolved ? s.evolutionName : s.name)}</h3><p>${escapeHTML(s.description)}</p><small>진화 → ${escapeHTML(s.evolutionName)}</small></div></div>`).join('')}</div><div class="relic-build"><h3>유물 · 수호자의 유산</h3>${collected.length ? collected.map(item => `<div>${icon(item.icon)}<span><strong>${escapeHTML(item.title)}</strong><small>${escapeHTML(item.description)}</small></span></div>`).join('') : '<p>정예와 보물상자를 공략하면 28종의 유물 중 하나를 선택할 수 있습니다.</p>'}</div><div class="passive-build"><h3>검 · 마법 · 생존 강화</h3>${passives.length ? passives.map(([id, n]) => `<span>${icon(upgradeIcons[id])}${passiveNames[id] || id} <b>Lv.${n}</b></span>`).join('') : '<p>레벨업으로 검·마법 공격력과 체력을 복리로 키울 수 있습니다.</p>'}</div><div class="guide-bottom">${icon('info')} 여러 마법을 함께 보유할 수 있고, 재도전하면 새 빌드로 시작합니다.</div>`);
+  openModal('build', `<div class="modal-eyebrow">YOUR BUILD / THIS RUN</div><h2 id="modal-title">마법은 조합할수록 강하게<span>.</span></h2><p class="modal-description">마법은 5단계 후 진화할 수 있습니다. 여기 표시된 마법과 레벨업 강화는 이번 런의 빌드입니다. 영구 강화는 다음 런에도 유지됩니다.</p>${pendingRewardSummary()}<div class="spell-codex">${spells.map(s => `<div class="codex-card ${s.rank ? '' : 'unowned'}" style="--spell:${escapeHTML(s.color || '#c2f568')}"><div class="codex-icon">${icon(upgradeIcons[s.id])}</div><div><span>${s.evolved ? '진화 완료' : s.rank ? `${s.rank} / 5단계` : '레벨업으로 습득'}</span><h3>${escapeHTML(s.evolved ? s.evolutionName : s.name)}</h3><p>${escapeHTML(s.description)}</p><small>진화 → ${escapeHTML(s.evolutionName)}</small></div></div>`).join('')}</div><div class="relic-build"><h3>유물 · 수호자의 유산</h3>${collected.length ? collected.map(item => `<div>${icon(item.icon)}<span><strong>${escapeHTML(item.title)}</strong><small>${escapeHTML(item.description)}</small></span></div>`).join('') : '<p>정예·상자 보상을 모으면 다음 레벨업에서 28종의 유물 중 하나가 선택지에 추가됩니다.</p>'}</div><div class="passive-build"><h3>검 · 마법 · 생존 강화</h3>${passives.length ? passives.map(([id, n]) => `<span>${icon(upgradeIcons[id])}${passiveNames[id] || id} <b>Lv.${n}</b></span>`).join('') : '<p>레벨업으로 검·마법 공격력과 체력을 복리로 키울 수 있습니다.</p>'}</div><div class="guide-bottom">${icon('info')} 여러 마법을 함께 보유할 수 있고, 재도전하면 새 빌드로 시작합니다.</div>`);
 }
 
 function syncBank() {
   $('#bank-gold').textContent = formatGold(progress.bank);
 }
 function showPermanentUpgrades(fromResult = false) {
-  if (['upgrade', 'relic'].includes(dialogName)) return;
+  if (['upgrade'].includes(dialogName)) return;
   campFromResult = !!fromResult && !!lastResult;
   const readOnly = !['menu', 'over', 'won'].includes(game?.state.phase);
   openModal('permanent', `<div class="modal-eyebrow">THE CAMP / GROW YOUR OWN WAY</div><h2 id="modal-title">당신의 성장에, 가지를 더하세요<span>.</span></h2><p class="modal-description">검술과 마력은 따로 성장합니다. 공격력은 단계마다 ×1.12, 체력은 ×1.10으로 커집니다. 구매한 강화와 해금은 죽어도 남습니다.</p><div class="permanent-wallet"><div>${icon('coin')}<span>보유 골드</span><strong id="permanent-gold">${formatGold(progress.bank)}</strong></div><span>누적 회수 <b id="lifetime-gold">${formatGold(progress.lifetimeGold)}</b> G</span></div>${readOnly ? `<p class="camp-readonly">${icon('info')} 생존 중에는 빌드를 확인할 수 있습니다. 이번 런의 ${formatGold(latest.gold)} G는 런 종료 후 회수되며, 구매와 장비 변경은 그때 가능합니다.</p>` : '<div class="camp-cycle"><span>런 종료</span> → <strong>골드 회수</strong> → <strong>성장 · 해금</strong> → <span>다시 도전</span></div>'}<div class="camp-tabs" role="tablist" aria-label="캠프 메뉴"><button class="camp-tab" data-camp-tab="tree" role="tab">${icon('orbit')} 성장 트리</button><button class="camp-tab" data-camp-tab="loadout" role="tab">${icon('sword')} 캐릭터 · 무기</button></div><div id="permanent-grid" class="permanent-grid"></div><p class="shop-feedback" id="permanent-feedback" role="status"></p><div class="camp-storage ${progressionWritable ? '' : 'storage-unavailable'}" id="camp-storage">${icon(progressionWritable ? 'check' : 'info')} ${progressionWritable ? '같은 브라우저에 자동 저장됩니다. 구매 효과와 선택 장비는 다음 런부터 적용됩니다.' : '이 창은 브라우저 저장소를 사용할 수 없어 닫으면 기록이 사라집니다. 일반 브라우저의 게임 사이트에서 플레이해 주세요.'}</div>${campFromResult ? `<div class="camp-actions"><button class="primary-button" id="camp-start">${icon('play')} 다음 런 시작 ${icon('arrow')}</button><button class="secondary-button" id="camp-resultback">결과 보기</button></div>` : ''}`, { closeable: true });
@@ -382,13 +399,6 @@ function syncRisk() {
     button.classList.toggle('selected', selected); button.setAttribute('aria-pressed', String(selected));
   });
 }
-function onRelic(choices, source = '유물 발견') {
-  const label = typeof source === 'string' ? source : source?.name || source?.title || '유물 발견';
-  openModal('relic', `<div class="modal-eyebrow">RELIC FOUND / ${escapeHTML(label)}</div><h2 id="modal-title">이번 런을 바꿀, 하나의 유물<span>.</span></h2><p class="modal-description">유물은 이번 런에 유지됩니다. 마법 조합과 조건을 살펴보고 선택하세요.</p><div class="upgrade-grid">${choices.map((choice, index) => `<button class="upgrade-card relic-card ${escapeHTML(choice.rarity || 'rare')}" data-relic="${escapeHTML(choice.id)}"><div class="upgrade-card-top"><span>${['greed', 'alchemy'].includes(choice.id) ? '위험 · 보상 동시 증가' : choice.synergy ? '마법 조합 유물' : '런 전용 유물'}</span><kbd>${index + 1}</kbd></div><div class="upgrade-icon">${icon(choice.icon)}</div><h3>${escapeHTML(choice.title)}</h3><p>${escapeHTML(choice.description)}</p><span class="upgrade-select">유물 선택 ${icon('arrow')}</span></button>`).join('')}</div><div class="guide-bottom">${icon('info')} 선택 중에는 전투가 멈춥니다. 숫자 키 1–3.</div>`, { pause: false, closeable: false });
-  document.querySelectorAll('[data-relic]').forEach(button => button.addEventListener('click', () => {
-    if (game.chooseRelic?.(button.dataset.relic)) { forceCloseModal(); $('#game-canvas').focus({ preventScroll: true }); sound(880, .2); }
-  }));
-}
 function showHistory() {
   const records = history.slice(0, 12);
   openModal('history', `<div class="modal-eyebrow">YOUR JOURNEY</div><h2 id="modal-title">모든 런은 흔적을 남긴다<span>.</span></h2><p class="modal-description">다시 도전할 때마다, 조금 더 멀리.</p>${records.length ? `<div class="history-table"><div class="history-row history-head"><span>결과 / 스테이지</span><span>시간</span><span>처치</span><span>골드</span></div>${records.map(r => `<div class="history-row"><span><i class="record-dot ${r.won ? 'won' : ''}"></i><strong>${r.won ? '완주' : `STAGE ${r.stage}`}</strong><small>${escapeHTML(r.date)}</small></span><span>${time(r.elapsed)}</span><span>${r.kills}</span><span class="gold-text">${formatGold(r.gold)}</span></div>`).join('')}</div>` : `<div class="empty-history">${icon('trophy')}<h3>첫 번째 기록을 기다리는 중</h3><p>런을 마치면 생존 시간과 처치 수, 획득 골드가 여기에 남습니다.</p><button class="primary-button" id="history-start">첫 런 시작하기 ${icon('arrow')}</button></div>`}<div class="guide-bottom">${icon('info')} 기록은 현재 브라우저에 최대 30개까지 보관됩니다.</div>`);
@@ -415,9 +425,25 @@ function showPause() {
 }
 function onLevelUp(choices) {
   sound(880, .25, .08);
-  openModal('upgrade', `<div class="modal-eyebrow">LEVEL ${game?.state.level || latest?.level || ''} / SHAPE YOUR BUILD</div><h2 id="modal-title">작은 선택, 새로운 가능성<span>.</span></h2><p class="modal-description">새로운 마법을 습득하거나, 보유 마법과 능력치를 강화하세요.</p><div class="upgrade-grid">${choices.map((choice, i) => `<button class="upgrade-card ${escapeHTML(choice.rarity)} ${escapeHTML(choice.category)}" data-upgrade="${escapeHTML(choice.id)}"><div class="upgrade-card-top"><span>${choice.category === 'evolution' ? '마법 진화' : choice.category === 'spell' ? choice.spellId ? choice.rank === 1 ? '새 마법 습득' : '마법 강화' : '마법 전용 강화' : choice.category === 'blade' ? '검 전용 강화' : choice.id.startsWith('spell_') ? '마법 전용 강화' : '생존 강화'}</span><kbd>${i + 1}</kbd></div><div class="upgrade-icon">${icon(upgradeIcon(choice))}</div><div class="upgrade-rank">${choice.maxRank ? `${choice.rank} / ${choice.maxRank}` : 'PASSIVE'}</div><h3>${escapeHTML(choice.title)}</h3><p>${escapeHTML(choice.description)}</p><span class="upgrade-select">${choice.category === 'evolution' ? '진화시키기' : '선택하기'} ${icon('arrow')}</span></button>`).join('')}</div><div class="guide-bottom">${icon('info')} 선택 중에는 전투가 멈춥니다. 숫자 키 1–3 · 모든 강화는 이번 런에만 적용됩니다.</div>`, { pause: false, closeable: false });
+  const hasBonus = choices.some(choice => ['relic', 'boss'].includes(choice.category));
+  const categoryLabel = choice => {
+    if (choice.category === 'relic') return '유물 선택';
+    if (choice.category === 'boss') return '보스 유산 선택';
+    if (choice.category === 'evolution') return '마법 진화';
+    if (choice.category === 'blade') return '검 전용 강화';
+    if (choice.category === 'spell') return choice.spellId ? choice.rank === 1 ? '새 마법 습득' : '마법 강화' : '마법 전용 강화';
+    return '생존 강화';
+  };
+  const sourceLabel = choice => {
+    if (choice.category === 'boss') return `${choice.sourceStage || choice.stage || ''}층 수호자의 보관 유산`;
+    if (choice.category !== 'relic') return '';
+    return typeof choice.source === 'string' ? choice.source : choice.source?.name || '정예 · 상자 보관 보상';
+  };
+  openModal('upgrade', `<div class="modal-eyebrow">LEVEL ${game?.state.level || latest?.level || ''} / CHOOSE YOUR GROWTH</div><h2 id="modal-title">이번 성장을, 직접 고르세요<span>.</span></h2><p class="modal-description">${hasBonus ? '강화와 보관 보상 중 하나를 선택하세요. 유물·보스 유산도 선택한 효과만 이번 런에 적용됩니다.' : '새 마법이나 강화를 하나 선택해 이번 런의 능력치를 키우세요.'}</p><div class="upgrade-grid ${choices.length > 3 ? 'has-bonus' : ''}">${choices.map((choice, index) => `<button class="upgrade-card ${escapeHTML(choice.rarity || 'rare')} ${escapeHTML(choice.category)} ${['relic', 'boss'].includes(choice.category) ? 'reward-choice' : ''}" data-upgrade="${escapeHTML(choice.id)}" data-upgrade-category="${escapeHTML(choice.category)}"><div class="upgrade-card-top"><span>${categoryLabel(choice)}</span><kbd>${index + 1}</kbd></div><div class="upgrade-icon">${icon(upgradeIcon(choice))}</div>${choice.maxRank && choice.rank ? `<div class="upgrade-rank">${choice.rank} / ${choice.maxRank}</div>` : ''}<h3>${escapeHTML(choice.title)}</h3>${sourceLabel(choice) ? `<small class="upgrade-source">${escapeHTML(sourceLabel(choice))}</small>` : ''}<p>${escapeHTML(choice.description)}</p><span class="upgrade-select">${choice.category === 'evolution' ? '진화시키기' : '선택하기'} ${icon('arrow')}</span></button>`).join('')}</div><div class="guide-bottom">${icon('info')} 선택 중에는 전투가 멈춥니다. 숫자 키 1–${choices.length} · 이번 레벨업에서 하나만 선택합니다.</div>`, { pause: false, closeable: false });
+  $('#modal').classList.toggle('four-choices', choices.length > 3);
   document.querySelectorAll('[data-upgrade]').forEach(button => button.addEventListener('click', () => {
-    forceCloseModal(); game.chooseUpgrade(button.dataset.upgrade); $('#game-canvas').focus({ preventScroll: true }); sound(660, .15);
+    if (!game.chooseUpgrade(button.dataset.upgrade)) return;
+    forceCloseModal(); $('#game-canvas').focus({ preventScroll: true }); sound(660, .15);
   }));
 }
 function finish(state, won) {
@@ -445,14 +471,13 @@ try {
   game = new Game($('#game-canvas'), {
     onUpdate: update,
     onLevelUp,
-    onRelic,
     onLoot: message => showToast(typeof message === 'string' ? message : message?.message || message?.title || '새로운 보상을 획득했습니다.'),
     onBoss: boss => {
       showToast(`${boss.name} · ${boss.hint || getBossDefinition(latest?.stage || 1).hint}`);
       sound(130, .5, .08);
     },
     onBossDefeat: () => {
-      showToast('수호자 격파! 보상 조각을 모으고 남은 시간까지 살아남으세요.');
+      showToast('수호자 격파! 유산은 다음 레벨업에서 선택할 수 있습니다.');
       sound(960, .3, .08);
     },
     onStage: stage => {
@@ -523,7 +548,7 @@ for (const button of document.querySelectorAll('[data-nav]')) button.addEventLis
   if (button.dataset.nav === 'guide') showGuide();
   else if (button.dataset.nav === 'history') showHistory();
   else if (button.dataset.nav === 'permanent') showPermanentUpgrades();
-  else { if (dialogName && !['upgrade', 'relic', 'result'].includes(dialogName)) closeModal(); $('#game-canvas').focus({ preventScroll: true }); }
+  else { if (dialogName && !['upgrade', 'result'].includes(dialogName)) closeModal(); $('#game-canvas').focus({ preventScroll: true }); }
 });
 $('.brand').addEventListener('click', (event) => { event.preventDefault(); $('#game-canvas').focus({ preventScroll: true }); });
 $('#modal-backdrop').addEventListener('click', (e) => { if (e.target.id === 'modal-backdrop') closeModal(); });
@@ -531,8 +556,10 @@ window.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') { event.preventDefault(); if (dialogName) closeModal(); else if (theaterMode) toggleFullscreen(); else showPause(); }
   if (event.key.toLowerCase() === 'f' && !event.repeat && !event.target?.closest?.('input,textarea,select')) { event.preventDefault(); toggleFullscreen(); }
   if (event.key.toLowerCase() === 'b' && !event.repeat && !event.target?.closest?.('input,textarea,select')) { event.preventDefault(); if (dialogName === 'build') closeModal(); else if (!dialogName) showBuild(); }
-  if (dialogName === 'relic' && ['1', '2', '3'].includes(event.key)) document.querySelectorAll('[data-relic]')[Number(event.key) - 1]?.click();
-  if (dialogName === 'upgrade' && ['1', '2', '3'].includes(event.key)) document.querySelectorAll('[data-upgrade]')[Number(event.key) - 1]?.click();
+  if (dialogName === 'upgrade' && /^[1-9]$/.test(event.key)) {
+    const choices = document.querySelectorAll('[data-upgrade]');
+    if (Number(event.key) <= choices.length) choices[Number(event.key) - 1]?.click();
+  }
   if (dialogName && event.key === 'Tab') {
     const items = [...$('#modal').querySelectorAll('button:not(:disabled), [tabindex="0"]')];
     if (!items.length) return;

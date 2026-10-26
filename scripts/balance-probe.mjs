@@ -4,7 +4,7 @@ import { chromium } from 'playwright';
 // starting HP/damage, enemy HP, pickups, earned upgrades and boss mechanics.
 // Only time, RNG and input are controlled. There is no rendering benchmark here.
 // This one movement/choice policy does not represent player skill, device FPS,
-// all possible builds or balance across the later four stages.
+// all possible builds or balance across the later nine stages.
 //
 // node scripts/balance-probe.mjs
 // node scripts/balance-probe.mjs --risk swarm --seed 14123 --duration 240

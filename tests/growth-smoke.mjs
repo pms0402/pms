@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 import { RELICS } from '../src/content.js';
 import { getPermanentUpgradeOffers } from '../src/progression.js';
-import { MAX_STAGES } from '../src/balance.js';
+import { MAX_STAGES, ENEMY_HEALTH_GROWTH } from '../src/balance.js';
 
 // Shortened runtime fixtures exercise actual attacks, loot, death settlement,
 // purchases and stage transitions. They do not establish full-run difficulty.
@@ -50,12 +50,19 @@ async function acquire(id) {
     if (index < 0) throw new Error(`Cannot offer ${id}`);
     const random = Math.random;
     try {
-      Math.random = () => (index + .01) / available.length;
-      if (!game.openRelic('성장 검증 보상')) throw new Error('Relic choice did not open');
+      let rolls = 0;
+      // Three ordinary cards are drawn first; target the first relic draw, then its special slot.
+      Math.random = () => ++rolls === 4 ? (index + .01) / available.length : 0;
+      const before = JSON.stringify(game.stats);
+      if (!game.openRelic('성장 검증 보상')) throw new Error('Relic token did not queue');
+      if (game.state.phase !== 'playing' || JSON.stringify(game.stats) !== before) throw new Error('A queued reward changed the live build');
+      game._state.xp = game._state.xpNeeded;
+      if (!game.openLevelUp()) throw new Error('Earned level-up did not open');
     } finally { Math.random = random; }
   }, { id, ids: RELICS.map(relic => relic.id) });
-  await page.locator(`[data-relic="${id}"]`).click();
+  await page.locator(`[data-upgrade="relic_${id}"]`).click();
   assert.ok(await page.evaluate(id => window.__game.stats.relics.includes(id), id));
+  await page.evaluate(() => { window.__game._state.xp = 0; window.__game._state.xpNeeded = 1e9; });
 }
 
 try {
@@ -104,33 +111,33 @@ try {
   const growth = await page.evaluate(floors => {
     const game = window.__game, stages = [];
     game.stats.spells = { fireball: 0, frost: 0, lightning: 0, orbit: 0 };
-    game.stats.critChance = 0;
+    game.stats.critChance = 0; game._state.hp = 63;
     for (let index = 0; index < floors - 1; index++) {
       const sample = game.spawnEnemy(20, 0, 0);
-      stages.push({ stage: game.state.stage, damage: game.stats.damage, spellDamage: game.stats.spellDamage, hp: game.stats.maxHp, enemyHp: sample.maxHp });
+      const beforeKill = JSON.stringify(game.stats);
+      stages.push({ stage: game.state.stage, hp: game.stats.maxHp, enemyHp: sample.maxHp });
       const boss = game.spawnBoss();
       game.hitEnemy(boss, boss.hp + 1);
-      // Boss rewards remain real; record their result before stage multipliers.
-      const before = { damage: game.stats.damage, spellDamage: game.stats.spellDamage, hp: game.stats.maxHp };
+      stages.at(-1).bossChangedStats = JSON.stringify(game.stats) !== beforeKill;
+      const before = { stats: JSON.stringify(game.stats), hp: game.state.hp };
       game._state.stageTime = game.state.stageDuration;
       if (!game.nextStage()) throw new Error('Actual cleared boss did not unlock the next stage');
       stages.at(-1).before = before;
-      stages.at(-1).after = { damage: game.stats.damage, spellDamage: game.stats.spellDamage, hp: game.stats.maxHp, health: game.state.hp };
+      stages.at(-1).after = { stats: JSON.stringify(game.stats), hp: game.state.hp };
     }
     const sample = game.spawnEnemy(20, 0, 0);
-    stages.push({ stage: game.state.stage, damage: game.stats.damage, spellDamage: game.stats.spellDamage, hp: game.stats.maxHp, enemyHp: sample.maxHp });
+    stages.push({ stage: game.state.stage, hp: game.stats.maxHp, enemyHp: sample.maxHp });
     return stages;
   }, MAX_STAGES);
   for (const stage of growth.slice(0, -1)) {
-    near(stage.after.damage, stage.before.damage * 3.2, 'sword growth matches the monster stage exponent');
-    near(stage.after.spellDamage, stage.before.spellDamage * 3.2, 'magic receives the same stage growth');
-    near(stage.after.hp, stage.before.hp * 3.2, 'survivability receives the same stage growth');
-    near(stage.after.health, stage.after.hp, 'stage transition fills the improved health pool');
+    assert.equal(stage.bossChangedStats, false, 'defeating a boss only makes its reward eligible');
+    assert.equal(stage.after.stats, stage.before.stats, 'crossing a floor never multiplies any player stat');
+    near(stage.after.hp, stage.before.hp, 'crossing a floor does not provide an automatic heal');
   }
   assert.equal(growth.length, MAX_STAGES);
-  assert.ok(growth.at(-1).hp / growth[0].hp >= 3.2 ** (MAX_STAGES - 1), 'last-floor health retains exponential growth and earned boss rewards');
-  for (let index = 1; index < growth.length; index++) near(growth[index].enemyHp / growth[index - 1].enemyHp, 3.2, 'monster curve remains exponential');
-  console.log(`PASS stage growth: actual boss gates advance ${MAX_STAGES} floors while sword, magic and health each scale×3.2`);
+  near(growth.at(-1).hp, growth[0].hp, 'maximum health stays unchanged across all ten floors without a selected upgrade');
+  for (let index = 1; index < growth.length; index++) near(growth[index].enemyHp / growth[index - 1].enemyHp, ENEMY_HEALTH_GROWTH, 'only the independent monster curve rises');
+  console.log(`PASS floor progression: ${MAX_STAGES} floors preserve all player stats and current health until a reward is selected`);
 
   await load({ seed: { bank: 123, lifetimeGold: 999, upgrades: { power: 30, arcana: 30, vitality: 30, haste: 30, focus: 30 }, settledRunIds: ['old-paid-run'], importedHistory: true } });
   await start();

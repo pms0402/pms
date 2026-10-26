@@ -4,13 +4,10 @@ import { STAGES, getBossDefinition } from './encounters.js';
 export const STAGE_DURATION = 120;
 export const BOSS_SPAWN_TIME = 90;
 export const MAX_STAGES = STAGES.length;
+export const ENEMY_HEALTH_GROWTH = 1.7;
+export const ENEMY_DAMAGE_GROWTH = 1.35;
 // Doubling the playable radius gives four times the previous map area.
 export const ARENA_RADIUS = 62;
-
-// Players retain their build's strength as enemy stats multiply each stage.
-export function getStageGrowth() {
-  return { damageMultiplier: 3.2, maxHpMultiplier: 3.2 };
-}
 
 const finite = (value, fallback) => Number.isFinite(Number(value)) ? Number(value) : fallback;
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
@@ -19,12 +16,17 @@ const stageNumber = stage => clamp(Math.floor(finite(stage, 1)), 1, MAX_STAGES);
 export function getStageStats(stage = 1) {
   const index = stageNumber(stage) - 1;
   return {
-    enemyHealth: 28 * 3.2 ** index,
-    enemyDamage: 7.5 * 3.2 ** index,
+    enemyHealth: 28 * ENEMY_HEALTH_GROWTH ** index,
+    enemyDamage: 7.5 * ENEMY_DAMAGE_GROWTH ** index,
     coinValue: 5 * 10 ** index,
     spawnInterval: getSpawnInterval(stage, 0),
     maxEnemies: Math.min(160, 56 + index * 26),
   };
+}
+
+/** Later combat creates more earned choices; XP itself never raises a stat. */
+export function getXpDropMultiplier(stage = 1) {
+  return 1 + 0.2 * (stageNumber(stage) - 1);
 }
 
 /** A quiet first twelve seconds, followed by a continuous two-minute ramp. */

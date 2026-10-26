@@ -129,7 +129,7 @@ export const BOSS_REWARDS = Object.freeze([
   { id: 'breaker', stage: 2, title: '파괴자의 송곳니', description: '검 공격력 +12%. 마법 공격력에는 영향을 주지 않습니다.', icon: 'sword', rarity: 'legendary' },
   { id: 'plague', stage: 3, title: '역병의 씨앗', description: '적 처치 시 작은 독 폭발. 폭발 처치는 다시 폭발하지 않습니다.', icon: 'flame', rarity: 'legendary' },
   { id: 'abyss', stage: 4, title: '심연의 성배', description: '마법 공격력 +12%. 검 공격력에는 영향을 주지 않습니다.', icon: 'orbit', rarity: 'legendary' },
-  { id: 'voidheart', stage: 5, title: '공허의 심장', description: '최대 체력 +15%. 다음 층의 성장에도 곱해집니다.', icon: 'heart', rarity: 'legendary' },
+  { id: 'voidheart', stage: 5, title: '공허의 심장', description: '레벨업에서 선택하면 최대 체력 +15%.', icon: 'heart', rarity: 'legendary' },
   { id: 'reaperBeat', stage: 6, title: '사신의 박자', description: '검 공격 속도와 마법 시전 속도 +8%.', icon: 'bolt', rarity: 'legendary' },
   { id: 'sight', stage: 7, title: '파괴자의 조준경', description: '치명타 확률 +5%p. 최대 65%.', icon: 'target', rarity: 'legendary' },
   { id: 'aegis', stage: 8, title: '망각의 수호석', description: '받는 피해 감소 +4%p. 최대 60%.', icon: 'shield', rarity: 'legendary' },
@@ -142,6 +142,7 @@ export function getBossReward(stage) {
   return reward ? { ...reward, category: 'boss' } : null;
 }
 
+/** Apply only a boss legacy explicitly selected from an earned level-up offer. */
 export function applyBossReward(stats, stage) {
   const reward = getBossReward(stage);
   if (!validStats(stats) || !reward) return false;

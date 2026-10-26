@@ -16,7 +16,8 @@
     "test:permanent": "node tests/permanent-smoke.mjs",
     "test:adventure": "node tests/adventure-smoke.mjs",
     "test:growth": "node tests/growth-smoke.mjs",
-    "test:encounters": "node tests/encounter-smoke.mjs"
+    "test:encounters": "node tests/encounter-smoke.mjs",
+    "test:manual-growth": "node tests/manual-growth-smoke.mjs"
   },
   "dependencies": {
     "@fontsource-variable/noto-sans-kr": "5.2.10",

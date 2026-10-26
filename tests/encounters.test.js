@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { STAGES, BOSS_TYPES, ENEMY_TYPES, getStageDefinition, getBossDefinition, getEnemyDefinition, getEnemyPool, chooseEnemyKind } from '../src/encounters.js';
-import { MAX_STAGES, STAGE_DURATION, getStageStats, getBossStats, getStageGrowth, getSpawnInterval } from '../src/balance.js';
+import { MAX_STAGES, STAGE_DURATION, ENEMY_HEALTH_GROWTH, ENEMY_DAMAGE_GROWTH, getStageStats, getBossStats, getXpDropMultiplier, getSpawnInterval } from '../src/balance.js';
 
 const nearRatio = (actual, expected) => assert.ok(Math.abs(actual / expected - 1) < 1e-12, `${actual} ≈ ${expected}`);
 
@@ -24,12 +24,12 @@ test('ten named floors each supply a distinct atmosphere and a real boss identit
   assert.equal(getStageDefinition(10).name, '종말의 왕좌');
 });
 
-test('later floor stats continue the economy and player-matched exponent without uncapped crowds', () => {
-  const growth = getStageGrowth();
+test('later floors offer gentler enemy curves and more earned XP without uncapped crowds', () => {
   for (let stage = 2; stage <= MAX_STAGES; stage++) {
     const previous = getStageStats(stage - 1), current = getStageStats(stage);
-    nearRatio(current.enemyHealth / previous.enemyHealth, growth.damageMultiplier);
-    nearRatio(current.enemyDamage / previous.enemyDamage, growth.maxHpMultiplier);
+    nearRatio(current.enemyHealth / previous.enemyHealth, ENEMY_HEALTH_GROWTH);
+    nearRatio(current.enemyDamage / previous.enemyDamage, ENEMY_DAMAGE_GROWTH);
+    assert.ok(getXpDropMultiplier(stage) > getXpDropMultiplier(stage - 1));
     assert.equal(current.coinValue / previous.coinValue, 10);
     assert.ok(Number.isFinite(current.enemyHealth) && Number.isSafeInteger(current.coinValue));
     assert.ok(current.maxEnemies <= 160);
@@ -39,7 +39,7 @@ test('later floor stats continue the economy and player-matched exponent without
     nearRatio(boss.health, current.enemyHealth * 35);
     assert.equal(boss.coinValue, current.coinValue * 25);
   }
-  assert.ok(getStageStats(10).enemyHealth > getStageStats(5).enemyHealth * 300);
+  assert.ok(getStageStats(10).enemyHealth > getStageStats(5).enemyHealth * 14);
   assert.ok(getStageStats(10).coinValue > getStageStats(5).coinValue * 90000);
 });
 

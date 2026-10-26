@@ -157,6 +157,8 @@ try {
     const game = window.__game;
     game.stats.spells = { fireball: 0, frost: 0, lightning: 0, orbit: 0 };
     game.spawnTimer = 1e6; game.attackTimer = 1e6;
+    game._state.hp = 37;
+    const unchangedStats = JSON.stringify(game.stats);
     game._state.stageTime = spawnTime - .01;
     game.tick(.02);
     const spawned = game.bossSpawned && game.boss?.kind === 4;
@@ -172,16 +174,18 @@ try {
     const blockedEarly = game.bossDefeated && !game.nextStage() && game.state.stage === 1;
     game._state.stageTime = duration;
     game.tick(1 / 60);
-    return { spawned, once, blockedAlive, blockedEarly, stage: game.state.stage, hp: game.state.hp, maxHp: game.state.maxHp, bossReset: !game.bossSpawned && !game.bossDefeated };
+    return { spawned, once, blockedAlive, blockedEarly, stage: game.state.stage, hp: game.state.hp, maxHp: game.state.maxHp, statsUnchanged: JSON.stringify(game.stats) === unchangedStats, bossReset: !game.bossSpawned && !game.bossDefeated };
   }, { spawnTime: BOSS_SPAWN_TIME, duration: STAGE_DURATION });
   assert.equal(bossGate.spawned, true);
   assert.equal(bossGate.once, true);
   assert.equal(bossGate.blockedAlive, true);
   assert.equal(bossGate.blockedEarly, true);
   assert.equal(bossGate.stage, 2);
-  assert.equal(bossGate.hp, bossGate.maxHp);
+  assert.equal(bossGate.hp, 37, 'clearing a floor preserves current health without an automatic full heal');
+  assert.equal(bossGate.maxHp, 100);
+  assert.equal(bossGate.statsUnchanged, true, 'boss defeat and the next floor cannot improve stats without a selected card');
   assert.equal(bossGate.bossReset, true);
-  console.log('PASS boss progression: spawn once at 90s; both 120s survival and boss defeat required; stage blessing/reset');
+  console.log('PASS boss progression: both survival and boss defeat required; next floor resets encounters without changing stats or health');
 
   await freshRun();
   const bossAttacks = await page.evaluate(() => {

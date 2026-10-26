@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 import { STAGES, BOSS_TYPES, ENEMY_TYPES, getEnemyPool } from '../src/encounters.js';
+import { getXpDropMultiplier } from '../src/balance.js';
 
 // Fixtures shorten waits and select encounters, but warnings, movement, shots,
 // damage, summons, drops and floor transitions use the real game systems.
@@ -94,13 +95,15 @@ try {
     const info = children.map(enemy => ({ kind: enemy.kind, minion: enemy.minion, hp: enemy.maxHp, size: enemy.size }));
     for (const child of children) game.hitEnemy(child, child.hp + 1);
     const recursivelySplit = game.enemies.filter(enemy => enemy.splitChild).length;
+    const xpAfterChildren = game.pickups.filter(pickup => pickup.type === 'xp').reduce((sum, pickup) => sum + pickup.value, 0);
     while (game.enemies.length < 159) game.spawnEnemy(20, 20, 0);
     const crowded = game.spawnEnemy(10, 0, 7); game.hitEnemy(crowded, crowded.hp + 1);
-    return { parentHp, children: info, recursivelySplit, crowdedCount: game.enemies.length, crowdedChildren: game.enemies.filter(enemy => enemy.splitChild).length };
+    return { parentHp, children: info, recursivelySplit, xpAfterChildren, crowdedCount: game.enemies.length, crowdedChildren: game.enemies.filter(enemy => enemy.splitChild).length };
   });
   assert.equal(splitter.children.length, 2);
   assert.ok(splitter.children.every(child => child.kind === 1 && child.minion && child.hp < splitter.parentHp));
   assert.equal(splitter.recursivelySplit, 0); assert.equal(splitter.crowdedCount, 160); assert.equal(splitter.crowdedChildren, 1);
+  near(splitter.xpAfterChildren, 3.5 * getXpDropMultiplier(6), 'later-floor XP applies to real parent and reduced minion drops');
   console.log('PASS splitter: actual death creates two weaker children, no recursive splitting, crowd cap respected');
 
   await fixture();

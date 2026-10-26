@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  STAGE_DURATION, BOSS_SPAWN_TIME, MAX_STAGES, ARENA_RADIUS, SPELLS, getStageGrowth,
+  STAGE_DURATION, BOSS_SPAWN_TIME, MAX_STAGES, ARENA_RADIUS, SPELLS, ENEMY_HEALTH_GROWTH, ENEMY_DAMAGE_GROWTH,
   getStageStats, getBossStats, getSpawnInterval, getXpRequired,
   formatGold, getUpgradeChoices, applyUpgrade,
 } from '../src/balance.js';
@@ -22,16 +22,17 @@ test('two-minute stages, late bosses and four times the previous map area', () =
   assert.equal(ARENA_RADIUS ** 2 / 31 ** 2, 4);
 });
 
-test('tougher monsters retain exact gold x10 and health/damage x3.2 stage curves', () => {
+test('monster curves remain independent of player stats with earned gold x10 per floor', () => {
   assert.equal(getStageStats(1).enemyHealth, 28);
   assert.equal(getStageStats(1).enemyDamage, 7.5);
   assert.equal(getStageStats(1).coinValue, 5);
-  assert.deepEqual(getStageGrowth(), { damageMultiplier: 3.2, maxHpMultiplier: 3.2 });
+  assert.equal(ENEMY_HEALTH_GROWTH, 1.7);
+  assert.equal(ENEMY_DAMAGE_GROWTH, 1.35);
   for (let stage = 2; stage <= MAX_STAGES; stage++) {
     const previous = getStageStats(stage - 1), current = getStageStats(stage);
     assert.equal(current.coinValue / previous.coinValue, 10);
-    near(current.enemyHealth / previous.enemyHealth, 3.2);
-    near(current.enemyDamage / previous.enemyDamage, 3.2);
+    near(current.enemyHealth / previous.enemyHealth, ENEMY_HEALTH_GROWTH);
+    near(current.enemyDamage / previous.enemyDamage, ENEMY_DAMAGE_GROWTH);
     assert.ok(current.maxEnemies >= previous.maxEnemies && current.maxEnemies <= 160);
   }
   assert.deepEqual(getStageStats(-9), getStageStats(1));

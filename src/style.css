@@ -555,3 +555,28 @@ body.theater-mode .boss-hud { top:max(8px,env(safe-area-inset-top)); }
 .pause-boss-tip strong { display:block; color:#e3c8ab; margin-bottom:5px; font-size:11px; font-weight:600; }
 @media(max-width:640px) { .encounter-grid { grid-template-columns:1fr; } .encounter-card { padding:13px 11px; } .encounter-section>summary { font-size:11px; } .encounter-section>summary>span { font-size:8px; } }
 @media(min-width:901px) and (max-height:800px) { .stage-route { max-height:145px; } }
+
+/* Stored encounter rewards become choices at a level-up. */
+.reward-pending { min-width:17px; height:17px; padding:0 4px; display:inline-flex; align-items:center; justify-content:center; border-radius:4px; background:#b69b4b24; border:1px solid #dac87866; color:#f2da8b; font:600 9px 'Barlow',sans-serif; }
+.pending-rewards { display:flex; align-items:center; flex-wrap:wrap; gap:7px 16px; padding:11px 13px; border:1px solid #9b875644; border-radius:5px; background:#a9924910; }
+.pending-rewards>span { display:flex; align-items:center; gap:6px; color:#b5b58a; font-size:9px; }
+.pending-rewards .icon { height:13px; width:13px; color:#e5d59a; }
+.pending-rewards>strong { font-size:11px; font-weight:600; color:#d9d8a0; margin-left:auto; }
+.pending-rewards>small { font-size:8px; line-height:1.8; color:#a49d79; flex-basis:100%; }
+.reward-flow-note { font-size:9px; line-height:1.9; color:#9aaa82; margin:12px 0 20px; }
+.modal-upgrade.four-choices { width:min(100%,1050px); }
+.upgrade-grid.has-bonus { grid-template-columns:repeat(4,minmax(0,1fr)); }
+.upgrade-card { min-width:0; }
+.upgrade-card.reward-choice { border-color:#c4a65c; background:linear-gradient(150deg,#3b3321,#252b1b); }
+.upgrade-card.reward-choice .upgrade-card-top,.upgrade-card.reward-choice .upgrade-icon,.upgrade-card.reward-choice .upgrade-select { color:#e2d192; }
+.upgrade-card.reward-choice:hover { background:#493e27; border-color:#f4dfa0; }
+.upgrade-source { display:block; color:#b8ac80; font-size:8px; line-height:1.8; margin:0 0 9px; }
+.scaling-stats>div:last-child strong { font-size:11px; white-space:nowrap; }
+@media(max-width:900px) { .upgrade-grid.has-bonus { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:640px) {
+  .upgrade-grid.has-bonus { grid-template-columns:1fr; }
+  .upgrade-card .upgrade-source { grid-column:2; margin:0 0 5px; font-size:7px; }
+  .reward-pending { min-width:15px; height:15px; padding:0 3px; font-size:8px; }
+  .shop-button { gap:5px; }
+  .pending-rewards>strong { font-size:10px; }
+}

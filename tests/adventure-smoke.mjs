@@ -43,6 +43,23 @@ async function start() {
   await page.locator('#start-button').click(); await stopClock();
   assert.equal(await page.evaluate(() => window.__game.state.phase), 'playing');
 }
+async function rewardLevel({ id, category = 'relic' } = {}) {
+  return page.evaluate(({ id, category, ids }) => {
+    const game = window.__game, random = Math.random;
+    const available = ids.filter(candidate => !game.stats.relics.includes(candidate));
+    const index = id ? available.indexOf(id) : 0;
+    if (id && category === 'relic' && index < 0) throw new Error(`Unknown available reward ${id}`);
+    try {
+      let rolls = 0;
+      Math.random = () => category === 'relic' && ++rolls === 4 ? (index + .01) / Math.max(1, available.length) : 0;
+      game._state.xp = game._state.xpNeeded;
+      if (!game.openLevelUp()) throw new Error('An earned level-up did not open');
+      const special = game.upgradeChoices.find(choice => choice.category === category);
+      if (!special || (id && special.id !== `${category}_${id}`)) throw new Error('The queued reward was not offered');
+      return { id: special.id, rewardId: special.rewardId, count: game.upgradeChoices.length };
+    } finally { Math.random = random; }
+  }, { id, category, ids: RELICS.map(relic => relic.id) });
+}
 async function assertNoPageScroll() {
   const size = await page.evaluate(() => ({
     height: innerHeight, width: innerWidth,
@@ -126,42 +143,51 @@ try {
     const game = window.__game;
     game.stats.spells = { fireball: 0, frost: 0, lightning: 0, orbit: 0 };
     game._state.xpNeeded = 1e6;
+    const before = JSON.stringify(game.stats);
     const chest = game.spawnChest(10, 0);
     game.player.position.set(10, 0, 0); game.updateAdventure(.01);
     const blocked = !chest.opened && chest.guards.length === 3;
     const guardHealth = chest.guards.map(enemy => enemy.maxHp);
     for (const guard of chest.guards) game.hitEnemy(guard, guard.hp + 1);
     game.tick(.01);
-    return { blocked, guardHealth, opened: chest.opened, phase: game.state.phase, choices: game.relicChoices.map(choice => choice.id) };
+    return { blocked, guardHealth, opened: chest.opened, phase: game.state.phase, rewardTokens: game.state.rewardTokens, statsUnchanged: JSON.stringify(game.stats) === before };
   });
   assert.equal(chest.blocked, true, 'living guardians prevent free chest rewards');
   assert.ok(chest.guardHealth.every(hp => hp > 28), 'guardians are stronger than ordinary stage-one enemies');
-  assert.equal(chest.opened, true); assert.equal(chest.phase, 'relic');
-  assert.equal(chest.choices.length, 3); assert.equal(new Set(chest.choices).size, 3);
-  await page.locator(`[data-relic="${chest.choices[0]}"]`).click();
+  assert.equal(chest.opened, true); assert.equal(chest.phase, 'playing');
+  assert.equal(chest.rewardTokens, 1); assert.equal(chest.statsUnchanged, true, 'opening a chest does not grant a stat without a choice');
+  const chestOffer = await rewardLevel();
+  assert.equal(chestOffer.count, 4, 'a queued relic joins the ordinary level-up choices');
+  await page.locator(`[data-upgrade="${chestOffer.id}"]`).click();
   assert.equal(await page.evaluate(() => window.__game.state.phase), 'playing');
+  const acquiredId = chestOffer.id.replace(/^relic_/, '');
   const relic = await page.evaluate(id => {
     const game = window.__game;
-    const acquired = game.stats.relics.includes(id), duplicate = game.chooseRelic(id);
-    game.openRelic('다음 보물상자');
-    return { acquired, duplicate, offeredAgain: game.relicChoices.some(choice => choice.id === id) };
-  }, chest.choices[0]);
-  assert.deepEqual(relic, { acquired: true, duplicate: false, offeredAgain: false });
-  console.log('PASS guarded chest: stronger guardians gate opening; three distinct choices apply once and leave the pool');
+    return { acquired: game.stats.relics.includes(id), duplicate: game.chooseRelic(id), tokens: game.state.rewardTokens };
+  }, acquiredId);
+  assert.deepEqual(relic, { acquired: true, duplicate: false, tokens: 0 });
+  await page.evaluate(() => window.__game.openRelic('다음 보물상자'));
+  const nextOffer = await rewardLevel();
+  assert.notEqual(nextOffer.id, chestOffer.id, 'owned relics leave later eligible reward choices');
+  console.log('PASS guarded chest: stronger guardians gate a token; its relic applies only after an actual level-up choice');
 
   await load(); await start();
   const elite = await page.evaluate(() => {
     const game = window.__game; game._state.xpNeeded = 1e6;
+    const before = JSON.stringify(game.stats);
     const normal = game.spawnEnemy(15, 0, 2);
     const elite = game.spawnEnemy(10, 0, 2, { elite: true });
     const stronger = elite.maxHp > normal.maxHp && elite.damageMultiplier > normal.damageMultiplier;
     game.hitEnemy(elite, elite.hp + 1); game.tick(.01);
-    return { stronger, phase: game.state.phase, choices: game.relicChoices.length, gold: game.pickups.filter(p => p.type === 'gold').reduce((sum, p) => sum + p.value, 0) };
+    return { stronger, phase: game.state.phase, tokens: game.state.rewardTokens, statsUnchanged: JSON.stringify(game.stats) === before, gold: game.pickups.filter(p => p.type === 'gold').reduce((sum, p) => sum + p.value, 0) };
   });
-  assert.equal(elite.stronger, true); assert.equal(elite.phase, 'relic');
+  assert.equal(elite.stronger, true); assert.equal(elite.phase, 'playing');
   assert.ok(elite.gold >= 60, 'elite pays four times the ordinary heavy enemy');
-  assert.equal(elite.choices, 3);
-  console.log('PASS elite: extra health/damage, enhanced gold and an actual relic selection');
+  assert.equal(elite.tokens, 1); assert.equal(elite.statsUnchanged, true);
+  const eliteOffer = await rewardLevel();
+  await page.locator(`[data-upgrade="${eliteOffer.id}"]`).click();
+  assert.equal(await page.evaluate(() => window.__game.stats.relics.length), 1);
+  console.log('PASS elite: extra health/damage and gold; its queued relic waits for the earned level-up selection');
 
   await load(); await start();
   const golden = await page.evaluate(() => {
@@ -181,24 +207,25 @@ try {
   await load(); await start();
   const boss = await page.evaluate(() => {
     const game = window.__game, boss = game.spawnBoss();
-    const before = game.stats.swordRangeMultiplier;
+    const before = JSON.stringify(game.stats), range = game.stats.swordRangeMultiplier;
     game.hitEnemy(boss, boss.hp + 1);
-    const after = game.stats.swordRangeMultiplier;
     game.hitEnemy(boss, 1e6);
-    return { before, after, rewards: game.stats.bossRewards, afterDuplicate: game.stats.swordRangeMultiplier };
+    return { range, unchanged: JSON.stringify(game.stats) === before, pending: game.pendingBossRewards.length, rewards: game.stats.bossRewards };
   });
-  near(boss.after, boss.before * 1.1, 'first boss grants the unique range upgrade');
-  assert.deepEqual(boss.rewards, ['warden']);
-  assert.equal(boss.afterDuplicate, boss.after);
-  console.log('PASS boss reward: actual defeat grants its unique ability exactly once');
+  assert.equal(boss.unchanged, true, 'a boss kill cannot automatically improve player stats');
+  assert.equal(boss.pending, 1); assert.deepEqual(boss.rewards, []);
+  const bossOffer = await rewardLevel({ id: 'warden', category: 'boss' });
+  assert.equal(bossOffer.count, 4);
+  await page.locator('[data-upgrade="boss_warden"]').click();
+  const chosenBoss = await page.evaluate(() => ({ range: window.__game.stats.swordRangeMultiplier, rewards: window.__game.stats.bossRewards, pending: window.__game.pendingBossRewards.length, repeat: window.__game.chooseUpgrade('boss_warden') }));
+  near(chosenBoss.range, boss.range * 1.1, 'choosing the earned boss card applies its described range bonus');
+  assert.deepEqual(chosenBoss.rewards, ['warden']); assert.equal(chosenBoss.pending, 0); assert.equal(chosenBoss.repeat, false);
+  console.log('PASS boss reward: defeat queues eligibility; an actual level-up selection grants the ability exactly once');
 
   await load(); await start();
-  await page.evaluate(relicRoll => {
-    const game = window.__game, random = Math.random;
-    try { Math.random = () => relicRoll; game.openRelic('서리불꽃 조합'); }
-    finally { Math.random = random; }
-  }, (RELICS.findIndex(relic => relic.id === 'frostfire') + .01) / RELICS.length);
-  await page.locator('[data-relic="frostfire"]').click();
+  await page.evaluate(() => window.__game.openRelic('서리불꽃 조합'));
+  await rewardLevel({ id: 'frostfire' });
+  await page.locator('[data-upgrade="relic_frostfire"]').click();
   const synergy = await page.evaluate(() => {
     const game = window.__game; game.stats.critChance = 0;
     const slowed = game.spawnEnemy(10, 0, 0), ordinary = game.spawnEnemy(10, .5, 0);
