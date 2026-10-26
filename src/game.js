@@ -1,11 +1,24 @@
 import * as THREE from 'three';
-import { STAGE_DURATION, BOSS_SPAWN_TIME, MAX_STAGES, ARENA_RADIUS, getStageStats, getBossStats, getSpawnInterval, getXpRequired, getUpgradeChoices, getShopOffers, applyUpgrade } from './balance.js';
+import { STAGE_DURATION, BOSS_SPAWN_TIME, MAX_STAGES, ARENA_RADIUS, getStageStats, getBossStats, getSpawnInterval, getXpRequired, getUpgradeChoices, applyUpgrade } from './balance.js';
 import { MagicSystem } from './magic.js';
 
 const TAU = Math.PI * 2;
 const UP = new THREE.Vector3(0, 1, 0);
 const clamp = THREE.MathUtils.clamp;
 const rnd = (a, b) => a + Math.random() * (b - a);
+const permanentValue = (value, fallback, min, max) => Number.isFinite(Number(value)) ? clamp(Number(value), min, max) : fallback;
+
+function normalizePermanentBonuses(bonuses = {}) {
+  const source = bonuses && typeof bonuses === 'object' ? bonuses : {};
+  return {
+    damageMultiplier: permanentValue(source.damageMultiplier, 1, 1, 2),
+    maxHpMultiplier: permanentValue(source.maxHpMultiplier, 1, 1, 2),
+    attackRateMultiplier: permanentValue(source.attackRateMultiplier, 1, 1, 1.4),
+    armorBonus: permanentValue(source.armorBonus, 0, 0, 0.2),
+    magnetMultiplier: permanentValue(source.magnetMultiplier, 1, 1, 1.6),
+    goldMultiplier: permanentValue(source.goldMultiplier, 1, 1, 1.3),
+  };
+}
 
 /** The rendering, input and simulation for VOIDRUN. All artwork is procedural. */
 export class Game {
@@ -27,6 +40,8 @@ export class Game {
     this.muted = false;
     this.disposed = false;
     this.quality = 'high';
+    this.permanentBonuses = normalizePermanentBonuses();
+    this.runCounter = 0;
     this._state = this.freshState('menu');
     this.stats = this.freshStats();
     this.scene = new THREE.Scene();
@@ -61,8 +76,11 @@ export class Game {
     this.raf = requestAnimationFrame(this.loop);
   }
 
-  freshStats() { return { maxHp: 100, damage: 18, attackRate: 1.5, speed: 7.5, magnet: 5.5, projectiles: 1, critChance: 0.08, armor: 0, regen: 0, spells: { fireball: 1, frost: 0, lightning: 0, orbit: 0 }, evolutions: {}, passiveLevels: {} }; }
-  freshState(phase) { return { phase, hp: 100, xp: 0, xpNeeded: getXpRequired(1), level: 1, stage: 1, stageTime: 0, elapsed: 0, kills: 0, gold: 0, combo: 0, weaponName: '공허의 검' }; }
+  freshStats() {
+    const bonus = normalizePermanentBonuses(this.permanentBonuses);
+    return { maxHp: 100 * bonus.maxHpMultiplier, damage: 18 * bonus.damageMultiplier, attackRate: 1.5 * bonus.attackRateMultiplier, speed: 7.5, magnet: 5.5 * bonus.magnetMultiplier, projectiles: 1, critChance: 0.08, armor: bonus.armorBonus, regen: 0, goldMultiplier: bonus.goldMultiplier, spells: { fireball: 1, frost: 0, lightning: 0, orbit: 0 }, evolutions: {}, passiveLevels: {} };
+  }
+  freshState(phase) { return { phase, runId: null, hp: 100, xp: 0, xpNeeded: getXpRequired(1), level: 1, stage: 1, stageTime: 0, elapsed: 0, kills: 0, gold: 0, combo: 0, weaponName: '공허의 검' }; }
   get state() {
     return { ...this._state, maxHp: this.stats.maxHp, damage: this.stats.damage, attackRate: this.stats.attackRate, speed: this.stats.speed, dashCooldown: Math.max(0, this.dashCooldown || 0), dashReady: !(this.dashCooldown > 0), enemyCount: this.enemies.length, arenaRadius: ARENA_RADIUS, stageDuration: STAGE_DURATION, bossSpawnTime: BOSS_SPAWN_TIME, bossSpawned: this.bossSpawned, bossDefeated: this.bossDefeated, boss: this.boss ? { name: this.boss.name, hp: Math.max(0, this.boss.hp), maxHp: this.boss.maxHp, alive: this.boss.hp > 0, spawned: this.bossSpawned, defeated: this.bossDefeated, phase: this.boss.mode } : null, spellState: this.magic?.getState() || [], playerStats: { ...this.stats, spells: { ...this.stats.spells }, evolutions: { ...this.stats.evolutions }, passiveLevels: { ...this.stats.passiveLevels } } };
   }
@@ -327,11 +345,20 @@ export class Game {
 
   start() {
     this.clearDynamic(); this.stats = this.freshStats(); this._state = this.freshState('playing');
+    this._state.hp = this.stats.maxHp;
+    this.runCounter++;
+    this._state.runId = globalThis.crypto?.randomUUID?.() || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${this.runCounter}`;
     this.player.position.set(0, 0, 0); this.player.rotation.y = -0.65; this.resetTimers(); this.keys.clear(); this.touchMove = { x: 0, y: 0 }; this.setStageMood(1, true);
     this.camera.position.set(20, 26, 25); this.camera.lookAt(this.player.position);
     this.initAudio(); this.sound('start'); this.emit();
   }
   restart() { this.start(); }
+  endRun() {
+    if (!['playing', 'paused'].includes(this._state.phase)) return false;
+    this._state.phase = 'over'; this._state.endedReason = 'abandoned';
+    this.keys.clear(); this.touchMove = { x: 0, y: 0 };
+    this.callbacks.onGameOver?.(this.state); this.emit(); return true;
+  }
   pause() { if (this._state.phase === 'playing') { this._state.phase = 'paused'; this.keys.clear(); this.touchMove = { x: 0, y: 0 }; this.emit(); } }
   resume() { if (this._state.phase === 'paused') { this._state.phase = 'playing'; this.lastTime = performance.now(); this.emit(); } }
   chooseUpgrade(id) {
@@ -342,15 +369,10 @@ export class Game {
     this.keys.clear(); this.touchMove = { x: 0, y: 0 };
     this._state.phase = 'playing'; this.sound('upgrade'); this.emit(); return true;
   }
-  purchaseUpgrade(id) {
-    if (!['playing', 'paused'].includes(this._state.phase)) return false;
-    const offer = getShopOffers(this.stats, this._state.stage).find(item => item.id === id);
-    if (!offer || !Number.isFinite(offer.price) || offer.price <= 0 || this._state.gold < offer.price) return false;
-    const before = this.stats.maxHp;
-    if (!applyUpgrade(this.stats, id)) return false;
-    this._state.gold -= offer.price;
-    this._state.hp = Math.min(this.stats.maxHp, this._state.hp + Math.max(0, this.stats.maxHp - before));
-    this.sound('upgrade'); this.emit(); return true;
+  setPermanentBonuses(bonuses = {}) {
+    if (!['menu', 'over', 'won'].includes(this._state.phase)) return false;
+    this.permanentBonuses = normalizePermanentBonuses(bonuses);
+    return true;
   }
 
   openLevelUp() {
@@ -653,9 +675,10 @@ export class Game {
   }
   collectPickup(p, audio = true) {
     if (p.type === 'gold') {
-      this._state.gold += p.value;
+      const earned = Math.round(p.value * this.stats.goldMultiplier * 100) / 100;
+      this._state.gold = Math.round((this._state.gold + earned) * 100) / 100;
       if (audio) {
-        this.pendingGoldText += p.value;
+        this.pendingGoldText = Math.round((this.pendingGoldText + earned) * 100) / 100;
         if (this._state.elapsed - this.lastGoldText > 0.18) {
           this.floatText(`+${this.pendingGoldText.toLocaleString('en-US')} G`, this.player.position, '#ffd67c', 1.15, 3.7);
           this.pendingGoldText = 0; this.lastGoldText = this._state.elapsed;
@@ -790,7 +813,7 @@ export class Game {
     osc.connect(gain); gain.connect(this.audio.destination); osc.start(now); osc.stop(now + duration);
   }
 
-  getDebugState() { return { ...this.state, player: this.player.position.toArray(), enemies: this.enemies.length, pickups: this.pickups.length, floatingTexts: this.floatingTexts.length, projectiles: this.projectiles.length, enemyProjectiles: this.enemyProjectiles.length, rangedEnemies: this.enemies.filter(e => e.kind === 3).length, magic: this.magic?.getDebugState?.(), frames: this.frames, drawCalls: this.renderer.info.render.calls, triangles: this.renderer.info.render.triangles, renderer: this.renderer.capabilities.isWebGL2 ? 'WebGL2' : 'WebGL', canvas: { width: this.renderer.domElement.width, height: this.renderer.domElement.height } }; }
+  getDebugState() { return { ...this.state, permanentBonuses: { ...this.permanentBonuses }, player: this.player.position.toArray(), enemies: this.enemies.length, pickups: this.pickups.length, floatingTexts: this.floatingTexts.length, projectiles: this.projectiles.length, enemyProjectiles: this.enemyProjectiles.length, rangedEnemies: this.enemies.filter(e => e.kind === 3).length, magic: this.magic?.getDebugState?.(), frames: this.frames, drawCalls: this.renderer.info.render.calls, triangles: this.renderer.info.render.triangles, renderer: this.renderer.capabilities.isWebGL2 ? 'WebGL2' : 'WebGL', canvas: { width: this.renderer.domElement.width, height: this.renderer.domElement.height } }; }
   /** Deterministic-time simulation hook for smoke tests; respects pause and choices. */
   stepForTest(seconds) { for (let t = 0; t < seconds && this._state.phase === 'playing'; t += 1 / 60) { this.frames++; this.tick(1 / 60); this.animateEffects(1 / 60); } this.emit(); return this.getDebugState(); }
   dispose() {

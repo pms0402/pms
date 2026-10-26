@@ -155,24 +155,7 @@ export function getUpgradeChoices(playerStats = {}, random = Math.random) {
   return selected.map(withoutWeight);
 }
 
-/** A stable storefront: three modest passives plus the next spell/evolution. */
-export function getShopOffers(playerStats = {}, stage = 1) {
-  const passives = passiveChoices(playerStats);
-  const spells = spellChoices(playerStats).sort((a, b) => {
-    if (a.category !== b.category) return a.category === 'evolution' ? -1 : 1;
-    return a.rank - b.rank;
-  });
-  const selected = passives.splice(0, 3);
-  if (spells.length) selected.push(spells[0]);
-  while (selected.length < 4 && passives.length) selected.push(passives.shift());
-  const scale = getStageStats(stage).coinValue;
-  return selected.map(choice => ({
-    ...withoutWeight(choice),
-    price: scale * Math.ceil(choice.category === 'evolution' ? 110 : choice.category === 'spell' ? 32 + (choice.rank - 1) * 14 : 10 + (choice.rank - 1) * 2.5),
-  }));
-}
-
-/** Apply exactly one valid choice; caps cannot be bypassed through the shop. */
+/** Apply exactly one valid choice; bounded temporary upgrades stay within their caps. */
 export function applyUpgrade(stats, id) {
   if (!stats || typeof stats !== 'object') return false;
   const spell = SPELLS.find(candidate => id === `spell_${candidate.id}` || id === `evolve_${candidate.id}`);

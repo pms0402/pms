@@ -116,6 +116,101 @@
   .start-content>p { font-size: 10px; }
   .boss-hud { width: 75%; }
 }
+
+/* The camp keeps run earnings and permanent upgrades between attempts. */
+.progression-strip { display: flex; align-items: center; gap: 22px; padding: 11px 16px; margin: -5px 0 21px; border: 1px solid #3f4930; border-radius: 6px; background: #1b2116; }
+.progression-kicker { font-size: 8px; font-weight: 600; letter-spacing: 1.3px; color: #83966c; }
+.progression-cycle { display: flex; align-items: center; gap: 11px; color: #8c9f79; font-size: 10px; }
+.progression-cycle .icon { width: 11px; height: 11px; color: #4e633a; }
+.progression-cycle strong { font-weight: 600; color: #c8dea9; }
+.bank-entry { display: flex; align-items: center; gap: 8px; margin-left: auto; padding: 3px 0 3px 17px; border-left: 1px solid #455134; background: none; color: var(--gold); }
+.bank-entry>.icon { height: 16px; width: 16px; }
+.bank-entry>span { color: #9eac8d; font-size: 9px; }
+.bank-entry>strong { font-size: 18px; font-weight: 600; min-width: 24px; text-align: right; }
+.bank-entry>.icon:last-child { height: 13px; width: 13px; color: #a3b88a; margin-left: 5px; }
+.bank-entry:hover { color: var(--lime); }
+.modal-permanent { width: min(100%,810px); }
+.modal-permanent .modal-description { margin-bottom: 20px; }
+.permanent-wallet { display: flex; justify-content: space-between; align-items: center; padding: 17px 20px; border: 1px solid #7d75464d; background: linear-gradient(100deg,#b3ad4d0d,transparent); border-radius: 5px; }
+.permanent-wallet>div { display: flex; align-items: center; gap: 10px; }
+.permanent-wallet .icon { color: var(--gold); width: 20px; height: 20px; }
+.permanent-wallet>div>span { color: #a4ae92; font-size: 11px; }
+.permanent-wallet strong { font: 600 28px 'Barlow',sans-serif; color: var(--gold); }
+.permanent-wallet>span { font-size: 9px; color: #899b73; }
+.permanent-wallet b { color: #bcce9f; margin: 0 4px; font-weight: 500; }
+.camp-cycle { display: flex; justify-content: center; align-items: center; gap: 10px; padding: 16px 0 18px; font-size: 9px; color: #6e835b; }
+.camp-cycle strong { color: #b8d498; font-weight: 500; }
+.camp-cycle>span { color: #91a67d; }
+.camp-readonly { display: flex; align-items: flex-start; gap: 7px; color: #c3b88c; font-size: 10px; line-height: 1.8; margin: 15px 0; }
+.camp-readonly>.icon { width: 14px; height: 14px; margin-top: 2px; }
+.permanent-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 11px; }
+.permanent-card { display: flex; flex-direction: column; align-items: stretch; text-align: left; border: 1px solid #526b38; background: #25341c; border-radius: 6px; padding: 15px; transition: background .2s,border-color .2s,transform .2s; }
+.permanent-card:hover:not(:disabled) { background: #344b23; border-color: #b3df7b; transform: translateY(-2px); }
+.permanent-card:disabled { opacity: .52; cursor: default; }
+.permanent-card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+.permanent-card-icon { display: grid; place-items: center; width: 33px; height: 35px; border: 1px solid #93b86b55; border-radius: 4px; color: #c0eb8f; }
+.permanent-card-icon>.icon { height: 20px; width: 20px; }
+.permanent-level { font: 600 12px 'Barlow',sans-serif; color: #c7e7a6; }
+.permanent-level small { font-size: 8px; font-weight: 400; color: #849a6f; margin-left: 3px; }
+.permanent-card>strong { font-size: 12px; font-weight: 600; color: #dce9ce; margin-bottom: 9px; }
+.permanent-description { font-size: 9px; color: #8fa87b; line-height: 1.8; flex: 1; }
+.permanent-bonus { display: flex; align-items: center; justify-content: space-between; gap: 5px; padding: 13px 0 10px; font: 500 13px 'Barlow',sans-serif; color: #819b6b; }
+.permanent-bonus>.icon { width: 13px; height: 13px; color: #6c8b51; }
+.permanent-bonus>b { font-weight: 600; color: var(--lime); }
+.permanent-price { border-top: 1px solid #7a965444; padding-top: 10px; display: flex; align-items: center; justify-content: flex-end; gap: 5px; font-size: 11px; font-weight: 600; color: var(--gold); }
+.permanent-price>.icon { width: 12px; height: 12px; }
+.camp-storage { display: flex; align-items: flex-start; gap: 7px; font-size: 9px; color: #839c70; line-height: 1.8; border-top: 1px solid #3c4b30; padding-top: 15px; margin-top: 10px; }
+.camp-storage>.icon { width: 12px; height: 12px; margin-top: 2px; }
+.camp-storage.storage-unavailable { color: #d1a77f; }
+.camp-actions { display: grid; grid-template-columns: 1fr 128px; gap: 10px; margin-top: 23px; }
+.camp-actions>.secondary-button { height: 49px; margin: 0; }
+.settlement-panel { display: flex; flex-direction: column; align-items: center; padding: 19px 12px; border: 1px solid #bca55955; border-radius: 6px; background: linear-gradient(120deg,#d4b25210,#bfd17808); margin: 21px 0; }
+.settlement-panel>span { display: flex; align-items: center; gap: 6px; font-size: 10px; color: #c8bd8f; }
+.settlement-panel .icon { width: 14px; height: 14px; color: var(--gold); }
+.settlement-panel>strong { font: 600 32px 'Barlow',sans-serif; letter-spacing: -.5px; color: var(--gold); margin: 9px 0 8px; }
+.settlement-panel>small { font-size: 9px; line-height: 1.8; color: #9aa782; }
+.settlement-panel b { color: #d3ddaa; font-weight: 500; }
+.modal-result .result-stats { margin-top: 0; }
+@media(max-width:1150px) { .site-header { gap: 28px; } .main-nav { gap: 24px; } .progression-kicker { display: none; } }
+@media(max-width:900px) { .main-nav { gap: 16px; } .site-header { gap: 22px; } .progression-strip { padding: 10px 13px; gap: 10px; } .progression-cycle { font-size: 9px; gap: 8px; } .bank-entry>span { font-size: 8px; } .bank-entry>strong { font-size: 16px; } }
+@media(max-width:640px) {
+  .site-header { gap: 0; }
+  .brand { font-size: 20px; }
+  .main-nav { gap: 11px; margin-right: 13px; }
+  .nav-link { font-size: 9px; }
+  .progression-strip { padding: 9px 10px; margin-top: -5px; margin-bottom: 15px; gap: 8px; }
+  .progression-cycle { gap: 5px; font-size: 7px; }
+  .progression-cycle .icon { width: 8px; height: 8px; }
+  .bank-entry { gap: 5px; padding-left: 10px; }
+  .bank-entry>.icon { height: 12px; width: 12px; }
+  .bank-entry>span { display: none; }
+  .bank-entry>strong { font-size: 15px; min-width: 18px; }
+  .bank-entry>.icon:last-child { width: 10px; height: 10px; margin-left: 2px; }
+  .permanent-grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 9px; }
+  .permanent-card { padding: 12px; }
+  .permanent-card-top { margin-bottom: 10px; }
+  .permanent-card-icon { width: 29px; height: 30px; }
+  .permanent-card-icon>.icon { height: 17px; width: 17px; }
+  .permanent-level { font-size: 10px; }
+  .permanent-level small { font-size: 7px; }
+  .permanent-card>strong { font-size: 11px; margin-bottom: 7px; }
+  .permanent-description { font-size: 8px; }
+  .permanent-bonus { font-size: 11px; padding-top: 10px; }
+  .permanent-price { font-size: 10px; padding-top: 8px; }
+  .permanent-wallet { padding: 13px; gap: 10px; }
+  .permanent-wallet strong { font-size: 24px; }
+  .permanent-wallet>div { gap: 7px; }
+  .permanent-wallet>div>span { font-size: 9px; }
+  .permanent-wallet>span { font-size: 8px; max-width: 100px; text-align: right; line-height: 1.8; }
+  .permanent-wallet .icon { width: 16px; height: 16px; }
+  .camp-cycle { font-size: 8px; gap: 7px; }
+  .camp-storage { font-size: 8px; }
+  .camp-actions { grid-template-columns: 1fr; gap: 8px; margin-top: 18px; }
+  .camp-actions>.secondary-button { height: 38px; }
+  .camp-readonly { font-size: 9px; }
+  .settlement-panel { padding: 15px 10px; margin: 18px 0; }
+  .settlement-panel>strong { font-size: 28px; }
+}
 @media (max-width: 900px) {
   .game-layout,.arena { min-height: 670px; }
   .growth-toolbar { left: 19px; right: 17px; gap: 10px; }

@@ -65,6 +65,11 @@ try {
   assert.equal(await embedded.locator('#game-canvas').evaluate(() => window.__game.state.phase), 'paused');
   await embedded.locator('#resume').click();
   assert.equal(await embedded.locator('#game-canvas').evaluate(() => window.__game.state.phase), 'playing');
+  await embedded.locator('.main-nav [data-nav="permanent"]').click();
+  assert.equal(await embedded.locator('.storage-unavailable').isVisible(), true, 'opaque previews must clearly disclose that permanent progress cannot be saved');
+  assert.match(await embedded.locator('#camp-storage').textContent(), /저장/);
+  await embedded.locator('#modal-close').click();
+  assert.equal(await embedded.locator('#game-canvas').evaluate(() => window.__game.state.phase), 'playing');
   assert.deepEqual(errors, [], 'opaque sandbox must not throw browser errors');
   assert.deepEqual(requests, [origin + '/game', origin + '/frame'], 'embedded game must not request companion assets');
   console.log('PASS sandbox srcdoc: WebGL, start, movement, pause/resume with allow-scripts and opaque origin');

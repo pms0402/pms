@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   STAGE_DURATION, BOSS_SPAWN_TIME, MAX_STAGES, ARENA_RADIUS, SPELLS,
   getStageStats, getBossStats, getSpawnInterval, getXpRequired,
-  formatGold, getUpgradeChoices, getShopOffers, applyUpgrade,
+  formatGold, getUpgradeChoices, applyUpgrade,
 } from '../src/balance.js';
 
 const fresh = () => ({
@@ -105,7 +105,6 @@ test('passives are micro improvements and caps reject additional purchases', () 
     const capped = structuredClone(stats);
     assert.equal(applyUpgrade(stats, id), false, id);
     assert.deepEqual(stats, capped);
-    assert.ok(!getShopOffers(stats).some(offer => offer.id === id));
   }
   const highCrit = { ...fresh(), critChance: 0.595 };
   applyUpgrade(highCrit, 'critical');
@@ -135,33 +134,11 @@ test('four spells unlock, rank up and evolve once after rank five', () => {
   }
 });
 
-test('shop offers are deterministic, spendable, capped, and scale with stage economy', () => {
-  const stats = fresh();
-  const first = getShopOffers(stats, 1), second = getShopOffers(stats, 2);
-  assert.equal(first.length, 4);
-  assert.deepEqual(first, getShopOffers(stats, 1));
-  assert.equal(new Set(first.map(offer => offer.id)).size, 4);
-  assert.ok(first.some(offer => offer.category === 'spell'));
-  for (let index = 0; index < first.length; index++) {
-    assert.equal(second[index].id, first[index].id);
-    assert.equal(second[index].price, first[index].price * 10);
-    assert.ok(Number.isInteger(first[index].price) && first[index].price > 0);
-    assert.equal(applyUpgrade(fresh(), first[index].id), true);
-  }
-  const oldCost = first.find(offer => offer.id === 'power').price;
-  applyUpgrade(stats, 'power');
-  const upgradedOffers = getShopOffers(stats, 1);
-  assert.ok(upgradedOffers.find(offer => offer.id === 'power').price > oldCost);
-  const nextStageOffers = getShopOffers(stats, 2);
-  for (let index = 0; index < upgradedOffers.length; index++) assert.equal(nextStageOffers[index].price, upgradedOffers[index].price * 10);
-});
-
-test('fully completed builds have no invalid or endlessly purchasable upgrades', () => {
+test('fully completed temporary builds have no invalid additional upgrades', () => {
   const stats = fresh();
   for (const spell of SPELLS) { stats.spells[spell.id] = 5; stats.evolutions[spell.id] = true; }
   for (const id of ['power', 'haste', 'vitality', 'magnet', 'critical', 'armor', 'regen', 'speed']) stats.passiveLevels[id] = 12;
   assert.deepEqual(getUpgradeChoices(stats), []);
-  assert.deepEqual(getShopOffers(stats), []);
   assert.equal(applyUpgrade(stats, 'missing'), false);
 });
 

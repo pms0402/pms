@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
-import { ARENA_RADIUS, BOSS_SPAWN_TIME, STAGE_DURATION, getShopOffers } from '../src/balance.js';
+import { ARENA_RADIUS, BOSS_SPAWN_TIME, STAGE_DURATION } from '../src/balance.js';
 
 // These tests shorten waiting with simulation steps and explicit combat fixtures.
 // They verify real collision/spell/progression code, not normal-health victory balance.
@@ -67,7 +67,7 @@ try {
   assert.ok(await page.locator(`.spell-slot[data-spell="${spellId}"]`).isVisible());
   console.log('PASS growth: real kills → XP pickup → three choices including magic → learned/upgraded spell in HUD');
 
-  // Additional magic, shop and boss assertions follow below after their fixtures.
+  // Additional magic, build and boss assertions follow below after their fixtures.
   for (const id of ['fireball', 'frost', 'lightning', 'orbit']) {
     await freshRun();
     const result = await page.evaluate(id => {
@@ -126,32 +126,17 @@ try {
   console.log('PASS evolution: rank-five card → real evolved spell pattern → HUD');
 
   await freshRun();
-  const firstOffer = getShopOffers(await page.evaluate(() => window.__game.state.playerStats), 1).find(offer => offer.id === 'power');
-  assert.ok(firstOffer);
-  const damageBefore = await page.evaluate(() => window.__game.state.damage);
-  await page.evaluate(gold => { window.__game._state.gold = gold; window.__game.emit(); }, firstOffer.price);
-  await page.locator('#shop-button').click();
+  await page.evaluate(() => { window.__game._state.gold = 123; window.__game.emit(); });
+  const damageBeforeBuild = await page.evaluate(() => window.__game.state.damage);
+  await page.locator('#run-build-button').click();
   assert.equal(await page.evaluate(() => window.__game.state.phase), 'paused');
-  assert.equal(await page.locator('#shop-grid [data-buy]').count(), 4);
-  await page.locator('[data-buy="power"]').click();
-  assert.equal(await page.evaluate(() => window.__game.state.gold), 0);
-  assert.ok(Math.abs(await page.evaluate(() => window.__game.state.damage) - damageBefore * 1.05) < 1e-9);
-  const shopGuard = await page.evaluate(() => {
-    const game = window.__game;
-    const damage = game.stats.damage;
-    const noFunds = game.purchaseUpgrade('power');
-    game._state.gold = 1e6;
-    game.stats.passiveLevels.power = 12;
-    const capped = game.purchaseUpgrade('power');
-    return { noFunds, capped, damage, after: game.stats.damage, gold: game._state.gold };
-  });
-  assert.equal(shopGuard.noFunds, false);
-  assert.equal(shopGuard.capped, false);
-  assert.equal(shopGuard.after, shopGuard.damage);
-  assert.equal(shopGuard.gold, 1e6);
+  assert.ok(await page.locator('.modal-build').isVisible());
+  assert.equal(await page.locator('[data-buy]').count(), 0, 'the run build view cannot spend money');
   await page.locator('#modal-close').click();
   assert.equal(await page.evaluate(() => window.__game.state.phase), 'playing');
-  console.log('PASS gold shop: visible offers, 5% purchase, exact deduction, insufficient-funds/cap rejection and resume');
+  assert.equal(await page.evaluate(() => window.__game.state.gold), 123);
+  assert.equal(await page.evaluate(() => window.__game.state.damage), damageBeforeBuild);
+  console.log('PASS run build: read-only spell information pauses safely and preserves earned gold');
 
   await freshRun();
   const regeneration = await page.evaluate(() => {

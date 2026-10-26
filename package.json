@@ -12,7 +12,8 @@
     "test:browser": "node tests/browser-smoke.mjs",
     "test:deploy": "node tests/deploy-smoke.mjs",
     "test:standalone": "node tests/standalone-smoke.mjs",
-    "test:combat": "node tests/combat-smoke.mjs"
+    "test:combat": "node tests/combat-smoke.mjs",
+    "test:permanent": "node tests/permanent-smoke.mjs"
   },
   "dependencies": {
     "@fontsource-variable/noto-sans-kr": "5.2.10",
