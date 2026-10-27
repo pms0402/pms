@@ -64,7 +64,7 @@ $('#app').innerHTML = `
       <button class="nav-link" data-nav="history">런 기록 <span class="nav-count" id="history-count">${history.length.toString().padStart(2, '0')}</span></button>
       <button class="nav-link" data-nav="permanent">영구 강화</button>
     </nav>
-    <div class="header-actions"><span class="build-label"><i></i> BUILD YOUR LEGEND <b>v0.8.1</b></span><span class="header-divider"></span><button id="sound-toggle" class="icon-button" title="사운드 켜기" aria-label="사운드 켜기">${icon('muted')}</button><button id="settings" class="icon-button" title="설정" aria-label="설정">${icon('settings')}</button></div>
+    <div class="header-actions"><span class="build-label"><i></i> BUILD YOUR LEGEND <b>v0.8.2</b></span><span class="header-divider"></span><button id="sound-toggle" class="icon-button" title="사운드 켜기" aria-label="사운드 켜기">${icon('muted')}</button><button id="settings" class="icon-button" title="설정" aria-label="설정">${icon('settings')}</button></div>
   </header>
   <main class="page">
     <section class="page-intro">
@@ -78,7 +78,7 @@ $('#app').innerHTML = `
         <div class="arena-vignette"></div>
         <div class="arena-top">
           <div class="area-label"><span class="live-dot"></span><span id="area-name">잊혀진 초원</span><span class="area-divider">/</span><span id="area-stage">STAGE 01</span></div>
-          <div class="arena-top-actions"><span class="difficulty"><i></i> <span id="difficulty">고요한 시작</span></span><button id="pause-button" class="glass-button" title="일시정지 (Esc)" aria-label="일시정지" disabled>${icon('pause')}</button><button id="fullscreen" class="glass-button" title="전체 화면 (F)" aria-label="전체 화면" aria-pressed="false">${icon('expand')}</button></div>
+          <div class="arena-top-actions"><span class="difficulty"><i></i> <span id="difficulty">고요한 시작</span></span><button id="game-speed" class="glass-button" title="게임 배속 변경 · 적과 공격도 함께 빨라집니다" aria-label="게임 배속 변경">1×</button><button id="pause-button" class="glass-button" title="일시정지 (Esc)" aria-label="일시정지" disabled>${icon('pause')}</button><button id="fullscreen" class="glass-button" title="전체 화면 (F)" aria-label="전체 화면" aria-pressed="false">${icon('expand')}</button></div>
         </div>
         <div class="live-hud hidden" id="live-hud">
           <div class="health-block"><div class="health-label">${icon('heart')}<span>HP</span><strong id="health-value">100 <small>/ 100</small></strong></div><div class="health-track"><div id="health-fill"></div></div><div class="xp-row"><span id="level-value">LV. 1</span><div class="xp-track"><div id="xp-fill"></div></div><span id="xp-value">0 / 10</span></div></div>
@@ -155,6 +155,8 @@ function showToast(message) {
 
 function update(state) {
   latest = state;
+  hud('#game-speed', `${state.playbackSpeed || 1}×`);
+  $('#game-speed').setAttribute('aria-label', `현재 ${state.playbackSpeed || 1}배속 · 눌러서 배속 변경`);
   const inRun = !['menu', 'over', 'won'].includes(state.phase);
   $('#arena').classList.toggle('in-run', inRun);
   document.body.classList.toggle('run-active', inRun);
@@ -452,6 +454,35 @@ function showSettings() {
     prefs.quality = button.dataset.quality; game.setQuality(prefs.quality); store('voidrun.preferences', prefs);
     document.querySelectorAll('[data-quality]').forEach(b => b.classList.toggle('selected', b.dataset.quality === prefs.quality));
   });
+  const canReset = ['menu', 'over', 'won'].includes(game.state.phase);
+  $('#modal').insertAdjacentHTML('beforeend', `<div class="reset-settings"><h3>게임 저장 데이터 초기화</h3><p>보유 골드·영구 강화·캐릭터와 무기 해금·런 기록을 모두 삭제합니다. 사운드와 그래픽 설정은 유지됩니다.</p><button class="secondary-button reset-danger" id="reset-save" ${canReset ? '' : 'disabled'}>저장 데이터 초기화</button>${canReset ? '' : '<p>진행 중인 런을 종료한 뒤 초기화할 수 있습니다.</p>'}</div>`);
+  $('#reset-save').addEventListener('click', showResetConfirmation);
+}
+
+function showResetConfirmation() {
+  if (!['menu', 'over', 'won'].includes(game.state.phase)) return;
+  openModal('reset', `<div class="modal-eyebrow">START FRESH</div><h2 id="modal-title">정말 처음부터 시작할까요<span>?</span></h2><p class="modal-description">이 브라우저의 <b>골드·영구 강화·캐릭터와 무기 해금·선택 장비·모든 런 기록</b>이 삭제됩니다. 삭제한 데이터는 되돌릴 수 없습니다.</p><p id="reset-feedback" role="status"></p><button class="secondary-button" id="reset-cancel">취소하고 돌아가기</button><button class="secondary-button reset-danger" id="reset-confirm">모두 삭제하고 처음부터 시작</button>`);
+  $('#reset-cancel').addEventListener('click', showSettings);
+  // Put focus on the safe choice; opening the dialog never deletes anything.
+  $('#reset-cancel').focus({ preventScroll: true });
+  $('#reset-confirm').addEventListener('click', () => {
+    if (!['menu', 'over', 'won'].includes(game.state.phase)) return;
+    const keys = ['voidrun.progression', 'voidrun.history'];
+    let previous;
+    try {
+      previous = keys.map(key => localStorage.getItem(key));
+      localStorage.setItem(keys[0], JSON.stringify(createProgress()));
+      localStorage.setItem(keys[1], '[]');
+    } catch {
+      if (previous) for (let i = 0; i < keys.length; i++) {
+        try { if (previous[i] === null) localStorage.removeItem(keys[i]); else localStorage.setItem(keys[i], previous[i]); } catch { /* Keep the dialog open if storage is unavailable. */ }
+      }
+      $('#reset-feedback').textContent = '저장소에 접근할 수 없어 초기화하지 못했습니다. 브라우저 저장 설정을 확인해 주세요.';
+      return;
+    }
+    // Reload also discards ended-run receipts and temporary combat state in memory.
+    location.reload();
+  });
 }
 function showPause() {
   if (['playing', 'paused'].includes(latest?.phase) && !dialogName) {
@@ -540,9 +571,10 @@ function showResult() {
   if (!lastResult) return;
   const { state, won, settlement } = lastResult;
   campFromResult = false;
-  openModal('result', `<div class="result-emblem">${icon(won ? 'trophy' : 'skull')}</div><div class="modal-eyebrow">${won ? 'THE VOID IS YOURS' : 'DEATH IS PROGRESS'}</div><h2 id="modal-title">${won ? '공허를 정복했습니다' : state.endedReason === 'abandoned' ? '돌아와서, 더 강하게' : '쓰러져도, 성장은 남습니다'}<span>.</span></h2><p class="modal-description">${won ? `${MAX_STAGES}층의 모든 수호자를 돌파했습니다. 회수한 골드로 다음 도전을 준비하세요.` : `${getStageDefinition(state.stage).name}에서 여정을 마쳤습니다. 번 골드는 잃지 않았습니다.`}</p><div class="settlement-panel"><span>${icon('coin')} 이번 런 골드 회수</span><strong id="settlement-gold">+${formatGold(settlement.amount)} G</strong><small>보유 골드 <b id="result-bank">${formatGold(progress.bank)} G</b> · 영구 강화에 사용할 수 있습니다</small></div><div class="result-stats"><div><span>생존 시간</span><strong>${time(state.elapsed)}</strong></div><div><span>처치 수</span><strong>${state.kills}</strong></div><div><span>도달 스테이지</span><strong>${state.stage} / ${MAX_STAGES}</strong></div><div><span>도달 레벨</span><strong>LV. ${state.level}</strong></div></div>${runReportMarkup(state)}<button class="primary-button" id="result-permanent">${icon('coin')} 영구 강화하고 재도전 ${icon('arrow')}</button><button class="secondary-button" id="retry">${icon('refresh')} 강화 없이 바로 재도전</button>`, { pause: false, closeable: false });
+  openModal('result', `<div class="result-emblem">${icon(won ? 'trophy' : 'skull')}</div><div class="modal-eyebrow">${won ? 'THE VOID IS YOURS' : 'DEATH IS PROGRESS'}</div><h2 id="modal-title">${won ? '공허를 정복했습니다' : state.endedReason === 'abandoned' ? '돌아와서, 더 강하게' : '쓰러져도, 성장은 남습니다'}<span>.</span></h2><p class="modal-description">${won ? `${MAX_STAGES}층의 모든 수호자를 돌파했습니다. 회수한 골드로 다음 도전을 준비하세요.` : `${getStageDefinition(state.stage).name}에서 여정을 마쳤습니다. 번 골드는 잃지 않았습니다.`}</p><div class="settlement-panel"><span>${icon('coin')} 이번 런 골드 회수</span><strong id="settlement-gold">+${formatGold(settlement.amount)} G</strong><small>보유 골드 <b id="result-bank">${formatGold(progress.bank)} G</b> · 영구 강화에 사용할 수 있습니다</small></div><div class="result-stats"><div><span>생존 시간</span><strong>${time(state.elapsed)}</strong></div><div><span>처치 수</span><strong>${state.kills}</strong></div><div><span>도달 스테이지</span><strong>${state.stage} / ${MAX_STAGES}</strong></div><div><span>도달 레벨</span><strong>LV. ${state.level}</strong></div></div>${runReportMarkup(state)}<button class="primary-button" id="result-permanent">${icon('coin')} 영구 강화하고 재도전 ${icon('arrow')}</button><button class="secondary-button" id="retry">${icon('refresh')} 강화 없이 바로 재도전</button><button class="secondary-button" id="result-settings">설정 · 저장 데이터 초기화</button>`, { pause: false, closeable: false });
   $('#result-permanent').addEventListener('click', () => showPermanentUpgrades(true));
   $('#retry').addEventListener('click', startRun);
+  $('#result-settings').addEventListener('click', showSettings);
 }
 try {
   game = new Game($('#game-canvas'), {
@@ -573,6 +605,7 @@ try {
   });
   window.__game = game;
   game.setPermanentBonuses(getPermanentBonuses(progress));
+  game.setPlaybackSpeed([1, 2, 3].includes(prefs.speed) ? prefs.speed : 1);
   game.setQuality(prefs.quality); syncSound(); syncRisk(); syncLoadout();
   game.setRiskPact?.(prefs.risk);
   if (game.state) update(game.state);
@@ -592,6 +625,10 @@ for (const button of document.querySelectorAll('[data-risk]')) button.addEventLi
 $('#sound-toggle').addEventListener('click', () => { prefs.muted = !prefs.muted; syncSound(); sound(600); });
 $('#settings').addEventListener('click', showSettings);
 $('#pause-button').addEventListener('click', showPause);
+$('#game-speed').addEventListener('click', () => {
+  prefs.speed = (game.state.playbackSpeed || 1) % 3 + 1;
+  game.setPlaybackSpeed(prefs.speed); store('voidrun.preferences', prefs);
+});
 $('#run-build-button').addEventListener('click', showBuild);
 $('#build-info').addEventListener('click', showBuild);
 document.querySelectorAll('[data-spell]').forEach(button => button.addEventListener('click', showBuild));
@@ -653,7 +690,7 @@ window.addEventListener('keydown', (event) => {
     else if (!event.shiftKey && document.activeElement === items.at(-1)) { event.preventDefault(); items[0].focus(); }
   }
 });
-document.addEventListener('visibilitychange', () => { if (document.hidden && latest?.phase === 'playing') showPause(); });
+// Focus and visibility changes clear movement in Game, without silently pausing a run.
 for (const button of document.querySelectorAll('[data-move]')) {
   const release = () => game?.setMoveInput?.(0, 0);
   button.addEventListener('pointerdown', (event) => { event.preventDefault(); button.setPointerCapture(event.pointerId); const [x, y] = button.dataset.move.split(',').map(Number); game?.setMoveInput?.(x, y); });

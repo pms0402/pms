@@ -727,3 +727,10 @@ body.theater-mode .boss-hud { top:max(8px,env(safe-area-inset-top)); }
   .modal,.game-toast,.upgrade-card,.spell-slot { animation:none; transition:none; }
   .upgrade-card:hover,.spell-slot:hover { transform:none; }
 }
+
+.reset-settings { border-top:1px solid #694c3d; margin-top:22px; padding-top:18px; }
+.reset-settings h3 { font-size:13px; color:#dfb29a; }
+.reset-settings p,#reset-feedback { font-size:11px; line-height:1.8; color:#b6a391; }
+.reset-danger { border-color:#a56a54; color:#f0b49b; }
+.reset-danger:disabled { opacity:.45; cursor:not-allowed; }
+#game-speed { font:700 12px 'Barlow',sans-serif; min-width:32px; color:#d3edb4; }

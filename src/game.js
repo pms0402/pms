@@ -68,6 +68,7 @@ export class Game {
     this.muted = false;
     this.disposed = false;
     this.quality = 'high';
+    this.playbackSpeed = 1;
     this.permanentBonuses = normalizePermanentBonuses();
     this.runCounter = 0;
     this._state = this.freshState('menu');
@@ -133,7 +134,7 @@ export class Game {
   get state() {
     const enemyKinds = Object.fromEntries(ENEMY_TYPES.map(type => [type.id, 0]));
     for (const enemy of this.enemies) if (enemy.definition) enemyKinds[enemy.definition.id]++;
-    return { ...this._state, enemyKinds, sword: getSwordProfile(this.stats), activeSynergies: getActiveSynergies(this.stats), activeCurses: [...this.activeCurses], routeId: this.routeId, runModifiers: getRunModifiers(this.activeCurses, this.routeId), runReport: this.runReport ? structuredClone(this.runReport) : this.freshRunReport(), pendingChests: this.pendingChestRewards?.length || 0, altar: this.altar ? { x: this.altar.group.position.x, z: this.altar.group.position.z, opened: this.altar.opened } : null, rewardTokens: this.pendingRelicSources?.length || 0, pendingBossRewards: (this.pendingBossRewards || []).map(reward => ({ ...reward })), maxHp: this.stats.maxHp, damage: this.stats.damage, attackRate: this.stats.attackRate, spellDamage: this.stats.spellDamage, spellRate: this.stats.spellRate, speed: this.stats.speed, risk: this.getThreat(), selectedRisk: this.selectedRisk, chests: this.chests.map(chest => ({ x: chest.group.position.x, z: chest.group.position.z, remaining: chest.guards.filter(guard => guard.hp > 0).length, opened: chest.opened })), eliteEnemies: this.enemies.filter(enemy => enemy.elite).length, goldenEnemies: this.enemies.filter(enemy => enemy.golden).length, dashCooldown: Math.max(0, this.dashCooldown || 0), dashReady: !(this.dashCooldown > 0), enemyCount: this.enemies.length, arenaRadius: ARENA_RADIUS, stageDuration: STAGE_DURATION, bossSpawnTime: BOSS_SPAWN_TIME, bossSpawned: this.bossSpawned, bossDefeated: this.bossDefeated, boss: this.boss ? { archetype: this.boss.archetype, hint: this.boss.hint, name: this.boss.name, hp: Math.max(0, this.boss.hp), maxHp: this.boss.maxHp, alive: this.boss.hp > 0, spawned: this.bossSpawned, defeated: this.bossDefeated, phase: this.boss.mode } : null, spellState: this.magic?.getState() || [], playerStats: { ...this.stats, relics: [...(this.stats.relics || [])], bossRewards: [...(this.stats.bossRewards || [])], spells: { ...this.stats.spells }, evolutions: { ...this.stats.evolutions }, passiveLevels: { ...this.stats.passiveLevels } } };
+    return { ...this._state, playbackSpeed: this.playbackSpeed, enemyKinds, sword: getSwordProfile(this.stats), activeSynergies: getActiveSynergies(this.stats), activeCurses: [...this.activeCurses], routeId: this.routeId, runModifiers: getRunModifiers(this.activeCurses, this.routeId), runReport: this.runReport ? structuredClone(this.runReport) : this.freshRunReport(), pendingChests: this.pendingChestRewards?.length || 0, altar: this.altar ? { x: this.altar.group.position.x, z: this.altar.group.position.z, opened: this.altar.opened } : null, rewardTokens: this.pendingRelicSources?.length || 0, pendingBossRewards: (this.pendingBossRewards || []).map(reward => ({ ...reward })), maxHp: this.stats.maxHp, damage: this.stats.damage, attackRate: this.stats.attackRate, spellDamage: this.stats.spellDamage, spellRate: this.stats.spellRate, speed: this.stats.speed, risk: this.getThreat(), selectedRisk: this.selectedRisk, chests: this.chests.map(chest => ({ x: chest.group.position.x, z: chest.group.position.z, remaining: chest.guards.filter(guard => guard.hp > 0).length, opened: chest.opened })), eliteEnemies: this.enemies.filter(enemy => enemy.elite).length, goldenEnemies: this.enemies.filter(enemy => enemy.golden).length, dashCooldown: Math.max(0, this.dashCooldown || 0), dashReady: !(this.dashCooldown > 0), enemyCount: this.enemies.length, arenaRadius: ARENA_RADIUS, stageDuration: STAGE_DURATION, bossSpawnTime: BOSS_SPAWN_TIME, bossSpawned: this.bossSpawned, bossDefeated: this.bossDefeated, boss: this.boss ? { archetype: this.boss.archetype, hint: this.boss.hint, name: this.boss.name, hp: Math.max(0, this.boss.hp), maxHp: this.boss.maxHp, alive: this.boss.hp > 0, spawned: this.bossSpawned, defeated: this.bossDefeated, phase: this.boss.mode } : null, spellState: this.magic?.getState() || [], playerStats: { ...this.stats, relics: [...(this.stats.relics || [])], bossRewards: [...(this.stats.bossRewards || [])], spells: { ...this.stats.spells }, evolutions: { ...this.stats.evolutions }, passiveLevels: { ...this.stats.passiveLevels } } };
   }
   emit() { this.callbacks.onUpdate?.(this.state); }
 
@@ -542,7 +543,7 @@ export class Game {
       if (key === ' ' && !event.repeat) this.dash();
     };
     this.onKeyUp = (event) => this.keys.delete(event.key.toLowerCase());
-    this.onBlur = () => { this.keys.clear(); this.touchMove = { x: 0, y: 0 }; if (this._state.phase === 'playing') this.pause(); };
+    this.onBlur = () => { this.keys.clear(); this.touchMove = { x: 0, y: 0 }; this.touchStart = null; };
     this.onVisibility = () => { if (document.hidden) this.onBlur(); this.lastTime = performance.now(); };
     window.addEventListener('keydown', this.onKeyDown); window.addEventListener('keyup', this.onKeyUp);
     window.addEventListener('blur', this.onBlur); document.addEventListener('visibilitychange', this.onVisibility);
@@ -802,12 +803,27 @@ export class Game {
   setMuted(value) { this.muted = !!value; if (!this.muted) this.initAudio(); }
   setQuality(value) { this.quality = value; this.renderer.setPixelRatio(value === 'low' ? 1 : Math.min(window.devicePixelRatio || 1, 1.6)); this.renderer.shadowMap.enabled = value !== 'low'; this.resize(); }
 
+  setPlaybackSpeed(value) {
+    if (![1, 2, 3].includes(value)) return false;
+    this.playbackSpeed = value; this.emit(); return true;
+  }
+
+  advanceSimulation(realDt) {
+    let remaining = Math.max(0, Math.min(0.05, realDt)) * this.playbackSpeed;
+    let advanced = 0;
+    while (remaining > 1e-9 && this._state.phase === 'playing') {
+      const step = Math.min(1 / 60, remaining);
+      this.tick(step); this.animateEffects(step);
+      remaining -= step; advanced += step;
+    }
+    return advanced;
+  }
+
   loop(time) {
     if (this.disposed) return;
     const dt = Math.min(Math.max((time - this.lastTime) / 1000, 0), 0.05); this.lastTime = time; this.frames++;
-    if (this._state.phase === 'playing') this.tick(dt);
-    else if (this._state.phase === 'menu') this.animateAttract(time / 1000);
-    this.animateEffects(dt);
+    if (this._state.phase === 'playing') this.advanceSimulation(dt);
+    else { if (this._state.phase === 'menu') this.animateAttract(time / 1000); this.animateEffects(dt); }
     this.updateMood(dt);
     if (this.dust) this.dust.rotation.y += dt * 0.002;
     this.updateCamera(dt);
