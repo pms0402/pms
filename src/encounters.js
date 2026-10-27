@@ -47,7 +47,7 @@ export function getBossDefinition(stage = 1) {
 }
 
 const ENEMY_DETAILS = {
-  0: { color: '#634b57', counterplay: '무리의 바깥을 돌며 한 번에 여러 적을 베세요.' },
+  0: { color: '#55724c', counterplay: '무리의 바깥을 돌며 한 번에 여러 적을 베세요.' },
   1: { color: '#8d5840', counterplay: '접근이 빠릅니다. 멈추지 말고 대시로 간격을 만드세요.' },
   2: { color: '#54416e', counterplay: '정면 접촉을 피하고 마법과 넉백으로 거리를 유지하세요.' },
   3: { color: '#5c658e', counterplay: '시전 예고를 보고 옆으로 이동하면 탄환을 피할 수 있습니다.' },
