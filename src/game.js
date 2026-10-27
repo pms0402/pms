@@ -10,6 +10,8 @@ import { CURSES, ROUTES, getRunModifiers, getCurseChoices } from './run-events.j
 import { getActiveSynergies } from './synergies.js';
 import { createTerrainWorld } from './world.js';
 import { buildMonster, createPlayerModel, animatePlayerModel } from './creatures.js';
+import { EnemyRenderer } from './enemy-renderer.js';
+import { createPresentationAssets } from './presentation.js';
 
 const TAU = Math.PI * 2;
 const UP = new THREE.Vector3(0, 1, 0);
@@ -93,10 +95,15 @@ export class Game {
     this.renderer.domElement.style.touchAction = 'none';
     container.appendChild(this.renderer.domElement);
     this.createMaterials();
+    this.presentation = createPresentationAssets(this.renderer);
+    this.scene.environment = this.presentation.environment; this.scene.environmentIntensity = .3;
+    for (const material of [this.mats.rock, this.mats.rockDark]) { material.map = this.presentation.stoneMap; material.normalMap = this.presentation.stoneNormal; material.normalScale.set(.22, .22); }
     this.createWorld();
     this.createPlayer();
     this.magic = new MagicSystem(this);
     this.bossSystem = new BossSystem(this);
+    this.scene.onBeforeRender = () => this.updateContactShadow();
+    this.enemyRenderer = new EnemyRenderer(this.scene, this.enemies);
     this.setupInput();
     this.observer = new ResizeObserver(() => this.resize());
     this.observer.observe(container);
@@ -196,7 +203,7 @@ export class Game {
     sunlight.shadow.mapSize.set(1024, 1024);
     Object.assign(sunlight.shadow.camera, { left: -28, right: 28, top: 28, bottom: -28, near: 0.5, far: 100 });
     sunlight.shadow.bias = -0.001;
-    sunlight.shadow.normalBias = 0.05;
+    sunlight.shadow.normalBias = 0.03;
     this.scene.add(sunlight);
     const fill = new THREE.DirectionalLight('#a5cf79', 1.1); fill.position.set(12, 8, -20); this.scene.add(fill);
     this.world = createTerrainWorld(this);
@@ -226,11 +233,26 @@ export class Game {
 
   createPlayer() {
     createPlayerModel(this);
+    const contactGeometry = new THREE.PlaneGeometry(1, 1); this.ownedGeometries.add(contactGeometry);
+    this.mats.playerContact = new THREE.MeshBasicMaterial({ map: this.presentation.contactMap, transparent: true, opacity: .55, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
+    this.playerShadow = new THREE.Mesh(contactGeometry, this.mats.playerContact); this.playerShadow.scale.set(1.5, 1.15, 1); this.scene.add(this.playerShadow);
+    this._groundNormal = new THREE.Vector3(); this._planeNormal = new THREE.Vector3(0, 0, 1);
     const marker = new THREE.Mesh(new THREE.RingGeometry(0.66, 0.71, 32), new THREE.MeshBasicMaterial({ color: '#b9f76c', transparent: true, opacity: 0.6, side: THREE.DoubleSide }));
     marker.rotation.x = -Math.PI / 2; marker.position.y = 0.1; this.player.add(marker);
     this.playerLight = new THREE.PointLight('#c3ff68', 2.5, 8, 2); this.playerLight.position.set(0, 2.5, 0); this.player.add(this.playerLight);
     this.player.rotation.y = -0.65; this.applyLoadoutAppearance();
     this.resetTimers();
+  }
+
+  updateContactShadow() {
+    const { x, z } = this.player.position;
+    const dx = (this.groundHeight(x + .25, z) - this.groundHeight(x - .25, z)) * 2;
+    const dz = (this.groundHeight(x, z + .25) - this.groundHeight(x, z - .25)) * 2;
+    this._groundNormal.set(-dx, 1, -dz).normalize();
+    this.playerShadow.position.set(x, this.groundHeight(x, z) + .028, z);
+    this.playerShadow.quaternion.setFromUnitVectors(this._planeNormal, this._groundNormal);
+    this.playerShadow.visible = this.playerVisual.visible;
+    this.playerShadow.updateMatrixWorld();
   }
 
   applyLoadoutAppearance() {
@@ -297,7 +319,7 @@ export class Game {
       geometries.forEach(entry => entry.dispose());
       if (!geometry) continue;
       this.ownedGeometries.add(geometry);
-      const mesh = new THREE.Mesh(geometry, material); mesh.castShadow = true;
+      const mesh = new THREE.Mesh(geometry, material); mesh.castShadow = true; mesh.receiveShadow = true;
       visual.add(mesh);
     }
     this.enemyTemplates.set(kind, visual);
@@ -1306,7 +1328,11 @@ export class Game {
   releaseEffect(effect) {
     this.removeGroup(effect.mesh);
     if (effect.pooled && this.effectPool.length < 150) this.effectPool.push(effect);
-    else { effect.mesh.material.dispose(); if (!effect.pooled && effect.type === 'slash') effect.mesh.geometry.dispose(); }
+    else {
+      effect.mesh.material.dispose();
+      if (effect.groundGeometries) for (const geometry of effect.groundGeometries.values()) { geometry.dispose(); this.ownedGeometries.delete(geometry); }
+      if (!effect.pooled && effect.type === 'slash') effect.mesh.geometry.dispose();
+    }
   }
 
   puff(position, color, size, life) {
@@ -1363,6 +1389,7 @@ export class Game {
   }
   removeGroup(group) { if (!group) return; group.parent?.remove(group); }
   clearDynamic() {
+    this.enemyRenderer?.reset();
     this.bossSystem?.clear();
     while (this.floatingTexts.length) this.removeFloatingText(0);
     for (const e of this.enemies) this.releaseEnemy(e);
@@ -1401,14 +1428,14 @@ export class Game {
     osc.connect(gain); gain.connect(this.audio.destination); osc.start(now); osc.stop(now + duration);
   }
 
-  getDebugState() { return { ...this.state, permanentBonuses: { ...this.permanentBonuses }, player: this.player.position.toArray(), enemies: this.enemies.length, pickups: this.pickups.length, floatingTexts: this.floatingTexts.length, effects: this.effects.length, pools: { enemies: [...this.enemyPools.values()].reduce((sum, pool) => sum + pool.length, 0), effects: this.effectPool.length, texts: this.textPool.length }, resources: { geometries: this.renderer.info.memory.geometries, textures: this.renderer.info.memory.textures }, projectiles: this.projectiles.length, enemyProjectiles: this.enemyProjectiles.length, rangedEnemies: this.enemies.filter(e => e.kind === 3 || e.kind === 8).length, bossSystem: this.bossSystem?.getDebugState(), magic: this.magic?.getDebugState?.(), frames: this.frames, drawCalls: this.renderer.info.render.calls, triangles: this.renderer.info.render.triangles, renderer: this.renderer.capabilities.isWebGL2 ? 'WebGL2' : 'WebGL', canvas: { width: this.renderer.domElement.width, height: this.renderer.domElement.height } }; }
+  getDebugState() { return { ...this.state, enemyRender: this.enemyRenderer?.getDebugState(), permanentBonuses: { ...this.permanentBonuses }, player: this.player.position.toArray(), enemies: this.enemies.length, pickups: this.pickups.length, floatingTexts: this.floatingTexts.length, effects: this.effects.length, pools: { enemies: [...this.enemyPools.values()].reduce((sum, pool) => sum + pool.length, 0), effects: this.effectPool.length, texts: this.textPool.length }, resources: { geometries: this.renderer.info.memory.geometries, textures: this.renderer.info.memory.textures }, projectiles: this.projectiles.length, enemyProjectiles: this.enemyProjectiles.length, rangedEnemies: this.enemies.filter(e => e.kind === 3 || e.kind === 8).length, bossSystem: this.bossSystem?.getDebugState(), magic: this.magic?.getDebugState?.(), frames: this.frames, drawCalls: this.renderer.info.render.calls, triangles: this.renderer.info.render.triangles, renderer: this.renderer.capabilities.isWebGL2 ? 'WebGL2' : 'WebGL', canvas: { width: this.renderer.domElement.width, height: this.renderer.domElement.height } }; }
   /** Deterministic-time simulation hook for smoke tests; respects pause and choices. */
   stepForTest(seconds) { for (let t = 0; t < seconds && this._state.phase === 'playing'; t += 1 / 60) { this.frames++; this.tick(1 / 60); this.animateEffects(1 / 60); } this.emit(); return this.getDebugState(); }
   dispose() {
     this.disposed = true; cancelAnimationFrame(this.raf); this.observer.disconnect();
     window.removeEventListener('keydown', this.onKeyDown); window.removeEventListener('keyup', this.onKeyUp); window.removeEventListener('blur', this.onBlur); document.removeEventListener('visibilitychange', this.onVisibility);
     this.renderer.domElement.removeEventListener('pointerdown', this.onPointerDown); this.renderer.domElement.removeEventListener('pointermove', this.onPointerMove); this.renderer.domElement.removeEventListener('pointerup', this.onPointerUp); this.renderer.domElement.removeEventListener('pointercancel', this.onPointerUp);
-    this.clearDynamic(); this.magic?.dispose(); this.bossSystem?.dispose();
+    this.clearDynamic(); this.enemyRenderer?.dispose(); this.presentation?.dispose(); this.magic?.dispose(); this.bossSystem?.dispose();
     const geometries = new Set(), materials = new Set();
     this.scene.traverse((object) => { if (object.geometry) geometries.add(object.geometry); if (object.material) (Array.isArray(object.material) ? object.material : [object.material]).forEach((m) => materials.add(m)); });
     this.ownedGeometries.forEach(geometry => geometries.add(geometry));

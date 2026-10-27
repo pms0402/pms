@@ -89,11 +89,12 @@ export function createPlayerModel(game) {
  const {geo,mats}=game;
  game.player=new THREE.Group();game.player.scale.setScalar(1.65);game.scene.add(game.player);
  game.playerVisual=new THREE.Group();game.player.add(game.playerVisual);
- const {part}=tools(game,game.playerVisual),armor=mats.armor.clone(),cloth=mats.cape.clone();cloth.side=THREE.DoubleSide;
+ const {part}=tools(game,game.playerVisual),armor=mats.armor.clone(),cloth=mats.cape.clone();cloth.side=THREE.DoubleSide;cloth.map=game.presentation.clothMap;
  armor.color.set('#596571');armor.metalness=.7;armor.roughness=.32;
  game.playerBody=part('torso',armor,0,1.13,0,1,1,.72);
  part('round',armor,0,.83,0,.28,.18,.22);part('round',armor,0,1.19,.18,.29,.29,.11);
  const skin=mats.player.clone();skin.color.set('#c5aa8c');
+ part('round',skin,0,1.51,0,.10,.12,.10);
  part('heroRound',skin,0,1.76,0,.235,.275,.22);
  game.playerHood=part('helmet',cloth,0,1.80,-.015,.275,.315,.255);
  const brow=part('brow',mats.dark,0,1.80,.02,1,1,1);brow.rotation.x=Math.PI/2;
@@ -104,7 +105,7 @@ export function createPlayerModel(game) {
   const upper=new THREE.Mesh(geo.capsule,mats.dark);upper.scale.set(.19,.22,.19);upper.position.y=-.18;hip.add(upper);
   const knee=new THREE.Group();knee.position.y=-.36;hip.add(knee);
   const lower=new THREE.Mesh(geo.capsule,armor);lower.scale.set(.16,.19,.16);lower.position.y=-.14;knee.add(lower);
-  const boot=new THREE.Mesh(geo.round,mats.dark);boot.scale.set(.115,.105,.20);boot.position.set(0,-.34,.085);knee.add(boot);
+  const boot=new THREE.Mesh(geo.round,mats.dark);boot.scale.set(.115,.105,.20);boot.position.set(0,-.34,.085);knee.add(boot);game[side<0?'footLeft':'footRight']=boot;
   const cap=new THREE.Mesh(geo.round,armor);cap.scale.set(.115,.10,.085);cap.position.set(0,0,.07);knee.add(cap);
   game[side<0?'legLeft':'legRight']=hip;game[side<0?'kneeLeft':'kneeRight']=knee;
  }
@@ -139,6 +140,7 @@ export function animatePlayerModel(game,time,moving,dt) {
  game.playerVisual.position.y=moving?Math.abs(gait)*.035:Math.sin(time*2.5)*.012;
  game.legLeft.rotation.x=gait*.48;game.legRight.rotation.x=-gait*.48;
  game.kneeLeft.rotation.x=.08+Math.max(0,-gait)*.5;game.kneeRight.rotation.x=.08+Math.max(0,gait)*.5;
+ game.footLeft.rotation.x=-(game.legLeft.rotation.x+game.kneeLeft.rotation.x)*.65;game.footRight.rotation.x=-(game.legRight.rotation.x+game.kneeRight.rotation.x)*.65;
  const blend=1-Math.exp(-dt*18);
  const rightYaw=attack?-1.1+t*2.2:0,rightPitch=attack?-.55-swing*.55:gait*.25;
  game.rightShoulder.rotation.y+=(rightYaw-game.rightShoulder.rotation.y)*blend;game.rightShoulder.rotation.x+=(rightPitch-game.rightShoulder.rotation.x)*blend;

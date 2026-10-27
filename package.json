@@ -23,7 +23,9 @@
     "test:economy-scale": "node tests/economy-scale-smoke.mjs",
     "test:controls": "node tests/controls-smoke.mjs",
     "test:world": "node tests/world-smoke.mjs",
-    "test:characters": "node tests/characters-smoke.mjs"
+    "test:characters": "node tests/characters-smoke.mjs",
+    "test:quality": "node tests/quality-smoke.mjs",
+    "benchmark:render": "node scripts/render-benchmark.mjs"
   },
   "dependencies": {
     "@fontsource-variable/noto-sans-kr": "5.2.10",

@@ -8,7 +8,7 @@ export function createTerrainWorld(game) {
  let seed=7341;const random=()=>{seed=seed*16807%2147483647;return(seed-1)/2147483646;};
  const box=(m,x,y,z,sx,sy,sz,parent=scene)=>{const mesh=game.box(m,x,y,z,sx,sy,sz,parent);mesh.castShadow=true;mesh.receiveShadow=true;return mesh;};
  const add=(geometry,material,x,y,z,sx=1,sy=sx,sz=sx,parent=scene)=>{const mesh=new THREE.Mesh(geometry,material);mesh.position.set(x,y,z);mesh.scale.set(sx,sy,sz);mesh.castShadow=true;parent.add(mesh);return mesh;};
- const positions=[0,terrainHeight(0,0),0],colors=[],indices=[];
+ const positions=[0,terrainHeight(0,0),0],colors=[],indices=[],uvs=[.5,.5];
  const green=new THREE.Color('#657252'),soil=new THREE.Color('#403a31'),path=new THREE.Color('#77725d');
  const colorAt=(x,z,h)=>{
   const road=Math.min(Math.abs(z-Math.sin(x*.035)*5),Math.abs(x-Math.sin(z*.03)*5));
@@ -19,15 +19,15 @@ export function createTerrainWorld(game) {
  const sectors=128,rings=49,extent=98;
  for(let ring=1;ring<=rings;ring++)for(let i=0;i<sectors;i++) {
   const angle=i/sectors*Math.PI*2,r=ring/rings*extent,x=Math.cos(angle)*r,z=Math.sin(angle)*r,h=terrainHeight(x,z);
-  positions.push(x,h,z);c=colorAt(x,z,h);colors.push(c.r,c.g,c.b);
+  positions.push(x,h,z);uvs.push(x/(extent*2)+.5,z/(extent*2)+.5);c=colorAt(x,z,h);colors.push(c.r,c.g,c.b);
  }
  for(let i=0;i<sectors;i++)indices.push(0,1+(i+1)%sectors,1+i);
  for(let ring=1;ring<rings;ring++)for(let i=0;i<sectors;i++) {
   const a=1+(ring-1)*sectors+i,b=1+(ring-1)*sectors+(i+1)%sectors,c=1+ring*sectors+i,d=1+ring*sectors+(i+1)%sectors;
   indices.push(a,b,c,b,d,c);
  }
- const groundGeo=new THREE.BufferGeometry();groundGeo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));groundGeo.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));groundGeo.setIndex(indices);groundGeo.computeVertexNormals();
- const groundMaterial=new THREE.MeshStandardMaterial({color:'#aab39a',roughness:1,vertexColors:true,flatShading:true});mats.terrainSurface=groundMaterial;
+ const groundGeo=new THREE.BufferGeometry();groundGeo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));groundGeo.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));groundGeo.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));groundGeo.setIndex(indices);groundGeo.computeVertexNormals();
+ const groundMaterial=new THREE.MeshStandardMaterial({color:'#aab39a',roughness:1,vertexColors:true,flatShading:true,map:game.presentation.terrainMap,normalMap:game.presentation.terrainNormal,normalScale:new THREE.Vector2(.18,.18)});mats.terrainSurface=groundMaterial;
  const ground=new THREE.Mesh(groundGeo,groundMaterial);ground.receiveShadow=true;scene.add(ground);
  const cliffGeo=new THREE.CylinderGeometry(94,98,13,64);const cliff=add(cliffGeo,mats.edge,0,-7.8,0);cliff.receiveShadow=true;
  const roofGeo=new THREE.ConeGeometry(1,1,4);roofGeo.rotateY(Math.PI/4);game.ownedGeometries.add(roofGeo);
