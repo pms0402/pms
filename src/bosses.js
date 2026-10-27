@@ -277,10 +277,6 @@ export class BossSystem {
     }
     const radius = Math.hypot(pos.x, pos.z);
     if (radius > ARENA_RADIUS - 2) pos.multiplyScalar((ARENA_RADIUS - 2) / radius);
-    if (boss.visual) {
-      boss.visual.position.y = Math.abs(Math.sin(this.time * (boss.archetype === 'reaper' ? 3 : 5))) * .075;
-      boss.visual.scale.setScalar(1 + (boss.hitTime > 0 ? .04 : 0));
-    }
     const contactDistance = Math.hypot(target.x - pos.x, target.z - pos.z);
     if (contactDistance < 2.3) this.game.takeDamage(this.damage(), pos, `${boss.name || getBossStats(this.stage()).name} · 접촉`);
   }

@@ -24,6 +24,7 @@
     "test:controls": "node tests/controls-smoke.mjs",
     "test:world": "node tests/world-smoke.mjs",
     "test:characters": "node tests/characters-smoke.mjs",
+    "test:motion": "node tests/motion-smoke.mjs",
     "test:quality": "node tests/quality-smoke.mjs",
     "benchmark:render": "node scripts/render-benchmark.mjs"
   },

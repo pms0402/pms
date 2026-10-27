@@ -9,7 +9,8 @@ import { getSwordProfile, isSwordHit } from './sword.js';
 import { CURSES, ROUTES, getRunModifiers, getCurseChoices } from './run-events.js';
 import { getActiveSynergies } from './synergies.js';
 import { createTerrainWorld } from './world.js';
-import { buildMonster, createPlayerModel, animatePlayerModel } from './creatures.js';
+import { buildMonster, createPlayerModel, animatePlayerModel, animateEnemyModel } from './creatures.js';
+import { createActorMotion } from './motion.js';
 import { EnemyRenderer } from './enemy-renderer.js';
 import { createPresentationAssets } from './presentation.js';
 
@@ -289,6 +290,8 @@ export class Game {
     this.pendingChestRewards = []; this.chestChoices = []; this.activeChestReward = null; this.curseChoices = []; this.routeChoices = []; this.pendingRouteStage = null;
     this.stageChestCount = 0; this.eliteKills = 0; this.pendingRelicSources = []; this.pendingBossRewards = []; this.relicChoices = []; this.upgradeChoices = [];
     this.attackTimer = 0.2; this.spawnTimer = 1.3; this.bossSpawned = false; this.bossDefeated = false; this.boss = null; this.dashCooldown = 0; this.dashTime = 0; this.invulnerable = 0; this.shake = 0; this.comboTimer = 0; this.attackAnim = 0;
+    this.playerMotion = createActorMotion(this.player);
+    this.playerVisual.position.set(0, 0, 0); this.playerVisual.rotation.set(0, 0, 0);
     this.dashDirection = new THREE.Vector3(0.707, 0, 0.707);
   }
   attractEnemies() {
@@ -336,7 +339,7 @@ export class Game {
     const group = pooled?.group || new THREE.Group();
     const visual = pooled?.visual || (this.enemyTemplates.get(visualKind) || this.createEnemyTemplate(visualKind)).clone();
     if (!visual.parent) group.add(visual);
-    visual.position.set(0, 0, 0); visual.scale.setScalar(1); visual.visible = true;
+    visual.position.set(0, 0, 0); visual.rotation.set(0, 0, 0); visual.scale.setScalar(1); visual.visible = true;
     group.position.set(x, this.groundHeight(x, z), z); group.rotation.set(0, 0, 0);
     const elite = !!options.elite, golden = !!options.golden;
     const size = (kind === 4 ? 3.1 : definition.size) * (elite ? 1.3 : golden ? 1.12 : options.splitChild ? .65 : options.minion ? .8 : 1);
@@ -769,7 +772,7 @@ export class Game {
     if (this.disposed) return;
     const dt = Math.min(Math.max((time - this.lastTime) / 1000, 0), 0.05); this.lastTime = time; this.frames++;
     if (this._state.phase === 'playing') this.advanceSimulation(dt);
-    else { if (this._state.phase === 'menu') this.animateAttract(time / 1000); this.animateEffects(dt); }
+    else { if (this._state.phase === 'menu') this.animateAttract(time / 1000, dt); this.animateEffects(dt); }
     this.updateMood(dt);
     if (this.dust) this.dust.rotation.y += dt * 0.002;
     this.updateCamera(dt);
@@ -779,9 +782,9 @@ export class Game {
     this.raf = requestAnimationFrame(this.loop);
   }
 
-  animateAttract(time) {
-    animatePlayerModel(this, time, false, 1 / 60);
-    for (const e of this.enemies) { e.visual.position.y = Math.sin(time * 2.8 + e.seed) * 0.07; e.group.rotation.y = Math.atan2(-e.group.position.x, -e.group.position.z); }
+  animateAttract(time, dt) {
+    animatePlayerModel(this, time, false, dt);
+    for (const e of this.enemies) { e.group.rotation.y = Math.atan2(-e.group.position.x, -e.group.position.z); animateEnemyModel(e, time, dt); }
   }
 
   tick(dt) {
@@ -800,7 +803,6 @@ export class Game {
     const distance = Math.hypot(this.player.position.x, this.player.position.z);
     if (distance > ARENA_RADIUS) { this.player.position.x *= ARENA_RADIUS / distance; this.player.position.z *= ARENA_RADIUS / distance; }
     this.world?.resolve(this.player.position, .65);
-    animatePlayerModel(this, s.elapsed, moving, dt);
     this.playerVisual.visible = this.invulnerable > 0.4 ? Math.floor(s.elapsed * 20) % 2 === 0 : true;
 
     if (moving) this.player.rotation.y = this.lerpAngle(this.player.rotation.y, Math.atan2(direction.x, direction.z), dt * 13);
@@ -825,6 +827,7 @@ export class Game {
     this.bossSystem.updateEffects(dt);
     this.updateProjectiles(dt);
     this.updatePickups(dt);
+    animatePlayerModel(this, s.elapsed, moving, dt);
     if (s.hp <= 0 && this.stats.reviveCharges > 0) {
       this.stats.reviveCharges = Math.max(0, Math.floor(this.stats.reviveCharges) - 1);
       s.hp = this.stats.maxHp * 0.35; this.invulnerable = 1.5; this.playerVisual.visible = true;
@@ -905,7 +908,7 @@ export class Game {
     for (let i = this.enemies.length - 1; i >= 0; i--) {
       const e = this.enemies[i]; if (!e || e.hp <= 0) continue;
       e.burnTime = Math.max(0, (e.burnTime || 0) - dt);
-      if (e.kind === 4) { this.updateBoss(e, dt); this.world?.resolve(e.group.position, 1.4); continue; }
+      if (e.kind === 4) { this.updateBoss(e, dt); this.world?.resolve(e.group.position, 1.4); animateEnemyModel(e, this._state.elapsed, dt); continue; }
       const dx = pos.x - e.group.position.x, dz = pos.z - e.group.position.z, distance = Math.hypot(dx, dz);
       if (e.golden) {
         e.escapeTime -= dt;
@@ -1021,8 +1024,6 @@ export class Game {
       if (boundary > ARENA_RADIUS) e.group.position.multiplyScalar(ARENA_RADIUS / boundary);
       this.world?.resolve(e.group.position, Math.min(1.2, e.size * .4));
       e.stagger.multiplyScalar(Math.max(0, 1 - dt * 9));
-      e.visual.position.y = Math.abs(Math.sin(this._state.elapsed * (e.kind === 1 ? 13 : 7) + e.seed)) * 0.12;
-      e.visual.scale.setScalar(stagger > 0 ? 1 + stagger * 0.6 : 1);
       if (distance < 1.2) {
         const rawDamage = getStageStats(this._state.stage).enemyDamage * e.baseDamageMultiplier * e.damageMultiplier * (e.kind === 5 && e.action === 'rush' ? 1.35 : 1);
         if (this.takeDamage(rawDamage, e.group.position, `${e.name} ${e.action === 'rush' ? '돌진' : '접촉'}`)) e.stagger.set(-dx / Math.max(distance, 0.01) * 8, 0, -dz / Math.max(distance, 0.01) * 8);
@@ -1032,6 +1033,7 @@ export class Game {
         const sx = e.group.position.x - other.group.position.x, sz = e.group.position.z - other.group.position.z, squared = sx * sx + sz * sz;
         if (squared > 0.0001 && squared < 0.9) { const force = dt * 1.8 / Math.sqrt(squared); e.group.position.x += sx * force; e.group.position.z += sz * force; }
       }
+      animateEnemyModel(e, this._state.elapsed, dt);
     }
     this.spatialDirty = true;
   }
@@ -1070,8 +1072,6 @@ export class Game {
     }
     const radius = Math.hypot(boss.group.position.x, boss.group.position.z);
     if (radius > ARENA_RADIUS - 2) boss.group.position.multiplyScalar((ARENA_RADIUS - 2) / radius);
-    boss.visual.position.y = Math.abs(Math.sin(this._state.elapsed * 5)) * 0.055;
-    boss.visual.scale.setScalar(1 + (boss.hitTime > 0 ? 0.04 : 0));
     if (distance < 2.3) this.takeDamage(getBossStats(this._state.stage).damage * (boss.mode === 'charge' ? 1.5 : 1), boss.group.position, `${boss.name} ${boss.mode === 'charge' ? '돌진' : '접촉'}`);
   }
 
