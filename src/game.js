@@ -38,7 +38,7 @@ function normalizePermanentBonuses(bonuses = {}) {
   };
 }
 
-/** The rendering, input and simulation for VOIDRUN. All artwork is procedural. */
+/** Rendering, input and simulation for VOIDRUN, using locally bundled art. */
 export class Game {
   constructor(container, callbacks = {}) {
     this.container = container;
@@ -240,7 +240,7 @@ export class Game {
     this._groundNormal = new THREE.Vector3(); this._planeNormal = new THREE.Vector3(0, 0, 1);
     const marker = new THREE.Mesh(new THREE.RingGeometry(0.66, 0.71, 32), new THREE.MeshBasicMaterial({ color: '#b9f76c', transparent: true, opacity: 0.6, side: THREE.DoubleSide }));
     marker.rotation.x = -Math.PI / 2; marker.position.y = 0.1; this.player.add(marker);
-    this.playerLight = new THREE.PointLight('#c3ff68', 2.5, 8, 2); this.playerLight.position.set(0, 2.5, 0); this.player.add(this.playerLight);
+    this.playerLight = new THREE.PointLight('#b58aff', 6, 8, 2); this.playerLight.position.set(1.4, 2.25, 2.4); this.player.add(this.playerLight);
     this.player.rotation.y = -0.65; this.applyLoadoutAppearance();
     this.resetTimers();
   }
@@ -258,12 +258,14 @@ export class Game {
 
   applyLoadoutAppearance() {
     const colors = {
-      wanderer: ['#708665', '#596571', '#b8d99c'],
-      arcanist: ['#b292f0', '#46405d', '#c7abff'],
-      berserker: ['#ef795f', '#5b3e3b', '#ffb477'],
-    }[this.stats.characterId] || ['#708665', '#596571', '#b8d99c'];
+      wanderer: ['#171821', '#4b5363', '#b58aff'],
+      arcanist: ['#211b30', '#4f4a61', '#a49aff'],
+      berserker: ['#261b22', '#5e454e', '#ef9aab'],
+    }[this.stats.characterId] || ['#171821', '#4b5363', '#b58aff'];
     this.playerHood.material.color.set(colors[0]); this.playerBody.material.color.set(colors[1]);
-    this.blade.material.color.set(colors[2]); this.blade.material.emissive.set(colors[2]);
+    this.blade.material.color.set('#bfcbdc'); this.blade.material.emissive.set('#000000');
+    this.heroGlow.color.set(colors[2]); this.heroGlow.emissive.set(colors[2]);
+    this.playerLight?.color.set(colors[2]);
     const weapon = this.stats.weaponId;
     this.blade.scale.set(weapon === 'greatsword' ? .16 : weapon === 'tempest' ? .075 : .11, .045, weapon === 'greatsword' ? 1.45 : weapon === 'tempest' ? 1.05 : 1.15);
     this.blade.position.set(0, 0, .30);
@@ -272,7 +274,7 @@ export class Game {
     this.blade.scale.z *= reach;
     if (profile.mode === 'broadsword') this.blade.scale.x *= 2;
     if (profile.mode !== 'default') {
-      this.blade.material.color.set(profile.color); this.blade.material.emissive.set(profile.color);
+      this.heroGlow.color.set(profile.color); this.heroGlow.emissive.set(profile.color);
     }
     if (!this.offhandBlade) {
       this.offhandBlade = this.blade.clone(); this.offhandBlade.position.set(0, 0, .30);
@@ -1436,6 +1438,7 @@ export class Game {
     window.removeEventListener('keydown', this.onKeyDown); window.removeEventListener('keyup', this.onKeyUp); window.removeEventListener('blur', this.onBlur); document.removeEventListener('visibilitychange', this.onVisibility);
     this.renderer.domElement.removeEventListener('pointerdown', this.onPointerDown); this.renderer.domElement.removeEventListener('pointermove', this.onPointerMove); this.renderer.domElement.removeEventListener('pointerup', this.onPointerUp); this.renderer.domElement.removeEventListener('pointercancel', this.onPointerUp);
     this.clearDynamic(); this.enemyRenderer?.dispose(); this.presentation?.dispose(); this.magic?.dispose(); this.bossSystem?.dispose();
+    this.heroTextures?.forEach(texture => texture.dispose());
     const geometries = new Set(), materials = new Set();
     this.scene.traverse((object) => { if (object.geometry) geometries.add(object.geometry); if (object.material) (Array.isArray(object.material) ? object.material : [object.material]).forEach((m) => materials.add(m)); });
     this.ownedGeometries.forEach(geometry => geometries.add(geometry));

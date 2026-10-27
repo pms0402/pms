@@ -7,6 +7,9 @@ try{
  const result=await page.evaluate(()=>{
   const g=window.__game;cancelAnimationFrame(g.raf);g.spawnTimer=g.attackTimer=g.nextChestTime=g.nextEliteTime=g.nextGoldenTime=g.nextAltarTime=1e6;g.stats.spells={};g.stats.critChance=0;g._state.xpNeeded=1e9;
   let boxes=0,curved=0;g.playerVisual.traverse(m=>{if(m.isMesh){if(m.geometry.type==='BoxGeometry')boxes++;if(['SphereGeometry','CapsuleGeometry','LatheGeometry','TorusGeometry'].includes(m.geometry.type))curved++;}});
+  g.playerHead.geometry.computeBoundingBox();const headBounds=g.playerHead.geometry.boundingBox;
+  const adultRatio=(g.playerHead.position.y+headBounds.max.y)/(headBounds.max.y-headBounds.min.y);
+  const design={adultRatio,hair:g.hairLocks.length,cloth:g.clothParts.length,metal:g.heroMaterials.armor.metalness,clothRoughness:g.heroMaterials.cloth.roughness};
   const before={knee:g.kneeLeft.rotation.x,arm:g.rightShoulder.rotation.x,cape:Array.from(g.cape.geometry.attributes.position.array)};g.setMoveInput(1,0);g.stepForTest(.2);g.setMoveInput(0,0);
   const walking={knee:g.kneeLeft.rotation.x,otherKnee:g.kneeRight.rotation.x,arm:g.rightShoulder.rotation.x,capeChanged:g.cape.geometry.attributes.position.array.some((n,i)=>Math.abs(n-before.cape[i])>.0001)};
   const e=g.spawnEnemy(g.player.position.x,g.player.position.z+2,0);e.hp=e.maxHp=1e6;e.speed=0;g.attack();g.stepForTest(.09);const attackPose={pitch:g.rightShoulder.rotation.x,yaw:g.rightShoulder.rotation.y,hp:e.hp};
@@ -19,8 +22,8 @@ try{
   const childPool=another.group===childGroup&&another.visualKind===7&&another.maxHp===childHp&&another.speed===childSpeed;
   const models=[0,1,2,3,4,5,6,7,8,9].map((kind,i)=>{const enemy=g.spawnEnemy(12+i*.5,5,kind);let vertices=0;for(const m of enemy.visual.children)vertices+=m.geometry.attributes.position.count;return{kind,parts:enemy.visual.children.length,vertices};});
   const meshCount=g.playerVisual.children.length;for(let i=0;i<20;i++)g.applyLoadoutAppearance();const stableParts=g.playerVisual.children.length===meshCount;
-  g.renderer.render(g.scene,g.camera);return{boxes,curved,before:{knee:before.knee,arm:before.arm},walking,attackPose,fastDuration,longBlade,offhand,unchanged,wolfDifferent,childPool,models,stableParts,draw:g.renderer.info.render.calls};
+  g.renderer.render(g.scene,g.camera);return{boxes,curved,design,before:{knee:before.knee,arm:before.arm},walking,attackPose,fastDuration,longBlade,offhand,unchanged,wolfDifferent,childPool,models,stableParts,draw:g.renderer.info.render.calls};
  });
- assert.equal(result.boxes,0,'player is built from curved surfaces rather than cubes');assert.ok(result.curved>=20);assert.ok(result.walking.knee!==result.before.knee||result.walking.otherKnee!==result.before.knee);assert.ok(result.walking.capeChanged);assert.ok(result.attackPose.pitch<-.25&&Math.abs(result.attackPose.yaw)>.05&&result.attackPose.hp<1e6);assert.ok(result.fastDuration<.1);assert.ok(result.longBlade>1.3&&result.offhand&&result.unchanged&&result.stableParts);assert.ok(result.wolfDifferent&&result.childPool);assert.ok(result.models.every(m=>m.parts<=7&&m.vertices>600));assert.ok(result.draw<500);assert.deepEqual(errors,[]);
+ assert.equal(result.boxes,0,'player is built from curved surfaces rather than cubes');assert.ok(result.design.adultRatio>6.5&&result.design.hair===3&&result.design.cloth===5&&result.design.metal>.6&&result.design.clothRoughness>.8);assert.ok(result.walking.knee!==result.before.knee||result.walking.otherKnee!==result.before.knee);assert.ok(result.walking.capeChanged);assert.ok(result.attackPose.pitch<-.25&&Math.abs(result.attackPose.yaw)>.05&&result.attackPose.hp<1e6);assert.ok(result.fastDuration<.1);assert.ok(result.longBlade>1.3&&result.offhand&&result.unchanged&&result.stableParts);assert.ok(result.wolfDifferent&&result.childPool);assert.ok(result.models.every(m=>m.parts<=7&&m.vertices>600));assert.ok(result.draw<500);assert.deepEqual(errors,[]);
  console.log('PASS curved player anatomy, articulated gait and swing, folded cloth, correct equipment parents, coherent monster templates and isolated slime-child pooling',JSON.stringify(result));
 }finally{await browser.close();}

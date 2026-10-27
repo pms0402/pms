@@ -86,55 +86,7 @@ export function buildMonster(game,visual,kind,skin) {
  }
 }
 
-export function createPlayerModel(game) {
- const {geo,mats}=game;
- game.player=new THREE.Group();game.player.scale.setScalar(1.65);game.scene.add(game.player);
- game.playerVisual=new THREE.Group();game.player.add(game.playerVisual);
- const {part}=tools(game,game.playerVisual),armor=mats.armor.clone(),cloth=mats.cape.clone();cloth.side=THREE.DoubleSide;cloth.map=game.presentation.clothMap;
- armor.color.set('#596571');armor.metalness=.7;armor.roughness=.32;
- game.playerBody=part('torso',armor,0,1.13,0,1,1,.72);
- part('round',armor,0,.83,0,.28,.18,.22);part('round',armor,0,1.19,.18,.29,.29,.11);
- const skin=mats.player.clone();skin.color.set('#c5aa8c');
- part('round',skin,0,1.51,0,.10,.12,.10);
- part('heroRound',skin,0,1.76,0,.235,.275,.22);
- game.playerHood=part('helmet',cloth,0,1.80,-.015,.275,.315,.255);
- const brow=part('brow',mats.dark,0,1.80,.02,1,1,1);brow.rotation.x=Math.PI/2;
- for(const side of [-1,1]){part('round',mats.dark,side*.085,1.78,.215,.06,.043,.025);part('roundSmall',mats.lime,side*.085,1.785,.237,.032,.022,.015);part('round',armor,side*.19,1.62,.08,.07,.13,.13);}
- part('round',skin,0,1.69,.235,.045,.062,.047);part('round',mats.dark,0,1.59,.173,.09,.04,.04);
- for(const side of [-1,1]){
-  const hip=new THREE.Group();hip.position.set(side*.145,.81,0);game.playerVisual.add(hip);
-  const upper=new THREE.Mesh(geo.capsule,mats.dark);upper.scale.set(.19,.22,.19);upper.position.y=-.18;hip.add(upper);
-  const knee=new THREE.Group();knee.position.y=-.36;hip.add(knee);
-  const lower=new THREE.Mesh(geo.capsule,armor);lower.scale.set(.16,.19,.16);lower.position.y=-.14;knee.add(lower);
-  const boot=new THREE.Mesh(geo.round,mats.dark);boot.scale.set(.115,.105,.20);boot.position.set(0,-.34,.085);knee.add(boot);game[side<0?'footLeft':'footRight']=boot;
-  const cap=new THREE.Mesh(geo.round,armor);cap.scale.set(.115,.10,.085);cap.position.set(0,0,.07);knee.add(cap);
-  game[side<0?'legLeft':'legRight']=hip;game[side<0?'kneeLeft':'kneeRight']=knee;
- }
- for(const side of [-1,1]){
-  const shoulder=new THREE.Group();shoulder.position.set(side*.37,1.43,0);game.playerVisual.add(shoulder);
-  const cap=new THREE.Mesh(geo.round,armor);cap.scale.set(.18,.16,.21);shoulder.add(cap);
-  const upper=new THREE.Mesh(geo.capsule,mats.dark);upper.scale.set(.16,.18,.16);upper.position.y=-.15;shoulder.add(upper);
-  const elbow=new THREE.Group();elbow.position.y=-.29;shoulder.add(elbow);elbow.rotation.x=-.6;
-  const forearm=new THREE.Mesh(geo.capsule,armor);forearm.scale.set(.165,.16,.165);forearm.position.y=-.12;elbow.add(forearm);
-  const wrist=new THREE.Group();wrist.position.y=-.25;elbow.add(wrist);
-  const hand=new THREE.Mesh(geo.round,mats.dark);hand.scale.set(.085,.10,.09);wrist.add(hand);
-  game[side<0?'leftShoulder':'rightShoulder']=shoulder;game[side<0?'leftElbow':'rightElbow']=elbow;
-  game[side<0?'offhandGrip':'swordArm']=wrist;
-  const grip=new THREE.Mesh(geo.roundCylinder,mats.dark);grip.scale.set(.035,.23,.035);grip.rotation.x=Math.PI/2;grip.position.z=.14;wrist.add(grip);
-  const guard=new THREE.Mesh(geo.roundTorus,mats.gold);guard.scale.set(.13,.075,.13);guard.position.z=.29;wrist.add(guard);
-  if(side<0){game.offhandParts=[grip,guard];grip.visible=guard.visible=false;}
- }
- const belt=part('roundTorus',mats.dark,0,.84,0,.28,.23,.28);belt.rotation.x=Math.PI/2;
- part('round',mats.gold,0,.85,.225,.065,.055,.025);
- for(const side of [-1,1])part('round',side<0?mats.gold:mats.rangedGlow,side*.29,.77,.04,.055,.095,.055);
- const capeGeometry=new THREE.PlaneGeometry(.78,1.17,10,14),positions=capeGeometry.attributes.position;
- for(let i=0;i<positions.count;i++){const x=positions.getX(i),y=positions.getY(i),t=(.585-y)/1.17;positions.setXYZ(i,x*(.72+.28*t),y,-.06-.055*Math.cos(x*22)*t-.13*t*t);}
- capeGeometry.computeVertexNormals();game.ownedGeometries.add(capeGeometry);game.capeBase=new Float32Array(positions.array);
- game.cape=new THREE.Mesh(capeGeometry,cloth);game.cape.position.set(0,1.04,-.20);game.cape.castShadow=true;game.playerVisual.add(game.cape);
- const bladeMaterial=mats.lime.clone();bladeMaterial.metalness=.75;bladeMaterial.roughness=.24;bladeMaterial.emissiveIntensity=.22;
- game.blade=new THREE.Mesh(geo.blade,bladeMaterial);game.blade.position.set(0,0,.3);game.blade.scale.set(.11,.035,1.15);game.blade.castShadow=true;game.swordArm.add(game.blade);
- game.playerVisual.traverse(mesh=>{if(mesh.isMesh){mesh.castShadow=true;mesh.receiveShadow=true;}});
-}
+export { createPlayerModel } from './player-model.js';
 
 export function animatePlayerModel(game,time,moving,dt) {
  const state=game.playerMotion||(game.playerMotion=createActorMotion(game.player));
@@ -162,9 +114,20 @@ export function animatePlayerModel(game,time,moving,dt) {
  joint(game.swordArm,'z',-.12+swing*.25,armRate);
  joint(game.offhandGrip,'z',twin?.12-swing*.25:0,armRate);
  game.cape.rotation.x=damp(game.cape.rotation.x,-(.08+stride*.17+(dashing?.22:0))+Math.sin(time*4)*.025,9,dt);
- const positions=game.cape.geometry.attributes.position;
- for(let i=0;i<positions.count;i++){const x=game.capeBase[i*3],y=game.capeBase[i*3+1],weight=(.585-y)/1.17;positions.setZ(i,game.capeBase[i*3+2]+Math.sin(time*6+x*15)*.025*weight*weight);}
- positions.needsUpdate=true;
+ for(const cloth of game.clothParts){
+  const positions=cloth.mesh.geometry.attributes.position;
+  for(let i=0;i<positions.count;i++){
+   const x=cloth.base[i*3],weight=cloth.weights[i];
+   positions.setZ(i,cloth.base[i*3+2]+(Math.sin(time*5.2+x*12+cloth.phase)*(.012+stride*.018)+Math.sin(state.phase+cloth.phase)*stride*.025)*weight);
+   positions.setX(i,x+Math.sin(time*3.1+cloth.phase)*.009*weight);
+  }
+  positions.needsUpdate=true;
+ }
+ for(let i=0;i<game.hairLocks.length;i++){
+  const hair=game.hairLocks[i];
+  joint(hair,'x',-.025-stride*.055+Math.sin(time*3+i*.8)*.018,8);
+  joint(hair,'z',Math.sin(time*2.7+i)*.018+gait*.028,8);
+ }
 }
 
 /** Whole-body motion keeps the shared monster meshes compatible with instancing. */
