@@ -1,3 +1,4 @@
+import { WORLD_RADIUS } from './terrain.js';
 import { STAGES, getBossDefinition } from './encounters.js';
 import { getSwordEvolutionChoices, applySwordEvolution } from './sword.js';
 
@@ -7,8 +8,8 @@ export const BOSS_SPAWN_TIME = 90;
 export const MAX_STAGES = STAGES.length;
 export const ENEMY_HEALTH_GROWTH = 1.7;
 export const ENEMY_DAMAGE_GROWTH = 1.35;
-// Doubling the playable radius gives four times the previous map area.
-export const ARENA_RADIUS = 62;
+// A broad, traversable terrain with landmarks, hills and ruined buildings.
+export const ARENA_RADIUS = WORLD_RADIUS;
 
 const finite = (value, fallback) => Number.isFinite(Number(value)) ? Number(value) : fallback;
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));

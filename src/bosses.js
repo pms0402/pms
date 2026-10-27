@@ -17,9 +17,9 @@ export class BossSystem {
     this.decorations = [];
     this.materials = new Map();
     this.geometry = {
-      disc: new THREE.CircleGeometry(1, 40),
+      disc: new THREE.RingGeometry(0, 1, 40, 5),
       ring: new THREE.RingGeometry(.94, 1, 40),
-      plane: new THREE.PlaneGeometry(1, 1),
+      plane: new THREE.PlaneGeometry(1, 1, 1, 24),
       crystal: new THREE.OctahedronGeometry(.35, 0),
       horn: new THREE.ConeGeometry(.24, .9, 5),
       box: new THREE.BoxGeometry(1, 1, 1),
@@ -110,9 +110,9 @@ export class BossSystem {
   }
 
   marker(position, radius, { type = 'disc', direction, length = 19 } = {}) {
-    const group = new THREE.Group(); group.position.copy(position); group.position.y = .13;
+    const group = new THREE.Group(); group.position.copy(position); group.position.y = (this.game.groundHeight?.(position.x, position.z) ?? position.y ?? 0) + .13;
     const material = new THREE.MeshBasicMaterial({ color: this.color, transparent: true, opacity: .18, side: THREE.DoubleSide, depthWrite: false });
-    const fill = new THREE.Mesh(type === 'line' ? this.geometry.plane : this.geometry.disc, material);
+    const fill = new THREE.Mesh((type === 'line' ? this.geometry.plane : this.geometry.disc).clone(), material);
     fill.rotation.x = -Math.PI / 2;
     if (type === 'line') {
       fill.scale.set(radius, length, 1); fill.rotation.z = Math.atan2(direction.x, direction.z);
@@ -120,17 +120,18 @@ export class BossSystem {
     } else fill.scale.setScalar(radius);
     group.add(fill);
     if (type !== 'line') {
-      const rim = new THREE.Mesh(this.geometry.ring, material.clone());
+      const rim = new THREE.Mesh(this.geometry.ring.clone(), material.clone());
       rim.material.opacity = .7; rim.rotation.x = -Math.PI / 2; rim.scale.setScalar(radius); group.add(rim);
     }
-    this.scene.add(group); return group;
+    this.scene.add(group); for (const child of group.children) this.game.fitGroundMesh?.(child, .13); return group;
   }
 
   zone(position, radius, warning, life, damage = 0, type = 'pool') {
     if (this.zones.length >= MAX_ZONES) return null;
     const owner = this.boss?.name || getBossStats(this.stage()).name;
     const cause = `${owner} · ${type === 'pool' ? '독 장판' : '충격파'}`;
-    const zone = { position: position.clone().setY(0), radius, warning, life, damage, type, cause, active: false, tick: 0, marker: this.marker(position, radius) };
+    const groundPosition = position.clone(); groundPosition.y = this.game.groundHeight?.(position.x, position.z) ?? position.y ?? 0;
+    const zone = { position: groundPosition, radius, warning, life, damage, type, cause, active: false, tick: 0, marker: this.marker(position, radius) };
     this.zones.push(zone); return zone;
   }
 
@@ -143,7 +144,7 @@ export class BossSystem {
     if (!marker) return;
     marker.removeFromParent();
     const materials = new Set();
-    marker.traverse(mesh => { if (mesh.material) materials.add(mesh.material); });
+    marker.traverse(mesh => { if (mesh.material) materials.add(mesh.material); if (mesh.geometry) mesh.geometry.dispose(); });
     materials.forEach(material => material.dispose());
   }
 
@@ -265,7 +266,8 @@ export class BossSystem {
     if (boss.mode === 'chase' && distance > .01) {
       const movement = distance < wanted - 2 ? -.65 : distance > wanted + 1 ? 1 : 0;
       const speed = (boss.speed || 2.6) * slow * movement * dt;
-      pos.x += dx / distance * speed; pos.z += dz / distance * speed;
+      const steer = movement > 0 && this.game.world ? this.game.world.steer(pos, dx, dz, 1.4, 0) : { x: dx / distance, z: dz / distance };
+      pos.x += steer.x * speed; pos.z += steer.z * speed;
     }
     boss.group.rotation.y = Math.atan2(dx, dz);
     boss.actionTimer -= dt;

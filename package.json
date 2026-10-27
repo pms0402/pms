@@ -21,7 +21,8 @@
     "test:builds": "node tests/builds-smoke.mjs",
     "test:frost": "node tests/frost-smoke.mjs",
     "test:economy-scale": "node tests/economy-scale-smoke.mjs",
-    "test:controls": "node tests/controls-smoke.mjs"
+    "test:controls": "node tests/controls-smoke.mjs",
+    "test:world": "node tests/world-smoke.mjs"
   },
   "dependencies": {
     "@fontsource-variable/noto-sans-kr": "5.2.10",

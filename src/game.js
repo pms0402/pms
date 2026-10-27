@@ -8,6 +8,8 @@ import { RISK_PACTS, getThreatModifiers, getRelicChoices, applyRelic, getBossRew
 import { getSwordProfile, isSwordHit } from './sword.js';
 import { CURSES, ROUTES, getRunModifiers, getCurseChoices } from './run-events.js';
 import { getActiveSynergies } from './synergies.js';
+import { createTerrainWorld } from './world.js';
+import { decorateMonster, decoratePlayer } from './creatures.js';
 
 const TAU = Math.PI * 2;
 const UP = new THREE.Vector3(0, 1, 0);
@@ -134,13 +136,14 @@ export class Game {
   get state() {
     const enemyKinds = Object.fromEntries(ENEMY_TYPES.map(type => [type.id, 0]));
     for (const enemy of this.enemies) if (enemy.definition) enemyKinds[enemy.definition.id]++;
-    return { ...this._state, playbackSpeed: this.playbackSpeed, enemyKinds, sword: getSwordProfile(this.stats), activeSynergies: getActiveSynergies(this.stats), activeCurses: [...this.activeCurses], routeId: this.routeId, runModifiers: getRunModifiers(this.activeCurses, this.routeId), runReport: this.runReport ? structuredClone(this.runReport) : this.freshRunReport(), pendingChests: this.pendingChestRewards?.length || 0, altar: this.altar ? { x: this.altar.group.position.x, z: this.altar.group.position.z, opened: this.altar.opened } : null, rewardTokens: this.pendingRelicSources?.length || 0, pendingBossRewards: (this.pendingBossRewards || []).map(reward => ({ ...reward })), maxHp: this.stats.maxHp, damage: this.stats.damage, attackRate: this.stats.attackRate, spellDamage: this.stats.spellDamage, spellRate: this.stats.spellRate, speed: this.stats.speed, risk: this.getThreat(), selectedRisk: this.selectedRisk, chests: this.chests.map(chest => ({ x: chest.group.position.x, z: chest.group.position.z, remaining: chest.guards.filter(guard => guard.hp > 0).length, opened: chest.opened })), eliteEnemies: this.enemies.filter(enemy => enemy.elite).length, goldenEnemies: this.enemies.filter(enemy => enemy.golden).length, dashCooldown: Math.max(0, this.dashCooldown || 0), dashReady: !(this.dashCooldown > 0), enemyCount: this.enemies.length, arenaRadius: ARENA_RADIUS, stageDuration: STAGE_DURATION, bossSpawnTime: BOSS_SPAWN_TIME, bossSpawned: this.bossSpawned, bossDefeated: this.bossDefeated, boss: this.boss ? { archetype: this.boss.archetype, hint: this.boss.hint, name: this.boss.name, hp: Math.max(0, this.boss.hp), maxHp: this.boss.maxHp, alive: this.boss.hp > 0, spawned: this.bossSpawned, defeated: this.bossDefeated, phase: this.boss.mode } : null, spellState: this.magic?.getState() || [], playerStats: { ...this.stats, relics: [...(this.stats.relics || [])], bossRewards: [...(this.stats.bossRewards || [])], spells: { ...this.stats.spells }, evolutions: { ...this.stats.evolutions }, passiveLevels: { ...this.stats.passiveLevels } } };
+    return { ...this._state, playbackSpeed: this.playbackSpeed, world: { hills: this.world?.hills.length || 0, structures: this.world?.structures.length || 0, elevation: this.player?.position.y || 0 }, enemyKinds, sword: getSwordProfile(this.stats), activeSynergies: getActiveSynergies(this.stats), activeCurses: [...this.activeCurses], routeId: this.routeId, runModifiers: getRunModifiers(this.activeCurses, this.routeId), runReport: this.runReport ? structuredClone(this.runReport) : this.freshRunReport(), pendingChests: this.pendingChestRewards?.length || 0, altar: this.altar ? { x: this.altar.group.position.x, z: this.altar.group.position.z, opened: this.altar.opened } : null, rewardTokens: this.pendingRelicSources?.length || 0, pendingBossRewards: (this.pendingBossRewards || []).map(reward => ({ ...reward })), maxHp: this.stats.maxHp, damage: this.stats.damage, attackRate: this.stats.attackRate, spellDamage: this.stats.spellDamage, spellRate: this.stats.spellRate, speed: this.stats.speed, risk: this.getThreat(), selectedRisk: this.selectedRisk, chests: this.chests.map(chest => ({ x: chest.group.position.x, z: chest.group.position.z, remaining: chest.guards.filter(guard => guard.hp > 0).length, opened: chest.opened })), eliteEnemies: this.enemies.filter(enemy => enemy.elite).length, goldenEnemies: this.enemies.filter(enemy => enemy.golden).length, dashCooldown: Math.max(0, this.dashCooldown || 0), dashReady: !(this.dashCooldown > 0), enemyCount: this.enemies.length, arenaRadius: ARENA_RADIUS, stageDuration: STAGE_DURATION, bossSpawnTime: BOSS_SPAWN_TIME, bossSpawned: this.bossSpawned, bossDefeated: this.bossDefeated, boss: this.boss ? { archetype: this.boss.archetype, hint: this.boss.hint, name: this.boss.name, hp: Math.max(0, this.boss.hp), maxHp: this.boss.maxHp, alive: this.boss.hp > 0, spawned: this.bossSpawned, defeated: this.bossDefeated, phase: this.boss.mode } : null, spellState: this.magic?.getState() || [], playerStats: { ...this.stats, relics: [...(this.stats.relics || [])], bossRewards: [...(this.stats.bossRewards || [])], spells: { ...this.stats.spells }, evolutions: { ...this.stats.evolutions }, passiveLevels: { ...this.stats.passiveLevels } } };
   }
   emit() { this.callbacks.onUpdate?.(this.state); }
 
   createMaterials() {
     const standard = (color, roughness = 0.9, extra = {}) => new THREE.MeshStandardMaterial({ color, roughness, ...extra });
     this.mats = {
+      bone: standard('#c9bea0'), organ: standard('#763848', .65),
       ground: standard('#2c352b'), edge: standard('#171d1b'), rock: standard('#3a433a'), rockDark: standard('#252c29'), trunk: standard('#303b30'),
       player: standard('#e1e5b8', 0.6), armor: standard('#404947', 0.45, { metalness: 0.5 }), dark: standard('#141c1a'), cape: standard('#b5f45d', 0.8),
       lime: standard('#c1ff66', 0.3, { emissive: '#9edb32', emissiveIntensity: 1.5 }), crystal: standard('#a8ea4f', 0.5, { emissive: '#74a82d', emissiveIntensity: 0.6 }),
@@ -155,7 +158,7 @@ export class Game {
     };
     this.geo = {
       box: new THREE.BoxGeometry(1, 1, 1), sphere: new THREE.IcosahedronGeometry(1, 0), smallSphere: new THREE.IcosahedronGeometry(0.14, 0),
-      monster: new THREE.IcosahedronGeometry(0.7, 0), cone: new THREE.ConeGeometry(0.26, 0.7, 4), xp: new THREE.OctahedronGeometry(0.15),
+      monster: new THREE.IcosahedronGeometry(0.7, 1), cone: new THREE.ConeGeometry(0.26, 0.7, 4), xp: new THREE.OctahedronGeometry(0.15),
       enemyBolt: new THREE.IcosahedronGeometry(0.26, 0), rangedHood: new THREE.ConeGeometry(0.7, 1.3, 5),
       aura: new THREE.RingGeometry(0.8, 0.89, 20),
       slash: new THREE.RingGeometry(0.12, 1, 40, 1, -Math.PI / 3, Math.PI * 2 / 3),
@@ -185,53 +188,10 @@ export class Game {
     sunlight.shadow.normalBias = 0.05;
     this.scene.add(sunlight);
     const fill = new THREE.DirectionalLight('#a5cf79', 1.1); fill.position.set(12, 8, -20); this.scene.add(fill);
-    const island = new THREE.Mesh(new THREE.CylinderGeometry(68, 62, 5, 24), this.mats.edge);
-    island.position.y = -2.65; island.receiveShadow = true; this.scene.add(island);
-    const ground = new THREE.Mesh(new THREE.CylinderGeometry(68.05, 68.05, 0.25, 24), this.mats.ground);
-    ground.position.y = -0.08; ground.receiveShadow = true; this.scene.add(ground);
-    const grid = new THREE.GridHelper(128, 64, '#63704b', '#576348');
-    grid.position.y = 0.06; grid.material.transparent = true; grid.material.opacity = 0.15; this.scene.add(grid);
-    this.floorGrid = grid;
-    const rim = new THREE.Mesh(new THREE.TorusGeometry(65.7, 0.06, 3, 24), new THREE.MeshBasicMaterial({ color: '#9ac967', transparent: true, opacity: 0.32 }));
-    rim.rotation.x = Math.PI / 2; rim.position.y = 0.1; this.scene.add(rim);
-    const center = new THREE.Group();
-    for (let r = 0; r < 3; r++) {
-      const ring = new THREE.Mesh(new THREE.RingGeometry(3.4 + r * 0.35, 3.42 + r * 0.35, 6), new THREE.MeshBasicMaterial({ color: '#9ec96b', transparent: true, opacity: r === 0 ? 0.2 : 0.08, side: THREE.DoubleSide }));
-      ring.rotation.x = -Math.PI / 2; ring.position.y = 0.08 + r * 0.001; center.add(ring);
-    }
-    this.scene.add(center);
-    // Fixed pseudo-random scenery keeps restarts recognisable.
-    let seed = 72;
-    const random = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
-    for (let i = 0; i < 150; i++) {
-      const angle = random() * TAU, radius = 6 + random() * 56;
-      const x = Math.cos(angle) * radius, z = Math.sin(angle) * radius;
-      if (i < 70) {
-        const rock = new THREE.Mesh(this.geo.sphere, i % 3 ? this.mats.rock : this.mats.rockDark);
-        rock.position.set(x, 0.12, z); rock.scale.set(0.25 + random() * 0.9, 0.3 + random() * 0.8, 0.25 + random() * 0.8);
-        rock.rotation.set(random(), random() * TAU, random()); rock.castShadow = i < 14; this.scene.add(rock);
-      } else if (i < 120) {
-        const tile = this.box(this.mats.rockDark, x, 0.07, z, 0.5 + random(), 0.1, 0.6 + random()); tile.rotation.y = random() * TAU;
-      } else {
-        this.createGrass(x, z, random);
-      }
-    }
-    for (let i = 0; i < 16; i++) {
-      const a = i / 16 * TAU + 0.13, r = i < 8 ? 29 + (i % 2) * 2 : 60 + (i % 2) * 2;
-      const x = Math.cos(a) * r, z = Math.sin(a) * r;
-      const height = 1.8 + (i % 3) * 0.9;
-      const pillar = this.box(this.mats.rock, x, height / 2, z, 1.3, height, 1.3);
-      pillar.rotation.y = a; pillar.castShadow = true;
-      this.box(this.mats.rockDark, x, height + 0.05, z, 1.6, 0.22, 1.6).rotation.y = a;
-      const c = new THREE.Mesh(new THREE.OctahedronGeometry(0.4, 0), this.mats.crystal);
-      c.position.set(x, height + 0.7, z); c.scale.y = 1.6; this.scene.add(c);
-      const pool = new THREE.Mesh(new THREE.CircleGeometry(2.2, 20), new THREE.MeshBasicMaterial({ color: '#a7e860', transparent: true, opacity: 0.055, depthWrite: false }));
-      pool.rotation.x = -Math.PI / 2; pool.position.set(x, 0.065, z); this.scene.add(pool);
-      if (i % 3 === 0) this.createDeadTree(x + 2, z - 2, 2.3 + i * 0.1);
-    }
+    this.world = createTerrainWorld(this);
     // Drifting dust subtly establishes depth without texture downloads.
     const vertices = [];
-    for (let i = 0; i < 110; i++) vertices.push(rnd(-68, 68), rnd(0.3, 9), rnd(-68, 68));
+    for (let i = 0; i < 160; i++) { const x = rnd(-90, 90), z = rnd(-90, 90); vertices.push(x, this.groundHeight(x, z) + rnd(1, 12), z); }
     const dustGeo = new THREE.BufferGeometry(); dustGeo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
     this.batchStaticScenery();
     this.setStageMood(1, true);
@@ -276,6 +236,7 @@ export class Game {
     marker.rotation.x = -Math.PI / 2; marker.position.y = 0.1; this.player.add(marker);
     this.playerLight = new THREE.PointLight('#c3ff68', 2.5, 8, 2); this.playerLight.position.set(0, 2.5, 0); this.player.add(this.playerLight);
     this.player.rotation.y = -0.65;
+    decoratePlayer(this);
     this.resetTimers();
   }
 
@@ -374,6 +335,7 @@ export class Game {
       this.box(this.mats.enemyDark, .8, .9, 0, .12, 2.2, .12, visual);
       const focus = new THREE.Mesh(this.geo.xp, this.mats.healGlow); focus.scale.setScalar(2); focus.position.set(.8, 2.1, 0); visual.add(focus);
     }
+    decorateMonster(this, visual, kind, material);
     // Geometry is baked once per material and shared by every enemy of this kind.
     const byMaterial = new Map();
     visual.updateMatrixWorld(true);
@@ -407,7 +369,7 @@ export class Game {
     const visual = pooled?.visual || (this.enemyTemplates.get(kind) || this.createEnemyTemplate(kind)).clone();
     if (!visual.parent) group.add(visual);
     visual.position.set(0, 0, 0); visual.scale.setScalar(1); visual.visible = true;
-    group.position.set(x, 0, z); group.rotation.set(0, 0, 0);
+    group.position.set(x, this.groundHeight(x, z), z); group.rotation.set(0, 0, 0);
     const elite = !!options.elite, golden = !!options.golden;
     const size = (kind === 4 ? 3.1 : definition.size) * (elite ? 1.3 : golden ? 1.12 : options.splitChild ? .65 : options.minion ? .8 : 1);
     group.scale.setScalar(size); this.scene.add(group);
@@ -445,7 +407,7 @@ export class Game {
     this.scene.updateMatrixWorld(true);
     const groups = new Map();
     this.scene.traverse(mesh => {
-      if (!mesh.isMesh || mesh.isInstancedMesh) return;
+      if (!mesh.isMesh || mesh.isInstancedMesh || mesh.userData.noStaticBatch) return;
       const key = `${mesh.geometry.uuid}:${mesh.material.uuid}:${mesh.castShadow}:${mesh.receiveShadow}`;
       const entries = groups.get(key) || []; entries.push(mesh); groups.set(key, entries);
     });
@@ -487,15 +449,31 @@ export class Game {
     return result;
   }
 
+  groundHeight(x, z) { return this.world?.height(x, z) || 0; }
+
+  fitGroundMesh(mesh, offset = .14) {
+    if (!this.world) return;
+    mesh.updateWorldMatrix(true, false);
+    const positions = mesh.geometry.attributes.position;
+    const point = new THREE.Vector3(), inverse = mesh.matrixWorld.clone().invert();
+    for (let i = 0; i < positions.count; i++) {
+      point.fromBufferAttribute(positions, i).applyMatrix4(mesh.matrixWorld);
+      point.y = this.groundHeight(point.x, point.z) + offset;
+      point.applyMatrix4(inverse); positions.setXYZ(i, point.x, point.y, point.z);
+    }
+    positions.needsUpdate = true; mesh.geometry.computeBoundingSphere();
+  }
+
   spawnPosition(radiusMin = 12, radiusMax = 22) {
     let x, z;
     for (let attempt = 0; attempt < 16; attempt++) {
       const angle = Math.random() * TAU, radius = rnd(radiusMin, radiusMax);
       x = this.player.position.x + Math.sin(angle) * radius; z = this.player.position.z + Math.cos(angle) * radius;
-      if (Math.hypot(x, z) < ARENA_RADIUS - 2) return { x, z };
+      if (Math.hypot(x, z) < ARENA_RADIUS - 2 && (!this.world || this.world.isWalkable(x, z, 1.8))) return { x, z };
     }
     const towardCenter = this.player.position.clone().setY(0).normalize().multiplyScalar(-14);
-    return { x: this.player.position.x + towardCenter.x, z: this.player.position.z + towardCenter.z };
+    const fallback = this.player.position.clone().add(towardCenter); this.world?.resolve(fallback, 1.8);
+    return { x: fallback.x, z: fallback.z };
   }
 
   spawnBoss() {
@@ -520,15 +498,15 @@ export class Game {
 
   createBossTelegraph(boss, kind) {
     this.clearTelegraph(boss);
-    const geometry = kind === 'charge' ? new THREE.PlaneGeometry(3.2, 19) : new THREE.RingGeometry(0.1, 7.5, 48);
+    const geometry = kind === 'charge' ? new THREE.PlaneGeometry(3.2, 19, 1, 20) : new THREE.RingGeometry(0.1, 7.5, 48, 6);
     const material = new THREE.MeshBasicMaterial({ color: '#ff725d', transparent: true, opacity: 0.24, side: THREE.DoubleSide, depthWrite: false });
     const mesh = new THREE.Mesh(geometry, material); mesh.rotation.x = -Math.PI / 2;
-    mesh.position.copy(boss.group.position); mesh.position.y = 0.15;
+    mesh.position.copy(boss.group.position); mesh.position.y += 0.15;
     if (kind === 'charge') {
       mesh.rotation.z = Math.atan2(boss.chargeDirection.x, boss.chargeDirection.z);
       mesh.position.addScaledVector(boss.chargeDirection, 8);
     }
-    this.scene.add(mesh); boss.telegraph = mesh;
+    this.scene.add(mesh); this.fitGroundMesh(mesh, .15); boss.telegraph = mesh;
   }
 
   setupInput() {
@@ -676,7 +654,7 @@ export class Game {
   spawnAltar() {
     if (this.altar || !getCurseChoices(this.activeCurses).length) return null;
     const position = this.spawnPosition(8, 12), group = new THREE.Group();
-    group.position.set(position.x, 0, position.z);
+    group.position.set(position.x, this.groundHeight(position.x, position.z), position.z);
     this.box(this.mats.dark, 0, 0.25, 0, 1.6, 0.5, 1.6, group);
     this.box(this.mats.bossGlow, 0, 0.85, 0, 0.5, 1, 0.5, group).rotation.y = Math.PI / 4;
     const marker = new THREE.Mesh(this.geo.aura, this.mats.eliteAura);
@@ -733,7 +711,7 @@ export class Game {
 
   spawnChest(x, z) {
     const position = x == null ? this.spawnPosition(14, 22) : { x, z };
-    const group = new THREE.Group(); group.position.set(position.x, 0, position.z);
+    const group = new THREE.Group(); group.position.set(position.x, this.groundHeight(position.x, position.z), position.z);
     this.box(this.mats.dark, 0, 0.42, 0, 1.45, 0.8, 1.05, group);
     this.box(this.mats.gold, 0, 0.86, 0, 1.5, 0.18, 1.1, group);
     this.box(this.mats.gold, 0, 0.43, 0.54, 0.22, 0.44, 0.08, group);
@@ -827,6 +805,7 @@ export class Game {
     this.updateMood(dt);
     if (this.dust) this.dust.rotation.y += dt * 0.002;
     this.updateCamera(dt);
+    this.world?.updateOcclusion(this.player.position, this.camera.position, dt);
     this.renderer.render(this.scene, this.camera);
     if (time - this.lastUpdate > 100) { this.lastUpdate = time; this.emit(); }
     this.raf = requestAnimationFrame(this.loop);
@@ -853,6 +832,7 @@ export class Game {
     } else this.player.position.addScaledVector(direction, this.stats.speed * dt);
     const distance = Math.hypot(this.player.position.x, this.player.position.z);
     if (distance > ARENA_RADIUS) { this.player.position.x *= ARENA_RADIUS / distance; this.player.position.z *= ARENA_RADIUS / distance; }
+    this.world?.resolve(this.player.position, .65);
     this.playerVisual.position.y = moving ? Math.abs(Math.sin(s.elapsed * 13)) * 0.1 : Math.sin(s.elapsed * 3) * 0.025;
     this.legLeft.rotation.x = moving ? Math.sin(s.elapsed * 13) * 0.65 : 0; this.legRight.rotation.x = -this.legLeft.rotation.x;
     this.cape.rotation.x = -0.2 - (moving ? 0.3 : 0) + Math.sin(s.elapsed * 8) * 0.06;
@@ -874,6 +854,7 @@ export class Game {
     this.attackTimer -= dt;
     if (this.attackTimer <= 0) { this.attack(); this.attackTimer = 1 / Math.max(0.2, this.stats.attackRate * getSwordProfile(this.stats).attackRateMultiplier); }
     this.magic.update(dt);
+    this.world?.updateNavigation(this.player.position, s.elapsed);
     this.updateEnemies(dt);
     this.updateEnemyProjectiles(dt);
     this.bossSystem.updateEffects(dt);
@@ -940,12 +921,12 @@ export class Game {
   createEnemyTelegraph(enemy, shape, extent, color) {
     this.clearTelegraph(enemy);
     const line = shape === 'line';
-    const geometry = line ? new THREE.PlaneGeometry(enemy.kind === 8 ? .32 : 1.8, extent) : new THREE.RingGeometry(.1, extent, 32);
+    const geometry = line ? new THREE.PlaneGeometry(enemy.kind === 8 ? .32 : 1.8, extent, 1, Math.ceil(extent / 1.5)) : new THREE.RingGeometry(.1, extent, 32, 5);
     const material = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: .24, side: THREE.DoubleSide, depthWrite: false });
     const marker = new THREE.Mesh(geometry, material); marker.rotation.x = -Math.PI / 2;
-    marker.position.copy(enemy.group.position); marker.position.y = .14;
+    marker.position.copy(enemy.group.position); marker.position.y += .14;
     if (line) { marker.rotation.z = Math.atan2(enemy.aim.x, enemy.aim.z); marker.position.addScaledVector(enemy.aim, extent * .5); }
-    this.scene.add(marker); enemy.telegraph = marker;
+    this.scene.add(marker); this.fitGroundMesh(marker, .14); enemy.telegraph = marker;
   }
 
   removeEnemyWithoutReward(enemy) {
@@ -959,7 +940,7 @@ export class Game {
     for (let i = this.enemies.length - 1; i >= 0; i--) {
       const e = this.enemies[i]; if (!e || e.hp <= 0) continue;
       e.burnTime = Math.max(0, (e.burnTime || 0) - dt);
-      if (e.kind === 4) { this.updateBoss(e, dt); continue; }
+      if (e.kind === 4) { this.updateBoss(e, dt); this.world?.resolve(e.group.position, 1.4); continue; }
       const dx = pos.x - e.group.position.x, dz = pos.z - e.group.position.z, distance = Math.hypot(dx, dz);
       if (e.golden) {
         e.escapeTime -= dt;
@@ -970,7 +951,7 @@ export class Game {
       }
       if (distance > 42 && !e.guard && !e.golden) {
         const replacement = this.spawnPosition(20, 27);
-        e.group.position.x = replacement.x; e.group.position.z = replacement.z;
+        e.group.position.set(replacement.x, this.groundHeight(replacement.x, replacement.z), replacement.z);
         continue;
       }
       const stagger = Math.max(0, e.hitTime); e.hitTime -= dt;
@@ -1065,6 +1046,7 @@ export class Game {
           moveDistance = Math.hypot(moveX, moveZ);
         }
         if (moveDistance > 0.1) {
+          if (this.world && !lockedWarning) { const steer = this.world.steer(e.group.position, moveX, moveZ, Math.min(1.2, e.size * .4), e.seed); moveX = steer.x; moveZ = steer.z; moveDistance = 1; }
           e.group.position.x += moveX / moveDistance * speed * dt + (lockedWarning ? 0 : e.stagger.x * dt);
           e.group.position.z += moveZ / moveDistance * speed * dt + (lockedWarning ? 0 : e.stagger.z * dt);
           e.group.rotation.y = Math.atan2(moveX, moveZ);
@@ -1072,6 +1054,7 @@ export class Game {
       }
       const boundary = Math.hypot(e.group.position.x, e.group.position.z);
       if (boundary > ARENA_RADIUS) e.group.position.multiplyScalar(ARENA_RADIUS / boundary);
+      this.world?.resolve(e.group.position, Math.min(1.2, e.size * .4));
       e.stagger.multiplyScalar(Math.max(0, 1 - dt * 9));
       e.visual.position.y = Math.abs(Math.sin(this._state.elapsed * (e.kind === 1 ? 13 : 7) + e.seed)) * 0.12;
       e.visual.scale.setScalar(stagger > 0 ? 1 + stagger * 0.6 : 1);
@@ -1095,7 +1078,7 @@ export class Game {
     const slow = boss.slowTime > 0 ? Math.max(0.55, boss.slowFactor || 0.5) : 1;
     const enraged = boss.hp / boss.maxHp < 0.5;
     if (boss.mode === 'chase') {
-      if (distance > 2.5) { boss.group.position.x += dx / distance * boss.speed * slow * dt; boss.group.position.z += dz / distance * boss.speed * slow * dt; }
+      if (distance > 2.5) { const steer = this.world ? this.world.steer(boss.group.position, dx, dz, 1.4, 0) : { x: dx / distance, z: dz / distance }; boss.group.position.x += steer.x * boss.speed * slow * dt; boss.group.position.z += steer.z * boss.speed * slow * dt; }
       boss.group.rotation.y = Math.atan2(dx, dz);
       if (boss.actionTimer <= 0) {
         boss.actionIndex++;
@@ -1135,17 +1118,18 @@ export class Game {
     for (let i = 0; i < count && this.enemyProjectiles.length < 80; i++) {
       const angle = Math.atan2(aim.x, aim.z) + (i - (count - 1) / 2) * (options.spread || 0);
       const velocity = new THREE.Vector3(Math.sin(angle), 0, Math.cos(angle)).multiplyScalar(options.speed || 9);
-      const mesh = new THREE.Mesh(this.geo.enemyBolt, this.mats.enemyBolt); mesh.position.copy(position); mesh.position.y = 0.9; mesh.scale.setScalar(source.kind === 4 ? 1.35 : 1); this.scene.add(mesh);
+      const mesh = new THREE.Mesh(this.geo.enemyBolt, this.mats.enemyBolt); mesh.position.copy(position); mesh.position.y += 0.9; mesh.scale.setScalar(source.kind === 4 ? 1.35 : 1); this.scene.add(mesh);
       this.enemyProjectiles.push({ mesh, velocity, life: options.life || 5, cause: options.cause || `${source.name || '원거리 적'} ${source.kind === 8 ? '저격' : '투사체'}`, damage: (options.damage || getStageStats(this._state.stage).enemyDamage * 0.8) * (source.damageMultiplier || 1) });
     }
   }
 
   updateEnemyProjectiles(dt) {
     for (let i = this.enemyProjectiles.length - 1; i >= 0; i--) {
-      const p = this.enemyProjectiles[i]; p.life -= dt; p.mesh.position.addScaledVector(p.velocity, dt); p.mesh.rotation.y += dt * 4;
+      const p = this.enemyProjectiles[i]; p.life -= dt; p.mesh.position.addScaledVector(p.velocity, dt); p.mesh.position.y = this.groundHeight(p.mesh.position.x, p.mesh.position.z) + .9; p.mesh.rotation.y += dt * 4;
+      if (this.world && !this.world.isWalkable(p.mesh.position.x, p.mesh.position.z, .12)) p.life = 0;
       const dx = p.mesh.position.x - this.player.position.x, dz = p.mesh.position.z - this.player.position.z;
-      if (dx * dx + dz * dz < 1) { this.takeDamage(p.damage, p.mesh.position, p.cause); p.life = 0; }
-      if (p.life <= 0 || Math.hypot(p.mesh.position.x, p.mesh.position.z) > 72) { this.removeGroup(p.mesh); this.enemyProjectiles.splice(i, 1); }
+      if (p.life > 0 && dx * dx + dz * dz < 1) { this.takeDamage(p.damage, p.mesh.position, p.cause); p.life = 0; }
+      if (p.life <= 0 || Math.hypot(p.mesh.position.x, p.mesh.position.z) > ARENA_RADIUS + 10) { this.removeGroup(p.mesh); this.enemyProjectiles.splice(i, 1); }
     }
   }
 
@@ -1176,12 +1160,16 @@ export class Game {
     if (this.effects.length >= 120) return;
     const effect = this.acquireEffect('slash', profile.color);
     const mesh = effect.mesh;
-    mesh.geometry = this.swordGeometries.get(profile.mode) || this.geo.slash;
+    const template = this.swordGeometries.get(profile.mode) || this.geo.slash;
+    effect.groundGeometries ||= new Map();
+    if (!effect.groundGeometries.has(profile.mode)) { const geometry = template.clone(); geometry.parameters = { ...template.parameters }; effect.groundGeometries.set(profile.mode, geometry); this.ownedGeometries.add(geometry); }
+    mesh.geometry = effect.groundGeometries.get(profile.mode);
+    mesh.geometry.attributes.position.copy(template.attributes.position);
     // Ring theta=0 points along local +X. This transform maps it to the attack
     // direction in world X/Z, with exactly the same radius and arc as collision.
     mesh.rotation.set(-Math.PI / 2, 0, Math.atan2(direction.x, direction.z) - Math.PI / 2);
-    mesh.position.copy(this.player.position); mesh.position.y = 0.38;
-    mesh.scale.setScalar(profile.range);
+    mesh.position.copy(this.player.position); mesh.position.y += 0.38;
+    mesh.scale.setScalar(profile.range); this.fitGroundMesh(mesh, .38);
     Object.assign(effect, { life: 0.22, total: 0.22, type: 'slash', fixedScale: true }); this.effects.push(effect);
   }
 
@@ -1275,14 +1263,14 @@ export class Game {
   dropPickup(position, type, value) {
     if (this.pickups.length > 240) { const oldest = this.pickups.shift(); this.collectPickup(oldest, false); }
     const mesh = new THREE.Mesh(type === 'gold' ? this.geo.coin : this.geo.xp, type === 'gold' ? this.mats.gold : type === 'heal' ? this.mats.player : this.mats.xp);
-    mesh.position.copy(position); mesh.position.x += rnd(-0.6, 0.6); mesh.position.z += rnd(-0.6, 0.6); mesh.position.y = 0.4;
+    mesh.position.copy(position); mesh.position.x += rnd(-0.6, 0.6); mesh.position.z += rnd(-0.6, 0.6); mesh.position.y = this.groundHeight(mesh.position.x, mesh.position.z) + 0.4;
     if (type === 'heal') mesh.scale.setScalar(1.7);
     this.scene.add(mesh); this.pickups.push({ mesh, type, value, goldFactor: type === 'gold' ? this.stats.goldMultiplier * this.getThreat().goldMultiplier : null, age: 0, seed: Math.random() * TAU, collecting: false });
   }
   updatePickups(dt) {
     for (let i = this.pickups.length - 1; i >= 0; i--) {
       const p = this.pickups[i]; p.age += dt; p.mesh.rotation.y += dt * 2;
-      p.mesh.position.y = 0.35 + Math.sin(p.age * 4 + p.seed) * 0.09;
+      p.mesh.position.y = this.groundHeight(p.mesh.position.x, p.mesh.position.z) + 0.35 + Math.sin(p.age * 4 + p.seed) * 0.09;
       const dx = this.player.position.x - p.mesh.position.x, dz = this.player.position.z - p.mesh.position.z, distance = Math.hypot(dx, dz);
       if (distance < this.stats.magnet) p.collecting = true;
       if (p.collecting && distance > 0) {
@@ -1355,6 +1343,7 @@ export class Game {
     this.mats.ground.color.lerp(ground, amount); this.scene.fog.color.lerp(fog, amount); this.scene.background.lerp(fog, amount);
     this.hemi.color.lerp(sky, amount); this.mats.crystal.emissive.lerp(accent, amount); this.mats.crystal.color.lerp(accent, amount);
     this.floorGrid?.material.color.lerp(accent, amount);
+    if (this.world) { this.world.tint.copy(ground).lerp(this.world.white, .68); this.world.ground.material.color.lerp(this.world.tint, amount); }
   }
 
   acquireEffect(type, color) {
@@ -1411,17 +1400,17 @@ export class Game {
 
   updateCamera(dt) {
     const target = this._cameraPosition || (this._cameraPosition = new THREE.Vector3());
-    target.copy(this.player.position); target.y = 0.5;
+    target.copy(this.player.position); target.y += 0.5;
     // A broad arena view makes the crowd readable while retaining true perspective.
     const menuOffset = this._state.phase === 'menu' ? 3.5 : 0;
     const cameraTarget = this._cameraTarget || (this._cameraTarget = new THREE.Vector3());
-    cameraTarget.set(target.x + 20 - menuOffset, 26, target.z + 25 + menuOffset);
+    cameraTarget.set(target.x + 20 - menuOffset, target.y + 25.5, target.z + 25 + menuOffset);
     this.camera.position.lerp(cameraTarget, 1 - Math.exp(-dt * 4));
     if (this.shake > 0) { this.camera.position.x += rnd(-1, 1) * this.shake * 1.4; this.camera.position.z += rnd(-1, 1) * this.shake; }
     const lookTarget = this._lookTarget || (this._lookTarget = new THREE.Vector3());
-    lookTarget.set(target.x - menuOffset, 0.5, target.z + menuOffset);
+    lookTarget.set(target.x - menuOffset, target.y, target.z + menuOffset);
     this.camera.lookAt(lookTarget);
-    if (this.sunlight) { this.sunlight.position.set(target.x - 15, 35, target.z + 12); this.sunlight.target.position.set(target.x, 0, target.z); this.sunlight.target.updateMatrixWorld(); }
+    if (this.sunlight) { this.sunlight.position.set(target.x - 15, target.y + 34.5, target.z + 12); this.sunlight.target.position.set(target.x, target.y - .5, target.z); this.sunlight.target.updateMatrixWorld(); }
   }
   lerpAngle(a, b, t) { let difference = ((b - a + Math.PI) % TAU + TAU) % TAU - Math.PI; return a + difference * Math.min(1, t); }
   resize() {

@@ -64,7 +64,7 @@ $('#app').innerHTML = `
       <button class="nav-link" data-nav="history">런 기록 <span class="nav-count" id="history-count">${history.length.toString().padStart(2, '0')}</span></button>
       <button class="nav-link" data-nav="permanent">영구 강화</button>
     </nav>
-    <div class="header-actions"><span class="build-label"><i></i> BUILD YOUR LEGEND <b>v0.8.2</b></span><span class="header-divider"></span><button id="sound-toggle" class="icon-button" title="사운드 켜기" aria-label="사운드 켜기">${icon('muted')}</button><button id="settings" class="icon-button" title="설정" aria-label="설정">${icon('settings')}</button></div>
+    <div class="header-actions"><span class="build-label"><i></i> BUILD YOUR LEGEND <b>v0.9</b></span><span class="header-divider"></span><button id="sound-toggle" class="icon-button" title="사운드 켜기" aria-label="사운드 켜기">${icon('muted')}</button><button id="settings" class="icon-button" title="설정" aria-label="설정">${icon('settings')}</button></div>
   </header>
   <main class="page">
     <section class="page-intro">
@@ -339,6 +339,7 @@ function showGuide() {
     ['전장을 움직이고, 공격은 자동으로', '<kbd>W A S D</kbd> / 방향키로 이동, <kbd>SPACE</kbd>로 무적 대시. 모바일은 방향 버튼이나 전장 드래그를 사용합니다. 검은 <b>화면에 보이는 전방 궤적 안</b>의 적을 베며, 마법은 별도로 자동 시전합니다.'],
     ['검 범위도 선택으로 성장합니다', '기본 검은 가까운 적을 베는 무기입니다. <b>검 범위 강화</b>를 고르면 거리 +12%, 최대 8단계까지 늘어납니다. 검 공격력·속도·범위 강화 합계 <b>3단계</b>부터 대검 / 쌍검 / 검기 진화가 등장합니다. 한 런에는 하나의 검 진화를 고릅니다.'],
     ['마법을 키우고 조합을 완성하세요', '레벨업마다 강화 하나를 고릅니다. 검·마법 공격력은 각각 <b>20%</b>, 공격·시전 속도는 <b>8%</b>, 최대 체력은 <b>15%</b>씩 곱해 성장합니다. 마법은 5단계 뒤 진화합니다. <b>서리 + 검 범위 2단계</b>, <b>화염구 + 검기</b>, <b>번개 + 궤도 룬</b> 조합은 추가 공격을 발동합니다. <kbd>B</kbd>에서 조건과 효과를 확인하세요.'],
+    ['언덕과 폐허를 탐험하세요', '넓어진 전장에 언덕과 성당·집·감시탑·관문이 있습니다. 언덕을 오르고 폐허의 문으로 들어갈 수 있습니다. 벽과 탑은 돌아가야 하며, 시야를 가리는 가까운 건물은 흐려집니다.'],
     ['상자는 열자마자 보상을 선택합니다', '수호 몬스터를 처치하고 상자에 가까이 가면 <b>골드를 즉시 받고, 유물 3개 중 하나를 바로 선택</b>합니다. 정예의 유물 선택권과 보스의 유산은 다음 레벨업의 네 번째 선택 후보가 됩니다. 고른 효과만 적용되며, 선택 중에는 전투가 멈춥니다.'],
     ['위험과 보상을 직접 고르세요', '전장에 나타난 <b>저주 제단</b>에서 적을 더 강하게 만드는 대신 골드 배율을 높일 수 있습니다. 저주는 이번 런 동안 누적되며, <b>받지 않고 지나갈 수도 있습니다.</b> 층을 돌파하면 다음 층의 일반 / 정예 / 보물 경로를 고릅니다. 경로의 위험과 보상은 해당 층에만 적용됩니다.'],
     [`${STAGE_DURATION / 60}분 생존, 그리고 수호자 처치`, `각 층 <b>90초</b>에 보스가 등장합니다. <b>2분 생존 + 보스 처치</b>를 모두 달성해야 다음 층으로 갑니다. 다음 층의 기본 골드는 <b>10배</b>, 적 체력은 <b>1.7배</b>, 피해는 <b>1.35배</b>가 됩니다. <b>플레이어 능력치와 체력은 층 이동으로 자동 증가하지 않습니다.</b> ${MAX_STAGES}층의 수호자를 모두 쓰러뜨리세요.`],

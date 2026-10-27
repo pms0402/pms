@@ -182,7 +182,7 @@ export class MagicSystem {
       const mesh = this.projectilePool.pop() || this.createFireballMesh();
       const shell = mesh.children[0];
       mesh.rotation.set(0, 0, 0); shell.scale.setScalar(evolved ? 1.35 : 1);
-      mesh.position.copy(origin); mesh.position.y = 1;
+      mesh.position.copy(origin); mesh.position.y += 1;
       this.scene.add(mesh);
       this.projectiles.push({ mesh, target: next, direction, life: 1.8, trailTimer: 0, rank, evolved, damage: this.damage('fireball') * 1.1 * (1 + 0.16 * (rank - 1)), radius: (3.3 + 0.35 * (rank - 1)) * this.area() });
     }
@@ -239,6 +239,8 @@ export class MagicSystem {
         projectile.direction.lerp(desired, 1 - Math.exp(-dt * 9)).normalize();
       }
       projectile.mesh.position.addScaledVector(projectile.direction, dt * 20);
+      projectile.mesh.position.y = (this.game.groundHeight?.(projectile.mesh.position.x, projectile.mesh.position.z) ?? this.game.player.position.y) + 1;
+      if (this.game.world && !this.game.world.isWalkable(projectile.mesh.position.x, projectile.mesh.position.z, .1)) projectile.life = 0;
       projectile.mesh.rotation.z += dt * 6; projectile.mesh.rotation.y += dt * 4;
       if (projectile.trailTimer <= 0) {
         this.spark(projectile.mesh.position, 'fireball', 0.18, 0.75);
@@ -272,7 +274,7 @@ export class MagicSystem {
     }
     if (evolved && this.zones.length < 12) {
       const marker = new THREE.Mesh(this.geometry.ring, this.material.frost);
-      marker.rotation.x = -Math.PI / 2; marker.position.copy(origin); marker.position.y = 0.15; marker.scale.setScalar(radius);
+      marker.rotation.x = -Math.PI / 2; marker.position.copy(origin); marker.position.y = origin.y + 0.15; marker.scale.setScalar(radius);
       this.scene.add(marker);
       this.zones.push({ type: 'blizzard', position: origin.clone(), radius, damage: damage * 0.25, life: 2.4, tick: 0.5, marker });
     }
@@ -291,7 +293,7 @@ export class MagicSystem {
     const hit = new Set();
     let previous = origin.clone(), target = first;
     for (let index = 0; index < count && target; index++) {
-      const point = target.group.position.clone(); point.y = 1;
+      const point = target.group.position.clone(); point.y += 1;
       this.lightningLine(previous, point, evolved ? 0.4 : 0.26, index === 0 ? 1 : 0.8);
       hit.add(target); this.hit(target, damage * Math.max(0.65, 1 - index * 0.05), previous, 0, 0.5, 'magic', 'lightning');
       if (evolved && index > 0) this.lightningLine(origin, point, 0.2, 0.35);
@@ -329,7 +331,7 @@ export class MagicSystem {
       const angle = this.time * (evolved ? 2 : 1.7) + index / this.orbs.length * TAU;
       const orb = this.orbs[index];
       orb.position.copy(this.game.player.position); orb.position.x += Math.cos(angle) * radius; orb.position.z += Math.sin(angle) * radius;
-      orb.position.y = 0.95 + Math.sin(this.time * 3 + index) * 0.12;
+      orb.position.y = this.game.player.position.y + 0.95 + Math.sin(this.time * 3 + index) * 0.12;
       orb.rotation.y += dt * 2.4; orb.rotation.z += dt * 1.4;
     }
     let hitAny = false;
@@ -414,7 +416,7 @@ export class MagicSystem {
     const poolKey = `ring:${id}`;
     const mesh = this.meshPools.get(poolKey)?.pop() || new THREE.Mesh(this.geometry.ring, this.material[id].clone());
     mesh.material.opacity = opacity;
-    mesh.rotation.x = -Math.PI / 2; mesh.position.copy(position); mesh.position.y = 0.16;
+    mesh.rotation.x = -Math.PI / 2; mesh.position.copy(position); mesh.position.y = (this.game.groundHeight?.(position.x, position.z) ?? position.y ?? 0) + 0.16;
     mesh.scale.setScalar(radius * 0.2);
     this.addEffect({ mesh, type: 'ring', life, total: life, radius, opacity, ownedMaterial: true, poolKey });
   }
@@ -430,7 +432,7 @@ export class MagicSystem {
       const mesh = this.meshPools.get(poolKey)?.pop() || new THREE.Mesh(this.geometry.spark, this.material[id]);
       const angle = index / count * TAU;
       mesh.scale.setScalar(1);
-      mesh.position.copy(position); mesh.position.x += Math.cos(angle) * spread; mesh.position.z += Math.sin(angle) * spread; mesh.position.y = 0.6;
+      mesh.position.copy(position); mesh.position.x += Math.cos(angle) * spread; mesh.position.z += Math.sin(angle) * spread; mesh.position.y = (this.game.groundHeight?.(mesh.position.x, mesh.position.z) ?? position.y ?? 0) + 0.6;
       this.addEffect({ mesh, type: 'particle', life: 0.45, total: 0.45, velocity: new THREE.Vector3(Math.cos(angle) * 5, 2 + index % 3, Math.sin(angle) * 5), poolKey });
     }
   }
@@ -445,7 +447,7 @@ export class MagicSystem {
     const positions = mesh.geometry.attributes.position;
     for (let index = 0; index <= 8; index++) {
       const point = this.scratch.copy(start).lerp(end, index / 8);
-      point.y = 1 + Math.sin(index * 1.7) * 0.2;
+      point.y += 1 + Math.sin(index * 1.7) * 0.2;
       if (index && index < 8) { point.x += Math.sin(index * 13.7 + this.time) * 0.5; point.z += Math.cos(index * 9.1 + this.time) * 0.5; }
       positions.setXYZ(index, point.x, point.y, point.z);
     }

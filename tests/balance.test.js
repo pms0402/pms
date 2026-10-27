@@ -19,7 +19,7 @@ test('two-minute stages, late bosses and four times the previous map area', () =
   assert.equal(BOSS_SPAWN_TIME, 90);
   assert.ok(BOSS_SPAWN_TIME < STAGE_DURATION);
   assert.equal(MAX_STAGES, 10);
-  assert.equal(ARENA_RADIUS ** 2 / 31 ** 2, 4);
+  assert.equal(ARENA_RADIUS, 90);
 });
 
 test('monster curves remain independent of player stats with earned gold x10 per floor', () => {

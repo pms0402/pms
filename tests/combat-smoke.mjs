@@ -25,7 +25,7 @@ async function freshRun() {
 }
 
 try {
-  assert.equal(ARENA_RADIUS, 62);
+  assert.equal(ARENA_RADIUS, 90);
   assert.equal(STAGE_DURATION, 120);
   assert.equal(BOSS_SPAWN_TIME, 90);
   await freshRun();
@@ -43,7 +43,7 @@ try {
   });
   assert.ok(traversal.radius > 31 && traversal.radius <= ARENA_RADIUS, 'the player can traverse beyond the old map boundary');
   assert.ok(Math.abs(traversal.projected[0]) < 0.2 && Math.abs(traversal.projected[1]) < 0.3, 'camera follows player on the enlarged map');
-  console.log('PASS enlarged arena: 4× area, old boundary traversable, camera follows');
+  console.log('PASS enlarged terrain arena: radius90, old boundary traversable, camera follows');
 
   await freshRun();
   await page.evaluate(() => {
