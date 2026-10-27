@@ -68,6 +68,37 @@ test('upgrade prices rise smoothly and completed upgrades cannot be bought again
   }
 });
 
+test('late purchases charge the announced large price without changing saved levels or receipts', () => {
+  const saved = normalizeProgress({ bank: 100000000, lifetimeGold: 1000000000000,
+    upgrades: { power: 49, arcana: 32, bladeReach: 19 }, settledRunIds: ['previously-settled'],
+    unlocks: { characters: ['wanderer', 'arcanist'], weapons: ['voidblade', 'greatsword'] },
+    loadout: { character: 'arcanist', weapon: 'greatsword' } });
+  const snapshot = structuredClone(saved), bonuses = getPermanentBonuses(saved);
+  const offer = getPermanentUpgradeOffers(saved).find(item => item.id === 'power');
+  assert.equal(offer.cost, 300000000000);
+  assert.equal(offer.canAfford, false);
+  const blocked = purchasePermanentUpgrade(saved, 'power');
+  assert.equal(blocked.reason, 'insufficient_gold');
+  assert.deepEqual(blocked.progress, snapshot);
+  assert.deepEqual(getPermanentBonuses(blocked.progress), bonuses, 'new prices never revoke existing paid effects');
+  assert.deepEqual(normalizeProgress(JSON.parse(JSON.stringify(saved))), snapshot, 'loading a save does not recalculate its paid levels');
+
+  const funded = normalizeProgress({ ...saved, bank: 1000000000000 });
+  const bought = purchasePermanentUpgrade(funded, 'power');
+  assert.equal(bought.success, true);
+  assert.equal(bought.cost, offer.cost);
+  assert.equal(bought.progress.bank, 700000000000);
+  assert.equal(bought.progress.upgrades.power, 50);
+  assert.equal(bought.progress.upgrades.arcana, saved.upgrades.arcana);
+  assert.equal(bought.progress.upgrades.bladeReach, saved.upgrades.bladeReach);
+  assert.equal(bought.progress.lifetimeGold, funded.lifetimeGold);
+  assert.deepEqual(bought.progress.settledRunIds, funded.settledRunIds);
+  assert.deepEqual(bought.progress.loadout, funded.loadout);
+  assert.deepEqual(bought.progress.unlocks, funded.unlocks);
+  assert.equal(settleRun(bought.progress, { runId: 'previously-settled', gold: 999999999 }).duplicate, true);
+  assert.deepEqual(saved, snapshot, 'neither blocked nor successful purchases mutate the original save');
+});
+
 test('permanent bonuses compound and independently affect the intended starting stat', () => {
   assert.deepEqual(getPermanentBonuses(createProgress()), { damageMultiplier: 1, spellDamageMultiplier: 1, maxHpMultiplier: 1, attackRateMultiplier: 1, spellRateMultiplier: 1, swordRangeMultiplier: 1, spellAreaMultiplier: 1, armorBonus: 0, magnetMultiplier: 1, goldMultiplier: 1, characterId: 'wanderer', weaponId: 'voidblade' });
   assert.deepEqual(getPermanentBonuses({ upgrades: { power: 2, vitality: 2, haste: 2, armor: 2, magnet: 2, fortune: 2 } }), {

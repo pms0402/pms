@@ -61,7 +61,9 @@ export class MagicSystem {
     const rank = this.rank(id);
     const haste = Math.max(0.7, Math.min(12, this.game.stats.spellRate / 1.5 || 1));
     if (id === 'fireball') return (1.5 - Math.max(0, rank - 1) * 0.1) / haste;
-    if (id === 'frost') return (5 - Math.max(0, rank - 1) * 0.3) / haste;
+    // Frost controls a crowd rather than replacing the other damage spells.
+    // Its own haste ceiling and minimum interval leave room to approach.
+    if (id === 'frost') return Math.max(2.75, (6 - Math.max(0, rank - 1) * 0.25) / Math.min(2, haste));
     if (id === 'lightning') return (3 - Math.max(0, rank - 1) * 0.18) / haste;
     return 0.6 / haste;
   }
@@ -76,17 +78,25 @@ export class MagicSystem {
     return result;
   }
 
-  hit(enemy, damage, origin, slowTime = 0, slowFactor = 0.5, source = 'magic', spellId = null) {
+  hit(enemy, damage, origin, slowTime = 0, slowFactor = 0.5, source = 'magic', spellId = null, impact = null) {
     if (!this.isAlive(enemy)) return;
     if (slowTime > 0) {
-      enemy.slowTime = Math.max(enemy.slowTime || 0, slowTime);
-      enemy.slowFactor = Math.min(enemy.slowFactor || 1, slowFactor);
+      const active = enemy.slowTime > 0;
+      const currentFactor = active ? enemy.slowFactor || 1 : 1;
+      if (!active || slowFactor < currentFactor) {
+        enemy.slowTime = slowTime;
+        enemy.slowFactor = slowFactor;
+      } else if (slowFactor === currentFactor) {
+        enemy.slowTime = Math.max(enemy.slowTime, slowTime);
+      }
+      // A weaker zone tick cannot extend a stronger pulse's slow duration.
     }
     const direction = this.hitDirection.copy(enemy.group.position).sub(origin).setY(0);
     if (direction.lengthSq() < 0.001) direction.set(0, 0, 1);
     direction.normalize();
     this.hits++;
-    this.game.hitEnemy(enemy, damage, direction, source, spellId);
+    this.game.hitEnemy(enemy, damage, direction, source, spellId,
+      impact || (spellId === 'frost' ? { knockbackScale: 0, hitStun: 0 } : undefined));
   }
 
   resetEnemyStatus(enemy) {
@@ -129,7 +139,8 @@ export class MagicSystem {
       let hits = 0;
       for (const target of this.query(origin, radius)) {
         if (target === enemy || !this.isAlive(target) || this.distanceSquared(origin, target.group.position) > radius ** 2) continue;
-        this.hit(target, damage, origin, 0, 0.5, 'combo');
+        this.hit(target, damage, origin, 0, 0.5, 'combo', null,
+          frost ? { knockbackScale: 0, hitStun: 0 } : null);
         if (++hits >= 6) break;
       }
       this.recordCombo(combo.id);
@@ -257,13 +268,13 @@ export class MagicSystem {
     this.particles(origin, 'frost', 10, radius * 0.6);
     for (const enemy of this.query(origin, radius)) {
       if (!this.isAlive(enemy)) continue;
-      if (this.distanceSquared(origin, enemy.group.position) <= radius ** 2) this.hit(enemy, damage, origin, evolved ? 3 : 2, evolved ? 0.3 : 0.5, 'magic', 'frost');
+      if (this.distanceSquared(origin, enemy.group.position) <= radius ** 2) this.hit(enemy, damage, origin, evolved ? 1.8 : 1.4, evolved ? 0.45 : 0.6, 'magic', 'frost');
     }
     if (evolved && this.zones.length < 12) {
       const marker = new THREE.Mesh(this.geometry.ring, this.material.frost);
       marker.rotation.x = -Math.PI / 2; marker.position.copy(origin); marker.position.y = 0.15; marker.scale.setScalar(radius);
       this.scene.add(marker);
-      this.zones.push({ type: 'blizzard', position: origin.clone(), radius, damage: damage * 0.25, life: 3.5, tick: 0.5, marker });
+      this.zones.push({ type: 'blizzard', position: origin.clone(), radius, damage: damage * 0.25, life: 2.4, tick: 0.5, marker });
     }
     this.spellsCast.frost++;
     this.cooldowns.frost = this.maxCooldown('frost');
@@ -374,9 +385,9 @@ export class MagicSystem {
       } else if (zone.type === 'blizzard' && zone.tick <= 0) {
         for (const enemy of this.query(zone.position, zone.radius)) {
           if (!this.isAlive(enemy)) continue;
-          if (this.distanceSquared(zone.position, enemy.group.position) <= zone.radius ** 2) this.hit(enemy, zone.damage, zone.position, 1, 0.3, 'magic', 'frost');
+          if (this.distanceSquared(zone.position, enemy.group.position) <= zone.radius ** 2) this.hit(enemy, zone.damage, zone.position, 0.7, 0.7, 'magic', 'frost');
         }
-        this.ring(zone.position, zone.radius, 'frost', 0.45, 0.22); zone.tick = 0.65;
+        this.ring(zone.position, zone.radius, 'frost', 0.45, 0.22); zone.tick = 0.9;
       }
       if (zone.marker) zone.marker.rotation.z += dt * 0.1;
       if (zone.life <= 0) { zone.marker?.removeFromParent(); this.zones.splice(index, 1); }

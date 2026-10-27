@@ -18,7 +18,9 @@
     "test:growth": "node tests/growth-smoke.mjs",
     "test:encounters": "node tests/encounter-smoke.mjs",
     "test:manual-growth": "node tests/manual-growth-smoke.mjs",
-    "test:builds": "node tests/builds-smoke.mjs"
+    "test:builds": "node tests/builds-smoke.mjs",
+    "test:frost": "node tests/frost-smoke.mjs",
+    "test:economy-scale": "node tests/economy-scale-smoke.mjs"
   },
   "dependencies": {
     "@fontsource-variable/noto-sans-kr": "5.2.10",

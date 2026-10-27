@@ -48,9 +48,11 @@ try {
   await freshRun();
   await page.evaluate(() => {
     const game = window.__game;
-    game.spawnTimer = 1e6;
+    game.spawnTimer = 1e6; game.stats.critChance = 0;
+    // Keep the XP fixture inside the measured 2.8m sword sector instead of
+    // relying on random critical fireballs against an out-of-reach pack.
     for (let i = 0; i < 7; i++) {
-      const enemy = game.spawnEnemy(3.2 + i * .1, (i - 3) * .15, 0);
+      const enemy = game.spawnEnemy(2 + i * .05, (i - 3) * .1, 0);
       enemy.speed = 0;
     }
     game.stepForTest(8);
@@ -93,7 +95,7 @@ try {
     if (id === 'fireball') assert.ok(result.debug.hits >= 2, 'fireball explosion damages a nearby second enemy');
     if (id === 'frost') {
       assert.ok(result.slowTime > 1, 'frost applies a lasting slow');
-      assert.ok(result.slowMovement > .15 && result.slowMovement < .25, 'enemy movement consumes the 50% frost slow');
+      assert.ok(result.slowMovement > .23 && result.slowMovement < .25, 'enemy movement consumes the 40% frost slow');
     }
     if (id === 'lightning') assert.ok(result.debug.hits >= 3, 'lightning chains across three separated enemies');
     if (id === 'orbit') assert.equal(result.debug.activeOrbit, 2, 'base orbit owns two moving runes');

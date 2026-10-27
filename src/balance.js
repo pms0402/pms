@@ -72,20 +72,20 @@ export function formatGold(value = 0) {
 
 export const SPELLS = [
   { id: 'fireball', name: '화염구', description: '가까운 적을 향해 날아가 폭발하는 화염구.', icon: 'flame', color: '#ff9363', evolutionName: '태양의 격노', maxRank: 5 },
-  { id: 'frost', name: '서리 파동', description: '주변 적에게 피해를 주고 2초 동안 50% 둔화.', icon: 'snowflake', color: '#87dcff', evolutionName: '영원의 눈보라', maxRank: 5 },
+  { id: 'frost', name: '서리 파동', description: '주변 적에게 피해를 주고 1.4초 동안 40% 둔화. 넉백 없음 · 기본 재사용 6초.', icon: 'snowflake', color: '#87dcff', evolutionName: '영원의 눈보라', maxRank: 5 },
   { id: 'lightning', name: '연쇄 번개', description: '여러 적 사이를 도약하는 자동 연쇄 번개.', icon: 'bolt', color: '#d4b5ff', evolutionName: '폭풍의 심판', maxRank: 5 },
   { id: 'orbit', name: '궤도 룬', description: '몸 주위를 회전하며 가까운 적을 타격하는 룬.', icon: 'orbit', color: '#a8ffc3', evolutionName: '공허의 성좌', maxRank: 5 },
 ];
 
 const SPELL_UPGRADES = {
   fireball: '화염구 피해와 폭발 범위 증가 · 재사용 시간 감소',
-  frost: '서리 피해와 범위 증가 · 재사용 시간 감소',
+  frost: '서리 피해와 범위 증가 · 재사용 시간 감소 (최소 2.75초) · 넉백 없음',
   lightning: '번개 피해 증가 · 성장에 따라 추가 적에게 도약',
   orbit: '룬 피해와 궤도 범위 증가 · 성장에 따라 룬 추가',
 };
 const EVOLUTIONS = {
   fireball: '화염구를 3연속 발사하고 폭발의 여진을 남깁니다.',
-  frost: '눈보라를 남기며 적을 70% 둔화시킵니다.',
+  frost: '파동은 1.8초 동안 55% 둔화 · 남은 눈보라는 30% 둔화 · 넉백 없음',
   lightning: '가지치는 두 갈래 번개가 더 많은 적을 타격합니다.',
   orbit: '룬 3개 추가 · 궤도 확대 · 광역 파동 발생',
 };

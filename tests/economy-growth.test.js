@@ -19,7 +19,7 @@ test('an early 1000-gold wallet buys broad, immediately meaningful permanent gro
     if (!bought) break;
   }
   const bonuses = getPermanentBonuses(progress);
-  assert.ok(purchased >= 25, `${purchased} purchases should be possible without an exponential price wall`);
+  assert.ok(purchased >= 25, `${purchased} purchases should preserve accessible early growth`);
   assert.ok(bonuses.damageMultiplier * bonuses.attackRateMultiplier >= 2, 'sword DPS at least doubles from bought upgrades');
   assert.ok(bonuses.spellDamageMultiplier * bonuses.spellRateMultiplier >= 2, 'magic DPS independently doubles');
   assert.ok(bonuses.maxHpMultiplier >= 1.7, 'health purchases noticeably improve survival');
@@ -43,23 +43,56 @@ test('higher combat levels keep compounding instead of adding negligible percent
   assert.equal(magic.attackRateMultiplier, 1);
 });
 
-test('late upgrade prices rise smoothly and remain payable without astronomical costs', () => {
+test('all branches keep their first five prices and scale late ranks to floor-sized income', () => {
   for (const definition of PERMANENT_UPGRADES) {
     let previous = 0;
-    const first = getPermanentUpgradeOffers({}).find(offer => offer.id === definition.id).cost;
     for (let level = 0; level < definition.maxLevel; level++) {
       const offer = getPermanentUpgradeOffers({ upgrades: { [definition.id]: level } }).find(offer => offer.id === definition.id);
       assert.ok(Number.isSafeInteger(offer.cost) && offer.cost > previous, `${definition.id} prices must be positive and increase`);
-      assert.ok(offer.cost <= 1000, `${definition.id} still affordable at level ${level}`);
-      if (level > 0) assert.ok(offer.cost / previous < 1.35, 'no repeated 60% cost jumps');
+      if (level <= 4) assert.equal(offer.cost, Math.ceil(definition.baseCost * (1 + .22 * level + .018 * level ** 2)), `${definition.id} early prices are retained`);
+      if (level > 0) assert.ok(offer.cost / previous < 5, `${definition.id} avoids a compressed anchor's abrupt price jump`);
       previous = offer.cost;
     }
-    assert.ok(previous / first <= 55, 'max-level prices grow polynomially instead of billions of times');
+    assert.equal(previous, definition.baseCost * 2.5e10, `${definition.id} final purchase belongs to the late-game price band`);
+    assert.ok(previous >= 250000000000 && previous <= 600000000000);
   }
 });
 
+test('long combat trees follow explicit 10-rank late-game price landmarks', () => {
+  for (const [level, expected] of [[9, 3000], [19, 300000], [29, 30000000], [39, 3000000000], [49, 300000000000]]) {
+    for (const id of ['power', 'arcana']) {
+      const offer = getPermanentUpgradeOffers({ upgrades: { [id]: level } }).find(item => item.id === id);
+      assert.equal(offer.cost, expected, `${id} rank ${level + 1} cost`);
+    }
+  }
+});
+
+test('a mid-floor 100-million-gold wallet cannot complete a combat node or the whole tree', () => {
+  let sword = settleRun(createProgress(), { runId: 'mid-floor-sword', gold: 100000000 }).progress;
+  while (true) {
+    const purchase = purchasePermanentUpgrade(sword, 'power');
+    if (!purchase.success) break;
+    sword = purchase.progress;
+  }
+  assert.ok(sword.upgrades.power >= 25 && sword.upgrades.power < 40, 'mid-floor money still buys substantial growth before the late ranks');
+  assert.ok(getPermanentUpgradeOffers(sword).find(item => item.id === 'power').cost > sword.bank);
+
+  let balanced = settleRun(createProgress(), { runId: 'mid-floor-balanced', gold: 100000000 }).progress;
+  for (let round = 0; round < 50; round++) {
+    let bought = false;
+    for (const node of PERMANENT_UPGRADES) {
+      const purchase = purchasePermanentUpgrade(balanced, node.id);
+      if (purchase.success) { balanced = purchase.progress; bought = true; }
+    }
+    if (!bought) break;
+  }
+  assert.ok(PERMANENT_UPGRADES.every(node => balanced.upgrades[node.id] < node.maxLevel), 'no branch can be cheaply maxed while buying the tree');
+  assert.ok(balanced.bank >= 0 && balanced.bank < 100000000);
+  assert.equal(balanced.lifetimeGold, 100000000);
+});
+
 test('offer percentages match actual compounded bonuses before and after a purchase', () => {
-  const before = normalizeProgress({ bank: 1000, upgrades: { power: 9, arcana: 3, vitality: 4, haste: 2 } });
+  const before = normalizeProgress({ bank: 1000000000000, upgrades: { power: 9, arcana: 3, vitality: 4, haste: 2 } });
   for (const [id, multiplier] of [['power', 'damageMultiplier'], ['arcana', 'spellDamageMultiplier'], ['vitality', 'maxHpMultiplier'], ['haste', 'attackRateMultiplier']]) {
     const offer = getPermanentUpgradeOffers(before).find(item => item.id === id);
     const purchase = purchasePermanentUpgrade(before, id);

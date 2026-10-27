@@ -1183,7 +1183,7 @@ export class Game {
     }
   }
 
-  hitEnemy(enemy, damage, direction = UP, source = 'sword', spellId = null) {
+  hitEnemy(enemy, damage, direction = UP, source = 'sword', spellId = null, impact = null) {
     if (!enemy || enemy.hp <= 0 || !this.activeEnemies.has(enemy)) return false;
     const comboBonus = source === 'sword' && this._state.combo >= 10 ? this.stats.comboCritBonus || 0 : 0;
     const critical = source !== 'explosion' && Math.random() < Math.min(0.65, this.stats.critChance + comboBonus);
@@ -1193,8 +1193,13 @@ export class Game {
     this.floatText(`${critical ? '✦ ' : ''}${Math.round(dealt).toLocaleString('en-US')}`, enemy.group.position, critical ? '#eeffad' : '#f1f4dc', critical ? 1.35 : 1, 1.65);
     const bucket = ['fireball', 'frost', 'lightning', 'orbit'].includes(spellId) ? spellId : ['sword', 'combo'].includes(source) ? source : 'other';
     this.runReport.damageBySource[bucket] += Math.min(enemy.hp, dealt);
-    enemy.hp -= dealt; enemy.hitTime = 0.16;
-    enemy.stagger.copy(direction).setY(0).multiplyScalar(enemy.kind === 4 ? 0.4 : critical ? 12 : 7);
+    enemy.hp -= dealt;
+    const hitStun = Number.isFinite(impact?.hitStun) ? clamp(impact.hitStun, 0, 0.16) : 0.16;
+    const knockbackScale = Number.isFinite(impact?.knockbackScale) ? clamp(impact.knockbackScale, 0, 1) : 1;
+    enemy.hitTime = Math.max(enemy.hitTime || 0, hitStun);
+    // Frost controls movement through its timed slow. Its repeated area hits
+    // must not restart hit stun or add a push; an earlier sword hit still decays.
+    if (knockbackScale > 0) enemy.stagger.copy(direction).setY(0).multiplyScalar((enemy.kind === 4 ? 0.4 : critical ? 12 : 7) * knockbackScale);
     this.puff(enemy.group.position, critical ? '#fff6ba' : '#c3f788', critical ? 0.7 : 0.35, 0.22);
     if (critical) { this.shake = Math.max(this.shake, 0.045); this.sound('critical'); }
     if (enemy.hp > 0) {

@@ -1,7 +1,7 @@
 const MAX_SAFE = Number.MAX_SAFE_INTEGER;
 const RECEIPT_LIMIT = 200;
 
-/** Core combat upgrades compound; affordable quadratic costs keep each run rewarding. */
+/** Core combat upgrades compound; early prices stay accessible and later ranks track floor income. */
 export const PERMANENT_UPGRADES = [
   { id: 'power', branch: 'sword', requires: [], name: '검술의 뿌리', description: '단계마다 검 공격력 ×1.12 · 마법과 독립 성장', icon: 'sword', maxLevel: 50, baseCost: 12, increment: 12, compound: true, unit: '%' },
   { id: 'haste', branch: 'sword', requires: [{ id: 'power', level: 1 }], name: '연속 베기', description: '단계마다 검 공격 속도 ×1.025', icon: 'sword', maxLevel: 40, baseCost: 18, increment: 2.5, compound: true, unit: '%' },
@@ -111,9 +111,37 @@ export function createProgress(history = []) {
   return result;
 }
 
+const FIRST_LATE_LEVEL = 4;
+const FIRST_LATE_FACTOR = 1 + 0.22 * FIRST_LATE_LEVEL + 0.018 * FIRST_LATE_LEVEL ** 2;
+const FINAL_COST_FACTOR = 2.5e10;
+const COST_ANCHORS = [[4, FIRST_LATE_FACTOR], [9, 250], [19, 25000], [29, 2.5e6], [39, 2.5e8], [49, FINAL_COST_FACTOR]];
+
+function interpolateCostFactor(level, lowerLevel, lowerFactor, upperLevel, upperFactor) {
+  // Return authored landmarks exactly instead of introducing floating-point
+  // rounding into their integer prices.
+  if (level === upperLevel) return upperFactor;
+  return lowerFactor * (upperFactor / lowerFactor) ** ((level - lowerLevel) / (upperLevel - lowerLevel));
+}
+
 function upgradeCost(definition, level) {
   if (level >= definition.maxLevel) return null;
-  return Math.min(MAX_SAFE, Math.ceil(definition.baseCost * (1 + 0.22 * level + 0.018 * level ** 2)));
+  let factor = 1 + 0.22 * level + 0.018 * level ** 2;
+  if (level > FIRST_LATE_LEVEL) {
+    if (definition.maxLevel < 50) {
+      // Short utility trees reach the same final price band with a constant
+      // ratio, avoiding a compressed landmark's sudden 17-fold price jump.
+      factor = interpolateCostFactor(level, FIRST_LATE_LEVEL, FIRST_LATE_FACTOR, definition.maxLevel - 1, FINAL_COST_FACTOR);
+    } else {
+      for (let index = 1; index < COST_ANCHORS.length; index++) {
+        const [upperLevel, upperFactor] = COST_ANCHORS[index];
+        if (level > upperLevel) continue;
+        const [lowerLevel, lowerFactor] = COST_ANCHORS[index - 1];
+        factor = interpolateCostFactor(level, lowerLevel, lowerFactor, upperLevel, upperFactor);
+        break;
+      }
+    }
+  }
+  return Math.min(MAX_SAFE, Math.ceil(definition.baseCost * factor));
 }
 
 function upgradeBonus(definition, level) {
