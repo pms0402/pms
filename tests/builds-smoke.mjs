@@ -200,7 +200,7 @@ try {
   await fresh();
   const routeBaseline = await page.evaluate(() => {
     const game = window.__game, random = Math.random; const before = JSON.stringify(game.stats), hp = game.state.hp;
-    try { Math.random = () => .5; const boss = game.spawnBoss(); game.hitEnemy(boss, boss.hp + 1); } finally { Math.random = random; }
+    try { Math.random = () => .5; const boss = game.spawnBoss(); game.hitEnemy(boss, boss.hp + 1); if (game.equipment?.rewardQueue.length) { game.equipment.nextReward(); document.querySelector('[data-equipment-choice="skip"]')?.click(); } } finally { Math.random = random; }
     game._state.stageTime = game.state.stageDuration;
     if (!game.nextStage()) throw new Error('A cleared completed floor should offer a route');
     return { before, hp, stage: game.state.stage, phase: game.state.phase };
@@ -247,7 +247,7 @@ try {
   await fresh();
   const boundary = await page.evaluate(() => {
     const game = window.__game;
-    const boss = game.spawnBoss(); game.hitEnemy(boss, boss.hp + 1);
+    const boss = game.spawnBoss(); game.hitEnemy(boss, boss.hp + 1); if (game.equipment?.rewardQueue.length) { game.equipment.nextReward(); document.querySelector('[data-equipment-choice="skip"]')?.click(); }
     const chest = game.spawnChest(0, 0); for (const guard of chest.guards) game.hitEnemy(guard, guard.hp + 1);
     game._state.xp = game._state.xpNeeded; game._state.stageTime = game.state.stageDuration;
     const level = game.state.level; game.tick(.01);

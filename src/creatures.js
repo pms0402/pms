@@ -104,10 +104,10 @@ export function animatePlayerModel(game,time,moving,dt) {
  joint(game.kneeRight,'x',.08+Math.max(0,Math.sin(state.phase))**2*.5*stride);
  joint(game.footLeft,'x',-(game.legLeft.rotation.x+game.kneeLeft.rotation.x)*.65);
  joint(game.footRight,'x',-(game.legRight.rotation.x+game.kneeRight.rotation.x)*.65);
- joint(game.rightShoulder,'y',yaw,armRate);joint(game.rightShoulder,'x',gait*.25-swing*.95,armRate);
+ joint(game.rightShoulder,'y',game.parry?.active>0?-.3:yaw,armRate);joint(game.rightShoulder,'x',game.parry?.active>0?-1.1:gait*.25-swing*.95,armRate);
  const twin=game.stats.swordEvolution==='twinblade';
  joint(game.leftShoulder,'x',-gait*.25+(twin?swing*.4:0),armRate);joint(game.leftShoulder,'y',twin?-yaw:0,armRate);
- joint(game.rightElbow,'x',-.65-swing*.45,armRate);joint(game.leftElbow,'x',twin?-.65-swing*.25:-.25,armRate);
+ joint(game.rightElbow,'x',game.parry?.active>0?-1.5:-.65-swing*.45,armRate);joint(game.leftElbow,'x',twin?-.65-swing*.25:-.25,armRate);
  // Counter-rotate only the artwork; targeting, sword sectors and dashes stay exact.
  game.playerVisual.rotation.y=angleDelta(game.player.rotation.y,state.facing)+yaw*.14;
  joint(game.playerVisual,'x',dashing?.22:stride*.04,14);joint(game.playerVisual,'z',-gait*.025,14);

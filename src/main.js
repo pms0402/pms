@@ -8,6 +8,8 @@ import { STAGES, BOSS_TYPES, ENEMY_TYPES, getStageDefinition, getBossDefinition 
 import { getSwordProfile } from './sword.js';
 import { SYNERGIES, getActiveSynergies } from './synergies.js';
 import { CURSES, ROUTES } from './run-events.js';
+import { createExpansionUi } from './expansion-ui.js';
+import { normalizeEndgame, recordEndgame } from './abyss.js';
 import { REGIONS, getRegion } from './regions.js';
 import { MUTATIONS, MUTATION_ELITE } from './mutations.js';
 
@@ -31,6 +33,8 @@ function persistProgress() {
 let progressionWritable = persistProgress();
 let lastResult = null;
 let campFromResult = false;
+let expansionUI;
+let endgame = normalizeEndgame(readStorage('voidrun.endgame', {}), history);
 let game, latest, dialogName = '', pausedForDialog = false, audioContext;
 let lastKills = 0;
 let toastTimeout;
@@ -40,7 +44,7 @@ let campTab = 'tree';
 let theaterMode = false;
 const hudElements = new Map();
 const hudValues = new Map();
-const choiceDialogs = new Set(['upgrade', 'relic', 'route', 'region', 'curse']);
+const choiceDialogs = new Set(['upgrade', 'relic', 'route', 'region', 'curse', 'equipment', 'npc']);
 const isChoiceDialog = () => choiceDialogs.has(dialogName);
 const swordNames = { default: '기본 검술', broadsword: '거인의 대검', twinblade: '질풍의 쌍검', wave: '공허의 검기' };
 const decimal = (value, digits = 1) => Number(value || 0).toLocaleString('ko-KR', { maximumFractionDigits: digits });
@@ -66,7 +70,7 @@ $('#app').innerHTML = `
       <button class="nav-link" data-nav="history">런 기록 <span class="nav-count" id="history-count">${history.length.toString().padStart(2, '0')}</span></button>
       <button class="nav-link" data-nav="permanent">영구 강화</button>
     </nav>
-    <div class="header-actions"><span class="build-label"><i></i> BUILD YOUR LEGEND <b>v0.12.0</b></span><span class="header-divider"></span><button id="sound-toggle" class="icon-button" title="사운드 켜기" aria-label="사운드 켜기">${icon('muted')}</button><button id="settings" class="icon-button" title="설정" aria-label="설정">${icon('settings')}</button></div>
+    <div class="header-actions"><span class="build-label"><i></i> BUILD YOUR LEGEND <b>v0.13.0</b></span><span class="header-divider"></span><button id="sound-toggle" class="icon-button" title="사운드 켜기" aria-label="사운드 켜기">${icon('muted')}</button><button id="settings" class="icon-button" title="설정" aria-label="설정">${icon('settings')}</button></div>
   </header>
   <main class="page">
     <section class="page-intro">
@@ -86,7 +90,7 @@ $('#app').innerHTML = `
           <div class="health-block"><div class="health-label">${icon('heart')}<span>HP</span><strong id="health-value">100 <small>/ 100</small></strong></div><div class="health-track"><div id="health-fill"></div></div><div class="xp-row"><span id="level-value">LV. 1</span><div class="xp-track"><div id="xp-fill"></div></div><span id="xp-value">0 / 10</span></div></div>
           <div class="run-counters"><div>${icon('clock')}<strong id="run-time">00:00</strong></div><div>${icon('skull')}<strong id="kill-count">0</strong></div><div class="gold-counter">${icon('coin')}<strong id="gold-count">0</strong></div></div>
         </div>
-        <div class="boss-hud hidden" id="boss-hud" role="meter" aria-label="보스 체력" aria-valuemin="0" aria-valuemax="100"><div><strong id="boss-name"></strong><span id="boss-health-value"></span></div><div class="boss-health-track"><div id="boss-health-fill"></div></div></div>
+        <div class="boss-hud hidden" id="boss-hud" role="meter" aria-label="보스 체력" aria-valuemin="0" aria-valuemax="100"><div><strong id="boss-name"></strong><span id="boss-combat-phase"></span><span id="boss-health-value"></span></div><div class="boss-health-track"><div id="boss-health-fill"></div></div></div>
         <div class="start-content" id="start-content">
           <div class="roguelike-tag"><span></span> 3D SURVIVAL ROGUELIKE</div>
           <h2>작은 시작.<br>거대한 <span>한 방.</span></h2>
@@ -95,7 +99,7 @@ $('#app').innerHTML = `
           <button class="start-loadout" id="start-loadout">${icon('sword')} <span id="selected-loadout">방랑자 · 공허의 검</span> ${icon('chevron')}</button>
           <div class="risk-selector"><span>이번 런의 계약</span><div id="risk-options" class="risk-options">${RISK_PACTS.map(pact => `<button data-risk="${pact.id}" aria-pressed="${prefs.risk === pact.id}" class="${prefs.risk === pact.id ? 'selected' : ''}">${pact.name.replace('의 계약','')}</button>`).join('')}</div><p id="risk-description"></p></div>
           <button class="primary-button start-button" id="start-button"><span>${icon('play')} 런 시작하기</span>${icon('arrow')}</button>
-          <div class="start-footnote"><span class="live-dot"></span> 설치 없이 바로 플레이 <span>·</span> ${STAGE_DURATION / 60}분 × ${MAX_STAGES}층 · 층마다 다른 수호자</div>
+          <div class="mode-actions"><button class="secondary-button" id="mode-button">일반 모드 · 1–10층</button><button class="secondary-button" id="abyss-records-button">심연 기록 · 업적</button></div><div class="start-footnote"><span class="live-dot"></span> 설치 없이 바로 플레이 <span>·</span> ${STAGE_DURATION / 60}분 × ${MAX_STAGES}층 · 층마다 다른 수호자</div>
         </div>
         <div class="scene-coordinate">SECTOR_001 <span>35° 41′ N / 139° 41′ E</span></div>
         <div class="combo-display hidden" id="combo-display"><strong id="combo-value"></strong><span>CHAIN KILLS</span></div>
@@ -106,7 +110,7 @@ $('#app').innerHTML = `
           <div class="dash-indicator hidden" id="dash-indicator"><kbd>SPACE</kbd><div><strong id="dash-status">대시 준비</strong><div class="dash-track"><div id="dash-fill"></div></div></div>${icon('bolt')}</div>
           <div class="scene-tag" id="scene-tag"><span class="live-dot"></span> REAL-TIME 3D</div>
         </div>
-        <div class="growth-toolbar hidden" id="growth-toolbar"><div class="spell-loadout" id="spell-loadout" aria-label="보유 마법">${['fireball', 'frost', 'lightning', 'orbit'].map(id => `<button class="spell-slot locked" data-spell="${id}" title="마법 빌드 보기" aria-label="${id} 마법 정보"><span class="spell-slot-icon">${icon(upgradeIcons[id])}</span><span class="spell-slot-rank">—</span><span class="spell-cooldown"></span></button>`).join('')}</div><div id="synergy-status" class="synergy-status hidden" aria-label="발동 중인 조합"></div><button id="run-build-button" class="shop-button">${icon('book')} 이번 런 빌드 <span id="reward-pending" class="reward-pending hidden" title="다음 레벨업의 선택 보상"></span><kbd>B</kbd></button></div>
+        <div class="expedition-actions hidden" id="expedition-actions"><button id="guard-button">정밀 방어 · G</button><button id="equipment-button">장비 · E</button><button id="interact-npc" class="hidden">교류 · R</button><span id="abyss-rule" class="hidden"></span></div><div class="growth-toolbar hidden" id="growth-toolbar"><div class="spell-loadout" id="spell-loadout" aria-label="보유 마법">${['fireball', 'frost', 'lightning', 'orbit'].map(id => `<button class="spell-slot locked" data-spell="${id}" title="마법 빌드 보기" aria-label="${id} 마법 정보"><span class="spell-slot-icon">${icon(upgradeIcons[id])}</span><span class="spell-slot-rank">—</span><span class="spell-cooldown"></span></button>`).join('')}</div><div id="synergy-status" class="synergy-status hidden" aria-label="발동 중인 조합"></div><button id="run-build-button" class="shop-button">${icon('book')} 이번 런 빌드 <span id="reward-pending" class="reward-pending hidden" title="다음 레벨업의 선택 보상"></span><kbd>B</kbd></button></div>
         <div class="touch-controls hidden" id="touch-controls"><div class="dpad"><button data-move="0,-1" aria-label="위로 이동">↑</button><button data-move="-1,0" aria-label="왼쪽 이동">←</button><button data-move="0,1" aria-label="아래로 이동">↓</button><button data-move="1,0" aria-label="오른쪽 이동">→</button></div><button id="touch-dash" aria-label="대시">${icon('bolt')}</button></div>
         <div class="canvas-error hidden" id="canvas-error"><h2>3D 화면을 시작할 수 없어요</h2><p>브라우저의 하드웨어 가속을 켠 뒤 새로고침해 주세요.</p><button class="primary-button" id="reload">새로고침 ${icon('refresh')}</button></div>
       </div>
@@ -157,6 +161,8 @@ function showToast(message) {
 
 function update(state) {
   latest = state;
+  expansionUI?.update(state);
+  $('#expedition-actions').classList.toggle('hidden', ['menu','over','won'].includes(state.phase));
   hud('#game-speed', `${state.playbackSpeed || 1}×`);
   $('#game-speed').setAttribute('aria-label', `현재 ${state.playbackSpeed || 1}배속 · 눌러서 배속 변경`);
   const inRun = !['menu', 'over', 'won'].includes(state.phase);
@@ -198,9 +204,9 @@ function update(state) {
   $('#stage-progress').style.width = `${state.stageTime / STAGE_DURATION * 100}%`;
   const risk = state.phase === 'menu' ? getRiskStats(prefs.risk) : state.risk || getRiskStats(prefs.risk);
   const goldBonus = (risk.goldMultiplier || 1) * (state.playerStats?.goldMultiplier || 1);
-  hud('#reward-multiplier', `${formatGold(getStageStats(state.stage).coinValue)} G · ×${decimal(goldBonus, 2)}`);
+  hud('#reward-multiplier', `${formatGold((state.stageStats || getStageStats(state.stage)).coinValue)} G · ×${decimal(goldBonus, 2)}`);
   $('#reward-multiplier').title = `기본 처치 골드 × 계약 × 유물·영구 강화 × 제단·경로·지역. 현재 총 보상 배율 ×${decimal(goldBonus, 2)}`;
-  const enemyStats = getStageStats(state.stage), baseEnemyStats = getStageStats(1);
+  const enemyStats = state.stageStats || getStageStats(state.stage), baseEnemyStats = getStageStats(1);
   hud('#enemy-multiplier', `×${decimal(enemyStats.enemyHealth / baseEnemyStats.enemyHealth * (risk.enemyHealth || 1))} / ×${decimal(enemyStats.enemyDamage / baseEnemyStats.enemyDamage * (risk.enemyDamage || 1))}`);
   $('#enemy-multiplier').title = '1층 기본 적 대비 체력 / 피해. 계약·유물·제단·현재 경로·지역을 포함합니다. 변이 개체는 별도 배율이 적용됩니다.';
   hud('#difficulty', bossAlive ? '수호자 출현' : state.stage >= 3 ? '원거리 몬스터 주의' : state.stageTime > 60 ? '몰려오는 적들' : '생존과 성장');
@@ -358,6 +364,8 @@ function expansionGuide() {
 function showGuide() {
   if (isChoiceDialog()) return;
   const steps = [
+    ['장비·탐험·정밀 방어', '장비는 <kbd>E</kbd> / 장비 버튼에서 비교·교체·버릴 수 있습니다. NPC 가까이에서 <kbd>R</kbd> / 교류로 대화하세요. <kbd>G</kbd> / 정밀 방어는 전방 120°를 0.5초 방어하며 처음 0.18초는 완벽한 패링입니다. 성공 후 2초 안 다음 검격은 한 대상에게 2배 피해를 줍니다. 붉은 지면 원형 위험은 방어할 수 없습니다.'],
+    ['세 단계 수호자와 끝없는 심연', '보스 체력 70% 미만·35% 미만에서 새로운 패턴과 연계가 열립니다. 보스 장비는 하나 선택하거나 넘길 수 있습니다. 일반 10층 승리 후 모드 선택에서 11층부터 무한 심연을 탐험하세요. 5층마다 재앙 보스, 20층부터 10층마다 교대 제약이 등장합니다. 기록·업적은 이 브라우저에 저장됩니다.'],
     ['전장을 움직이고, 공격은 자동으로', '<kbd>W A S D</kbd> / 방향키로 이동, <kbd>SPACE</kbd>로 무적 대시. 모바일은 방향 버튼이나 전장 드래그를 사용합니다. 검은 <b>화면에 보이는 전방 궤적 안</b>의 적을 베며, 마법은 별도로 자동 시전합니다.'],
     ['검 범위도 선택으로 성장합니다', '기본 검은 가까운 적을 베는 무기입니다. <b>검 범위 강화</b>를 고르면 거리 +12%, 최대 8단계까지 늘어납니다. 검 공격력·속도·범위 강화 합계 <b>3단계</b>부터 대검 / 쌍검 / 검기 진화가 등장합니다. 한 런에는 하나의 검 진화를 고릅니다.'],
     ['마법을 키우고 조합을 완성하세요', '레벨업마다 강화 하나를 고릅니다. 검·마법 공격력은 각각 <b>20%</b>, 공격·시전 속도는 <b>8%</b>, 최대 체력은 <b>15%</b>씩 곱해 성장합니다. 마법은 5단계 뒤 진화합니다. <b>서리 + 검 범위 2단계</b>, <b>화염구 + 검기</b>, <b>번개 + 궤도 룬</b> 조합은 추가 공격을 발동합니다. <kbd>B</kbd>에서 조건과 효과를 확인하세요.'],
@@ -492,12 +500,13 @@ function showResetConfirmation() {
   $('#reset-cancel').focus({ preventScroll: true });
   $('#reset-confirm').addEventListener('click', () => {
     if (!['menu', 'over', 'won'].includes(game.state.phase)) return;
-    const keys = ['voidrun.progression', 'voidrun.history'];
+    const keys = ['voidrun.progression', 'voidrun.history', 'voidrun.endgame'];
     let previous;
     try {
       previous = keys.map(key => localStorage.getItem(key));
       localStorage.setItem(keys[0], JSON.stringify(createProgress()));
       localStorage.setItem(keys[1], '[]');
+      localStorage.setItem(keys[2], JSON.stringify(normalizeEndgame()));
     } catch {
       if (previous) for (let i = 0; i < keys.length; i++) {
         try { if (previous[i] === null) localStorage.removeItem(keys[i]); else localStorage.setItem(keys[i], previous[i]); } catch { /* Keep the dialog open if storage is unavailable. */ }
@@ -513,7 +522,7 @@ function showPause() {
   if (['playing', 'paused'].includes(latest?.phase) && !dialogName) {
     pausedForDialog = true;
     game.pause();
-    openModal('pause', `<div class="modal-eyebrow">TAKE A BREATH</div><h2 id="modal-title">잠깐, 숨 고르기<span>.</span></h2><p class="modal-description">공허는 당신을 기다려줍니다.</p><div class="pause-stats"><div><span>스테이지</span><strong>${latest.stage} <small>/ ${MAX_STAGES}</small></strong></div><div><span>생존 시간</span><strong>${time(latest.elapsed)}</strong></div><div><span>처치 수</span><strong>${latest.kills}</strong></div></div>${latest?.boss?.hp > 0 ? `<div class="pause-boss-tip">${icon('skull')}<span><strong>${escapeHTML(latest.boss.name)}</strong>${escapeHTML(latest.boss.hint || getBossDefinition(latest.stage).hint)}</span></div>` : ''}<button id="resume" class="primary-button">${icon('play')} 계속 플레이 ${icon('arrow')}</button><button id="pause-settings" class="secondary-button">${icon('settings')} 사운드 · 그래픽 설정</button><button id="pause-restart" class="secondary-button">${icon('refresh')} 런 종료하고 골드 회수</button>`, { pause: false });
+    openModal('pause', `<div class="modal-eyebrow">TAKE A BREATH</div><h2 id="modal-title">잠깐, 숨 고르기<span>.</span></h2><p class="modal-description">공허는 당신을 기다려줍니다.</p><div class="pause-stats"><div><span>스테이지</span><strong>${latest.stage} <small>/ ${latest.mode === 'abyss' ? '∞' : MAX_STAGES}</small></strong></div><div><span>생존 시간</span><strong>${time(latest.elapsed)}</strong></div><div><span>처치 수</span><strong>${latest.kills}</strong></div></div>${latest?.boss?.hp > 0 ? `<div class="pause-boss-tip">${icon('skull')}<span><strong>${escapeHTML(latest.boss.name)}</strong>${escapeHTML(latest.boss.hint || getBossDefinition(latest.stage).hint)}</span></div>` : ''}<button id="resume" class="primary-button">${icon('play')} 계속 플레이 ${icon('arrow')}</button><button id="pause-settings" class="secondary-button">${icon('settings')} 사운드 · 그래픽 설정</button><button id="pause-restart" class="secondary-button">${icon('refresh')} 런 종료하고 골드 회수</button>`, { pause: false });
     $('#resume').addEventListener('click', closeModal); $('#pause-settings').addEventListener('click', showSettings); $('#pause-restart').addEventListener('click', () => game.endRun());
   } else if (dialogName === 'pause') closeModal();
 }
@@ -579,11 +588,12 @@ function onCurse(choices, metadata = {}) {
 }
 
 function finish(state, won) {
+  endgame = recordEndgame(endgame, state, won); store('voidrun.endgame', endgame); game.abyssUnlocked = endgame.unlocked;
   const settlement = settleRun(progress, { runId: state.runId, gold: state.gold });
   progress = settlement.progress; progressionWritable = persistProgress(); syncBank();
   lastResult = { state, won, settlement };
   if (!settlement.duplicate) {
-  const record = { runId: state.runId, stage: state.stage, elapsed: state.elapsed, kills: state.kills, gold: Math.floor(state.gold), level: state.level, won, date: new Intl.DateTimeFormat('ko-KR', { month: 'numeric', day: 'numeric', timeZone: 'Asia/Seoul' }).format(new Date()) };
+  const record = { mode: state.mode, runId: state.runId, stage: state.stage, elapsed: state.elapsed, kills: state.kills, gold: Math.floor(state.gold), level: state.level, won, date: new Intl.DateTimeFormat('ko-KR', { month: 'numeric', day: 'numeric', timeZone: 'Asia/Seoul' }).format(new Date()) };
   history.unshift(record); history = history.slice(0, 30); store('voidrun.history', history);
   $('#history-count').textContent = String(history.length).padStart(2, '0');
   $('#personal-best').textContent = `${Math.max(...history.map(r => r.stage))} 스테이지`;
@@ -608,7 +618,9 @@ function showResult() {
   if (!lastResult) return;
   const { state, won, settlement } = lastResult;
   campFromResult = false;
-  openModal('result', `<div class="result-emblem">${icon(won ? 'trophy' : 'skull')}</div><div class="modal-eyebrow">${won ? 'THE VOID IS YOURS' : 'DEATH IS PROGRESS'}</div><h2 id="modal-title">${won ? '공허를 정복했습니다' : state.endedReason === 'abandoned' ? '돌아와서, 더 강하게' : '쓰러져도, 성장은 남습니다'}<span>.</span></h2><p class="modal-description">${won ? `${MAX_STAGES}층의 모든 수호자를 돌파했습니다. 회수한 골드로 다음 도전을 준비하세요.` : `${getStageDefinition(state.stage).name}에서 여정을 마쳤습니다. 번 골드는 잃지 않았습니다.`}</p><div class="settlement-panel"><span>${icon('coin')} 이번 런 골드 회수</span><strong id="settlement-gold">+${formatGold(settlement.amount)} G</strong><small>보유 골드 <b id="result-bank">${formatGold(progress.bank)} G</b> · 영구 강화에 사용할 수 있습니다</small></div><div class="result-stats"><div><span>생존 시간</span><strong>${time(state.elapsed)}</strong></div><div><span>처치 수</span><strong>${state.kills}</strong></div><div><span>도달 스테이지</span><strong>${state.stage} / ${MAX_STAGES}</strong></div><div><span>도달 레벨</span><strong>LV. ${state.level}</strong></div></div>${runReportMarkup(state)}<button class="primary-button" id="result-permanent">${icon('coin')} 영구 강화하고 재도전 ${icon('arrow')}</button><button class="secondary-button" id="retry">${icon('refresh')} 강화 없이 바로 재도전</button><button class="secondary-button" id="result-settings">설정 · 저장 데이터 초기화</button>`, { pause: false, closeable: false });
+  openModal('result', `<div class="result-emblem">${icon(won ? 'trophy' : 'skull')}</div><div class="modal-eyebrow">${won ? 'THE VOID IS YOURS' : 'DEATH IS PROGRESS'}</div><h2 id="modal-title">${won ? '공허를 정복했습니다' : state.endedReason === 'abandoned' ? '돌아와서, 더 강하게' : '쓰러져도, 성장은 남습니다'}<span>.</span></h2><p class="modal-description">${won ? `${MAX_STAGES}층의 모든 수호자를 돌파했습니다. 회수한 골드로 다음 도전을 준비하세요.` : `${getRegion(state.regionId).title}에서 여정을 마쳤습니다. 번 골드는 잃지 않았습니다.`}</p><div class="settlement-panel"><span>${icon('coin')} 이번 런 골드 회수</span><strong id="settlement-gold">+${formatGold(settlement.amount)} G</strong><small>보유 골드 <b id="result-bank">${formatGold(progress.bank)} G</b> · 영구 강화에 사용할 수 있습니다</small></div><div class="result-stats"><div><span>생존 시간</span><strong>${time(state.elapsed)}</strong></div><div><span>처치 수</span><strong>${state.kills}</strong></div><div><span>도달 스테이지</span><strong>${state.stage} / ${state.mode === 'abyss' ? '∞' : MAX_STAGES}</strong></div><div><span>도달 레벨</span><strong>LV. ${state.level}</strong></div></div>${runReportMarkup(state)}<button class="primary-button" id="result-permanent">${icon('coin')} 영구 강화하고 재도전 ${icon('arrow')}</button><button class="secondary-button" id="result-modes">탐험 모드 선택 · 심연</button><button class="secondary-button" id="result-records">심연 기록 · 업적</button><button class="secondary-button" id="retry">${icon('refresh')} 강화 없이 바로 재도전</button><button class="secondary-button" id="result-settings">설정 · 저장 데이터 초기화</button>`, { pause: false, closeable: false });
+  $('#result-modes').addEventListener('click', () => expansionUI.modes());
+  $('#result-records').addEventListener('click', () => expansionUI.records());
   $('#result-permanent').addEventListener('click', () => showPermanentUpgrades(true));
   $('#retry').addEventListener('click', startRun);
   $('#result-settings').addEventListener('click', showSettings);
@@ -621,6 +633,8 @@ try {
     onRoute,
     onRegion,
     onCurse,
+    onEquipmentReward: choices => expansionUI.reward(choices),
+    onNpc: (type, choices) => expansionUI.npc(type, choices),
     onLoot: message => showToast(typeof message === 'string' ? message : message?.message || message?.title || '새로운 보상을 획득했습니다.'),
     onBoss: boss => {
       showToast(`${boss.name} · ${boss.hint || getBossDefinition(latest?.stage || 1).hint}`);
@@ -633,7 +647,8 @@ try {
     onStage: stage => {
       const num = typeof stage === 'number' ? stage : stage.stage;
       $('#banner-title').textContent = getRegion(game?.regionId || (num === MAX_STAGES ? 'throne' : 'sanctum')).title;
-      $('#banner-kicker').textContent = `STAGE ${String(num).padStart(2, '0')} / REWARD ×${formatGold(10 ** (num - 1))}`;
+      $('#banner-kicker').textContent = `STAGE ${String(num).padStart(2, '0')} / ${game?.mode === 'abyss' ? 'ABYSS · REWARD ' + formatGold(game.stageStats().coinValue) + ' G' : 'REWARD ×' + formatGold(10 ** (num - 1))}`;
+      $('#stage-banner p').innerHTML = game?.mode === 'abyss' ? '심연의 깊이가 증가합니다 <span>적 체력 ×1.16 · 피해 ×1.09 · 기본 골드 ×1.22 (상한 적용)</span>' : '보상 ×10 <span>적 체력 ×1.7 · 피해 ×1.35</span>';
       $('#stage-banner').classList.remove('hidden');
       setTimeout(() => $('#stage-banner').classList.add('hidden'), 2600);
       sound(660, .35, .07);
@@ -642,6 +657,8 @@ try {
     onWin: state => finish(state, true),
   });
   window.__game = game;
+  game.abyssUnlocked = endgame.unlocked;
+  expansionUI = createExpansionUi({game, openModal, forceClose: forceCloseModal, closeModal, notify: showToast, readEndgame: () => endgame});
   const readyButton = $('#start-button'), readyLabel = readyButton.innerHTML;
   readyButton.disabled = true; readyButton.textContent = '전장 준비 중…'; $('#game-canvas').setAttribute('aria-busy', 'true');
   game.presentation.ready.finally(() => { readyButton.innerHTML = readyLabel; readyButton.disabled = false; $('#game-canvas').setAttribute('aria-busy', 'false'); });
@@ -658,6 +675,11 @@ try {
 
 $('#reload').addEventListener('click', () => location.reload());
 $('#start-button').addEventListener('click', startRun);
+$('#mode-button').addEventListener('click', () => expansionUI?.modes());
+$('#abyss-records-button').addEventListener('click', () => expansionUI?.records());
+$('#equipment-button').addEventListener('click', () => { if (!isChoiceDialog()) expansionUI?.inventory(); });
+$('#guard-button').addEventListener('pointerdown', e => {e.preventDefault();game?.parry.press();});
+$('#interact-npc').addEventListener('click', () => game?.exploration.interact());
 $('#start-loadout').addEventListener('click', () => { campTab = 'loadout'; showPermanentUpgrades(); });
 for (const button of document.querySelectorAll('[data-risk]')) button.addEventListener('click', () => {
   if (!['menu', 'over', 'won'].includes(game?.state.phase)) return;
@@ -714,13 +736,14 @@ $('.brand').addEventListener('click', (event) => { event.preventDefault(); $('#g
 $('#modal-backdrop').addEventListener('click', (e) => { if (e.target.id === 'modal-backdrop') closeModal(); });
 window.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') { event.preventDefault(); if (dialogName) closeModal(); else if (theaterMode) toggleFullscreen(); else showPause(); }
+  if (event.key.toLowerCase() === 'e' && !event.repeat && !event.target?.closest?.('input,textarea,select') && !isChoiceDialog()) {event.preventDefault();if(dialogName === 'inventory')closeModal();else expansionUI?.inventory();}
   if (event.key.toLowerCase() === 'f' && !event.repeat && !event.target?.closest?.('input,textarea,select')) { event.preventDefault(); toggleFullscreen(); }
   if (event.key.toLowerCase() === 'b' && !event.repeat && !event.target?.closest?.('input,textarea,select')) { event.preventDefault(); if (dialogName === 'build') closeModal(); else if (!dialogName) showBuild(); }
   if (isChoiceDialog() && /^[0-9]$/.test(event.key) && !event.repeat) {
     event.preventDefault();
     if (dialogName === 'curse' && event.key === '0') document.querySelector('[data-curse="skip"]')?.click();
     else {
-      const selector = { upgrade: '[data-upgrade]', relic: '[data-chest-relic]', route: '[data-route]', region: '[data-region]', curse: '[data-curse]:not([data-curse="skip"])' }[dialogName];
+      const selector = { upgrade: '[data-upgrade]', relic: '[data-chest-relic]', route: '[data-route]', region: '[data-region]', equipment: '[data-equipment-choice]', npc: '[data-npc-choice]', curse: '[data-curse]:not([data-curse="skip"])' }[dialogName];
       const choices = document.querySelectorAll(selector);
       const index = Number(event.key) - 1;
       if (index >= 0 && index < choices.length) choices[index]?.click();

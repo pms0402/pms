@@ -75,6 +75,7 @@ export class RegionSystem {
     const mix = { volcano: .34, tundra: .79, forest: .23, ruins: .14, void: .29 }[this.region.id] || 0;
     this.surfaceUniforms.blend.value = mix; this.surfaceUniforms.color.value.set(this.region.palette[0]);
     for (const material of [this.material.warning, this.material.area, this.material.marker, this.material.crack]) material.color.set(this.region.color);
+    this.material.warning.color.set('#ff7065'); this.material.area.color.set('#ff7065');
     this.material.accent.color.set(this.region.color); this.material.accent.emissive.set(this.region.color); this.ambientMaterial.uniforms.color.value.set(this.region.color);
     this.ambient.visible = !['sanctum', 'throne'].includes(this.region.id);
     this.configureAccents();
@@ -147,7 +148,7 @@ export class RegionSystem {
       if (this.poisonTick <= 0) { this.poisonTick += .9; this.hurt(.14, this.game.player.position, '오염된 숲 · 잔류 독'); }
     }
     if (['volcano', 'forest'].includes(this.region.id)) {
-      this.hazardTimer -= dt;
+      this.hazardTimer -= dt * (this.game.abyssConstraint?.hazards || 1);
       if (this.hazardTimer <= 0) { this.hazardTimer = this.region.id === 'volcano' ? 14 : 18; this.spawnHazard(this.region.id === 'volcano' ? 'lava' : 'poison', this.game.player.position); }
     }
     if (this.region.id === 'void') { this.blinkTimer -= dt; if (this.blinkTimer <= 0) { this.blinkTimer = 8; this.startBlink(); } }
@@ -169,7 +170,7 @@ export class RegionSystem {
     }
     this.updateVisuals();
   }
-  hurt(factor, position, cause) { if (this.game.takeDamage(getStageStats(this.game._state.stage).enemyDamage * factor, position, cause)) this.damageEvents++; }
+  hurt(factor, position, cause) { if (this.game.takeDamage((this.game.stageStats?.() || getStageStats(this.game._state.stage)).enemyDamage * factor, position, cause, null, { unblockable: true })) this.damageEvents++; }
 
   updateVisuals() {
     const draw = (mesh, index, position, size, lift = .055) => { this.dummy.position.set(position.x, (this.game.groundHeight?.(position.x, position.z) || 0) + lift, position.z); this.dummy.rotation.set(0, 0, 0); this.dummy.scale.set(size, 1, size); this.dummy.updateMatrix(); mesh.setMatrixAt(index, this.dummy.matrix); };

@@ -20,7 +20,7 @@ async function freshRun() {
   await page.waitForFunction(() => window.__game?.getDebugState().frames > 1);
   assert.equal(await page.locator('#canvas-error').isVisible(), false);
   await page.locator('#start-button').click();
-  await page.evaluate(() => cancelAnimationFrame(window.__game.raf));
+  await page.evaluate(() => { const g = window.__game; cancelAnimationFrame(g.raf); const spawn = g.spawnEnemy.bind(g); /* Isolate baseline movement/collision; mutations have their own integration suite. */ g.spawnEnemy = (x,z,kind,options={}) => spawn(x,z,kind,{mutations:[],...options}); });
   assert.equal(await page.evaluate(() => window.__game.state.phase), 'playing');
 }
 
@@ -173,6 +173,7 @@ try {
     // Test both gates independently: killing early does not waive survival time.
     game._state.stageTime = duration - 10;
     game.hitEnemy(game.boss, game.boss.hp + 1, game.player.position.clone().set(1, 0, 0));
+    if (game.equipment?.rewardQueue.length) { game.equipment.nextReward(); document.querySelector('[data-equipment-choice="skip"]')?.click(); }
     const blockedEarly = game.bossDefeated && !game.nextStage() && game.state.stage === 1;
     game._state.stageTime = duration;
     game.tick(1 / 60);
@@ -279,7 +280,7 @@ try {
     const boss = game.spawnBoss();
     game.tick(.02);
     const blocked = game.state.phase !== 'won' && game.state.stage === finalStage;
-    game.hitEnemy(boss, boss.hp + 1, game.player.position.clone().set(1, 0, 0));
+    game.hitEnemy(boss, boss.hp + 1, game.player.position.clone().set(1, 0, 0)); if (game.equipment?.rewardQueue.length) { game.equipment.nextReward(); document.querySelector('[data-equipment-choice="skip"]')?.click(); }
     game.tick(1 / 60);
     return { blocked, phase: game.state.phase, bossDefeated: game.bossDefeated };
   }, { duration: STAGE_DURATION, finalStage: MAX_STAGES });

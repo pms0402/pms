@@ -38,7 +38,7 @@ export class BossSystem {
   begin(boss) {
     this.clear();
     this.boss = boss;
-    const info = getBossStats(this.stage());
+    const info = this.game.bossStats?.() || getBossStats(this.stage());
     boss.archetype ||= info.archetype || 'warden';
     boss.variant = info.variant || boss.variant || 1;
     boss.mode = 'chase'; boss.actionTimer = 1.6; boss.actionIndex = 0;
@@ -111,7 +111,7 @@ export class BossSystem {
 
   marker(position, radius, { type = 'disc', direction, length = 19 } = {}) {
     const group = new THREE.Group(); group.position.copy(position); group.position.y = (this.game.groundHeight?.(position.x, position.z) ?? position.y ?? 0) + .13;
-    const material = new THREE.MeshBasicMaterial({ color: this.color, transparent: true, opacity: .18, side: THREE.DoubleSide, depthWrite: false });
+    const material = new THREE.MeshBasicMaterial({ color: type === 'line' ? this.color : '#ff7065', transparent: true, opacity: .18, side: THREE.DoubleSide, depthWrite: false });
     const fill = new THREE.Mesh((type === 'line' ? this.geometry.plane : this.geometry.disc).clone(), material);
     fill.rotation.x = -Math.PI / 2;
     if (type === 'line') {
@@ -317,6 +317,8 @@ export class BossSystem {
   cancelAttacks() {
     for (const zone of this.zones) this.removeMarker(zone.marker);
     this.zones.length = 0; this.pendingShots.length = 0;
+    const bolts = this.game.enemyProjectiles || [];
+    for (let i = bolts.length - 1; i >= 0; i--) if (bolts[i].bossOwner === this.boss) { bolts[i].mesh?.removeFromParent(); bolts.splice(i, 1); }
   }
 
   clear() {

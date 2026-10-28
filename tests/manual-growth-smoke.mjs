@@ -124,7 +124,7 @@ try {
         const before = structuredClone(game.stats), beforeHp = game.state.hp;
         const boss = game.spawnBoss();
         const afterSpawn = structuredClone(game.stats);
-        game.hitEnemy(boss, boss.hp + 1);
+        game.hitEnemy(boss, boss.hp + 1); if (game.equipment?.rewardQueue.length) { game.equipment.nextReward(); document.querySelector('[data-equipment-choice="skip"]')?.click(); }
         const afterKill = structuredClone(game.stats), killHp = game.state.hp;
         game.dropPickup(game.player.position.clone().set(30, 0, 30), 'heal', 30);
         game._state.stageTime = game.state.stageDuration;
@@ -209,7 +209,7 @@ try {
     const random = Math.random;
     try {
       Math.random = () => .5;
-      const boss = game.spawnBoss(); game.hitEnemy(boss, boss.hp + 1);
+      const boss = game.spawnBoss(); game.hitEnemy(boss, boss.hp + 1); if (game.equipment?.rewardQueue.length) { game.equipment.nextReward(); document.querySelector('[data-equipment-choice="skip"]')?.click(); }
     } finally { Math.random = random; }
     const direct = game.chooseUpgrade('boss_warden');
     return { before, after: structuredClone(game.stats), hp, afterHp: game.state.hp, direct, pending: game.state.pendingBossRewards.map(reward => reward.id) };

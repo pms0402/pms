@@ -87,6 +87,7 @@ test("abyss curves remain finite at extreme floors, preserve caps and rotate con
     assert.ok(s.enemyHealth <= 1e12 && s.enemyDamage <= 1e8);
   }
   assert.ok(abyssBoss(15).variant > abyssBoss(14).variant);
+  assert.equal(new Set([11,12,13,14,15,16].map(f => abyssBoss(f).archetype)).size, 6);
   assert.equal(abyssRule(19), null);
   assert.notEqual(abyssRule(20).id, abyssRule(30).id);
   assert.ok(abyssRule(20).description);

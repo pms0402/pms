@@ -56,9 +56,9 @@ export class MagicSystem {
   isAlive(enemy) { return enemy?.hp > 0; }
   query(position, radius) { return this.game.queryEnemies?.(position, radius) || this.game.enemies; }
   damage(spellId) {
-    const base = Number(this.game.stats.spellDamage ?? this.game.stats.damage);
+    const base = Number(this.game.combatStats?.spellDamage ?? this.game.stats.spellDamage ?? this.game.stats.damage);
     const synergy = this.rank('lightning') && this.rank('orbit') ? Math.max(0, Math.min(0.12, this.game.stats.runeSynergyBonus || 0)) : 0;
-    const bonus = Number(this.game.stats[`${spellId}Bonus`]);
+    const bonus = Number((this.game.stats[`${spellId}Bonus`] || 0) + (this.game.equipment?.bonuses().element[spellId] || 0));
     const spellBonus = Number.isFinite(bonus) ? Math.max(0, Math.min(1, bonus)) : 0;
     return (Number.isFinite(base) ? Math.max(0, base) : 18) * (1 + synergy) * (1 + spellBonus);
   }

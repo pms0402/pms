@@ -135,7 +135,7 @@ try {
     game._state.stage = finalStage;
     game._state.stageTime = game.state.stageDuration;
     const boss = game.spawnBoss();
-    game.hitEnemy(boss, boss.hp + 1, game.player.position.clone().set(1, 0, 0));
+    game.hitEnemy(boss, boss.hp + 1, game.player.position.clone().set(1, 0, 0)); if (game.equipment?.rewardQueue.length) { game.equipment.nextReward(); document.querySelector('[data-equipment-choice="skip"]')?.click(); }
     game.tick(1 / 60);
     return { runId: game.state.runId, gold: Math.floor(game.state.gold), phase: game.state.phase };
   }, MAX_STAGES);

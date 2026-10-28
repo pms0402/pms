@@ -211,7 +211,7 @@ try {
   const boss = await page.evaluate(() => {
     const game = window.__game, boss = game.spawnBoss();
     const before = JSON.stringify(game.stats), range = game.stats.swordRangeMultiplier;
-    game.hitEnemy(boss, boss.hp + 1);
+    game.hitEnemy(boss, boss.hp + 1); if (game.equipment?.rewardQueue.length) { game.equipment.nextReward(); document.querySelector('[data-equipment-choice="skip"]')?.click(); }
     game.hitEnemy(boss, 1e6);
     return { range, unchanged: JSON.stringify(game.stats) === before, pending: game.pendingBossRewards.length, rewards: game.stats.bossRewards };
   });

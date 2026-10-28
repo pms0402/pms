@@ -74,7 +74,7 @@ export function abyssBoss(floor = 11) {
   const stats = abyssStats(floor),
     special = floor % 5 === 0,
     definition = getBossDefinition(
-      5 + (Math.max(0, Math.floor(floor) - 11) % 6),
+      1 + (Math.max(0, Math.floor(floor) - 11) % 6),
     );
   return {
     ...getBossStats(10),

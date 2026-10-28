@@ -117,7 +117,7 @@ try {
       const beforeKill = JSON.stringify(game.stats);
       stages.push({ stage: game.state.stage, hp: game.stats.maxHp, enemyHp: sample.maxHp, regionHealth: game.getThreat().enemyHealth });
       const boss = game.spawnBoss();
-      game.hitEnemy(boss, boss.hp + 1);
+      game.hitEnemy(boss, boss.hp + 1); if (game.equipment?.rewardQueue.length) { game.equipment.nextReward(); document.querySelector('[data-equipment-choice="skip"]')?.click(); }
       stages.at(-1).bossChangedStats = JSON.stringify(game.stats) !== beforeKill;
       const before = { stats: JSON.stringify(game.stats), hp: game.state.hp };
       game._state.stageTime = game.state.stageDuration;

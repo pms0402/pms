@@ -84,7 +84,7 @@ export class MutationSystem {
     this.warningVertices = 32 * 4 * 6;
     geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(this.maxExplosions * this.warningVertices * 3), 3).setUsage(THREE.DynamicDrawUsage));
     geometry.setDrawRange(0, 0);
-    const material = new THREE.MeshBasicMaterial({ color: '#ff8049', transparent: true, opacity: .28, side: THREE.DoubleSide, depthWrite: false, toneMapped: false });
+    const material = new THREE.MeshBasicMaterial({ color: '#ff7065', transparent: true, opacity: .28, side: THREE.DoubleSide, depthWrite: false, toneMapped: false });
     this.warningMesh = new THREE.Mesh(geometry, material);
     this.warningMesh.name = 'Mutation death blast warnings'; this.warningMesh.count = 0; this.warningMesh.visible = false; this.warningMesh.frustumCulled = false;
     game.scene.add(this.warningMesh); this.warningDirty = true;
@@ -97,7 +97,7 @@ export class MutationSystem {
     if (this.game._state.phase !== 'playing' || enemy.kind === 4 || enemy.minion || enemy.splitChild || options.noMutations) return [];
     const ids = Array.isArray(options.mutations)
       ? [...new Set(options.mutations.filter(id => byId.has(id)))].slice(0, 2)
-      : rollMutations(this.game._state.stage, this.game.regionId, options.random || Math.random);
+      : rollMutations(this.game.mode === 'abyss' ? 10 : this.game._state.stage, this.game.mode === 'abyss' ? 'void' : this.game.regionId, options.random || Math.random);
     enemy.mutations = ids;
     if (!ids.length) return [];
     enemy.mutationElite = ids.length === 2;
@@ -139,7 +139,7 @@ export class MutationSystem {
     if (enemy.mutations.includes('explosive') && this.explosions.length < this.maxExplosions) {
       const position = enemy.group.position.clone(); position.y = (this.game.groundHeight?.(position.x, position.z) ?? position.y) + .17;
       this.warningDirty = true;
-      this.explosions.push({ position, remaining: 1, radius: 2.8, damage: getStageStats(this.game._state.stage).enemyDamage * .95 * (enemy.baseDamageMultiplier || 1) });
+      this.explosions.push({ position, remaining: 1, radius: 2.8, damage: (this.game.stageStats?.() || getStageStats(this.game._state.stage)).enemyDamage * .95 * (enemy.baseDamageMultiplier || 1) });
     }
     // Natural splitters retain their existing two-child death hook, without doubling it.
     if (enemy.mutations.includes('splitter') && enemy.kind !== 7) {
@@ -163,7 +163,7 @@ export class MutationSystem {
       this.explosions.splice(index, 1); this.warningDirty = true;
       const player = this.game.player.position;
       if (Math.hypot(player.x - blast.position.x, player.z - blast.position.z) < blast.radius) {
-        this.game.takeDamage(blast.damage, blast.position, '폭발형 변이의 사후 폭발');
+        this.game.takeDamage(blast.damage, blast.position, '폭발형 변이의 사후 폭발', null, { unblockable: true });
       }
       this.game.puff?.(blast.position, '#ff985e', blast.radius, .3);
       this.counts.explosions++;
