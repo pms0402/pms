@@ -18,6 +18,7 @@ import { ActorShadows } from './actor-shadows.js';
 import { getRegion, getRegionChoices, getRegionModifiers, chooseRegionalEnemyKind, getRegionRelicChoices } from './regions.js';
 import { RegionSystem } from './region-system.js';
 import { MutationSystem } from './mutations.js';
+import { BossPhases } from './boss-phases.js';
 
 const TAU = Math.PI * 2;
 const UP = new THREE.Vector3(0, 1, 0);
@@ -113,6 +114,7 @@ export class Game {
     this.actorShadows = new ActorShadows(this.scene, this.enemies, this.presentation.contactMap);
     this.magic = new MagicSystem(this);
     this.bossSystem = new BossSystem(this);
+    this.bossPhases = new BossPhases(this);
     this.regionSystem = new RegionSystem(this);
     this.mutationSystem = new MutationSystem(this);
     this.regionSystem.setRegion(this.regionId);
@@ -146,6 +148,7 @@ export class Game {
     const region = getRegionModifiers(this.regionId);
     return Object.fromEntries(Object.keys(route).map(key => [key, key === 'chestBonus' ? route[key] + region[key] : route[key] * region[key]]));
   }
+  bossStats() { return getBossStats(this._state.stage); }
   freshRunReport() {
     return { damageBySource: { sword: 0, fireball: 0, frost: 0, lightning: 0, orbit: 0, combo: 0, other: 0 },
       damageTaken: 0, deathCause: '', peakCombo: 0, curseIds: [], routeHistory: [{ stage: 1, id: 'standard' }], regionHistory: [{ stage: 1, id: 'sanctum' }], synergyTriggers: {} };
@@ -162,7 +165,7 @@ export class Game {
   get state() {
     const enemyKinds = Object.fromEntries(ENEMY_TYPES.map(type => [type.id, 0]));
     for (const enemy of this.enemies) if (enemy.definition) enemyKinds[enemy.definition.id]++;
-    return { ...this._state, playbackSpeed: this.playbackSpeed, world: { hills: this.world?.hills.length || 0, structures: this.world?.structures.length || 0, elevation: this.player?.position.y || 0 }, enemyKinds, sword: getSwordProfile(this.stats), activeSynergies: getActiveSynergies(this.stats), activeCurses: [...this.activeCurses], routeId: this.routeId, regionId: this.regionId, region: getRegion(this.regionId), mutations: this.mutationSystem?.getDebugState(), runModifiers: this.getFloorModifiers(), runReport: this.runReport ? structuredClone(this.runReport) : this.freshRunReport(), pendingChests: this.pendingChestRewards?.length || 0, altar: this.altar ? { x: this.altar.group.position.x, z: this.altar.group.position.z, opened: this.altar.opened } : null, rewardTokens: this.pendingRelicSources?.length || 0, pendingBossRewards: (this.pendingBossRewards || []).map(reward => ({ ...reward })), maxHp: this.stats.maxHp, damage: this.stats.damage, attackRate: this.stats.attackRate, spellDamage: this.stats.spellDamage, spellRate: this.stats.spellRate, speed: this.stats.speed, risk: this.getThreat(), selectedRisk: this.selectedRisk, chests: this.chests.map(chest => ({ x: chest.group.position.x, z: chest.group.position.z, remaining: chest.guards.filter(guard => guard.hp > 0).length, opened: chest.opened })), eliteEnemies: this.enemies.filter(enemy => enemy.elite).length, goldenEnemies: this.enemies.filter(enemy => enemy.golden).length, dashCooldown: Math.max(0, this.dashCooldown || 0), dashReady: !(this.dashCooldown > 0), enemyCount: this.enemies.length, arenaRadius: ARENA_RADIUS, stageDuration: STAGE_DURATION, bossSpawnTime: BOSS_SPAWN_TIME, bossSpawned: this.bossSpawned, bossDefeated: this.bossDefeated, boss: this.boss ? { archetype: this.boss.archetype, hint: this.boss.hint, name: this.boss.name, hp: Math.max(0, this.boss.hp), maxHp: this.boss.maxHp, alive: this.boss.hp > 0, spawned: this.bossSpawned, defeated: this.bossDefeated, phase: this.boss.mode } : null, spellState: this.magic?.getState() || [], playerStats: { ...this.stats, relics: [...(this.stats.relics || [])], bossRewards: [...(this.stats.bossRewards || [])], spells: { ...this.stats.spells }, evolutions: { ...this.stats.evolutions }, passiveLevels: { ...this.stats.passiveLevels } } };
+    return { ...this._state, playbackSpeed: this.playbackSpeed, world: { hills: this.world?.hills.length || 0, structures: this.world?.structures.length || 0, elevation: this.player?.position.y || 0 }, enemyKinds, sword: getSwordProfile(this.stats), activeSynergies: getActiveSynergies(this.stats), activeCurses: [...this.activeCurses], routeId: this.routeId, regionId: this.regionId, region: getRegion(this.regionId), mutations: this.mutationSystem?.getDebugState(), runModifiers: this.getFloorModifiers(), runReport: this.runReport ? structuredClone(this.runReport) : this.freshRunReport(), pendingChests: this.pendingChestRewards?.length || 0, altar: this.altar ? { x: this.altar.group.position.x, z: this.altar.group.position.z, opened: this.altar.opened } : null, rewardTokens: this.pendingRelicSources?.length || 0, pendingBossRewards: (this.pendingBossRewards || []).map(reward => ({ ...reward })), maxHp: this.stats.maxHp, damage: this.stats.damage, attackRate: this.stats.attackRate, spellDamage: this.stats.spellDamage, spellRate: this.stats.spellRate, speed: this.stats.speed, risk: this.getThreat(), selectedRisk: this.selectedRisk, chests: this.chests.map(chest => ({ x: chest.group.position.x, z: chest.group.position.z, remaining: chest.guards.filter(guard => guard.hp > 0).length, opened: chest.opened })), eliteEnemies: this.enemies.filter(enemy => enemy.elite).length, goldenEnemies: this.enemies.filter(enemy => enemy.golden).length, dashCooldown: Math.max(0, this.dashCooldown || 0), dashReady: !(this.dashCooldown > 0), enemyCount: this.enemies.length, arenaRadius: ARENA_RADIUS, stageDuration: STAGE_DURATION, bossSpawnTime: BOSS_SPAWN_TIME, bossSpawned: this.bossSpawned, bossDefeated: this.bossDefeated, boss: this.boss ? { archetype: this.boss.archetype, hint: this.boss.hint, name: this.boss.name, hp: Math.max(0, this.boss.hp), maxHp: this.boss.maxHp, alive: this.boss.hp > 0, spawned: this.bossSpawned, defeated: this.bossDefeated, phase: this.boss.mode, combatPhase: this.boss.combatPhase || 1 } : null, spellState: this.magic?.getState() || [], playerStats: { ...this.stats, relics: [...(this.stats.relics || [])], bossRewards: [...(this.stats.bossRewards || [])], spells: { ...this.stats.spells }, evolutions: { ...this.stats.evolutions }, passiveLevels: { ...this.stats.passiveLevels } } };
   }
   emit() { this.callbacks.onUpdate?.(this.state); }
 
@@ -479,7 +482,7 @@ export class Game {
     boss.size = scale; boss.speed *= info.speedMultiplier || 1;
     Object.assign(boss, { name: info.name, archetype: info.archetype || getBossDefinition(this._state.stage).archetype, hint: info.hint || getBossDefinition(this._state.stage).hint, mode: 'chase', actionTimer: 2.2, actionIndex: 0, telegraph: null, chargeDirection: new THREE.Vector3() });
     this.boss = boss; this.bossSpawned = true; this.bossDefeated = false;
-    this.bossSystem.begin(boss);
+    this.bossSystem.begin(boss); this.bossPhases.begin(boss);
     this.burst(boss.group.position, '#fb745b', 20); this.sound('stage');
     this.callbacks.onBoss?.(this.state.boss); this.emit(); return boss;
   }
@@ -1091,6 +1094,7 @@ export class Game {
   }
 
   updateBoss(boss, dt) {
+    if (this.bossPhases.update(boss, dt)) return;
     if (boss.archetype && boss.archetype !== 'warden') { this.bossSystem.update(boss, dt); return; }
     const dx = this.player.position.x - boss.group.position.x, dz = this.player.position.z - boss.group.position.z, distance = Math.hypot(dx, dz);
     boss.actionTimer -= dt; boss.hitTime = Math.max(0, boss.hitTime - dt); boss.slowTime = Math.max(0, (boss.slowTime || 0) - dt);
@@ -1215,6 +1219,7 @@ export class Game {
     const bucket = ['fireball', 'frost', 'lightning', 'orbit'].includes(spellId) ? spellId : ['sword', 'combo'].includes(source) ? source : 'other';
     this.runReport.damageBySource[bucket] += Math.min(enemy.hp, dealt);
     enemy.hp -= dealt;
+    if (enemy.kind === 4) this.bossPhases.sync(enemy);
     const hitStun = Number.isFinite(impact?.hitStun) ? clamp(impact.hitStun, 0, 0.16) : 0.16;
     const knockbackScale = Number.isFinite(impact?.knockbackScale) ? clamp(impact.knockbackScale, 0, 1) : 1;
     enemy.hitTime = Math.max(enemy.hitTime || 0, hitStun);
@@ -1236,7 +1241,7 @@ export class Game {
     this.dropPickup(position, 'xp', (bossReward ? bossReward.xpValue : definition?.xp || 1) * (enemy.elite ? 2 : 1) * (enemy.minion ? .25 : 1) * (enemy.mutationXpMultiplier || 1) * getXpDropMultiplier(this._state.stage));
     this.dropPickup(position, 'gold', (bossReward ? bossReward.coinValue : getStageStats(this._state.stage).coinValue * (definition?.goldMultiplier || 1)) * rewardMultiplier);
     if (enemy.kind === 4) {
-      this.bossDefeated = true; this.clearTelegraph(enemy); this.bossSystem.clear(); this.sound('win');
+      this.bossDefeated = true; this.clearTelegraph(enemy); this.bossSystem.clear(); this.bossPhases.clear(); this.sound('win');
       this.floatText('BOSS DEFEATED', position, '#ffcf86', 1.8, 5);
       const reward = getBossReward(this._state.stage);
       if (reward && !this.stats.bossRewards.includes(reward.id) && !this.pendingBossRewards.some(pending => pending.id === reward.id)) {
@@ -1447,7 +1452,7 @@ export class Game {
     this.combatArt?.reset(); this.actorShadows?.reset();
     this.regionSystem?.reset(); this.mutationSystem?.reset();
     this.enemyRenderer?.reset();
-    this.bossSystem?.clear();
+    this.bossSystem?.clear(); this.bossPhases?.clear();
     while (this.floatingTexts.length) this.removeFloatingText(0);
     for (const e of this.enemies) this.releaseEnemy(e);
     this.clearEnemyProjectiles(); this.magic?.reset(); this.boss = null; this.bossSpawned = false; this.bossDefeated = false;
@@ -1492,7 +1497,7 @@ export class Game {
     this.disposed = true; cancelAnimationFrame(this.raf); this.observer.disconnect();
     window.removeEventListener('keydown', this.onKeyDown); window.removeEventListener('keyup', this.onKeyUp); window.removeEventListener('blur', this.onBlur); document.removeEventListener('visibilitychange', this.onVisibility);
     this.renderer.domElement.removeEventListener('pointerdown', this.onPointerDown); this.renderer.domElement.removeEventListener('pointermove', this.onPointerMove); this.renderer.domElement.removeEventListener('pointerup', this.onPointerUp); this.renderer.domElement.removeEventListener('pointercancel', this.onPointerUp);
-    this.clearDynamic(); this.regionSystem?.dispose(); this.mutationSystem?.dispose(); this.enemyRenderer?.dispose(); this.actorShadows?.dispose(); this.combatArt?.dispose(); this.presentation?.dispose(); this.magic?.dispose(); this.bossSystem?.dispose();
+    this.clearDynamic(); this.regionSystem?.dispose(); this.mutationSystem?.dispose(); this.enemyRenderer?.dispose(); this.actorShadows?.dispose(); this.combatArt?.dispose(); this.presentation?.dispose(); this.magic?.dispose(); this.bossSystem?.dispose(); this.bossPhases?.dispose();
     this.heroTextures?.forEach(texture => texture.dispose());
     this.world?.art.dispose();
     const geometries = new Set(), materials = new Set();

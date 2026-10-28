@@ -33,7 +33,7 @@ export class BossSystem {
 
   stage() { return this.game._state.stage || 1; }
   playing() { return this.game._state.phase === 'playing' && this.boss?.hp > 0; }
-  damage() { return getBossStats(this.stage()).damage; }
+  damage() { return (this.game.bossStats?.() || getBossStats(this.stage())).damage; }
 
   begin(boss) {
     this.clear();
@@ -252,7 +252,7 @@ export class BossSystem {
       return;
     }
     boss.mode = 'chase';
-    boss.actionTimer = (boss.archetype === 'plague' ? 3.2 : boss.archetype === 'brood' ? 4.2 : 2.7) * (enraged ? .78 : 1);
+    boss.actionTimer = (boss.archetype === 'plague' ? 3.2 : boss.archetype === 'brood' ? 4.2 : 2.7) * (enraged ? .78 : 1) * (boss.combatPhase === 3 ? .82 : 1);
   }
 
   update(boss, dt) {
@@ -307,11 +307,16 @@ export class BossSystem {
       const player = this.game.player.position;
       const dx = player.x - zone.position.x, dz = player.z - zone.position.z;
       if (zone.damage > 0 && zone.tick <= 0 && dx * dx + dz * dz < zone.radius * zone.radius) {
-        this.game.takeDamage(zone.damage, zone.position, zone.cause); zone.tick = .6;
+        this.game.takeDamage(zone.damage, zone.position, zone.cause, null, { unblockable: true }); zone.tick = .6;
         if (zone.type === 'pulse') zone.damage = 0;
       }
       if (zone.life <= 0) { this.removeMarker(zone.marker); this.zones.splice(i, 1); }
     }
+  }
+
+  cancelAttacks() {
+    for (const zone of this.zones) this.removeMarker(zone.marker);
+    this.zones.length = 0; this.pendingShots.length = 0;
   }
 
   clear() {
