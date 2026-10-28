@@ -3,7 +3,7 @@ const clamp = (value, minimum, maximum) => Math.min(maximum, Math.max(minimum, v
 
 /** Each floor keeps a distinct atmosphere and introduces a readable encounter mix. */
 export const STAGES = Object.freeze([
-  { id: 'grove', name: '잊혀진 초원', english: 'THE FORGOTTEN GROVE', palette: ['#2c352b', '#111a15', '#d5e8c7', '#92be65'], description: '느린 추격자와 빠른 사냥꾼. 돌진 예고를 익히세요.' },
+  { id: 'grove', name: '잊혀진 성역', english: 'THE FORSAKEN SANCTUM', palette: ['#454640', '#202b32', '#b7c7d8', '#c2a875'], description: '느린 추격자와 빠른 사냥꾼. 돌진 예고를 익히세요.' },
   { id: 'ruins', name: '황혼의 폐허', english: 'TWILIGHT RUINS', palette: ['#383128', '#1b1813', '#eed6ae', '#d7ae71'], description: '뿔 돌격수가 합류합니다. 포격자의 사선에서 벗어나세요.' },
   { id: 'poisonwood', name: '독안개의 숲', english: 'POISONWOOD', palette: ['#302a37', '#17131e', '#c9b8e7', '#ad91df'], description: '원거리 사술사와 독 웅덩이가 이동 경로를 압박합니다.' },
   { id: 'citadel', name: '심연의 성채', english: 'ABYSSAL CITADEL', palette: ['#382b2b', '#1c1314', '#e7b8ae', '#d7957f'], description: '자폭충과 소환된 군단을 흩어 놓고 돌파하세요.' },

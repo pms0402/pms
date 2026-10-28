@@ -243,7 +243,8 @@ export class MagicSystem {
       if (this.game.world && !this.game.world.isWalkable(projectile.mesh.position.x, projectile.mesh.position.z, .1)) projectile.life = 0;
       projectile.mesh.rotation.z += dt * 6; projectile.mesh.rotation.y += dt * 4;
       if (projectile.trailTimer <= 0) {
-        this.spark(projectile.mesh.position, 'fireball', 0.18, 0.75);
+        if (this.game.combatArt) this.game.combatArt.trail(projectile.mesh.position, 'fireball');
+        else this.spark(projectile.mesh.position, 'fireball', 0.18, 0.75);
         projectile.trailTimer = 0.09;
       }
       let contact = false;

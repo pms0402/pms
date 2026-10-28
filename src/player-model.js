@@ -20,10 +20,11 @@ export function createPlayerModel(game) {
   const hairMap = new THREE.DataTexture(hairPixels, 128, 256, THREE.RGBAFormat); hairMap.colorSpace = THREE.SRGBColorSpace;
   hairMap.generateMipmaps = true; hairMap.minFilter = THREE.LinearMipmapLinearFilter; hairMap.magFilter = THREE.LinearFilter; hairMap.needsUpdate = true;
   game.heroTextures = [hairMap];
-  for (const material of [silverHair, hairShade]) { material.map = hairMap; material.alphaTest = .28; material.alphaToCoverage = true; material.side = THREE.DoubleSide; }
+  for (const material of [silverHair, hairShade]) { material.map = hairMap; material.alphaTest = .28; material.side = THREE.DoubleSide; }
   const skin = metal('#d5c5c2', .71, 0), faceShadow = metal('#5b4652', .83, 0);
   const glow = new THREE.MeshStandardMaterial({ color: '#b093ec', emissive: '#9851e9', emissiveIntensity: .8, roughness: .3, metalness: .3 });
   for (const m of [armor, edge, steel, inset]) m.envMapIntensity = 2;
+  if (game.presentation.metalNormal) for (const material of [armor, steel, inset]) { material.normalMap = game.presentation.metalNormal; material.normalScale.set(.08, .08); }
   game.heroMaterials = { armor, edge, steel, inset, leather, cloth, lining, silverHair, hairShade, skin, glow };
   game.player = new THREE.Group(); game.player.scale.setScalar(1.55); game.scene.add(game.player);
   const root = game.playerVisual = new THREE.Group(); root.name = 'Silver-haired dusk knight'; game.player.add(root);

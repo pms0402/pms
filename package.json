@@ -26,6 +26,7 @@
     "test:characters": "node tests/characters-smoke.mjs",
     "test:motion": "node tests/motion-smoke.mjs",
     "test:quality": "node tests/quality-smoke.mjs",
+    "test:sanctum": "node tests/sanctum-smoke.mjs",
     "benchmark:render": "node scripts/render-benchmark.mjs"
   },
   "dependencies": {

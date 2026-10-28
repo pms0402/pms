@@ -1,4 +1,5 @@
 export const WORLD_RADIUS = 90;
+export const LANDMARK = Object.freeze({ x: -9, z: -13, pillarOffset: 3.15, radius: .53 });
 export const HILLS = Object.freeze([
  {x:29,z:23,radius:18,height:6.2},{x:-31,z:20,radius:17,height:5.8},
  {x:46,z:-37,radius:20,height:8.4},{x:-48,z:-30,radius:21,height:7.2},
@@ -54,7 +55,7 @@ export const WORLD_COLLIDERS=Object.freeze(STRUCTURES.flatMap(s=>{
   {type:'rect',x:s.x,z:s.z-s.depth/2,hx:half,hz:.4,id:s.id},
   ...[-1,1].map(side=>({type:'rect',x:s.x+side*(half+door)/2,z:s.z+s.depth/2,hx:(half-door)/2,hz:.4,id:s.id})),
  ];
-}).map(Object.freeze));
+}).concat([-1,1].map(side => ({type:'circle',x:LANDMARK.x+side*LANDMARK.pillarOffset,z:LANDMARK.z,radius:LANDMARK.radius,id:'sanctumArch'}))).map(Object.freeze));
 export function isWalkable(x,z,radius=.65) {
  if(Math.hypot(x,z)>WORLD_RADIUS-radius)return false;
  for(const c of WORLD_COLLIDERS) {

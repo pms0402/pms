@@ -13,6 +13,8 @@ import { buildMonster, createPlayerModel, animatePlayerModel, animateEnemyModel 
 import { createActorMotion } from './motion.js';
 import { EnemyRenderer } from './enemy-renderer.js';
 import { createPresentationAssets } from './presentation.js';
+import { CombatArt } from './combat-art.js';
+import { ActorShadows } from './actor-shadows.js';
 
 const TAU = Math.PI * 2;
 const UP = new THREE.Vector3(0, 1, 0);
@@ -80,7 +82,7 @@ export class Game {
     this.stats = this.freshStats();
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color('#111a15');
-    this.scene.fog = new THREE.FogExp2('#111a15', 0.011);
+    this.scene.fog = new THREE.FogExp2('#202b32', 0.016);
     this.camera = new THREE.PerspectiveCamera(43, 1, 0.1, 180);
     this.camera.position.set(20, 26, 25);
     this.camera.lookAt(0, 0, 0);
@@ -91,19 +93,23 @@ export class Game {
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.16;
+    this.renderer.toneMappingExposure = 1.12;
     this.renderer.domElement.setAttribute('aria-label', 'VOIDRUN 3D 전장. WASD 또는 방향키 이동, 스페이스 회피.');
     this.renderer.domElement.style.touchAction = 'none';
     container.appendChild(this.renderer.domElement);
     this.createMaterials();
     this.presentation = createPresentationAssets(this.renderer);
-    this.scene.environment = this.presentation.environment; this.scene.environmentIntensity = .3;
-    for (const material of [this.mats.rock, this.mats.rockDark]) { material.map = this.presentation.stoneMap; material.normalMap = this.presentation.stoneNormal; material.normalScale.set(.22, .22); }
+    this.scene.environment = this.presentation.environment; this.scene.environmentIntensity = .6;
+    this.artReady = false;
+    this.presentation.ready.then(art => { if (!this.disposed) { this.presentation.environment = art.environment; this.scene.environment = art.environment; this.artReady = true; this.lastTime = performance.now(); } });
+    for (const material of [this.mats.rock, this.mats.rockDark]) { material.map = this.presentation.stoneMap; material.normalMap = this.presentation.stoneNormal; material.roughnessMap = this.presentation.stoneRoughness; material.normalScale.set(.6, .6); }
     this.createWorld();
     this.createPlayer();
+    this.combatArt = new CombatArt(this.scene);
+    this.actorShadows = new ActorShadows(this.scene, this.enemies, this.presentation.contactMap);
     this.magic = new MagicSystem(this);
     this.bossSystem = new BossSystem(this);
-    this.scene.onBeforeRender = () => this.updateContactShadow();
+    this.scene.onBeforeRender = () => { this.updateContactShadow(); this.actorShadows.sync(); };
     this.enemyRenderer = new EnemyRenderer(this.scene, this.enemies);
     this.setupInput();
     this.observer = new ResizeObserver(() => this.resize());
@@ -152,7 +158,7 @@ export class Game {
     const standard = (color, roughness = 0.9, extra = {}) => new THREE.MeshStandardMaterial({ color, roughness, ...extra });
     this.mats = {
       bone: standard('#c9bea0'), organ: standard('#763848', .65),
-      ground: standard('#2c352b'), edge: standard('#171d1b'), rock: standard('#3a433a'), rockDark: standard('#252c29'), trunk: standard('#303b30'),
+      ground: standard('#454640'), edge: standard('#171d1b'), rock: standard('#b2b6b9', .88), rockDark: standard('#858c92', .9), trunk: standard('#403b36'),
       player: standard('#e1e5b8', 0.6), armor: standard('#404947', 0.45, { metalness: 0.5 }), dark: standard('#141c1a'), cape: standard('#b5f45d', 0.8),
       lime: standard('#c1ff66', 0.3, { emissive: '#9edb32', emissiveIntensity: 1.5 }), crystal: standard('#a8ea4f', 0.5, { emissive: '#74a82d', emissiveIntensity: 0.6 }),
       enemy: standard('#55724c'), enemyDark: standard('#332a36'), enemy2: standard('#8d5840'), enemy3: standard('#54416e'), eye: standard('#ffa060', 0.5, { emissive: '#ff4e20', emissiveIntensity: 2 }),
@@ -197,16 +203,16 @@ export class Game {
   }
 
   createWorld() {
-    this.hemi = new THREE.HemisphereLight('#d5e8c7', '#262923', 2.7);
+    this.hemi = new THREE.HemisphereLight('#b7c7d8', '#29252c', 1.3);
     this.scene.add(this.hemi);
-    const sunlight = this.sunlight = new THREE.DirectionalLight('#f2f2ce', 3.6);
+    const sunlight = this.sunlight = new THREE.DirectionalLight('#cad9ef', 2.4);
     sunlight.position.set(-15, 35, 12); sunlight.castShadow = true;
     sunlight.shadow.mapSize.set(1024, 1024);
     Object.assign(sunlight.shadow.camera, { left: -28, right: 28, top: 28, bottom: -28, near: 0.5, far: 100 });
     sunlight.shadow.bias = -0.001;
     sunlight.shadow.normalBias = 0.03;
     this.scene.add(sunlight);
-    const fill = new THREE.DirectionalLight('#a5cf79', 1.1); fill.position.set(12, 8, -20); this.scene.add(fill);
+    const fill = new THREE.DirectionalLight('#dab58e', .65); fill.position.set(12, 8, -20); this.scene.add(fill);
     this.world = createTerrainWorld(this);
     // Drifting dust subtly establishes depth without texture downloads.
     const vertices = [];
@@ -240,7 +246,7 @@ export class Game {
     this._groundNormal = new THREE.Vector3(); this._planeNormal = new THREE.Vector3(0, 0, 1);
     const marker = new THREE.Mesh(new THREE.RingGeometry(0.66, 0.71, 32), new THREE.MeshBasicMaterial({ color: '#b9f76c', transparent: true, opacity: 0.6, side: THREE.DoubleSide }));
     marker.rotation.x = -Math.PI / 2; marker.position.y = 0.1; this.player.add(marker);
-    this.playerLight = new THREE.PointLight('#b58aff', 6, 8, 2); this.playerLight.position.set(1.4, 2.25, 2.4); this.player.add(this.playerLight);
+    this.playerLight = new THREE.PointLight('#dce4f2', 2.2, 8, 2); this.playerLight.position.set(1.4, 2.25, 2.4); this.player.add(this.playerLight);
     this.player.rotation.y = -0.65; this.applyLoadoutAppearance();
     this.resetTimers();
   }
@@ -265,7 +271,7 @@ export class Game {
     this.playerHood.material.color.set(colors[0]); this.playerBody.material.color.set(colors[1]);
     this.blade.material.color.set('#bfcbdc'); this.blade.material.emissive.set('#000000');
     this.heroGlow.color.set(colors[2]); this.heroGlow.emissive.set(colors[2]);
-    this.playerLight?.color.set(colors[2]);
+    this.playerLight?.color.set('#dce4f2');
     const weapon = this.stats.weaponId;
     this.blade.scale.set(weapon === 'greatsword' ? .16 : weapon === 'tempest' ? .075 : .11, .045, weapon === 'greatsword' ? 1.45 : weapon === 'tempest' ? 1.05 : 1.15);
     this.blade.position.set(0, 0, .30);
@@ -752,7 +758,7 @@ export class Game {
   }
 
   setMuted(value) { this.muted = !!value; if (!this.muted) this.initAudio(); }
-  setQuality(value) { this.quality = value; this.renderer.setPixelRatio(value === 'low' ? 1 : Math.min(window.devicePixelRatio || 1, 1.6)); this.renderer.shadowMap.enabled = value !== 'low'; this.resize(); }
+  setQuality(value) { this.quality = value; this.renderer.setPixelRatio(value === 'low' ? 1 : Math.min(window.devicePixelRatio || 1, 1.6)); this.renderer.shadowMap.enabled = value !== 'low'; this.world?.setQuality(value); this.resize(); }
 
   setPlaybackSpeed(value) {
     if (![1, 2, 3].includes(value)) return false;
@@ -772,6 +778,7 @@ export class Game {
 
   loop(time) {
     if (this.disposed) return;
+    if (!this.artReady) { this.lastTime = time; this.frames++; this.raf = requestAnimationFrame(this.loop); return; }
     const dt = Math.min(Math.max((time - this.lastTime) / 1000, 0), 0.05); this.lastTime = time; this.frames++;
     if (this._state.phase === 'playing') this.advanceSimulation(dt);
     else { if (this._state.phase === 'menu') this.animateAttract(time / 1000, dt); this.animateEffects(dt); }
@@ -779,6 +786,7 @@ export class Game {
     if (this.dust) this.dust.rotation.y += dt * 0.002;
     this.updateCamera(dt);
     this.world?.updateOcclusion(this.player.position, this.camera.position, dt);
+    this.world?.art.update(dt);
     this.renderer.render(this.scene, this.camera);
     if (time - this.lastUpdate > 100) { this.lastUpdate = time; this.emit(); }
     this.raf = requestAnimationFrame(this.loop);
@@ -1171,7 +1179,7 @@ export class Game {
     // Frost controls movement through its timed slow. Its repeated area hits
     // must not restart hit stun or add a push; an earlier sword hit still decays.
     if (knockbackScale > 0) enemy.stagger.copy(direction).setY(0).multiplyScalar((enemy.kind === 4 ? 0.4 : critical ? 12 : 7) * knockbackScale);
-    this.puff(enemy.group.position, critical ? '#fff6ba' : '#c3f788', critical ? 0.7 : 0.35, 0.22);
+    if (dealt > 0) this.combatArt.hit(enemy.group.position, spellId || source, critical);
     if (critical) { this.shake = Math.max(this.shake, 0.045); this.sound('critical'); }
     if (enemy.hp > 0) {
       if (source === 'sword') this.magic.onSwordHit(enemy, damage);
@@ -1310,7 +1318,7 @@ export class Game {
     this.mats.ground.color.lerp(ground, amount); this.scene.fog.color.lerp(fog, amount); this.scene.background.lerp(fog, amount);
     this.hemi.color.lerp(sky, amount); this.mats.crystal.emissive.lerp(accent, amount); this.mats.crystal.color.lerp(accent, amount);
     this.floorGrid?.material.color.lerp(accent, amount);
-    if (this.world) { this.world.tint.copy(ground).lerp(this.world.white, .68); this.world.ground.material.color.lerp(this.world.tint, amount); }
+    if (this.world) { this.world.tint.copy(ground).lerp(this.world.white, .88); this.world.ground.material.color.lerp(this.world.tint, amount); }
   }
 
   acquireEffect(type, color) {
@@ -1320,6 +1328,7 @@ export class Game {
       const geometry = type === 'slash' ? this.geo.slash : type === 'particle' ? this.geo.smallSphere : this.geo.sphere;
       const material = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 1, wireframe: type === 'puff', side: type === 'slash' ? THREE.DoubleSide : THREE.FrontSide, depthWrite: false });
       effect = { mesh: new THREE.Mesh(geometry, material), type, pooled: true, velocity: new THREE.Vector3() };
+      if (type === 'slash') { material.map = this.presentation.slashMap; material.blending = THREE.AdditiveBlending; material.toneMapped = false; }
     }
     effect.mesh.material.color.set(color); effect.mesh.material.opacity = type === 'puff' ? 0.7 : 0.85;
     effect.mesh.position.set(0, 0, 0); effect.mesh.scale.setScalar(1); effect.mesh.rotation.set(0, 0, 0);
@@ -1353,6 +1362,7 @@ export class Game {
   }
 
   animateEffects(dt) {
+    this.combatArt?.update(dt);
     for (let i = this.floatingTexts.length - 1; i >= 0; i--) {
       const text = this.floatingTexts[i]; text.life -= dt;
       text.sprite.position.y += dt * 2.1; text.sprite.position.x += dt * text.drift;
@@ -1391,6 +1401,7 @@ export class Game {
   }
   removeGroup(group) { if (!group) return; group.parent?.remove(group); }
   clearDynamic() {
+    this.combatArt?.reset(); this.actorShadows?.reset();
     this.enemyRenderer?.reset();
     this.bossSystem?.clear();
     while (this.floatingTexts.length) this.removeFloatingText(0);
@@ -1430,15 +1441,16 @@ export class Game {
     osc.connect(gain); gain.connect(this.audio.destination); osc.start(now); osc.stop(now + duration);
   }
 
-  getDebugState() { return { ...this.state, enemyRender: this.enemyRenderer?.getDebugState(), permanentBonuses: { ...this.permanentBonuses }, player: this.player.position.toArray(), enemies: this.enemies.length, pickups: this.pickups.length, floatingTexts: this.floatingTexts.length, effects: this.effects.length, pools: { enemies: [...this.enemyPools.values()].reduce((sum, pool) => sum + pool.length, 0), effects: this.effectPool.length, texts: this.textPool.length }, resources: { geometries: this.renderer.info.memory.geometries, textures: this.renderer.info.memory.textures }, projectiles: this.projectiles.length, enemyProjectiles: this.enemyProjectiles.length, rangedEnemies: this.enemies.filter(e => e.kind === 3 || e.kind === 8).length, bossSystem: this.bossSystem?.getDebugState(), magic: this.magic?.getDebugState?.(), frames: this.frames, drawCalls: this.renderer.info.render.calls, triangles: this.renderer.info.render.triangles, renderer: this.renderer.capabilities.isWebGL2 ? 'WebGL2' : 'WebGL', canvas: { width: this.renderer.domElement.width, height: this.renderer.domElement.height } }; }
+  getDebugState() { return { ...this.state, presentation: { ready: this.artReady, ...this.presentation.status, particles: this.combatArt?.count || 0, actorShadows: this.actorShadows?.mesh.count || 0, grass: this.world?.art.grass.count || 0 }, enemyRender: this.enemyRenderer?.getDebugState(), permanentBonuses: { ...this.permanentBonuses }, player: this.player.position.toArray(), enemies: this.enemies.length, pickups: this.pickups.length, floatingTexts: this.floatingTexts.length, effects: this.effects.length, pools: { enemies: [...this.enemyPools.values()].reduce((sum, pool) => sum + pool.length, 0), effects: this.effectPool.length, texts: this.textPool.length }, resources: { geometries: this.renderer.info.memory.geometries, textures: this.renderer.info.memory.textures }, projectiles: this.projectiles.length, enemyProjectiles: this.enemyProjectiles.length, rangedEnemies: this.enemies.filter(e => e.kind === 3 || e.kind === 8).length, bossSystem: this.bossSystem?.getDebugState(), magic: this.magic?.getDebugState?.(), frames: this.frames, drawCalls: this.renderer.info.render.calls, triangles: this.renderer.info.render.triangles, renderer: this.renderer.capabilities.isWebGL2 ? 'WebGL2' : 'WebGL', canvas: { width: this.renderer.domElement.width, height: this.renderer.domElement.height } }; }
   /** Deterministic-time simulation hook for smoke tests; respects pause and choices. */
   stepForTest(seconds) { for (let t = 0; t < seconds && this._state.phase === 'playing'; t += 1 / 60) { this.frames++; this.tick(1 / 60); this.animateEffects(1 / 60); } this.emit(); return this.getDebugState(); }
   dispose() {
     this.disposed = true; cancelAnimationFrame(this.raf); this.observer.disconnect();
     window.removeEventListener('keydown', this.onKeyDown); window.removeEventListener('keyup', this.onKeyUp); window.removeEventListener('blur', this.onBlur); document.removeEventListener('visibilitychange', this.onVisibility);
     this.renderer.domElement.removeEventListener('pointerdown', this.onPointerDown); this.renderer.domElement.removeEventListener('pointermove', this.onPointerMove); this.renderer.domElement.removeEventListener('pointerup', this.onPointerUp); this.renderer.domElement.removeEventListener('pointercancel', this.onPointerUp);
-    this.clearDynamic(); this.enemyRenderer?.dispose(); this.presentation?.dispose(); this.magic?.dispose(); this.bossSystem?.dispose();
+    this.clearDynamic(); this.enemyRenderer?.dispose(); this.actorShadows?.dispose(); this.combatArt?.dispose(); this.presentation?.dispose(); this.magic?.dispose(); this.bossSystem?.dispose();
     this.heroTextures?.forEach(texture => texture.dispose());
+    this.world?.art.dispose();
     const geometries = new Set(), materials = new Set();
     this.scene.traverse((object) => { if (object.geometry) geometries.add(object.geometry); if (object.material) (Array.isArray(object.material) ? object.material : [object.material]).forEach((m) => materials.add(m)); });
     this.ownedGeometries.forEach(geometry => geometries.add(geometry));

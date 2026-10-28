@@ -64,7 +64,7 @@ $('#app').innerHTML = `
       <button class="nav-link" data-nav="history">런 기록 <span class="nav-count" id="history-count">${history.length.toString().padStart(2, '0')}</span></button>
       <button class="nav-link" data-nav="permanent">영구 강화</button>
     </nav>
-    <div class="header-actions"><span class="build-label"><i></i> BUILD YOUR LEGEND <b>v0.10.0</b></span><span class="header-divider"></span><button id="sound-toggle" class="icon-button" title="사운드 켜기" aria-label="사운드 켜기">${icon('muted')}</button><button id="settings" class="icon-button" title="설정" aria-label="설정">${icon('settings')}</button></div>
+    <div class="header-actions"><span class="build-label"><i></i> BUILD YOUR LEGEND <b>v0.11.0</b></span><span class="header-divider"></span><button id="sound-toggle" class="icon-button" title="사운드 켜기" aria-label="사운드 켜기">${icon('muted')}</button><button id="settings" class="icon-button" title="설정" aria-label="설정">${icon('settings')}</button></div>
   </header>
   <main class="page">
     <section class="page-intro">
@@ -605,6 +605,9 @@ try {
     onWin: state => finish(state, true),
   });
   window.__game = game;
+  const readyButton = $('#start-button'), readyLabel = readyButton.innerHTML;
+  readyButton.disabled = true; readyButton.textContent = '전장 준비 중…'; $('#game-canvas').setAttribute('aria-busy', 'true');
+  game.presentation.ready.finally(() => { readyButton.innerHTML = readyLabel; readyButton.disabled = false; $('#game-canvas').setAttribute('aria-busy', 'false'); });
   game.setPermanentBonuses(getPermanentBonuses(progress));
   game.setPlaybackSpeed([1, 2, 3].includes(prefs.speed) ? prefs.speed : 1);
   game.setQuality(prefs.quality); syncSound(); syncRisk(); syncLoadout();

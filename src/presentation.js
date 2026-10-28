@@ -1,6 +1,7 @@
 import * as THREE from 'three';
+import { loadArtAssets } from './art-assets.js';
 
-/** Small self-contained surface maps; no downloads or full-screen effects. */
+/** Local PBR assets and small surface maps, without full-screen postprocessing. */
 export function createPresentationAssets(renderer) {
   const textures = new Set();
   const track = texture => { textures.add(texture); return texture; };
@@ -45,8 +46,7 @@ export function createPresentationAssets(renderer) {
     map.generateMipmaps = true; map.minFilter = THREE.LinearMipmapLinearFilter; map.magFilter = THREE.LinearFilter;
     map.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy()); map.needsUpdate = true; return map;
   };
-  const terrainMap = texture(color, size, true, 30), terrainNormal = texture(normals, size, false, 30);
-  const stoneMap = texture(color, size, true, 2), stoneNormal = texture(normals, size, false, 2);
+  const metalNormal = texture(normals, size, false, 3);
   const weave = new Uint8Array(64 * 64 * 4);
   for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) {
     const value = 230 + ((x % 4 < 2) !== (y % 4 < 2) ? 18 : 0); weave.set([value, value, value, 255], (y * 64 + x) * 4);
@@ -57,5 +57,14 @@ export function createPresentationAssets(renderer) {
   gradient.addColorStop(0, 'rgba(0,0,0,.65)'); gradient.addColorStop(.45, 'rgba(0,0,0,.3)'); gradient.addColorStop(1, 'rgba(0,0,0,0)');
   contact.fillStyle = gradient; contact.fillRect(0, 0, 64, 64);
   const contactMap = track(new THREE.CanvasTexture(contactCanvas));
-  return { environment, terrainMap, terrainNormal, stoneMap, stoneNormal, clothMap, contactMap, dispose() { for (const map of textures) map.dispose(); textures.clear(); } };
+  const slashPixels = new Uint8Array(128 * 128 * 4);
+  for (let y = 0; y < 128; y++) for (let x = 0; x < 128; x++) {
+    const dx = (x + .5) / 64 - 1, dy = (y + .5) / 64 - 1, r = Math.hypot(dx, dy);
+    const rim = Math.max(0, Math.min(1, (1.01 - r) / .08)), band = Math.max(0, Math.min(1, (r - .30) / .65));
+    const alpha = Math.round(255 * rim * band ** 3 * (.78 + .22 * Math.sin(Math.atan2(dy, dx) * 12 + r * 16) ** 2));
+    slashPixels.set([255, 255, 255, alpha], (y * 128 + x) * 4);
+  }
+  const slashMap = track(new THREE.DataTexture(slashPixels, 128, 128, THREE.RGBAFormat)); slashMap.needsUpdate = true; slashMap.magFilter = slashMap.minFilter = THREE.LinearFilter;
+  const art = loadArtAssets(renderer, environment, track);
+  return { ...art, clothMap, contactMap, slashMap, metalNormal, ready: art.ready, dispose() { for (const map of textures) map.dispose(); textures.clear(); } };
 }
