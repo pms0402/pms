@@ -29,7 +29,7 @@ try {
     g.setQuality('low'); const low = { grass: g.world.art.grass.count, mist: g.world.art.mist.visible, shadows: g.renderer.shadowMap.enabled };
     g.setQuality('high'); const restored = g.world.art.grass.count === highGrass && g.world.art.mist.visible && g.renderer.shadowMap.enabled;
     g.renderer.setSize(800, 560, false); g.camera.aspect = 800 / 560; g.camera.updateProjectionMatrix(); g.camera.position.set(20, 26, 25); g.camera.lookAt(0, .5, 0);
-    for (let i = 0; i < 160; i++) { const a = i * 2.399, r = 4 + i % 13, enemy = g.spawnEnemy(Math.cos(a) * r, Math.sin(a) * r, [0, 1, 2, 3, 5, 6, 7, 8, 9][i % 9]); enemy.hp = enemy.maxHp = 1e6; enemy.speed = 0; }
+    for (let i = 0; i < 160; i++) { const a = i * 2.399, r = 4 + i % 13, enemy = g.spawnEnemy(Math.cos(a) * r, Math.sin(a) * r, [0, 1, 2, 3, 5, 6, 7, 8, 9][i % 9], { mutations: [] }); enemy.hp = enemy.maxHp = 1e6; enemy.speed = 0; }
     const target = g.enemies[0], hp = target.hp, stats = JSON.stringify(g.stats);
     g.hitEnemy(target, 10); g.animateEffects(.03); g.world.updateOcclusion(g.player.position, g.camera.position, 100); g.renderer.render(g.scene, g.camera);
     const hit = { damage: hp - target.hp, particles: g.combatArt.count, shadowCount: g.actorShadows.mesh.count, unchanged: stats === JSON.stringify(g.stats), calls: g.renderer.info.render.calls, geometries: g.renderer.info.memory.geometries, textures: g.renderer.info.memory.textures };

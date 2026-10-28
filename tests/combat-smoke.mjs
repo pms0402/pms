@@ -178,6 +178,7 @@ try {
     game.tick(1 / 60);
     const routeOffered = game.state.phase === 'route' && game.state.stage === 1;
     if (!routeOffered || !game.chooseRoute('standard')) throw new Error('Completed floor must choose a route before advancing');
+    if (game.state.phase === 'region' && !game.chooseRegion(game.regionChoices[0].id)) throw new Error('A regional choice must complete the floor transition');
     return { spawned, once, blockedAlive, blockedEarly, routeOffered, stage: game.state.stage, hp: game.state.hp, maxHp: game.state.maxHp, statsUnchanged: JSON.stringify(game.stats) === unchangedStats, bossReset: !game.bossSpawned && !game.bossDefeated };
   }, { spawnTime: BOSS_SPAWN_TIME, duration: STAGE_DURATION });
   assert.equal(bossGate.spawned, true);

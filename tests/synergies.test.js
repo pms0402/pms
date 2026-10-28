@@ -22,7 +22,7 @@ function fixture(stats = {}) {
 }
 
 test('combos require chosen build prerequisites and never mutate the build', () => {
-  assert.equal(SYNERGIES.length, 3);
+  assert.equal(SYNERGIES.length, 7);
   assert.deepEqual(getActiveSynergies(), []);
   assert.deepEqual(getActiveSynergies(null), []);
   assert.deepEqual(getActiveSynergies({ stage: 10, level: 99 }), []);
@@ -122,7 +122,7 @@ test('combo cooldowns freeze while paused, clear between enemy lives and reset f
   assert.equal(magic.onSwordHit(struck, 100), true);
   assert.equal(hits.length, 3);
   magic.reset();
-  assert.deepEqual(magic.getDebugState().comboTriggers, { shatter: 0, flamewave: 0, runelight: 0 });
+  assert.deepEqual(magic.getDebugState().comboTriggers, Object.fromEntries(SYNERGIES.map(combo => [combo.id, 0])));
   assert.equal(magic.onSwordHit(struck, 100), true);
   magic.dispose();
 });

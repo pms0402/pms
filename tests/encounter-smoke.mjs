@@ -234,10 +234,12 @@ try {
     const advanced = game.nextStage();
     const routeOffered = game.state.phase === 'route' && game.state.stage === 5;
     const chosen = game.chooseRoute('standard');
+    if (game.state.phase === 'region' && !game.chooseRegion(game.regionChoices[0].id)) throw new Error('A regional choice must complete the floor transition');
     return { advanced, routeOffered, chosen, stage: game.state.stage, phase: game.state.phase };
   });
   assert.deepEqual(fifth, { advanced: true, routeOffered: true, chosen: true, stage: 6, phase: 'playing' }, 'the old fifth-floor ending now continues into floor six');
   await fixture(10);
+  await page.evaluate(() => { const g = window.__game; g.regionId = 'throne'; g.regionSystem.setRegion('throne'); });
   const final = await page.evaluate(() => {
     const game = window.__game, boss = game.spawnBoss(); game._state.stageTime = game.state.stageDuration;
     game.emit();

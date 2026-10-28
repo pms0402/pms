@@ -133,6 +133,7 @@ try {
         if (floor < 10) {
           if (routePhase !== 'route') throw new Error('Nonfinal floor must ask for the next route');
           if (!game.chooseRoute('standard')) throw new Error('Standard route was rejected');
+          if (game.state.phase === 'region' && !game.chooseRegion(game.regionChoices[0].id)) throw new Error('A regional choice must complete the floor transition');
         }
         const afterAdvance = structuredClone(game.stats), advanceHp = game.state.hp;
         if (game.state.phase === 'playing') {

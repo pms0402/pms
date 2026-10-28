@@ -8,6 +8,8 @@ import { STAGES, BOSS_TYPES, ENEMY_TYPES, getStageDefinition, getBossDefinition 
 import { getSwordProfile } from './sword.js';
 import { SYNERGIES, getActiveSynergies } from './synergies.js';
 import { CURSES, ROUTES } from './run-events.js';
+import { REGIONS, getRegion } from './regions.js';
+import { MUTATIONS, MUTATION_ELITE } from './mutations.js';
 
 const $ = (s) => document.querySelector(s);
 const stageNames = STAGES.map(stage => stage.name);
@@ -38,7 +40,7 @@ let campTab = 'tree';
 let theaterMode = false;
 const hudElements = new Map();
 const hudValues = new Map();
-const choiceDialogs = new Set(['upgrade', 'relic', 'route', 'curse']);
+const choiceDialogs = new Set(['upgrade', 'relic', 'route', 'region', 'curse']);
 const isChoiceDialog = () => choiceDialogs.has(dialogName);
 const swordNames = { default: '기본 검술', broadsword: '거인의 대검', twinblade: '질풍의 쌍검', wave: '공허의 검기' };
 const decimal = (value, digits = 1) => Number(value || 0).toLocaleString('ko-KR', { maximumFractionDigits: digits });
@@ -64,7 +66,7 @@ $('#app').innerHTML = `
       <button class="nav-link" data-nav="history">런 기록 <span class="nav-count" id="history-count">${history.length.toString().padStart(2, '0')}</span></button>
       <button class="nav-link" data-nav="permanent">영구 강화</button>
     </nav>
-    <div class="header-actions"><span class="build-label"><i></i> BUILD YOUR LEGEND <b>v0.11.0</b></span><span class="header-divider"></span><button id="sound-toggle" class="icon-button" title="사운드 켜기" aria-label="사운드 켜기">${icon('muted')}</button><button id="settings" class="icon-button" title="설정" aria-label="설정">${icon('settings')}</button></div>
+    <div class="header-actions"><span class="build-label"><i></i> BUILD YOUR LEGEND <b>v0.12.0</b></span><span class="header-divider"></span><button id="sound-toggle" class="icon-button" title="사운드 켜기" aria-label="사운드 켜기">${icon('muted')}</button><button id="settings" class="icon-button" title="설정" aria-label="설정">${icon('settings')}</button></div>
   </header>
   <main class="page">
     <section class="page-intro">
@@ -77,7 +79,7 @@ $('#app').innerHTML = `
         <div id="game-canvas" role="application" tabindex="0" aria-label="3D 로그라이크 전장. WASD 이동, 스페이스 대시, Escape 일시정지."></div>
         <div class="arena-vignette"></div>
         <div class="arena-top">
-          <div class="area-label"><span class="live-dot"></span><span id="area-name">잊혀진 초원</span><span class="area-divider">/</span><span id="area-stage">STAGE 01</span></div>
+          <button class="area-label region-info" id="region-info" aria-label="현재 지역 특성과 보상 보기"><span class="live-dot"></span><span id="area-name">잊혀진 성역</span><span class="area-divider">/</span><span id="area-stage">STAGE 01</span>${icon('chevron')}<small id="region-summary"></small></button>
           <div class="arena-top-actions"><span class="difficulty"><i></i> <span id="difficulty">고요한 시작</span></span><button id="game-speed" class="glass-button" title="게임 배속 변경 · 적과 공격도 함께 빨라집니다" aria-label="게임 배속 변경">1×</button><button id="pause-button" class="glass-button" title="일시정지 (Esc)" aria-label="일시정지" disabled>${icon('pause')}</button><button id="fullscreen" class="glass-button" title="전체 화면 (F)" aria-label="전체 화면" aria-pressed="false">${icon('expand')}</button></div>
         </div>
         <div class="live-hud hidden" id="live-hud">
@@ -89,7 +91,7 @@ $('#app').innerHTML = `
           <div class="roguelike-tag"><span></span> 3D SURVIVAL ROGUELIKE</div>
           <h2>작은 시작.<br>거대한 <span>한 방.</span></h2>
           <p>쓰러져도, 번 골드는 남습니다.<br>영구 강화로 더 강하게 돌아오세요.</p>
-          <div class="magic-preview"><span style="--spell:#ffac61">${icon('fire')}</span><span style="--spell:#80e6f8">${icon('snow')}</span><span style="--spell:#f0de75">${icon('bolt')}</span><span style="--spell:#c4a2ff">${icon('orbit')}</span><small>4 MAGIC CLASSES · 4 EVOLUTIONS</small></div>
+          <div class="magic-preview"><span style="--spell:#ffac61">${icon('fire')}</span><span style="--spell:#80e6f8">${icon('snow')}</span><span style="--spell:#f0de75">${icon('bolt')}</span><span style="--spell:#c4a2ff">${icon('orbit')}</span><small>5 REGIONS · 7 BUILD COMBOS</small></div>
           <button class="start-loadout" id="start-loadout">${icon('sword')} <span id="selected-loadout">방랑자 · 공허의 검</span> ${icon('chevron')}</button>
           <div class="risk-selector"><span>이번 런의 계약</span><div id="risk-options" class="risk-options">${RISK_PACTS.map(pact => `<button data-risk="${pact.id}" aria-pressed="${prefs.risk === pact.id}" class="${prefs.risk === pact.id ? 'selected' : ''}">${pact.name.replace('의 계약','')}</button>`).join('')}</div><p id="risk-description"></p></div>
           <button class="primary-button start-button" id="start-button"><span>${icon('play')} 런 시작하기</span>${icon('arrow')}</button>
@@ -113,7 +115,7 @@ $('#app').innerHTML = `
         <div class="stage-heading"><span class="stage-caption">CURRENT STAGE</span><div class="stage-number"><strong id="stage-number">01</strong><span>/ ${String(MAX_STAGES).padStart(2, '0')}</span><span class="stage-symbol">✳</span></div><h3 id="stage-name">잊혀진 초원</h3><p id="stage-english">THE FORGOTTEN GROVE</p></div>
         <div class="stage-time"><span id="stage-timer-label">보스 출현까지</span><strong id="stage-time">01:30</strong></div><div class="stage-track"><div id="stage-progress"></div></div>
         <div class="scaling-stats"><div><span>${icon('coin')} 처치 보상</span><strong id="reward-multiplier">×1</strong></div><div><span>${icon('skull')} 적 체력 · 피해</span><strong id="enemy-multiplier">×1</strong></div></div>
-        <div class="stage-route" aria-label="전체 층 진행 경로" tabindex="0">${stageNames.map((name, i) => `<div class="route-stop ${i === 0 ? 'current' : ''}" data-stage="${i + 1}"><span class="route-point">${i === 0 ? '<i></i>' : `<b>${i + 1}</b>`}</span><span>${name}</span><span class="route-multiplier">${i === 0 ? '현재' : `×${formatGold(10 ** i)}`}</span></div>`).join('')}</div>
+        <div class="stage-route" aria-label="전체 층 진행 경로" tabindex="0">${stageNames.map((name, i) => `<div class="route-stop ${i === 0 ? 'current' : ''}" data-stage="${i + 1}"><span class="route-point">${i === 0 ? '<i></i>' : `<b>${i + 1}</b>`}</span><span class="route-region-name">${i === 0 || i === MAX_STAGES - 1 ? name : '미지의 갈림길'}</span><span class="route-multiplier">${i === 0 ? '현재' : `×${formatGold(10 ** i)}`}</span></div>`).join('')}</div>
         <div class="build-summary"><div><span>이번 런의 빌드</span><button id="build-info" title="마법과 강화 설명">${icon('book')}</button></div><p id="build-summary">화염탄으로 시작합니다.<br>경험치를 모아 새 마법을 선택하세요.</p><div class="build-summary-foot"><span id="build-levels">마법 1종 · 진화 0종</span><span>LV. <b id="build-level">1</b></span></div></div>
         <div class="panel-tip"><span>${icon('bolt')} BIGGER GAINS. NEW POSSIBILITIES.</span><p>강력한 성장, 새로운 마법.<br>선택이 쌓여 <b>당신만의 빌드로.</b></p><div class="mini-bars">${Array.from({length: 22}, (_, i) => `<i style="--bar:${12 + Math.pow(i / 21, 2.5) * 38}px;--alpha:${.16 + i / 26}"></i>`).join('')}</div></div>
       </aside>
@@ -178,8 +180,14 @@ function update(state) {
   hud('#gold-count', formatGold(state.gold));
   hud('#stage-number', String(state.stage).padStart(2, '0'));
   const floor = getStageDefinition(state.stage);
-  hud('#stage-name', floor.name); hud('#area-name', floor.name);
-  hud('#stage-english', floor.english);
+  const region = state.region || getRegion(state.regionId || (state.stage === MAX_STAGES ? 'throne' : 'sanctum'));
+  hud('#stage-name', region.title); hud('#area-name', region.title);
+  hud('#stage-english', region.english || floor.english);
+  const regionHints = { sanctum: '탐험의 시작', volcano: '용암 예고', tundra: '서리 둔화', forest: '독성 장판', ruins: '마법 사선', void: '변이 · 균열', throne: '최종 수호자' };
+  hud('#region-summary', `${regionHints[region.id] || '지역 특성'} · 골드 ×${decimal(region.goldMultiplier || 1, 2)}`);
+  $('#region-info').style.setProperty('--region', region.color || '#b9cda5');
+  $('#region-info').title = `${region.title} · ${region.hazard} · ${region.reward}`;
+  $('#region-info').setAttribute('aria-label', `${region.title} · 지역 특성 및 보상 보기`);
   hud('#area-stage', `STAGE ${String(state.stage).padStart(2, '0')}`);
   const boss = state.boss;
   const bossAlive = !!boss && boss.hp > 0;
@@ -191,10 +199,10 @@ function update(state) {
   const risk = state.phase === 'menu' ? getRiskStats(prefs.risk) : state.risk || getRiskStats(prefs.risk);
   const goldBonus = (risk.goldMultiplier || 1) * (state.playerStats?.goldMultiplier || 1);
   hud('#reward-multiplier', `${formatGold(getStageStats(state.stage).coinValue)} G · ×${decimal(goldBonus, 2)}`);
-  $('#reward-multiplier').title = `기본 처치 골드 × 계약 × 유물·영구 강화 × 제단·경로. 현재 총 보상 배율 ×${decimal(goldBonus, 2)}`;
+  $('#reward-multiplier').title = `기본 처치 골드 × 계약 × 유물·영구 강화 × 제단·경로·지역. 현재 총 보상 배율 ×${decimal(goldBonus, 2)}`;
   const enemyStats = getStageStats(state.stage), baseEnemyStats = getStageStats(1);
   hud('#enemy-multiplier', `×${decimal(enemyStats.enemyHealth / baseEnemyStats.enemyHealth * (risk.enemyHealth || 1))} / ×${decimal(enemyStats.enemyDamage / baseEnemyStats.enemyDamage * (risk.enemyDamage || 1))}`);
-  $('#enemy-multiplier').title = '1층 기본 적 대비 체력 / 피해. 계약·유물·제단·현재 경로를 모두 포함합니다.';
+  $('#enemy-multiplier').title = '1층 기본 적 대비 체력 / 피해. 계약·유물·제단·현재 경로·지역을 포함합니다. 변이 개체는 별도 배율이 적용됩니다.';
   hud('#difficulty', bossAlive ? '수호자 출현' : state.stage >= 3 ? '원거리 몬스터 주의' : state.stageTime > 60 ? '몰려오는 적들' : '생존과 성장');
   $('#boss-hud').classList.toggle('hidden', !bossAlive);
   $('#arena').classList.toggle('has-boss', bossAlive);
@@ -234,7 +242,7 @@ function update(state) {
   const owned = spells.filter(s => s.rank > 0);
   const activeSynergies = getActiveSynergies(state.playerStats || {});
   $('#synergy-status').classList.toggle('hidden', !inRun || !activeSynergies.length);
-  hud('#synergy-status', activeSynergies.map(synergy => `<span style="--synergy:${escapeHTML(synergy.color)}" title="${escapeHTML(`${synergy.title} · ${synergy.description}`)}" aria-label="${escapeHTML(`${synergy.title} 발동 중`)}">${icon(synergy.icon)}<b>${escapeHTML(synergy.title)}</b></span>`).join(''), true);
+  hud('#synergy-status', activeSynergies.slice(0, 2).map(synergy => `<span style="--synergy:${escapeHTML(synergy.color)}" title="${escapeHTML(`${synergy.title} · ${synergy.description}`)}" aria-label="${escapeHTML(`${synergy.title} 발동 중`)}">${icon(synergy.icon)}<b>${escapeHTML(synergy.title)}</b></span>`).join('') + (activeSynergies.length > 2 ? `<button class="synergy-more" data-open-build title="${escapeHTML(activeSynergies.map(item => item.title).join(' · '))}" aria-label="추가 조합 ${activeSynergies.length - 2}개 · 전체 조합 보기">+${activeSynergies.length - 2}</button>` : ''), true);
   const relicIds = state.playerStats?.relics || [];
   const rewardTokens = Math.max(0, Math.floor(Number(state.rewardTokens) || 0));
   const pendingBossRewards = Array.isArray(state.pendingBossRewards) ? state.pendingBossRewards : [];
@@ -256,6 +264,8 @@ function update(state) {
   lastRouteStage = state.stage;
   for (const stop of document.querySelectorAll('.route-stop')) {
     const n = Number(stop.dataset.stage);
+    const visited = state.runReport?.regionHistory?.find(entry => entry.stage === n);
+    stop.querySelector('.route-region-name').textContent = visited ? getRegion(visited.regionId || visited.id).title : n === 1 || n === MAX_STAGES ? stageNames[n - 1] : '미지의 갈림길';
     stop.classList.toggle('current', n === state.stage);
     stop.classList.toggle('completed', n < state.stage);
     stop.querySelector('.route-point').innerHTML = n < state.stage ? icon('check') : n === state.stage ? '<i></i>' : `<b>${n}</b>`;
@@ -277,7 +287,7 @@ function getSpellStates(state = latest) {
 
 let returnFocus;
 function openModal(name, content, { pause = true, closeable = true } = {}) {
-  if (isChoiceDialog() && name !== dialogName && name !== 'result') return false;
+  if (isChoiceDialog() && name !== dialogName && name !== 'result' && !(choiceDialogs.has(name) && game?._state.phase === name)) return false;
   returnFocus = document.activeElement;
   if (pause && latest?.phase === 'playing') { pausedForDialog = true; game.pause(); }
   dialogName = name;
@@ -333,6 +343,18 @@ function encounterGuide() {
   return `<section class="encounter-reference" aria-label="적과 수호자 도감"><details class="encounter-section"><summary tabindex="0">${icon('skull')} 몬스터 도감 <span>${enemies.length}종</span>${icon('chevron')}</summary><p class="encounter-intro">층이 깊어지면 새 적이 기존 군단에 합류합니다. 서로 다른 예고를 구분해 우선순위를 정하세요.</p><div class="encounter-grid">${enemies.map(enemy => `<article class="encounter-card" data-enemy-kind="${enemy.kind}" style="--encounter:${escapeHTML(enemy.color || '#a5c681')}"><div class="encounter-symbol">${icon(enemyIcons[enemy.kind] || 'skull')}</div><div><small>${enemy.unlockStage}층부터 등장</small><h3>${escapeHTML(enemy.name)}</h3><p>${escapeHTML(enemy.description)}</p><strong>${escapeHTML(enemy.counterplay || enemyCounters[enemy.kind] || '')}</strong></div></article>`).join('')}</div></details><details class="encounter-section"><summary tabindex="0">${icon('trophy')} 수호자 공략 <span>${bosses.length}가지 전투 방식</span>${icon('chevron')}</summary><p class="encounter-intro">${MAX_STAGES}개 층마다 고유한 수호자가 기다립니다. 후반 수호자는 같은 계열의 전투 방식도 더 거세게 사용합니다.</p><div class="encounter-grid">${bosses.map(boss => { const floors = STAGES.map((_, index) => index + 1).filter(stage => getBossDefinition(stage).archetype === boss.id); return `<article class="encounter-card boss-reference-card" data-boss-archetype="${escapeHTML(boss.id)}" style="--encounter:${escapeHTML(boss.color || '#deac8d')}"><div class="encounter-symbol">${icon(boss.id === 'storm' ? 'bolt' : boss.id === 'plague' ? 'fire' : boss.id === 'artillery' ? 'target' : boss.id === 'brood' ? 'skull' : boss.id === 'reaper' ? 'orbit' : 'sword')}</div><div><small>${floors.join(' · ')}층 수호자</small><h3>${escapeHTML(boss.name)}</h3><p>${escapeHTML(boss.hint)}</p><strong>${escapeHTML(bossCounters[boss.id] || '')}</strong></div></article>`; }).join('')}</div></details></section>`;
 }
 
+function regionDetails(region) {
+  return `<dl class="region-details"><div><dt>${icon('skull')} 위험</dt><dd>${escapeHTML(region.hazard)}</dd></div><div class="regional-reward"><dt>${icon('chest')} 보상</dt><dd>${escapeHTML(region.reward)}</dd></div><div><dt>${icon('shield')} 대응</dt><dd>${escapeHTML(region.counterplay)}</dd></div></dl>`;
+}
+function currentRegionMarkup() {
+  const region = latest?.region || getRegion(latest?.regionId);
+  return `<section class="current-region" data-current-region="${escapeHTML(region.id)}" style="--region:${escapeHTML(region.color)}"><div class="current-region-title">${icon(region.icon)}<div><small>CURRENT REGION</small><h3>${escapeHTML(region.title)}</h3></div><span>이번 층에 적용</span></div><p>${escapeHTML(region.description)}</p>${regionDetails(region)}</section>`;
+}
+function expansionGuide() {
+  const mutations = [...MUTATIONS, MUTATION_ELITE];
+  return `<section class="encounter-reference expansion-reference" aria-label="지역과 변이 도감"><details class="encounter-section"><summary>${icon('move')} 지역 도감 <span>5개 분기 · 고유 최종 지역</span>${icon('chevron')}</summary><p class="encounter-intro">다음 2–9층은 경로를 고른 뒤 제시된 세 지역 중 하나를 선택합니다. 지역 배율은 경로·계약·저주와 곱해 적용됩니다. 지역 선택만으로 능력치가 오르지 않으며, 유물은 제시된 카드에서 직접 골라야 적용됩니다.</p><div class="region-codex">${REGIONS.map(region => `<article data-region-codex="${escapeHTML(region.id)}" style="--region:${escapeHTML(region.color)}"><div class="current-region-title">${icon(region.icon)}<h3>${escapeHTML(region.title)}</h3><small>${escapeHTML(region.english)}</small></div><p>${escapeHTML(region.description)}</p>${regionDetails(region)}</article>`).join('')}</div></details><details class="encounter-section"><summary>${icon('skull')} 변이 도감 <span>6개 변이 · 복합 정예</span>${icon('chevron')}</summary><p class="encounter-intro">고유 색과 모양의 발밑 표식으로 능력을 구분합니다. 초반 출현율은 낮고 깊은 층으로 갈수록 높아집니다. 공허에서는 복합 변이가 늘어나며, 변이의 추가 골드·경험치는 기존 몬스터 보상에 곱해 지급됩니다.</p><div class="encounter-grid">${mutations.map(mutation => `<article class="encounter-card" data-mutation="${escapeHTML(mutation.id)}" style="--encounter:${escapeHTML(mutation.color)}"><div class="encounter-symbol">${icon(mutation.icon)}</div><div><small>${mutation.id === 'elite' ? '서로 다른 변이 2개' : '고유 표식 1개'}</small><h3>${escapeHTML(mutation.title)}</h3><p>${escapeHTML(mutation.description)}</p><strong>${escapeHTML(mutation.counterplay)}</strong></div></article>`).join('')}</div></details></section>`;
+}
+
 function showGuide() {
   if (isChoiceDialog()) return;
   const steps = [
@@ -341,11 +363,13 @@ function showGuide() {
     ['마법을 키우고 조합을 완성하세요', '레벨업마다 강화 하나를 고릅니다. 검·마법 공격력은 각각 <b>20%</b>, 공격·시전 속도는 <b>8%</b>, 최대 체력은 <b>15%</b>씩 곱해 성장합니다. 마법은 5단계 뒤 진화합니다. <b>서리 + 검 범위 2단계</b>, <b>화염구 + 검기</b>, <b>번개 + 궤도 룬</b> 조합은 추가 공격을 발동합니다. <kbd>B</kbd>에서 조건과 효과를 확인하세요.'],
     ['언덕과 폐허를 탐험하세요', '넓어진 전장에 언덕과 성당·집·감시탑·관문이 있습니다. 언덕을 오르고 폐허의 문으로 들어갈 수 있습니다. 벽과 탑은 돌아가야 하며, 시야를 가리는 가까운 건물은 흐려집니다.'],
     ['상자는 열자마자 보상을 선택합니다', '수호 몬스터를 처치하고 상자에 가까이 가면 <b>골드를 즉시 받고, 유물 3개 중 하나를 바로 선택</b>합니다. 정예의 유물 선택권과 보스의 유산은 다음 레벨업의 네 번째 선택 후보가 됩니다. 고른 효과만 적용되며, 선택 중에는 전투가 멈춥니다.'],
-    ['위험과 보상을 직접 고르세요', '전장에 나타난 <b>저주 제단</b>에서 적을 더 강하게 만드는 대신 골드 배율을 높일 수 있습니다. 저주는 이번 런 동안 누적되며, <b>받지 않고 지나갈 수도 있습니다.</b> 층을 돌파하면 다음 층의 일반 / 정예 / 보물 경로를 고릅니다. 경로의 위험과 보상은 해당 층에만 적용됩니다.'],
+    ['위험과 보상을 직접 고르세요', '전장에 나타난 <b>저주 제단</b>에서 적을 더 강하게 만드는 대신 골드 배율을 높일 수 있습니다. 저주는 이번 런 동안 누적되며, <b>받지 않고 지나갈 수도 있습니다.</b> 층을 돌파하면 다음 층의 일반 / 정예 / 보물 경로를 고릅니다. 경로를 고른 뒤 전투할 지역을 고릅니다. 경로·지역의 위험과 보상은 해당 층에만 적용됩니다.'],
+    ['같은 층도 다른 지역에서', '경로를 고른 뒤, 서로 다른 <b>지역 3개 중 하나</b>를 선택합니다. 화산·설원·오염된 숲·유적·공허는 적 구성과 환경 위험, 유물 선택지가 다릅니다. 지역 카드에서 확정 보상과 위험을 비교하세요. 최종 10층은 종말의 왕좌입니다.'],
+    ['표식으로 변이와 숨겨진 조합을 읽으세요', '변이 몬스터는 고유 색과 발밑 표식으로 구분합니다. 두 가지 표식을 가진 정예 변이는 보상도 커집니다. <b>검 진화 + 마법 진화 + 유물</b> 조건을 갖추면 숨겨진 조합이 해금됩니다. 아래 도감이나 <kbd>B</kbd>에서 조건을 확인하세요.'],
     [`${STAGE_DURATION / 60}분 생존, 그리고 수호자 처치`, `각 층 <b>90초</b>에 보스가 등장합니다. <b>2분 생존 + 보스 처치</b>를 모두 달성해야 다음 층으로 갑니다. 다음 층의 기본 골드는 <b>10배</b>, 적 체력은 <b>1.7배</b>, 피해는 <b>1.35배</b>가 됩니다. <b>플레이어 능력치와 체력은 층 이동으로 자동 증가하지 않습니다.</b> ${MAX_STAGES}층의 수호자를 모두 쓰러뜨리세요.`],
     ['죽고 번 골드로 다음 런을 준비하세요', '사망·완주·직접 런 종료 시 번 골드를 회수합니다. 결과에서 피해량과 사망 원인을 확인하고 <b>영구 강화하고 재도전</b>을 누르세요. 검술·마력 가지는 따로 성장하며, 구매 효과는 다음 런부터 적용됩니다. 같은 브라우저에 골드와 강화가 저장됩니다. <kbd>F</kbd>나 전장 오른쪽 위 버튼으로 전체 화면을 켜고 끕니다.'],
   ];
-  openModal('guide', `<div class="modal-eyebrow">FIELD MANUAL / 008</div><h2 id="modal-title">작은 선택이, 거대한 빌드로<span>.</span></h2><p class="modal-description">검의 진화, 마법 조합, 위험한 선택. 다음 런에 도전할 빌드를 찾아보세요.</p><div class="guide-steps">${steps.map(([title, description], index) => `<div><span>${String(index + 1).padStart(2, '0')}</span><div><h3>${title}</h3><p>${description}</p></div></div>`).join('')}</div><div class="guide-bottom">${icon('info')} 수치는 선택 전 카드에 표시됩니다. 저주는 런 전체, 경로는 다음 한 층에 적용됩니다.</div>${encounterGuide()}`);
+  openModal('guide', `<div class="modal-eyebrow">FIELD MANUAL / 010</div><h2 id="modal-title">작은 선택이, 거대한 빌드로<span>.</span></h2><p class="modal-description">검의 진화, 마법 조합, 위험한 선택. 다음 런에 도전할 빌드를 찾아보세요.</p><div class="guide-steps">${steps.map(([title, description], index) => `<div><span>${String(index + 1).padStart(2, '0')}</span><div><h3>${title}</h3><p>${description}</p></div></div>`).join('')}</div><div class="guide-bottom">${icon('info')} 수치는 선택 전 카드에 표시됩니다. 저주는 런 전체, 경로와 지역은 다음 한 층에 적용됩니다.</div>${expansionGuide()}${encounterGuide()}`);
 }
 
 function pendingRewardSummary(state = latest) {
@@ -366,7 +390,7 @@ function showBuild() {
   const active = new Set(getActiveSynergies(stats).map(item => item.id));
   const curses = CURSES.filter(curse => latest?.activeCurses?.includes(curse.id));
   const route = ROUTES.find(route => route.id === latest?.routeId) || ROUTES[0];
-  openModal('build', `<div class="modal-eyebrow">YOUR BUILD / THIS RUN</div><h2 id="modal-title">검과 마법, 당신만의 조합<span>.</span></h2><p class="modal-description">선택한 강화와 유물은 이번 런에만 적용됩니다. 영구 강화는 다음 런에도 유지됩니다.</p><div class="sword-build" style="--blade-color:${escapeHTML(sword.color || '#c1ff66')}"><div class="sword-build-icon">${icon(sword.mode === 'twinblade' ? 'bolt' : sword.mode === 'wave' ? 'move' : 'sword')}</div><div><small>SWORD / ${sword.mode === 'default' ? '진화 전' : '진화 완료'}</small><h3>${escapeHTML(swordNames[sword.mode] || swordNames.default)}</h3><p>타격 거리 <b data-sword-range>${decimal(sword.range, 2)}m</b> · 전방 <b>${Math.round(sword.arc * 180 / Math.PI)}°</b> · 최대 <b>${sword.targets}명</b></p><span>검 공격력·속도·범위 강화 합계 3단계부터 진화 선택 · 한 런에 하나</span></div></div><div class="synergy-codex"><h3>검 · 마법 조합 <small>${active.size} / ${SYNERGIES.length} 발동 중</small></h3>${SYNERGIES.map(synergy => `<article class="synergy-card ${active.has(synergy.id) ? 'active' : ''}" data-synergy="${escapeHTML(synergy.id)}" style="--synergy:${escapeHTML(synergy.color)}"><div>${icon(synergy.icon)}</div><span><small>${active.has(synergy.id) ? '발동 중' : escapeHTML(synergy.requirement)}</small><strong>${escapeHTML(synergy.title)}</strong><p>${escapeHTML(synergy.description)}</p></span>${active.has(synergy.id) ? icon('check') : ''}</article>`).join('')}</div>${pendingRewardSummary()}<div class="spell-codex">${spells.map(s => `<div class="codex-card ${s.rank ? '' : 'unowned'}" style="--spell:${escapeHTML(s.color || '#c2f568')}"><div class="codex-icon">${icon(upgradeIcons[s.id])}</div><div><span>${s.evolved ? '진화 완료' : s.rank ? `${s.rank} / 5단계` : '레벨업으로 습득'}</span><h3>${escapeHTML(s.evolved ? s.evolutionName : s.name)}</h3><p>${escapeHTML(s.description)}</p><small>진화 → ${escapeHTML(s.evolutionName)}</small></div></div>`).join('')}</div><section class="run-conditions"><h3>${icon('skull')} 현재 경로 · 저주</h3><p><b>${escapeHTML(route.title)}</b> · ${escapeHTML(route.description)}</p>${curses.length ? curses.map(curse => `<p><b>${escapeHTML(curse.title)}</b> · ${escapeHTML(curse.description)}</p>`).join('') : '<p>받은 저주가 없습니다. 제단에서는 선택을 건너뛸 수 있습니다.</p>'}</section><div class="relic-build"><h3>유물 · 수호자의 유산</h3>${collected.length ? collected.map(item => `<div>${icon(({ flame: 'fire', snowflake: 'snow' })[item.icon] || item.icon)}<span><strong>${escapeHTML(item.title)}</strong><small>${escapeHTML(item.description)}</small></span></div>`).join('') : '<p>상자는 즉시 유물을 고르고, 정예·보스 보상은 다음 레벨업에서 선택합니다.</p>'}</div><div class="passive-build"><h3>검 · 마법 · 생존 강화</h3>${passives.length ? passives.map(([id, n]) => `<span>${icon(upgradeIcons[id])}${escapeHTML(passiveNames[id] || id)} <b>Lv.${n}</b></span>`).join('') : '<p>레벨업으로 검·마법과 생존 능력을 키울 수 있습니다.</p>'}</div><div class="guide-bottom">${icon('info')} 층을 이동해도 플레이어 능력치는 자동으로 증가하지 않습니다.</div>`);
+  openModal('build', `<div class="modal-eyebrow">YOUR BUILD / THIS RUN</div><h2 id="modal-title">검과 마법, 당신만의 조합<span>.</span></h2><p class="modal-description">선택한 강화와 유물은 이번 런에만 적용됩니다. 영구 강화는 다음 런에도 유지됩니다.</p><div class="sword-build" style="--blade-color:${escapeHTML(sword.color || '#c1ff66')}"><div class="sword-build-icon">${icon(sword.mode === 'twinblade' ? 'bolt' : sword.mode === 'wave' ? 'move' : 'sword')}</div><div><small>SWORD / ${sword.mode === 'default' ? '진화 전' : '진화 완료'}</small><h3>${escapeHTML(swordNames[sword.mode] || swordNames.default)}</h3><p>타격 거리 <b data-sword-range>${decimal(sword.range, 2)}m</b> · 전방 <b>${Math.round(sword.arc * 180 / Math.PI)}°</b> · 최대 <b>${sword.targets}명</b></p><span>검 공격력·속도·범위 강화 합계 3단계부터 진화 선택 · 한 런에 하나</span></div></div><div class="synergy-codex"><h3>검 · 마법 조합 <small>${active.size} / ${SYNERGIES.length} 발동 중</small></h3>${SYNERGIES.map(synergy => `<article class="synergy-card ${active.has(synergy.id) ? 'active' : ''}" data-synergy="${escapeHTML(synergy.id)}" style="--synergy:${escapeHTML(synergy.color)}"><div>${icon(synergy.icon)}</div><span><small>${active.has(synergy.id) ? '해금 완료 · ' : ''}${escapeHTML(synergy.requirement)}</small><strong>${escapeHTML(synergy.title)}</strong><p>${escapeHTML(synergy.description)}</p></span>${active.has(synergy.id) ? icon('check') : ''}</article>`).join('')}</div>${pendingRewardSummary()}<div class="spell-codex">${spells.map(s => `<div class="codex-card ${s.rank ? '' : 'unowned'}" style="--spell:${escapeHTML(s.color || '#c2f568')}"><div class="codex-icon">${icon(upgradeIcons[s.id])}</div><div><span>${s.evolved ? '진화 완료' : s.rank ? `${s.rank} / 5단계` : '레벨업으로 습득'}</span><h3>${escapeHTML(s.evolved ? s.evolutionName : s.name)}</h3><p>${escapeHTML(s.description)}</p><small>진화 → ${escapeHTML(s.evolutionName)}</small></div></div>`).join('')}</div>${currentRegionMarkup()}${expansionGuide()}<section class="run-conditions"><h3>${icon('skull')} 현재 경로 · 저주</h3><p><b>${escapeHTML(route.title)}</b> · ${escapeHTML(route.description)}</p>${curses.length ? curses.map(curse => `<p><b>${escapeHTML(curse.title)}</b> · ${escapeHTML(curse.description)}</p>`).join('') : '<p>받은 저주가 없습니다. 제단에서는 선택을 건너뛸 수 있습니다.</p>'}</section><div class="relic-build"><h3>유물 · 수호자의 유산</h3>${collected.length ? collected.map(item => `<div>${icon(({ flame: 'fire', snowflake: 'snow' })[item.icon] || item.icon)}<span><strong>${escapeHTML(item.title)}</strong><small>${escapeHTML(item.description)}</small></span></div>`).join('') : '<p>상자는 즉시 유물을 고르고, 정예·보스 보상은 다음 레벨업에서 선택합니다.</p>'}</div><div class="passive-build"><h3>검 · 마법 · 생존 강화</h3>${passives.length ? passives.map(([id, n]) => `<span>${icon(upgradeIcons[id])}${escapeHTML(passiveNames[id] || id)} <b>Lv.${n}</b></span>`).join('') : '<p>레벨업으로 검·마법과 생존 능력을 키울 수 있습니다.</p>'}</div><div class="guide-bottom">${icon('info')} 층을 이동해도 플레이어 능력치는 자동으로 증가하지 않습니다.</div>`);
 }
 
 function syncBank() {
@@ -518,9 +542,12 @@ function onLevelUp(choices) {
   }));
 }
 function commitEventChoice(button, selector, choose) {
+  const previousDialog = dialogName;
   if (!choose(button.dataset[selector])) return;
-  forceCloseModal();
-  $('#game-canvas').focus({ preventScroll: true });
+  if (dialogName === previousDialog) {
+    forceCloseModal();
+    $('#game-canvas').focus({ preventScroll: true });
+  }
   sound(720, .16);
 }
 function onChestReward(choices, metadata = {}) {
@@ -534,9 +561,17 @@ function eventMetrics(choice) {
 }
 function onRoute(choices, metadata = {}) {
   const stage = metadata.stage || Math.min(MAX_STAGES, (latest?.stage || 1) + 1);
-  openModal('route', `<div class="modal-eyebrow">FLOOR ${stage} / CHOOSE YOUR PATH</div><h2 id="modal-title">다음 전장, 어떤 길로 갈까<span>.</span></h2><p class="modal-description">다음 ${stage}층에 적용할 경로를 고르세요. 현재 체력과 빌드를 그대로 이어 갑니다.</p><div class="upgrade-grid event-grid">${choices.map((choice, index) => `<button class="upgrade-card route-card ${choice.id === 'standard' ? 'standard' : choice.id === 'elite' ? 'epic' : 'legendary'}" data-route="${escapeHTML(choice.id)}"><div class="upgrade-card-top"><span>${choice.id === 'standard' ? '추가 위험 없음' : '위험과 보상 증가'}</span><kbd>${index + 1}</kbd></div><div class="upgrade-icon">${icon(choice.icon || (choice.id === 'elite' ? 'skull' : choice.id === 'treasure' ? 'diamond' : 'move'))}</div><h3>${escapeHTML(choice.title)}</h3><p>${escapeHTML(choice.description)}</p>${eventMetrics(choice)}<span class="upgrade-select">이 길로 진입 ${icon('arrow')}</span></button>`).join('')}</div><div class="guide-bottom">${icon('info')} 경로 효과는 다음 한 층에만 적용됩니다. 이미 받은 저주와 출발 계약은 계속 유지됩니다.</div>`, { pause: false, closeable: false });
+  openModal('route', `<div class="modal-eyebrow">FLOOR ${stage} / CHOOSE YOUR PATH</div><h2 id="modal-title">다음 전장, 어떤 길로 갈까<span>.</span></h2><p class="modal-description">다음 ${stage}층의 위험도를 고르세요. ${stage < MAX_STAGES ? '이어서 전투할 지역을 선택합니다.' : '최종 지역은 종말의 왕좌입니다.'} 현재 체력과 빌드를 이어 갑니다.</p><div class="upgrade-grid event-grid">${choices.map((choice, index) => `<button class="upgrade-card route-card ${choice.id === 'standard' ? 'standard' : choice.id === 'elite' ? 'epic' : 'legendary'}" data-route="${escapeHTML(choice.id)}"><div class="upgrade-card-top"><span>${choice.id === 'standard' ? '추가 위험 없음' : '위험과 보상 증가'}</span><kbd>${index + 1}</kbd></div><div class="upgrade-icon">${icon(choice.icon || (choice.id === 'elite' ? 'skull' : choice.id === 'treasure' ? 'diamond' : 'move'))}</div><h3>${escapeHTML(choice.title)}</h3><p>${escapeHTML(choice.description)}</p>${eventMetrics(choice)}<span class="upgrade-select">${stage < MAX_STAGES ? '지역 선택으로' : '최종 지역 진입'} ${icon('arrow')}</span></button>`).join('')}</div><div class="guide-bottom">${icon('info')} 경로 효과는 다음 한 층에만 적용됩니다. 이미 받은 저주와 출발 계약은 계속 유지됩니다.</div>`, { pause: false, closeable: false });
   document.querySelectorAll('[data-route]').forEach(button => button.addEventListener('click', () => commitEventChoice(button, 'route', id => game.chooseRoute(id))));
 }
+function onRegion(choices, metadata = {}) {
+  const stage = metadata.stage || Math.min(MAX_STAGES, (latest?.stage || 1) + 1);
+  const route = ROUTES.find(item => item.id === metadata.routeId) || ROUTES[0];
+  const opened = openModal('region', `<div class="modal-eyebrow">FLOOR ${stage} / CHOOSE YOUR REGION</div><h2 id="modal-title">세 갈래 전장, 하나의 선택<span>.</span></h2><p class="modal-description">전투 방식과 필요한 유물을 보고 다음 지역을 고르세요. <b>${escapeHTML(route.title)}</b>을 선택했습니다. 아래 지역 배율에 경로·계약·저주 배율이 함께 적용됩니다.</p><div class="region-choice-grid">${choices.map((region, index) => `<button class="region-choice" data-region="${escapeHTML(region.id)}" style="--region:${escapeHTML(region.color)}"><div class="region-preview region-preview-${escapeHTML(region.id)}" aria-hidden="true"><span class="region-preview-orb"></span><span class="region-preview-ridge"></span>${icon(region.icon)}</div><div class="region-choice-body"><div class="region-choice-kicker"><span>${escapeHTML(region.english)}</span><kbd>${index + 1}</kbd></div><h3>${escapeHTML(region.title)}</h3><p>${escapeHTML(region.description)}</p>${eventMetrics(region)}${regionDetails(region)}<span class="region-enter">이 지역으로 진입 ${icon('arrow')}</span></div></button>`).join('')}</div><div class="guide-bottom">${icon('info')} 지역은 다음 한 층에만 적용됩니다. 선택 중 전투는 멈추며, 체력과 빌드는 그대로 이어집니다.</div>`, { pause: false, closeable: false });
+  if (!opened) return;
+  document.querySelectorAll('[data-region]').forEach(button => button.addEventListener('click', () => commitEventChoice(button, 'region', id => game.chooseRegion(id))));
+}
+
 function onCurse(choices, metadata = {}) {
   const count = latest?.activeCurses?.length || 0;
   openModal('curse', `<div class="modal-eyebrow">CURSED ALTAR / RISK IS A CHOICE</div><h2 id="modal-title">더 위험하게, 더 탐욕스럽게<span>.</span></h2><p class="modal-description">저주를 받으면 지금 있는 적부터 강해집니다. 추가 골드와 위험은 <b>이번 런이 끝날 때까지</b> 유지됩니다.${count ? ` 이미 받은 저주 ${count}개와 곱해 적용됩니다.` : ''}</p><div class="upgrade-grid event-grid">${choices.map((choice, index) => `<button class="upgrade-card curse-card" data-curse="${escapeHTML(choice.id)}"><div class="upgrade-card-top"><span>런 종료까지 유지</span><kbd>${index + 1}</kbd></div><div class="upgrade-icon">${icon(choice.icon || 'skull')}</div><h3>${escapeHTML(choice.title)}</h3><p>${escapeHTML(choice.description)}</p>${eventMetrics(choice)}<span class="upgrade-select">이 저주 받기 ${icon('arrow')}</span></button>`).join('')}</div><button class="secondary-button curse-skip" data-curse="skip">${icon('shield')} 저주 없이 계속하기 <kbd>0</kbd></button><div class="guide-bottom">${icon('info')} 선택 중에는 전투가 멈춥니다. 저주는 강제가 아니며, 이 제단은 한 번만 사용할 수 있습니다.</div>`, { pause: false, closeable: false });
@@ -565,7 +600,8 @@ function runReportMarkup(state) {
   const affordable = getPermanentUpgradeOffers(progress).filter(offer => offer.canAfford && !offer.locked && offer.cost !== null);
   const triggerCount = typeof report.synergyTriggers === 'number' ? report.synergyTriggers : Object.values(report.synergyTriggers || {}).reduce((sum, count) => sum + (Number(count) || 0), 0);
   const routeHistory = Array.isArray(report.routeHistory) ? report.routeHistory : [];
-  return `<section class="run-report" aria-label="런 전투 분석"><div class="report-heading"><h3>${icon('target')} 이번 런 분석</h3><span>실제 준 피해 기준</span></div><div class="report-damage">${rows.length ? rows.map(([id, damage]) => `<div class="damage-row" data-damage-source="${escapeHTML(id)}"><div><span>${escapeHTML(sourceName[id] || '기타')}</span><strong>${formatGold(damage)} <small>${Math.round(damage / total * 100)}%</small></strong></div><div class="damage-track"><i style="width:${damage / total * 100}%;--damage-color:${({ sword: '#c1ff66', fireball: '#ffac61', frost: '#80e6f8', lightning: '#e3c0ff', orbit: '#a8ffc3', combo: '#ffd57c' })[id] || '#9fae8d'}"></i></div></div>`).join('') : '<p>적에게 피해를 주면 검·마법별 기여도가 기록됩니다.</p>'}</div><div class="report-facts"><div><span>받은 피해</span><strong>${decimal(report.damageTaken)}</strong></div><div><span>최고 연속 처치</span><strong>${Math.floor(report.peakCombo || state.combo || 0)}×</strong></div><div><span>조합 발동</span><strong>${Math.floor(triggerCount)}회</strong></div></div><p class="death-cause" data-death-cause>${icon(state.phase === 'won' ? 'trophy' : 'skull')}<span>런 종료 원인 <b>${escapeHTML(conclusion)}</b></span></p>${routeHistory.length ? `<details class="report-path"><summary>경로 · 저주 기록 보기</summary><p>${routeHistory.map((entry, index) => { const id = typeof entry === 'string' ? entry : entry.routeId || entry.id || entry.route; const route = ROUTES.find(item => item.id === id); return `${typeof entry === 'object' ? entry.stage || index + 1 : index + 1}층 ${escapeHTML(route?.title || id || '일반 구역')}`; }).join(' → ')}</p><p>${(report.curseIds || []).map(id => escapeHTML(CURSES.find(curse => curse.id === id)?.title || id)).join(' · ') || '받은 저주 없음'}</p></details>` : ''}</section><p class="affordable-upgrades" data-affordable-count="${affordable.length}">${icon('coin')}${affordable.length ? `현재 지갑으로 <b>${affordable.length}종</b>의 영구 강화를 구매할 수 있습니다.` : '회수한 골드를 모아 다음 영구 강화를 준비하세요.'}</p>`;
+  const regionHistory = Array.isArray(report.regionHistory) ? report.regionHistory : [];
+  return `<section class="run-report" aria-label="런 전투 분석"><div class="report-heading"><h3>${icon('target')} 이번 런 분석</h3><span>실제 준 피해 기준</span></div><div class="report-damage">${rows.length ? rows.map(([id, damage]) => `<div class="damage-row" data-damage-source="${escapeHTML(id)}"><div><span>${escapeHTML(sourceName[id] || '기타')}</span><strong>${formatGold(damage)} <small>${Math.round(damage / total * 100)}%</small></strong></div><div class="damage-track"><i style="width:${damage / total * 100}%;--damage-color:${({ sword: '#c1ff66', fireball: '#ffac61', frost: '#80e6f8', lightning: '#e3c0ff', orbit: '#a8ffc3', combo: '#ffd57c' })[id] || '#9fae8d'}"></i></div></div>`).join('') : '<p>적에게 피해를 주면 검·마법별 기여도가 기록됩니다.</p>'}</div><div class="report-facts"><div><span>받은 피해</span><strong>${decimal(report.damageTaken)}</strong></div><div><span>최고 연속 처치</span><strong>${Math.floor(report.peakCombo || state.combo || 0)}×</strong></div><div><span>조합 발동</span><strong>${Math.floor(triggerCount)}회</strong></div></div><p class="death-cause" data-death-cause>${icon(state.phase === 'won' ? 'trophy' : 'skull')}<span>런 종료 원인 <b>${escapeHTML(conclusion)}</b></span></p>${routeHistory.length ? `<details class="report-path"><summary>지역 · 경로 · 저주 기록 보기</summary>${regionHistory.length ? `<p data-region-history>지역: ${regionHistory.map((entry, index) => `${entry.stage || index + 1}층 ${escapeHTML(getRegion(entry.regionId || entry.id).title)}`).join(' → ')}</p>` : ''}<p>${routeHistory.map((entry, index) => { const id = typeof entry === 'string' ? entry : entry.routeId || entry.id || entry.route; const route = ROUTES.find(item => item.id === id); return `${typeof entry === 'object' ? entry.stage || index + 1 : index + 1}층 ${escapeHTML(route?.title || id || '일반 구역')}`; }).join(' → ')}</p><p>${(report.curseIds || []).map(id => escapeHTML(CURSES.find(curse => curse.id === id)?.title || id)).join(' · ') || '받은 저주 없음'}</p></details>` : ''}</section><p class="affordable-upgrades" data-affordable-count="${affordable.length}">${icon('coin')}${affordable.length ? `현재 지갑으로 <b>${affordable.length}종</b>의 영구 강화를 구매할 수 있습니다.` : '회수한 골드를 모아 다음 영구 강화를 준비하세요.'}</p>`;
 }
 
 function showResult() {
@@ -583,6 +619,7 @@ try {
     onLevelUp,
     onChestReward,
     onRoute,
+    onRegion,
     onCurse,
     onLoot: message => showToast(typeof message === 'string' ? message : message?.message || message?.title || '새로운 보상을 획득했습니다.'),
     onBoss: boss => {
@@ -595,7 +632,7 @@ try {
     },
     onStage: stage => {
       const num = typeof stage === 'number' ? stage : stage.stage;
-      $('#banner-title').textContent = getStageDefinition(num).name;
+      $('#banner-title').textContent = getRegion(game?.regionId || (num === MAX_STAGES ? 'throne' : 'sanctum')).title;
       $('#banner-kicker').textContent = `STAGE ${String(num).padStart(2, '0')} / REWARD ×${formatGold(10 ** (num - 1))}`;
       $('#stage-banner').classList.remove('hidden');
       setTimeout(() => $('#stage-banner').classList.add('hidden'), 2600);
@@ -635,6 +672,8 @@ $('#game-speed').addEventListener('click', () => {
 });
 $('#run-build-button').addEventListener('click', showBuild);
 $('#build-info').addEventListener('click', showBuild);
+$('#region-info').addEventListener('click', showBuild);
+$('#synergy-status').addEventListener('click', event => { if (event.target.closest('[data-open-build]')) showBuild(); });
 document.querySelectorAll('[data-spell]').forEach(button => button.addEventListener('click', showBuild));
 function setTheaterMode(active) {
   theaterMode = active;
@@ -681,7 +720,7 @@ window.addEventListener('keydown', (event) => {
     event.preventDefault();
     if (dialogName === 'curse' && event.key === '0') document.querySelector('[data-curse="skip"]')?.click();
     else {
-      const selector = { upgrade: '[data-upgrade]', relic: '[data-chest-relic]', route: '[data-route]', curse: '[data-curse]:not([data-curse="skip"])' }[dialogName];
+      const selector = { upgrade: '[data-upgrade]', relic: '[data-chest-relic]', route: '[data-route]', region: '[data-region]', curse: '[data-curse]:not([data-curse="skip"])' }[dialogName];
       const choices = document.querySelectorAll(selector);
       const index = Number(event.key) - 1;
       if (index >= 0 && index < choices.length) choices[index]?.click();

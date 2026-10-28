@@ -209,6 +209,9 @@ try {
   assert.equal(await page.locator('[data-route]').count(), ROUTES.length);
   await assertChoiceLocked('[data-route]', 'route');
   await page.locator('[data-route="elite"]').click();
+  assert.equal(await page.evaluate(() => window.__game.state.phase), 'region');
+  await assertChoiceLocked('[data-region]', 'region');
+  await page.locator('[data-region]').first().click();
   const route = await page.evaluate(() => ({ phase: window.__game.state.phase, stage: window.__game.state.stage, routeId: window.__game.state.routeId, stats: JSON.stringify(window.__game.stats), hp: window.__game.state.hp, modifiers: window.__game.state.runModifiers }));
   assert.equal(route.phase, 'playing'); assert.equal(route.stage, 2); assert.equal(route.routeId, 'elite');
   assert.equal(route.stats, routeBaseline.before); assert.equal(route.hp, routeBaseline.hp, 'route transition never adds free stats or healing');

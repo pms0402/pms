@@ -71,7 +71,7 @@ try {
   const income = await page.evaluate(() => {
     const game = window.__game;
     game.stats.critChance = 0; game.stats.spells = { fireball: 0, frost: 0, lightning: 0, orbit: 0 };
-    const enemy = game.spawnEnemy(.1, 0, 0);
+    const enemy = game.spawnEnemy(.1, 0, 0, { mutations: [] });
     game.hitEnemy(enemy, enemy.hp + 1);
     const baseGold = game.pickups.find(pickup => pickup.type === 'gold').value;
     game.dropPickup(game.player.position, 'gold', 495);
@@ -83,7 +83,7 @@ try {
   await page.evaluate(() => {
     const game = window.__game;
     game._state.hp = 1; game.invulnerable = 0;
-    game.spawnEnemy(.1, 0, 0); game.stepForTest(.02);
+    game.spawnEnemy(.1, 0, 0, { mutations: [] }); game.stepForTest(.02);
   });
   assert.equal(await page.evaluate(() => window.__game.state.phase), 'over');
   let saved = await page.evaluate(() => JSON.parse(localStorage.getItem('voidrun.progression')));
@@ -113,9 +113,9 @@ try {
     game.stats.spells = { fireball: 0, frost: 0, lightning: 0, orbit: 0 };
     game.stats.critChance = 0; game._state.hp = 63;
     for (let index = 0; index < floors - 1; index++) {
-      const sample = game.spawnEnemy(20, 0, 0);
+      const sample = game.spawnEnemy(20, 0, 0, { mutations: [] });
       const beforeKill = JSON.stringify(game.stats);
-      stages.push({ stage: game.state.stage, hp: game.stats.maxHp, enemyHp: sample.maxHp });
+      stages.push({ stage: game.state.stage, hp: game.stats.maxHp, enemyHp: sample.maxHp, regionHealth: game.getThreat().enemyHealth });
       const boss = game.spawnBoss();
       game.hitEnemy(boss, boss.hp + 1);
       stages.at(-1).bossChangedStats = JSON.stringify(game.stats) !== beforeKill;
@@ -123,11 +123,12 @@ try {
       game._state.stageTime = game.state.stageDuration;
       if (!game.nextStage()) throw new Error('Actual cleared boss did not unlock the route choice');
       if (game.state.phase !== 'route' || !game.chooseRoute('standard')) throw new Error('The standard route must be chosen to advance');
+      if (game.state.phase === 'region' && !game.chooseRegion(game.regionChoices[0].id)) throw new Error('A regional choice must complete the floor transition');
       stages.at(-1).before = before;
       stages.at(-1).after = { stats: JSON.stringify(game.stats), hp: game.state.hp };
     }
-    const sample = game.spawnEnemy(20, 0, 0);
-    stages.push({ stage: game.state.stage, hp: game.stats.maxHp, enemyHp: sample.maxHp });
+    const sample = game.spawnEnemy(20, 0, 0, { mutations: [] });
+    stages.push({ stage: game.state.stage, hp: game.stats.maxHp, enemyHp: sample.maxHp, regionHealth: game.getThreat().enemyHealth });
     return stages;
   }, MAX_STAGES);
   for (const stage of growth.slice(0, -1)) {
@@ -137,7 +138,7 @@ try {
   }
   assert.equal(growth.length, MAX_STAGES);
   near(growth.at(-1).hp, growth[0].hp, 'maximum health stays unchanged across all ten floors without a selected upgrade');
-  for (let index = 1; index < growth.length; index++) near(growth[index].enemyHp / growth[index - 1].enemyHp, ENEMY_HEALTH_GROWTH, 'only the independent monster curve rises');
+  for (let index = 1; index < growth.length; index++) near(growth[index].enemyHp / growth[index - 1].enemyHp, ENEMY_HEALTH_GROWTH * growth[index].regionHealth / growth[index - 1].regionHealth, 'the original monster curve and selected region health multiply exactly once');
   console.log(`PASS floor progression: ${MAX_STAGES} floors preserve all player stats and current health until a reward is selected`);
 
   await load({ seed: { bank: 123, lifetimeGold: 999, upgrades: { power: 30, arcana: 30, vitality: 30, haste: 30, focus: 30 }, settledRunIds: ['old-paid-run'], importedHistory: true } });
@@ -160,7 +161,7 @@ try {
   await acquire('executioner');
   const damage = await page.evaluate(() => {
     const game = window.__game; game.stats.critChance = 0;
-    const ordinary = game.spawnEnemy(12, 0, 0), elite = game.spawnEnemy(14, 0, 0, { elite: true });
+    const ordinary = game.spawnEnemy(12, 0, 0, { mutations: [] }), elite = game.spawnEnemy(14, 0, 0, { elite: true, mutations: [] });
     const ordinaryHp = ordinary.hp, eliteHp = elite.hp;
     game.hitEnemy(ordinary, 10); game.hitEnemy(elite, 10);
     return { ordinary: ordinaryHp - ordinary.hp, elite: eliteHp - elite.hp };
@@ -170,7 +171,7 @@ try {
   await acquire('shockwave');
   const dash = await page.evaluate(() => {
     const game = window.__game;
-    const enemy = game.spawnEnemy(2, 0, 0), before = enemy.hp;
+    const enemy = game.spawnEnemy(2, 0, 0, { mutations: [] }), before = enemy.hp;
     const first = game.dash(), after = enemy.hp, second = game.dash();
     return { first, second, dealt: before - after, repeated: after - enemy.hp, base: game.stats.damage };
   });
