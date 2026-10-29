@@ -56,12 +56,12 @@ export function createTerrainWorld(game) {
   return chosen||steerAroundWalls(position,dx,dz,radius,seed);
  };
  const tint=new THREE.Color(),white=new THREE.Color('#e1e5e8');
- const updateOcclusion=(player,camera,dt)=>{
+ const updateOcclusion=(player,camera,dt,fade=true)=>{
   const dx=camera.x-player.x,dz=camera.z-player.z,length=dx*dx+dz*dz||1;
   for(const item of occluders){
    const s=item.definition,t=((s.x-player.x)*dx+(s.z-player.z)*dz)/length;
    const x=player.x+Math.max(0,Math.min(1,t))*dx,z=player.z+Math.max(0,Math.min(1,t))*dz;
-   const hidden=t>=-.1&&t<=1&&Math.abs(x-s.x)<s.width/2+2&&Math.abs(z-s.z)<s.depth/2+2;
+   const hidden=fade&&t>=-.1&&t<=1&&Math.abs(x-s.x)<s.width/2+2&&Math.abs(z-s.z)<s.depth/2+2;
    const wanted=hidden?.16:1;item.opacity+=(wanted-item.opacity)*(1-Math.exp(-dt*10));
    for(const piece of item.pieces){piece.material.opacity=item.opacity;piece.material.depthWrite=item.opacity>.95;piece.castShadow=item.opacity>.95;}
   }

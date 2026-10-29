@@ -84,6 +84,7 @@ export class ParrySystem {
     if (g._state.phase === "playing" && g.analytics)
       g.analytics.parryAttempts++;
     this.age = 0;
+    if(g.view?.firstPerson())g.player.rotation.y=g.view.yaw;
     this.active = PARRY.window;
     this.cooldown = PARRY.cooldown;
     g.sound("guard");

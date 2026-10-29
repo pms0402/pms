@@ -17,6 +17,7 @@ import { DAMAGE_SOURCES, normalizeRunHistory } from './analytics.js';
 import { normalizeStory } from './story.js';
 import { CAMP_FACILITIES } from './camp.js';
 import { gameKey, isGameShortcut } from './game-input.js';
+import { VIEW_MODES, VIEW_LABELS } from './view.js';
 
 const $ = (s) => document.querySelector(s);
 const stageNames = STAGES.map(stage => stage.name);
@@ -77,7 +78,7 @@ $('#app').innerHTML = `
       <button class="nav-link" data-nav="history">런 기록 <span class="nav-count" id="history-count">${history.length.toString().padStart(2, '0')}</span></button>
       <button class="nav-link" data-nav="permanent">영구 강화</button>
     </nav>
-    <div class="header-actions"><span class="build-label"><i></i> BUILD YOUR LEGEND <b>v0.16.0</b></span><span class="header-divider"></span><button id="sound-toggle" class="icon-button" title="사운드 켜기" aria-label="사운드 켜기">${icon('muted')}</button><button id="settings" class="icon-button" title="설정" aria-label="설정">${icon('settings')}</button></div>
+    <div class="header-actions"><span class="build-label"><i></i> BUILD YOUR LEGEND <b>v0.17.0</b></span><span class="header-divider"></span><button id="sound-toggle" class="icon-button" title="사운드 켜기" aria-label="사운드 켜기">${icon('muted')}</button><button id="settings" class="icon-button" title="설정" aria-label="설정">${icon('settings')}</button></div>
   </header>
   <main class="page">
     <section class="page-intro">
@@ -91,7 +92,7 @@ $('#app').innerHTML = `
         <div class="arena-vignette"></div>
         <div class="arena-top">
           <button class="area-label region-info" id="region-info" aria-label="현재 지역 특성과 보상 보기"><span class="live-dot"></span><span id="area-name">잊혀진 성역</span><span class="area-divider">/</span><span id="area-stage">STAGE 01</span>${icon('chevron')}<small id="region-summary"></small></button>
-          <div class="arena-top-actions"><span class="difficulty"><i></i> <span id="difficulty">고요한 시작</span></span><button id="game-speed" class="glass-button" title="게임 배속 변경 · 적과 공격도 함께 빨라집니다" aria-label="게임 배속 변경">1×</button><button id="pause-button" class="glass-button" title="일시정지 (Esc)" aria-label="일시정지" disabled>${icon('pause')}</button><button id="fullscreen" class="glass-button" title="전체 화면 (Shift+F)" aria-label="전체 화면" aria-pressed="false">${icon('expand')}</button></div>
+          <div class="arena-top-actions"><span class="difficulty"><i></i> <span id="difficulty">고요한 시작</span></span><button id="camera-mode" class="glass-button" title="시점 변경 (V)" aria-label="시점 변경 (V)">3인칭</button><button id="game-speed" class="glass-button" title="게임 배속 변경 · 적과 공격도 함께 빨라집니다" aria-label="게임 배속 변경">1×</button><button id="pause-button" class="glass-button" title="일시정지 (Esc)" aria-label="일시정지" disabled>${icon('pause')}</button><button id="fullscreen" class="glass-button" title="전체 화면 (Shift+F)" aria-label="전체 화면" aria-pressed="false">${icon('expand')}</button></div>
         </div>
         <div class="live-hud hidden" id="live-hud">
           <div class="health-block"><div class="health-label">${icon('heart')}<span>HP</span><strong id="health-value">100 <small>/ 100</small></strong></div><div class="health-track"><div id="health-fill"></div></div><div class="xp-row"><span id="level-value">LV. 1</span><div class="xp-track"><div id="xp-fill"></div></div><span id="xp-value">0 / 10</span></div></div>
@@ -120,7 +121,7 @@ $('#app').innerHTML = `
           <div class="scene-tag" id="scene-tag"><span class="live-dot"></span> REAL-TIME 3D</div>
         </div>
         <div class="expedition-actions hidden" id="expedition-actions"><button id="guard-button">패링 · F / G</button><button id="equipment-button">장비 · E</button><button id="interact-npc" class="hidden">교류 · R</button><span id="abyss-rule" class="hidden"></span></div><div class="growth-toolbar hidden" id="growth-toolbar"><div class="spell-loadout" id="spell-loadout" aria-label="보유 마법">${['fireball', 'frost', 'lightning', 'orbit'].map(id => `<button class="spell-slot locked" data-spell="${id}" title="마법 빌드 보기" aria-label="${id} 마법 정보"><span class="spell-slot-icon">${icon(upgradeIcons[id])}</span><span class="spell-slot-rank">—</span><span class="spell-cooldown"></span></button>`).join('')}</div><div id="synergy-status" class="synergy-status hidden" aria-label="발동 중인 조합"></div><button id="run-build-button" class="shop-button">${icon('book')} 이번 런 빌드 <span id="reward-pending" class="reward-pending hidden" title="다음 레벨업의 선택 보상"></span><kbd>B</kbd></button></div>
-        <div class="touch-controls hidden" id="touch-controls"><div class="dpad"><button data-move="0,-1" aria-label="위로 이동">↑</button><button data-move="-1,0" aria-label="왼쪽 이동">←</button><button data-move="0,1" aria-label="아래로 이동">↓</button><button data-move="1,0" aria-label="오른쪽 이동">→</button></div><button id="touch-dash" aria-label="대시">${icon('bolt')}</button></div>
+        <div id="view-reticle" class="hidden" aria-hidden="true"></div><div id="view-hint" class="hidden"><span class="desktop-look"></span><span class="mobile-look">왼쪽 이동 · 오른쪽 드래그 시점</span></div><div class="touch-controls hidden" id="touch-controls"><div class="dpad"><button data-move="0,-1" aria-label="위로 이동">↑</button><button data-move="-1,0" aria-label="왼쪽 이동">←</button><button data-move="0,1" aria-label="아래로 이동">↓</button><button data-move="1,0" aria-label="오른쪽 이동">→</button></div><button id="touch-dash" aria-label="대시">${icon('bolt')}</button></div>
         <div class="canvas-error hidden" id="canvas-error"><h2>3D 화면을 시작할 수 없어요</h2><p>브라우저의 하드웨어 가속을 켠 뒤 새로고침해 주세요.</p><button class="primary-button" id="reload">새로고침 ${icon('refresh')}</button></div>
       </div>
       <aside class="run-panel">
@@ -171,6 +172,7 @@ function showToast(message) {
 
 function update(state) {
   latest = state;
+  syncView(state.view);
   if (['menu','over','won','camp'].includes(state.phase)) $('#parry-callout').classList.add('hidden');
   const stunned = (state.boss?.parryStun || 0) > 0;
   $('#boss-stagger').classList.toggle('hidden', !stunned);
@@ -313,6 +315,7 @@ let returnFocus;
 function openModal(name, content, { pause = true, closeable = true } = {}) {
   if (isChoiceDialog() && name !== dialogName && name !== 'result' && !(choiceDialogs.has(name) && game?._state.phase === name)) return false;
   returnFocus = document.activeElement;
+  game?.view.release();
   if (game?.camp.active) { game.camp.suspended = true; game.keys.clear(); game.touchMove = {x:0,y:0}; }
   if (pause && latest?.phase === 'playing') { pausedForDialog = true; game.pause(); }
   dialogName = name;
@@ -385,6 +388,7 @@ function expansionGuide() {
 function showGuide() {
   if (isChoiceDialog()) return;
   const steps = [
+    ['시점과 카메라', '기본은 3인칭입니다. <kbd>V</kbd> / 상단 시점 버튼으로 3인칭→1인칭→항공을 전환합니다. 가까운 시점의 WASD는 바라보는 방향 기준입니다. PC는 전장 드래그로 시점을 돌리고 3인칭에서 휠로 거리를 바꿉니다. 1인칭에서는 전장을 클릭해 마우스를 잠글 수 있고 ESC/메뉴로 해제합니다. 모바일은 왼쪽 드래그·방향 버튼으로 이동, 오른쪽 드래그로 둘러봅니다. 공격은 기존대로 주변 적을 자동 추적합니다. F(한글 ㄹ)는 패링, V(한글 ㅍ)는 시점 변경입니다.'],
     ['장비·탐험·정밀 방어', '장비는 <kbd>E</kbd> / 장비 버튼에서 비교·교체·버릴 수 있습니다. NPC 가까이에서 <kbd>R</kbd> / 교류로 대화하세요. <kbd>F</kbd> / <kbd>G</kbd> (한/영 무관) 패링은 전방 120°를 0.45초 방어하며 처음 0.16초는 완벽한 패링입니다. 성공하면 4m 충격파·0.1초 히트 스톱·공격한 보스 경직, 2초 안 다음 자동 검격은 180° 광역 250% 반격입니다. 재사용 4초, 보스 경직 저항 5초. 붉은 지면 공격은 방어 불가, 청색 직선·일반 탄환은 방어 가능.'],
     ['세 단계 수호자와 끝없는 심연', '보스 체력 70% 미만·35% 미만에서 새로운 패턴과 연계가 열립니다. 보스 장비는 하나 선택하거나 넘길 수 있습니다. 일반 10층 승리 후 모드 선택에서 11층부터 무한 심연을 탐험하세요. 5층마다 재앙 보스, 20층부터 10층마다 교대 제약이 등장합니다. 기록·업적은 이 브라우저에 저장됩니다.'],
     ['전장을 움직이고, 공격은 자동으로', '<kbd>W A S D</kbd> / 방향키로 이동, <kbd>SPACE</kbd>로 무적 대시. 모바일은 방향 버튼이나 전장 드래그를 사용합니다. 검은 <b>화면에 보이는 전방 궤적 안</b>의 적을 베며, 마법은 별도로 자동 시전합니다.'],
@@ -507,6 +511,8 @@ function showSettings() {
     document.querySelectorAll('[data-quality]').forEach(b => b.classList.toggle('selected', b.dataset.quality === prefs.quality));
   });
   $('#modal').insertAdjacentHTML('beforeend', `<div class="setting-row"><div><h3>카메라 흔들림</h3><p>피격·패링·반격의 흔들림 강도</p></div><div class="segmented" aria-label="카메라 흔들림">${[[0,'끄기'],[.5,'약하게'],[1,'기본']].map(([v,n])=>`<button data-camera-shake="${v}" aria-pressed="${accessibility().cameraShake===v}" class="${accessibility().cameraShake===v?'selected':''}">${n}</button>`).join('')}</div></div><div class="setting-row"><div><h3>패링 섬광·강한 효과</h3><p>끄면 밝은 빛을 제거합니다. 판정 표시는 유지됩니다.</p></div><div class="segmented" aria-label="패링 시각 효과">${[[0,'끄기'],[.35,'줄이기'],[1,'기본']].map(([v,n])=>`<button data-parry-effects="${v}" aria-pressed="${accessibility().effectIntensity===v}" class="${accessibility().effectIntensity===v?'selected':''}">${n}</button>`).join('')}</div></div>`);
+  $('#modal').insertAdjacentHTML('beforeend', `<div class="setting-row"><div><h3>카메라 시점</h3><p>V키 · 한/영 무관 · 선택은 자동 저장</p></div><div class="segmented" aria-label="카메라 시점">${VIEW_MODES.map(mode=>`<button data-view-mode="${mode}" aria-pressed="${game.view.mode===mode}">${VIEW_LABELS[mode]}</button>`).join('')}</div></div>`);
+  document.querySelectorAll('[data-view-mode]').forEach(b=>b.onclick=()=>game.setViewMode(b.dataset.viewMode));
   for (const [selector,key] of [['data-camera-shake','cameraShake'],['data-parry-effects','effectIntensity']]) document.querySelectorAll(`[${selector}]`).forEach(b=>b.onclick=()=>{prefs[key]=Number(b.getAttribute(selector));game.setAccessibility(accessibility());store('voidrun.preferences',prefs);document.querySelectorAll(`[${selector}]`).forEach(x=>{const on=Number(x.getAttribute(selector))===prefs[key];x.classList.toggle('selected',on);x.setAttribute('aria-pressed',String(on));});});
   const canReset = ['menu', 'over', 'won', 'camp'].includes(game.state.phase);
   $('#modal').insertAdjacentHTML('beforeend', `<div class="reset-settings"><h3>게임 저장 데이터 초기화</h3><p>보유 골드·영구 강화·캐릭터와 무기 해금·런 기록을 모두 삭제합니다. 사운드와 그래픽 설정은 유지됩니다.</p><button class="secondary-button reset-danger" id="reset-save" ${canReset ? '' : 'disabled'}>저장 데이터 초기화</button>${canReset ? '' : '<p>진행 중인 런을 종료한 뒤 초기화할 수 있습니다.</p>'}</div>`);
@@ -652,6 +658,7 @@ function showResult() {
 try {
   game = new Game($('#game-canvas'), {
     onUpdate: update,
+    onViewChange: view => {prefs.viewMode=view.mode;store('voidrun.preferences',prefs);syncView(view);},
     onLevelUp,
     onChestReward,
     onRoute,
@@ -694,6 +701,7 @@ try {
   readyButton.disabled = true; readyButton.textContent = '전장 준비 중…'; $('#game-canvas').setAttribute('aria-busy', 'true');
   game.presentation.ready.finally(() => { readyButton.innerHTML = readyLabel; readyButton.disabled = false; $('#game-canvas').setAttribute('aria-busy', 'false'); });
   game.setPermanentBonuses(getPermanentBonuses(progress));
+  game.setViewMode(VIEW_MODES.includes(prefs.viewMode)?prefs.viewMode:'third');
   game.setPlaybackSpeed([1, 2, 3].includes(prefs.speed) ? prefs.speed : 1);
   game.setAccessibility(accessibility());
   game.setQuality(prefs.quality); syncSound(); syncRisk(); syncLoadout();
@@ -722,6 +730,19 @@ for (const button of document.querySelectorAll('[data-risk]')) button.addEventLi
   prefs.risk = button.dataset.risk; store('voidrun.preferences', prefs); game.setRiskPact?.(prefs.risk); syncRisk();
 });
 $('#sound-toggle').addEventListener('click', () => { prefs.muted = !prefs.muted; syncSound(); sound(600); });
+function syncView(view=game?.view.getState()){
+  if(!view)return;
+  hud('#camera-mode',VIEW_LABELS[view.mode]);
+  $('#camera-mode').setAttribute('aria-label',`현재 ${VIEW_LABELS[view.mode]} 시점 · 눌러서 변경 (V)`);
+  $('#camera-mode').title='V: 3인칭 → 1인칭 → 항공 · 한/영 무관';
+  const active=['playing','camp'].includes(game?._state.phase)&&!game?.camp.suspended;
+  $('#view-hint').classList.toggle('hidden',!active||view.mode==='overhead');
+  $('#view-reticle').classList.toggle('hidden',!active||view.mode!=='first');
+  document.body.dataset.view=game?.view.effectiveMode()||view.mode;
+  $('#view-hint .desktop-look').textContent=view.locked?'마우스 시점 · ESC 잠금 해제':view.mode==='first'?'클릭하여 마우스 잠금 · 드래그도 가능':'드래그로 둘러보기 · 휠로 거리 조절';
+  document.querySelectorAll('[data-view-mode]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.viewMode===view.mode)));
+}
+$('#camera-mode').addEventListener('click',event=>{event.preventDefault();game?.view.cycle();$('#game-canvas').focus({preventScroll:true});});
 $('#settings').addEventListener('click', showSettings);
 $('#pause-button').addEventListener('click', showPause);
 $('#game-speed').addEventListener('click', () => {
@@ -771,6 +792,7 @@ for (const button of document.querySelectorAll('[data-nav]')) button.addEventLis
 $('.brand').addEventListener('click', (event) => { event.preventDefault(); $('#game-canvas').focus({ preventScroll: true }); });
 $('#modal-backdrop').addEventListener('click', (e) => { if (e.target.id === 'modal-backdrop') closeModal(); });
 window.addEventListener('keydown', (event) => {
+  if(gameKey(event)==='v'&&!event.repeat&&isGameShortcut(event)&&!dialogName){event.preventDefault();game?.view.cycle();$('#game-canvas').focus({preventScroll:true});}
   if (event.key === 'Escape') { event.preventDefault(); if (dialogName) closeModal(); else if (theaterMode) toggleFullscreen(); else showPause(); }
   if (gameKey(event) === 'e' && !event.repeat && isGameShortcut(event) && !isChoiceDialog()) {event.preventDefault();if(dialogName === 'inventory')closeModal();else expansionUI?.inventory();}
   if (gameKey(event) === 'f' && event.shiftKey && !event.repeat && isGameShortcut(event)) { event.preventDefault(); toggleFullscreen(); }

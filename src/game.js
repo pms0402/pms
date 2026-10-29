@@ -24,6 +24,7 @@ import { BossPhases } from './boss-phases.js';
 import { EquipmentSystem } from './equipment.js';
 import { ParrySystem, PARRY, counterProfile } from './parry.js';
 import { gameKey, isGameShortcut } from './game-input.js';
+import { ViewController, viewMovement } from './view.js';
 import { ExplorationSystem } from './exploration.js';
 import { abyssStats, abyssBoss, abyssRule } from './abyss.js';
 import { RunAnalytics, damageCategory } from './analytics.js';
@@ -136,11 +137,13 @@ export class Game {
     this.regionSystem = new RegionSystem(this);
     this.mutationSystem = new MutationSystem(this);
     this.regionSystem.setRegion(this.regionId);
-    this.scene.onBeforeRender = () => { this.updateContactShadow(); this.actorShadows.sync(); this.mutationSystem.sync(); };
+    this.scene.onBeforeRender = () => { this.view?.maskBody(); this.updateContactShadow(); this.actorShadows.sync(); this.mutationSystem.sync(); };
+    this.scene.onAfterRender = () => this.view?.restoreBody();
     this.enemyRenderer = new EnemyRenderer(this.scene, this.enemies);
     this.story = new StorySystem(this);
     this.sideAreas = new SideAreaSystem(this);
     this.camp = new CampSystem(this);
+    this.view = new ViewController(this);
     this.setupInput();
     this.observer = new ResizeObserver(() => this.resize());
     this.observer.observe(container);
@@ -199,7 +202,7 @@ export class Game {
   get state() {
     const enemyKinds = Object.fromEntries(ENEMY_TYPES.map(type => [type.id, 0]));
     for (const enemy of this.enemies) if (enemy.definition) enemyKinds[enemy.definition.id]++;
-    return { ...this._state, mode: this.mode, camp: this.camp?.state(), sideArea: this.sideAreas?.state(), story: this.story?.state(), analytics: this.analytics?.snapshot(this), stageStats: this.stageStats(), abyssConstraint: this.abyssConstraint, playbackSpeed: this.playbackSpeed, world: { hills: this.world?.hills.length || 0, structures: this.world?.structures.length || 0, elevation: this.player?.position.y || 0 }, enemyKinds, sword: getSwordProfile(this.stats), activeSynergies: getActiveSynergies(this.stats), activeCurses: [...this.activeCurses], equipment: this.equipment?.getState(), sets: this.setSystem?.state(), job: this.classes?.state(), parry: this.parry?.getState(), exploration: this.exploration?.getState(), routeId: this.routeId, regionId: this.regionId, region: getRegion(this.regionId), mutations: this.mutationSystem?.getDebugState(), runModifiers: this.getFloorModifiers(), runReport: this.runReport ? structuredClone(this.runReport) : this.freshRunReport(), pendingChests: this.pendingChestRewards?.length || 0, altar: this.altar ? { x: this.altar.group.position.x, z: this.altar.group.position.z, opened: this.altar.opened } : null, rewardTokens: this.pendingRelicSources?.length || 0, pendingBossRewards: (this.pendingBossRewards || []).map(reward => ({ ...reward })), maxHp: this.combatStats.maxHp, damage: this.combatStats.damage, attackRate: this.combatStats.attackRate, spellDamage: this.combatStats.spellDamage, spellRate: this.stats.spellRate, speed: this.combatStats.speed, risk: this.getThreat(), selectedRisk: this.selectedRisk, chests: this.chests.map(chest => ({ x: chest.group.position.x, z: chest.group.position.z, remaining: chest.guards.filter(guard => guard.hp > 0).length, opened: chest.opened })), eliteEnemies: this.enemies.filter(enemy => enemy.elite).length, goldenEnemies: this.enemies.filter(enemy => enemy.golden).length, dashCooldown: Math.max(0, this.dashCooldown || 0), dashReady: !(this.dashCooldown > 0), enemyCount: this.enemies.length, arenaRadius: ARENA_RADIUS, stageDuration: STAGE_DURATION, bossSpawnTime: BOSS_SPAWN_TIME, bossSpawned: this.bossSpawned, bossDefeated: this.bossDefeated, boss: this.boss ? { archetype: this.boss.archetype, hint: this.boss.hint, name: this.boss.name, hp: Math.max(0, this.boss.hp), maxHp: this.boss.maxHp, alive: this.boss.hp > 0, spawned: this.bossSpawned, defeated: this.bossDefeated, phase: this.boss.mode, combatPhase: this.boss.combatPhase || 1, parryStun: Math.max(0,this.boss.parryStun||0), parryResist: Math.max(0,(this.boss.nextParryStun||0)-this._state.elapsed) } : null, spellState: this.magic?.getState() || [], playerStats: { ...this.stats, relics: [...(this.stats.relics || [])], bossRewards: [...(this.stats.bossRewards || [])], spells: { ...this.stats.spells }, evolutions: { ...this.stats.evolutions }, passiveLevels: { ...this.stats.passiveLevels } } };
+    return { ...this._state, view: this.view?.getState(), mode: this.mode, camp: this.camp?.state(), sideArea: this.sideAreas?.state(), story: this.story?.state(), analytics: this.analytics?.snapshot(this), stageStats: this.stageStats(), abyssConstraint: this.abyssConstraint, playbackSpeed: this.playbackSpeed, world: { hills: this.world?.hills.length || 0, structures: this.world?.structures.length || 0, elevation: this.player?.position.y || 0 }, enemyKinds, sword: getSwordProfile(this.stats), activeSynergies: getActiveSynergies(this.stats), activeCurses: [...this.activeCurses], equipment: this.equipment?.getState(), sets: this.setSystem?.state(), job: this.classes?.state(), parry: this.parry?.getState(), exploration: this.exploration?.getState(), routeId: this.routeId, regionId: this.regionId, region: getRegion(this.regionId), mutations: this.mutationSystem?.getDebugState(), runModifiers: this.getFloorModifiers(), runReport: this.runReport ? structuredClone(this.runReport) : this.freshRunReport(), pendingChests: this.pendingChestRewards?.length || 0, altar: this.altar ? { x: this.altar.group.position.x, z: this.altar.group.position.z, opened: this.altar.opened } : null, rewardTokens: this.pendingRelicSources?.length || 0, pendingBossRewards: (this.pendingBossRewards || []).map(reward => ({ ...reward })), maxHp: this.combatStats.maxHp, damage: this.combatStats.damage, attackRate: this.combatStats.attackRate, spellDamage: this.combatStats.spellDamage, spellRate: this.stats.spellRate, speed: this.combatStats.speed, risk: this.getThreat(), selectedRisk: this.selectedRisk, chests: this.chests.map(chest => ({ x: chest.group.position.x, z: chest.group.position.z, remaining: chest.guards.filter(guard => guard.hp > 0).length, opened: chest.opened })), eliteEnemies: this.enemies.filter(enemy => enemy.elite).length, goldenEnemies: this.enemies.filter(enemy => enemy.golden).length, dashCooldown: Math.max(0, this.dashCooldown || 0), dashReady: !(this.dashCooldown > 0), enemyCount: this.enemies.length, arenaRadius: ARENA_RADIUS, stageDuration: STAGE_DURATION, bossSpawnTime: BOSS_SPAWN_TIME, bossSpawned: this.bossSpawned, bossDefeated: this.bossDefeated, boss: this.boss ? { archetype: this.boss.archetype, hint: this.boss.hint, name: this.boss.name, hp: Math.max(0, this.boss.hp), maxHp: this.boss.maxHp, alive: this.boss.hp > 0, spawned: this.bossSpawned, defeated: this.bossDefeated, phase: this.boss.mode, combatPhase: this.boss.combatPhase || 1, parryStun: Math.max(0,this.boss.parryStun||0), parryResist: Math.max(0,(this.boss.nextParryStun||0)-this._state.elapsed) } : null, spellState: this.magic?.getState() || [], playerStats: { ...this.stats, relics: [...(this.stats.relics || [])], bossRewards: [...(this.stats.bossRewards || [])], spells: { ...this.stats.spells }, evolutions: { ...this.stats.evolutions }, passiveLevels: { ...this.stats.passiveLevels } } };
   }
   emit() { this.callbacks.onUpdate?.(this.state); }
 
@@ -565,14 +568,14 @@ export class Game {
       if (key === 'r' && !event.repeat) this.interact();
     };
     this.onKeyUp = (event) => this.keys.delete(gameKey(event));
-    this.onBlur = () => { this.keys.clear(); this.touchMove = { x: 0, y: 0 }; this.touchStart = null; };
+    this.onBlur = () => { this.keys.clear(); this.touchMove = { x: 0, y: 0 }; this.touchStart = null; this.view.release(); };
     this.onVisibility = () => { if (document.hidden) this.onBlur(); this.lastTime = performance.now(); };
     window.addEventListener('keydown', this.onKeyDown); window.addEventListener('keyup', this.onKeyUp);
     window.addEventListener('blur', this.onBlur); document.addEventListener('visibilitychange', this.onVisibility);
-    this.onPointerDown = (event) => { if (event.pointerType !== 'touch') return; this.touchStart = { x: event.clientX, y: event.clientY, id: event.pointerId }; this.renderer.domElement.setPointerCapture(event.pointerId); };
-    this.onPointerMove = (event) => { if (!this.touchStart || this.touchStart.id !== event.pointerId) return; this.setMove((event.clientX - this.touchStart.x) / 55, (event.clientY - this.touchStart.y) / 55); };
-    this.onPointerUp = () => { this.touchStart = null; this.setMove(0, 0); };
-    this.renderer.domElement.addEventListener('pointerdown', this.onPointerDown); this.renderer.domElement.addEventListener('pointermove', this.onPointerMove); this.renderer.domElement.addEventListener('pointerup', this.onPointerUp); this.renderer.domElement.addEventListener('pointercancel', this.onPointerUp);
+    this.onPointerDown = (event) => { if(this.view.pointerDown(event))return; if (event.pointerType !== 'touch'||this.touchStart||!['playing','camp'].includes(this._state.phase)||this.camp?.suspended) return; this.touchStart = { x: event.clientX, y: event.clientY, id: event.pointerId }; this.renderer.domElement.setPointerCapture(event.pointerId); };
+    this.onPointerMove = (event) => { if(this.view.pointerMove(event))return; if (!this.touchStart || this.touchStart.id !== event.pointerId) return; this.setMove((event.clientX - this.touchStart.x) / 55, (event.clientY - this.touchStart.y) / 55); };
+    this.onPointerUp = (event) => { this.view.pointerUp(event); if(this.touchStart?.id!==event.pointerId)return;this.touchStart = null; this.setMove(0, 0); };
+    this.renderer.domElement.addEventListener('pointerdown', this.onPointerDown); this.renderer.domElement.addEventListener('pointermove', this.onPointerMove); this.renderer.domElement.addEventListener('pointerup', this.onPointerUp); this.renderer.domElement.addEventListener('pointercancel', this.onPointerUp);this.renderer.domElement.addEventListener('lostpointercapture',this.onPointerUp);
   }
 
   setMove(x, y) { this.touchMove = { x: clamp(x, -1, 1), y: clamp(y, -1, 1) }; }
@@ -581,6 +584,7 @@ export class Game {
     let x = (this.keys.has('d') || this.keys.has('arrowright') ? 1 : 0) - (this.keys.has('a') || this.keys.has('arrowleft') ? 1 : 0) + this.touchMove.x;
     let y = (this.keys.has('s') || this.keys.has('arrowdown') ? 1 : 0) - (this.keys.has('w') || this.keys.has('arrowup') ? 1 : 0) + this.touchMove.y;
     const length = Math.hypot(x, y); if (length > 1) { x /= length; y /= length; }
+    if(this.view?.mode!=='overhead')return viewMovement(x,y,this.view.yaw);
     return new THREE.Vector3((x + y) * Math.SQRT1_2, 0, (y - x) * Math.SQRT1_2);
   }
   dash() {
@@ -605,8 +609,8 @@ export class Game {
     this._state.hp = this.combatStats.maxHp;
     this.runCounter++;
     this._state.runId = globalThis.crypto?.randomUUID?.() || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${this.runCounter}`;
-    this.player.position.set(0, 0, 0); this.classes.pet.position.copy(this.player.position); this.player.rotation.y = -0.65; this.resetTimers(); this.keys.clear(); this.touchMove = { x: 0, y: 0 }; this.setStageMood(this._state.stage, true); this.regionId = this.mode === 'abyss' ? 'void' : 'sanctum'; this.regionSystem.setRegion(this.regionId); this.runReport.regionHistory = [{stage:this._state.stage,id:this.regionId}];
-    this.camera.position.set(20, 26, 25); this.camera.lookAt(this.player.position);
+    this.player.position.set(0, 0, 0); this.classes.pet.position.copy(this.player.position); this.player.rotation.y = this.view.mode==='overhead' ? -.65 : this.view.yaw; this.resetTimers(); this.keys.clear(); this.touchMove = { x: 0, y: 0 }; this.setStageMood(this._state.stage, true); this.regionId = this.mode === 'abyss' ? 'void' : 'sanctum'; this.regionSystem.setRegion(this.regionId); this.runReport.regionHistory = [{stage:this._state.stage,id:this.regionId}];
+    this.updateCamera(0);
     this.story.onFloor(this._state.stage, this.mode);
     this.initAudio(); this.sound('start'); this.emit();
   }
@@ -833,6 +837,7 @@ export class Game {
 
   setMuted(value) { this.muted = !!value; if (!this.muted) this.initAudio(); }
   setAccessibility({cameraShake = this.cameraShake, effectIntensity = this.effectIntensity} = {}) { this.cameraShake = [0,.5,1].includes(cameraShake) ? cameraShake : 1; this.effectIntensity = [0,.35,1].includes(effectIntensity) ? effectIntensity : 1; }
+  setViewMode(mode) { return this.view.setMode(mode); }
   setQuality(value) { this.quality = value; this.renderer.setPixelRatio(value === 'low' ? 1 : Math.min(window.devicePixelRatio || 1, 1.6)); this.renderer.shadowMap.enabled = value !== 'low'; this.world?.setQuality(value); this.resize(); }
 
   setPlaybackSpeed(value) {
@@ -864,7 +869,7 @@ export class Game {
     this.updateMood(dt);
     if (this.dust) this.dust.rotation.y += dt * 0.002;
     this.updateCamera(dt);
-    this.world?.updateOcclusion(this.player.position, this.camera.position, dt);
+    this.world?.updateOcclusion(this.player.position, this.camera.position, dt, this.view.effectiveMode()==='overhead');
     this.world?.art.update(dt);
     this.renderer.render(this.scene, this.camera);
     if (time - this.lastUpdate > 100) { this.lastUpdate = time; this.emit(); }
@@ -898,7 +903,8 @@ export class Game {
     this.resolvePosition(this.player.position, .65);
     this.playerVisual.visible = this.invulnerable > 0.4 ? Math.floor(s.elapsed * 20) % 2 === 0 : true;
 
-    if (moving) this.player.rotation.y = this.lerpAngle(this.player.rotation.y, Math.atan2(direction.x, direction.z), dt * 13);
+    if(this.view.firstPerson())this.player.rotation.y=this.view.yaw;
+    else if (moving) this.player.rotation.y = this.lerpAngle(this.player.rotation.y, Math.atan2(direction.x, direction.z), dt * 13);
     if (!inRoom) this.spawnTimer -= dt;
     if (!inRoom && !this.bossSpawned && s.stageTime >= BOSS_SPAWN_TIME) this.spawnBoss();
     const maxEnemies = Math.min(160, this.stageStats(s.stage).maxEnemies || 145);
@@ -1244,7 +1250,7 @@ export class Game {
     if (!nearest) return false;
     const delta = nearest.group.position.clone().sub(this.player.position).setY(0);
     if (delta.lengthSq() < 0.0001) delta.set(Math.sin(this.player.rotation.y), 0, Math.cos(this.player.rotation.y));
-    delta.normalize(); this.player.rotation.y = Math.atan2(delta.x, delta.z); const visualStroke=beginSwordStroke(this,profile);
+    delta.normalize(); if(!this.view.firstPerson())this.player.rotation.y = Math.atan2(delta.x, delta.z); const visualStroke=beginSwordStroke(this,profile);
     if (counterReady) {this.counterAnim=.38;this.parry.feedback.strike(delta,profile);} else if(visualStroke) this.slash(delta, profile);
     const classBonus = this.classes.swordBonus();
     const counter = this.parry.consume();
@@ -1522,27 +1528,17 @@ export class Game {
   }
 
   updateCamera(dt) {
-    const target = this._cameraPosition || (this._cameraPosition = new THREE.Vector3());
-    target.copy(this.player.position); target.y += 0.5;
-    // A broad arena view makes the crowd readable while retaining true perspective.
-    const menuOffset = this._state.phase === 'menu' ? 3.5 : 0;
-    const cameraTarget = this._cameraTarget || (this._cameraTarget = new THREE.Vector3());
-    cameraTarget.set(target.x + 20 - menuOffset, target.y + 25.5, target.z + 25 + menuOffset);
-    this.camera.position.lerp(cameraTarget, 1 - Math.exp(-dt * 4));
-    if (this.shake > 0) { this.camera.position.x += rnd(-1, 1) * this.shake * 1.4 * this.cameraShake; this.camera.position.z += rnd(-1, 1) * this.shake * this.cameraShake; }
-    const lookTarget = this._lookTarget || (this._lookTarget = new THREE.Vector3());
-    lookTarget.set(target.x - menuOffset, target.y, target.z + menuOffset);
-    this.camera.lookAt(lookTarget);
-    if (this.sunlight) { this.sunlight.position.set(target.x - 15, target.y + 34.5, target.z + 12); this.sunlight.target.position.set(target.x, target.y - .5, target.z); this.sunlight.target.updateMatrixWorld(); }
+    this.view.update(dt);
   }
   lerpAngle(a, b, t) { let difference = ((b - a + Math.PI) % TAU + TAU) % TAU - Math.PI; return a + difference * Math.min(1, t); }
   resize() {
     const width = Math.max(1, this.container.clientWidth), height = Math.max(1, this.container.clientHeight);
     this.renderer.setSize(width, height); this.camera.aspect = width / height;
-    this.camera.fov = width / height < 0.9 ? 56 : 43; this.camera.updateProjectionMatrix();
+    this.camera.fov = this.view?.fov() || (width / height < 0.9 ? 56 : 43); this.camera.updateProjectionMatrix();
   }
   removeGroup(group) { if (!group) return; group.parent?.remove(group); }
   clearDynamic() {
+    this.view?.reset();
     this.sideAreas?.reset();
     this.swordTrail?.reset(); this.combatArt?.reset(); this.actorShadows?.reset();
     this.regionSystem?.reset(); this.mutationSystem?.reset(); this.equipment?.reset(); this.parry?.reset(); this.setSystem?.reset(); this.classes?.reset(); this.exploration?.reset();
@@ -1590,9 +1586,10 @@ export class Game {
   /** Deterministic-time simulation hook for smoke tests; respects pause and choices. */
   stepForTest(seconds) { for (let t = 0; t < seconds && this._state.phase === 'playing'; t += 1 / 60) { this.frames++; this.advanceSimulation(1 / 60); } this.emit(); return this.getDebugState(); }
   dispose() {
+    this.view?.dispose();
     this.disposed = true; cancelAnimationFrame(this.raf); this.observer.disconnect();
     window.removeEventListener('keydown', this.onKeyDown); window.removeEventListener('keyup', this.onKeyUp); window.removeEventListener('blur', this.onBlur); document.removeEventListener('visibilitychange', this.onVisibility);
-    this.renderer.domElement.removeEventListener('pointerdown', this.onPointerDown); this.renderer.domElement.removeEventListener('pointermove', this.onPointerMove); this.renderer.domElement.removeEventListener('pointerup', this.onPointerUp); this.renderer.domElement.removeEventListener('pointercancel', this.onPointerUp);
+    this.renderer.domElement.removeEventListener('pointerdown', this.onPointerDown); this.renderer.domElement.removeEventListener('pointermove', this.onPointerMove); this.renderer.domElement.removeEventListener('pointerup', this.onPointerUp); this.renderer.domElement.removeEventListener('pointercancel', this.onPointerUp);this.renderer.domElement.removeEventListener('lostpointercapture',this.onPointerUp);
     this.camp?.leave(); this.clearDynamic(); this.camp?.dispose(); this.sideAreas?.dispose(); this.regionSystem?.dispose(); this.mutationSystem?.dispose(); this.enemyRenderer?.dispose(); this.actorShadows?.dispose(); this.combatArt?.dispose(); this.swordTrail?.dispose(); this.presentation?.dispose(); this.magic?.dispose(); this.bossSystem?.dispose(); this.bossPhases?.dispose(); this.equipment?.dispose(); this.parry?.dispose(); this.setSystem?.dispose(); this.classes?.dispose(); this.exploration?.dispose();
     this.heroTextures?.forEach(texture => texture.dispose());
     this.world?.art.dispose();

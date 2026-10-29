@@ -60,14 +60,14 @@ try {
   assert.equal(input.attempts, 1);
   const koreanKeys=await p.evaluate(()=>{
     const samples=[];
-    for(const [key,code] of [['ㅍ','KeyF'],['Process','KeyF'],['ㅎ','KeyG']]){
+    for(const [key,code] of [['ㄹ','KeyF'],['Process','KeyF'],['ㅎ','KeyG']]){
       const g=window.fixture();
       const send=(type,extra={})=>window.dispatchEvent(new KeyboardEvent(type,{key,code,isComposing:true,keyCode:229,bubbles:true,cancelable:true,...extra}));
       send('keydown');send('keydown',{repeat:true});send('keyup');
       samples.push({active:g.parry.active,attempts:g.analytics.parryAttempts,released:!g.keys.has(code.slice(3).toLowerCase())});
     }
     const g=window.fixture(),field=document.createElement('input');document.body.append(field);field.focus();
-    field.dispatchEvent(new KeyboardEvent('keydown',{key:'ㅍ',code:'KeyF',bubbles:true}));
+    field.dispatchEvent(new KeyboardEvent('keydown',{key:'ㄹ',code:'KeyF',bubbles:true}));
     const typing=g.parry.active;field.remove();
     window.dispatchEvent(new KeyboardEvent('keydown',{key:'f',code:'KeyF',ctrlKey:true,bubbles:true}));
     const shortcut=g.parry.active;

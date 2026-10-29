@@ -42,7 +42,7 @@ try {
     const twinYaw = g.leftShoulder.rotation.y;
     advance(.7); const recoveredTwinYaw = g.leftShoulder.rotation.y;
     g.dash(); advance(1 / 60); const dashLean = g.playerVisual.rotation.x; advance(.8); const restLean = g.playerVisual.rotation.x;
-    setup();
+    setup();g.setViewMode('overhead'); // Retain the original full-crowd visibility fixture.
     for (let i = 0; i < 160; i++) {
       const a = i * 2.399, r = 6 + i % 10;
       const e = g.spawnEnemy(Math.cos(a) * r, Math.sin(a) * r, [0, 1, 2, 3, 5, 6, 7, 8, 9][i % 9]); e.hp = e.maxHp = 1e6;

@@ -63,7 +63,7 @@ try {
   assert.equal(await phase(), 'playing');
   await page.reload();
   await page.waitForFunction(() => window.__game?.getDebugState().frames > 1);
-  assert.deepEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('voidrun.preferences'))), { muted: false, quality: 'low', risk: 'none' });
+  assert.deepEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('voidrun.preferences'))), { muted: false, quality: 'low', risk: 'none', viewMode:'third' });
   assert.equal(await page.locator('#sound-toggle').getAttribute('aria-label'), '사운드 끄기');
   assert.equal(await page.evaluate(() => window.__game.quality), 'low');
   console.log('PASS desktop: sound/quality preferences persist after reload and activate renderer settings');

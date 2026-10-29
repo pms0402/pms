@@ -1,5 +1,6 @@
 const koreanKeys = {
-  ㅍ: "f",
+  ㄹ: "f",
+  ㅍ: "v",
   ㅎ: "g",
   ㅈ: "w",
   ㅁ: "a",
