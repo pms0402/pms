@@ -12,6 +12,10 @@ import { createExpansionUi } from './expansion-ui.js';
 import { normalizeEndgame, recordEndgame } from './abyss.js';
 import { REGIONS, getRegion } from './regions.js';
 import { MUTATIONS, MUTATION_ELITE } from './mutations.js';
+import { createChronicleUi, analyticsMarkup } from './chronicle-ui.js';
+import { DAMAGE_SOURCES, normalizeRunHistory } from './analytics.js';
+import { normalizeStory } from './story.js';
+import { CAMP_FACILITIES } from './camp.js';
 
 const $ = (s) => document.querySelector(s);
 const stageNames = STAGES.map(stage => stage.name);
@@ -23,7 +27,7 @@ let prefs = readStorage('voidrun.preferences', { muted: true, quality: 'high', r
 if (!prefs || typeof prefs !== 'object') prefs = { muted: true, quality: 'high', risk: 'none' };
 prefs.risk = RISK_PACTS.some(pact => pact.id === prefs.risk) ? prefs.risk : 'none';
 let history = readStorage('voidrun.history', []);
-if (!Array.isArray(history)) history = [];
+history = normalizeRunHistory(history);
 const savedProgress = readStorage('voidrun.progression', null);
 let progress = savedProgress ? normalizeProgress(savedProgress) : createProgress(history);
 function persistProgress() {
@@ -33,7 +37,7 @@ function persistProgress() {
 let progressionWritable = persistProgress();
 let lastResult = null;
 let campFromResult = false;
-let expansionUI;
+let expansionUI, chronicleUI;
 let endgame = normalizeEndgame(readStorage('voidrun.endgame', {}), history);
 let game, latest, dialogName = '', pausedForDialog = false, audioContext;
 let lastKills = 0;
@@ -44,12 +48,12 @@ let campTab = 'tree';
 let theaterMode = false;
 const hudElements = new Map();
 const hudValues = new Map();
-const choiceDialogs = new Set(['upgrade', 'relic', 'route', 'region', 'curse', 'equipment', 'npc']);
+const choiceDialogs = new Set(['upgrade', 'relic', 'route', 'region', 'curse', 'equipment', 'npc', 'portal', 'room-choice']);
 const isChoiceDialog = () => choiceDialogs.has(dialogName);
 const swordNames = { default: '기본 검술', broadsword: '거인의 대검', twinblade: '질풍의 쌍검', wave: '공허의 검기' };
 const decimal = (value, digits = 1) => Number(value || 0).toLocaleString('ko-KR', { maximumFractionDigits: digits });
 const percentGain = value => `${Number(value) >= 1 ? '+' : ''}${decimal((Number(value || 1) - 1) * 100)}%`;
-const sourceName = { sword: '검', fireball: '화염구', frost: '서리 파동', lightning: '연쇄 번개', orbit: '궤도 룬', combo: '조합 효과', other: '유물 · 기타' };
+const sourceName = DAMAGE_SOURCES;
 function hud(selector, value, html = false) {
   const key = `${selector}:${html}`;
   if (hudValues.get(key) === value) return;
@@ -70,7 +74,7 @@ $('#app').innerHTML = `
       <button class="nav-link" data-nav="history">런 기록 <span class="nav-count" id="history-count">${history.length.toString().padStart(2, '0')}</span></button>
       <button class="nav-link" data-nav="permanent">영구 강화</button>
     </nav>
-    <div class="header-actions"><span class="build-label"><i></i> BUILD YOUR LEGEND <b>v0.13.0</b></span><span class="header-divider"></span><button id="sound-toggle" class="icon-button" title="사운드 켜기" aria-label="사운드 켜기">${icon('muted')}</button><button id="settings" class="icon-button" title="설정" aria-label="설정">${icon('settings')}</button></div>
+    <div class="header-actions"><span class="build-label"><i></i> BUILD YOUR LEGEND <b>v0.14.0</b></span><span class="header-divider"></span><button id="sound-toggle" class="icon-button" title="사운드 켜기" aria-label="사운드 켜기">${icon('muted')}</button><button id="settings" class="icon-button" title="설정" aria-label="설정">${icon('settings')}</button></div>
   </header>
   <main class="page">
     <section class="page-intro">
@@ -99,8 +103,9 @@ $('#app').innerHTML = `
           <button class="start-loadout" id="start-loadout">${icon('sword')} <span id="selected-loadout">방랑자 · 공허의 검</span> ${icon('chevron')}</button>
           <div class="risk-selector"><span>이번 런의 계약</span><div id="risk-options" class="risk-options">${RISK_PACTS.map(pact => `<button data-risk="${pact.id}" aria-pressed="${prefs.risk === pact.id}" class="${prefs.risk === pact.id ? 'selected' : ''}">${pact.name.replace('의 계약','')}</button>`).join('')}</div><p id="risk-description"></p></div>
           <button class="primary-button start-button" id="start-button"><span>${icon('play')} 런 시작하기</span>${icon('arrow')}</button>
-          <div class="mode-actions"><button class="secondary-button" id="mode-button">일반 모드 · 1–10층</button><button class="secondary-button" id="abyss-records-button">심연 기록 · 업적</button></div><div class="start-footnote"><span class="live-dot"></span> 설치 없이 바로 플레이 <span>·</span> ${STAGE_DURATION / 60}분 × ${MAX_STAGES}층 · 층마다 다른 수호자</div>
+          <button class="secondary-button camp-entry" id="enter-camp">3D 야영지 · 시설과 기록관</button><div class="mode-actions"><button class="secondary-button" id="mode-button">일반 모드 · 1–10층</button><button class="secondary-button" id="abyss-records-button">심연 기록 · 업적</button></div><div class="start-footnote"><span class="live-dot"></span> 설치 없이 바로 플레이 <span>·</span> ${STAGE_DURATION / 60}분 × ${MAX_STAGES}층 · 층마다 다른 수호자</div>
         </div>
+        <div class="camp-navigation hidden" id="camp-navigation"><strong id="camp-nearby"></strong><div>${CAMP_FACILITIES.map(f=>`<button data-camp-facility="${f.id}">${f.name}</button>`).join('')}<button id="leave-camp">메뉴</button></div><small>WASD / 드래그 이동 · 근처에서 R · 버튼으로 빠른 이용</small></div><div class="side-area-status hidden" id="side-area-status"></div><div class="passive-status"><span id="job-passive" class="hidden"></span><button id="set-passive" class="hidden" title="세트 효과 설명"></button></div>
         <div class="scene-coordinate">SECTOR_001 <span>35° 41′ N / 139° 41′ E</span></div>
         <div class="combo-display hidden" id="combo-display"><strong id="combo-value"></strong><span>CHAIN KILLS</span></div>
         <div class="game-toast hidden" id="game-toast" role="status"></div>
@@ -115,6 +120,7 @@ $('#app').innerHTML = `
         <div class="canvas-error hidden" id="canvas-error"><h2>3D 화면을 시작할 수 없어요</h2><p>브라우저의 하드웨어 가속을 켠 뒤 새로고침해 주세요.</p><button class="primary-button" id="reload">새로고침 ${icon('refresh')}</button></div>
       </div>
       <aside class="run-panel">
+        <section class="camp-panel"><div class="panel-heading"><span>재건된 성역</span><span class="micro">CAMP</span></div><h3>다음 탐험을 준비하세요.</h3><p id="camp-hero-info"></p><div>${CAMP_FACILITIES.map(f=>`<button data-camp-facility="${f.id}"><strong>${f.name}</strong><small>${({smith:'시작 무기 · 장비',training:'직업 · 패링 연습',laboratory:'마법 진화 · 숨겨진 조합',archive:'도감 · 이야기 · 전투 기록',altar:'영구 강화 · 성장 트리',gate:'탐험 모드 · 위험 계약'})[f.id]}</small></button>`).join('')}</div><p>시설 근처에서 R 또는 빠른 메뉴.<br>번 골드와 영구 강화는 다음 런에도 남습니다.</p></section>
         <div class="panel-heading"><span>이번 런의 여정</span><span class="micro">THE RUN</span></div>
         <div class="stage-heading"><span class="stage-caption">CURRENT STAGE</span><div class="stage-number"><strong id="stage-number">01</strong><span>/ ${String(MAX_STAGES).padStart(2, '0')}</span><span class="stage-symbol">✳</span></div><h3 id="stage-name">잊혀진 초원</h3><p id="stage-english">THE FORGOTTEN GROVE</p></div>
         <div class="stage-time"><span id="stage-timer-label">보스 출현까지</span><strong id="stage-time">01:30</strong></div><div class="stage-track"><div id="stage-progress"></div></div>
@@ -165,14 +171,16 @@ function update(state) {
   $('#expedition-actions').classList.toggle('hidden', ['menu','over','won'].includes(state.phase));
   hud('#game-speed', `${state.playbackSpeed || 1}×`);
   $('#game-speed').setAttribute('aria-label', `현재 ${state.playbackSpeed || 1}배속 · 눌러서 배속 변경`);
-  const inRun = !['menu', 'over', 'won'].includes(state.phase);
+  const inRun = !['menu', 'over', 'won', 'camp'].includes(state.phase);
   $('#arena').classList.toggle('in-run', inRun);
   document.body.classList.toggle('run-active', inRun);
+  document.body.classList.toggle('camp-active', state.phase === 'camp');
   $('#live-hud').classList.toggle('hidden', !inRun);
   $('#dash-indicator').classList.toggle('hidden', !inRun);
   $('#scene-tag').classList.toggle('hidden', inRun);
   $('#start-content').classList.toggle('hidden', state.phase !== 'menu');
-  $('#touch-controls').classList.toggle('hidden', !inRun);
+  $('#touch-controls').classList.toggle('hidden', !inRun && state.phase !== 'camp');
+  $('#touch-dash').classList.toggle('hidden', state.phase === 'camp');
   $('#growth-toolbar').classList.toggle('hidden', !inRun);
   $('#pause-button').disabled = !['playing', 'paused'].includes(state.phase);
   hud('#health-value', `${Math.ceil(state.hp)} <small>/ ${Math.round(state.maxHp)}</small>`, true);
@@ -187,14 +195,15 @@ function update(state) {
   hud('#stage-number', String(state.stage).padStart(2, '0'));
   const floor = getStageDefinition(state.stage);
   const region = state.region || getRegion(state.regionId || (state.stage === MAX_STAGES ? 'throne' : 'sanctum'));
-  hud('#stage-name', region.title); hud('#area-name', region.title);
-  hud('#stage-english', region.english || floor.english);
+  const inCamp = state.phase === 'camp';
+  hud('#stage-name', inCamp ? '재건된 성역' : region.title); hud('#area-name', inCamp ? '재건된 성역 · 야영지' : region.title);
+  hud('#stage-english', inCamp ? 'SANCTUARY CAMP' : region.english || floor.english);
   const regionHints = { sanctum: '탐험의 시작', volcano: '용암 예고', tundra: '서리 둔화', forest: '독성 장판', ruins: '마법 사선', void: '변이 · 균열', throne: '최종 수호자' };
-  hud('#region-summary', `${regionHints[region.id] || '지역 특성'} · 골드 ×${decimal(region.goldMultiplier || 1, 2)}`);
+  hud('#region-summary', inCamp ? '이동 · 시설 R · 빠른 메뉴' : `${regionHints[region.id] || '지역 특성'} · 골드 ×${decimal(region.goldMultiplier || 1, 2)}`);
   $('#region-info').style.setProperty('--region', region.color || '#b9cda5');
   $('#region-info').title = `${region.title} · ${region.hazard} · ${region.reward}`;
   $('#region-info').setAttribute('aria-label', `${region.title} · 지역 특성 및 보상 보기`);
-  hud('#area-stage', `STAGE ${String(state.stage).padStart(2, '0')}`);
+  hud('#area-stage', inCamp ? 'CAMP' : `STAGE ${String(state.stage).padStart(2, '0')}`);
   const boss = state.boss;
   const bossAlive = !!boss && boss.hp > 0;
   const waitingForBoss = state.stageTime >= STAGE_DURATION && bossAlive;
@@ -282,6 +291,7 @@ function update(state) {
   }
   if (state.kills > lastKills) sound(520 + Math.random() * 200, .06, .025);
   lastKills = state.kills;
+  chronicleUI?.update(state);
 }
 
 function getSpellStates(state = latest) {
@@ -295,6 +305,7 @@ let returnFocus;
 function openModal(name, content, { pause = true, closeable = true } = {}) {
   if (isChoiceDialog() && name !== dialogName && name !== 'result' && !(choiceDialogs.has(name) && game?._state.phase === name)) return false;
   returnFocus = document.activeElement;
+  if (game?.camp.active) { game.camp.suspended = true; game.keys.clear(); game.touchMove = {x:0,y:0}; }
   if (pause && latest?.phase === 'playing') { pausedForDialog = true; game.pause(); }
   dialogName = name;
   $('#modal').className = `modal modal-${name}`;
@@ -306,14 +317,16 @@ function openModal(name, content, { pause = true, closeable = true } = {}) {
 }
 function closeModal() {
   if (isChoiceDialog() || dialogName === 'result') return;
-  if (dialogName === 'permanent' && campFromResult && lastResult) { showResult(); return; }
+  if ((dialogName === 'permanent' && campFromResult && lastResult) || (['over','won'].includes(game?._state.phase) && lastResult && dialogName !== 'modes')) { showResult(); return; }
   $('#modal-backdrop').classList.add('hidden');
   dialogName = '';
+  if (game?.camp.active) game.camp.suspended = false;
   if (pausedForDialog) { pausedForDialog = false; game.resume(); $('#game-canvas').focus({ preventScroll: true }); }
   else returnFocus?.focus();
 }
 function forceCloseModal() {
   $('#modal-backdrop').classList.add('hidden'); dialogName = ''; pausedForDialog = false;
+  if (game?.camp.active) game.camp.suspended = false;
 }
 function startRun() {
   forceCloseModal(); lastKills = 0;
@@ -407,7 +420,7 @@ function syncBank() {
 function showPermanentUpgrades(fromResult = false) {
   if (isChoiceDialog()) return;
   campFromResult = !!fromResult && !!lastResult;
-  const readOnly = !['menu', 'over', 'won'].includes(game?.state.phase);
+  const readOnly = !['menu', 'over', 'won', 'camp'].includes(game?.state.phase);
   openModal('permanent', `<div class="modal-eyebrow">THE CAMP / GROW YOUR OWN WAY</div><h2 id="modal-title">당신의 성장에, 가지를 더하세요<span>.</span></h2><p class="modal-description">검술과 마력은 따로 성장합니다. 공격력은 단계마다 ×1.12, 체력은 ×1.10으로 커집니다. 초반 이후에는 강화 단계에 맞춰 비용도 크게 오릅니다. 구매한 강화와 해금은 죽어도 남습니다.</p><div class="permanent-wallet"><div>${icon('coin')}<span>보유 골드</span><strong id="permanent-gold">${formatGold(progress.bank)}</strong></div><span>누적 회수 <b id="lifetime-gold">${formatGold(progress.lifetimeGold)}</b> G</span></div>${readOnly ? `<p class="camp-readonly">${icon('info')} 생존 중에는 빌드를 확인할 수 있습니다. 이번 런의 ${formatGold(latest.gold)} G는 런 종료 후 회수되며, 구매와 장비 변경은 그때 가능합니다.</p>` : '<div class="camp-cycle"><span>런 종료</span> → <strong>골드 회수</strong> → <strong>성장 · 해금</strong> → <span>다시 도전</span></div>'}<div class="camp-tabs" role="tablist" aria-label="캠프 메뉴"><button class="camp-tab" data-camp-tab="tree" role="tab">${icon('orbit')} 성장 트리</button><button class="camp-tab" data-camp-tab="loadout" role="tab">${icon('sword')} 캐릭터 · 무기</button></div><div id="permanent-grid" class="permanent-grid"></div><p class="shop-feedback" id="permanent-feedback" role="status"></p><div class="camp-storage ${progressionWritable ? '' : 'storage-unavailable'}" id="camp-storage">${icon(progressionWritable ? 'check' : 'info')} ${progressionWritable ? '같은 브라우저에 자동 저장됩니다. 구매 효과와 선택 장비는 다음 런부터 적용됩니다.' : '이 창은 브라우저 저장소를 사용할 수 없어 닫으면 기록이 사라집니다. 일반 브라우저의 게임 사이트에서 플레이해 주세요.'}</div>${campFromResult ? `<div class="camp-actions"><button class="primary-button" id="camp-start">${icon('play')} 다음 런 시작 ${icon('arrow')}</button><button class="secondary-button" id="camp-resultback">결과 보기</button></div>` : ''}`, { closeable: true });
   for (const button of document.querySelectorAll('[data-camp-tab]')) button.addEventListener('click', () => { campTab = button.dataset.campTab; renderPermanentUpgrades(readOnly); });
   renderPermanentUpgrades(readOnly);
@@ -430,7 +443,7 @@ function renderPermanentUpgrades(readOnly) {
     const offers = getUnlockOffers(progress);
     grid.innerHTML = ['character', 'weapon'].map(type => `<section class="unlock-section"><div class="unlock-heading"><h3>${type === 'character' ? '캐릭터' : '시작 무기'}</h3><span>${type === 'character' ? '강점과 약점이 다른 전투 방식' : '속도 · 공격력 · 범위의 선택'}</span></div><div class="unlock-grid">${offers.filter(item => item.type === type).map(item => `<button class="unlock-card ${item.selected ? 'selected' : ''}" data-unlock-type="${item.type}" data-unlock-id="${item.id}" ${readOnly || item.selected || (!item.unlocked && !item.canAfford) ? 'disabled' : ''}><span class="unlock-icon">${icon(item.icon)}</span><strong>${escapeHTML(item.name)}</strong><small>${escapeHTML(item.description)}</small><span class="unlock-action">${item.selected ? `${icon('check')} 선택 중` : item.unlocked ? '다음 런에 사용' : `${icon('coin')} ${formatGold(item.cost)} G · 해금`}</span></button>`).join('')}</div></section>`).join('');
     grid.querySelectorAll('[data-unlock-type]').forEach(button => button.addEventListener('click', () => {
-      if (!['menu', 'over', 'won'].includes(game.state.phase)) return;
+      if (!['menu', 'over', 'won', 'camp'].includes(game.state.phase)) return;
       const { unlockType: type, unlockId: id } = button.dataset;
       const offer = getUnlockOffers(progress).find(item => item.type === type && item.id === id);
       const result = offer?.unlocked ? selectLoadout(progress, type, id) : purchaseUnlock(progress, type, id);
@@ -446,7 +459,7 @@ function renderPermanentUpgrades(readOnly) {
   const card = offer => `<button class="permanent-card skill-node ${offer.locked ? 'locked' : ''} ${offer.level > 0 ? 'learned' : ''}" data-permanent-buy="${escapeHTML(offer.id)}" data-branch="${offer.branch}" ${readOnly || offer.locked || !offer.canAfford || offer.cost === null ? 'disabled' : ''}><span class="permanent-card-top"><span class="permanent-card-icon">${icon(upgradeIcons[offer.id] || offer.icon || 'diamond')}</span><span class="permanent-level">LV. ${offer.level}<small>/ ${offer.maxLevel}</small></span></span><strong>${escapeHTML(offer.name)}</strong><span class="permanent-description">${escapeHTML(offer.description)}</span>${offer.locked ? `<span class="node-requirement">${escapeHTML(offer.requirementsText || '앞의 뿌리 강화를 먼저 구매하세요')}</span>` : ''}<span class="permanent-bonus"><span>+${percent(offer.currentBonus)}${escapeHTML(offer.unit || '%')}</span>${icon('arrow')}<b>+${percent(offer.nextBonus)}${escapeHTML(offer.unit || '%')}</b></span><span class="permanent-price">${offer.locked ? '선행 강화 필요' : offer.cost === null ? `${icon('check')} 강화 완료` : `${icon('coin')} ${formatGold(offer.cost)} G`}</span></button>`;
   grid.innerHTML = `<div class="skill-tree"><div class="tree-origin">${icon('diamond')}<span>회수한 골드<strong>나만의 성장</strong></span></div><div class="tree-branches">${['sword', 'magic'].map(branch => { const branchOffers = offers.filter(offer => offer.branch === branch); return `<section class="skill-branch ${branch}"><h3>${icon(branch === 'sword' ? 'sword' : 'orbit')} ${branch === 'sword' ? '검술의 길' : '마력의 길'}</h3><div class="branch-root">${card(branchOffers[0])}</div><div class="branch-children">${branchOffers.slice(1).map(card).join('')}</div></section>`; }).join('')}</div><div class="core-heading"><span></span>${icon('heart')} 생존 · 탐험<span></span></div><div class="core-nodes">${offers.filter(offer => offer.branch === 'core').map(card).join('')}</div></div>`;
   grid.querySelectorAll('[data-permanent-buy]').forEach(button => button.addEventListener('click', () => {
-    if (!['menu', 'over', 'won'].includes(game.state.phase)) return;
+    if (!['menu', 'over', 'won', 'camp'].includes(game.state.phase)) return;
     const id = button.dataset.permanentBuy;
     const result = purchasePermanentUpgrade(progress, id);
     if (result.success) saveCampProgress(result.progress);
@@ -472,9 +485,7 @@ function syncRisk() {
 }
 function showHistory() {
   if (isChoiceDialog()) return;
-  const records = history.slice(0, 12);
-  openModal('history', `<div class="modal-eyebrow">YOUR JOURNEY</div><h2 id="modal-title">모든 런은 흔적을 남긴다<span>.</span></h2><p class="modal-description">다시 도전할 때마다, 조금 더 멀리.</p>${records.length ? `<div class="history-table"><div class="history-row history-head"><span>결과 / 스테이지</span><span>시간</span><span>처치</span><span>골드</span></div>${records.map(r => `<div class="history-row"><span><i class="record-dot ${r.won ? 'won' : ''}"></i><strong>${r.won ? '완주' : `STAGE ${r.stage}`}</strong><small>${escapeHTML(r.date)}</small></span><span>${time(r.elapsed)}</span><span>${r.kills}</span><span class="gold-text">${formatGold(r.gold)}</span></div>`).join('')}</div>` : `<div class="empty-history">${icon('trophy')}<h3>첫 번째 기록을 기다리는 중</h3><p>런을 마치면 생존 시간과 처치 수, 획득 골드가 여기에 남습니다.</p><button class="primary-button" id="history-start">첫 런 시작하기 ${icon('arrow')}</button></div>`}<div class="guide-bottom">${icon('info')} 기록은 현재 브라우저에 최대 30개까지 보관됩니다.</div>`);
-  $('#history-start')?.addEventListener('click', startRun);
+  chronicleUI?.history();
 }
 function showSettings() {
   if (isChoiceDialog()) return;
@@ -487,26 +498,27 @@ function showSettings() {
     prefs.quality = button.dataset.quality; game.setQuality(prefs.quality); store('voidrun.preferences', prefs);
     document.querySelectorAll('[data-quality]').forEach(b => b.classList.toggle('selected', b.dataset.quality === prefs.quality));
   });
-  const canReset = ['menu', 'over', 'won'].includes(game.state.phase);
+  const canReset = ['menu', 'over', 'won', 'camp'].includes(game.state.phase);
   $('#modal').insertAdjacentHTML('beforeend', `<div class="reset-settings"><h3>게임 저장 데이터 초기화</h3><p>보유 골드·영구 강화·캐릭터와 무기 해금·런 기록을 모두 삭제합니다. 사운드와 그래픽 설정은 유지됩니다.</p><button class="secondary-button reset-danger" id="reset-save" ${canReset ? '' : 'disabled'}>저장 데이터 초기화</button>${canReset ? '' : '<p>진행 중인 런을 종료한 뒤 초기화할 수 있습니다.</p>'}</div>`);
   $('#reset-save').addEventListener('click', showResetConfirmation);
 }
 
 function showResetConfirmation() {
-  if (!['menu', 'over', 'won'].includes(game.state.phase)) return;
+  if (!['menu', 'over', 'won', 'camp'].includes(game.state.phase)) return;
   openModal('reset', `<div class="modal-eyebrow">START FRESH</div><h2 id="modal-title">정말 처음부터 시작할까요<span>?</span></h2><p class="modal-description">이 브라우저의 <b>골드·영구 강화·캐릭터와 무기 해금·선택 장비·모든 런 기록</b>이 삭제됩니다. 삭제한 데이터는 되돌릴 수 없습니다.</p><p id="reset-feedback" role="status"></p><button class="secondary-button" id="reset-cancel">취소하고 돌아가기</button><button class="secondary-button reset-danger" id="reset-confirm">모두 삭제하고 처음부터 시작</button>`);
   $('#reset-cancel').addEventListener('click', showSettings);
   // Put focus on the safe choice; opening the dialog never deletes anything.
   $('#reset-cancel').focus({ preventScroll: true });
   $('#reset-confirm').addEventListener('click', () => {
-    if (!['menu', 'over', 'won'].includes(game.state.phase)) return;
-    const keys = ['voidrun.progression', 'voidrun.history', 'voidrun.endgame'];
+    if (!['menu', 'over', 'won', 'camp'].includes(game.state.phase)) return;
+    const keys = ['voidrun.progression', 'voidrun.history', 'voidrun.endgame', 'voidrun.story'];
     let previous;
     try {
       previous = keys.map(key => localStorage.getItem(key));
       localStorage.setItem(keys[0], JSON.stringify(createProgress()));
       localStorage.setItem(keys[1], '[]');
       localStorage.setItem(keys[2], JSON.stringify(normalizeEndgame()));
+      localStorage.setItem(keys[3], JSON.stringify(normalizeStory()));
     } catch {
       if (previous) for (let i = 0; i < keys.length; i++) {
         try { if (previous[i] === null) localStorage.removeItem(keys[i]); else localStorage.setItem(keys[i], previous[i]); } catch { /* Keep the dialog open if storage is unavailable. */ }
@@ -603,7 +615,7 @@ function finish(state, won) {
 }
 function runReportMarkup(state) {
   const report = state.runReport || {};
-  const rows = Object.entries(report.damageBySource || {}).map(([id, value]) => [id, Math.max(0, Number(value) || 0)]).filter(([, value]) => value > 0).sort((a, b) => b[1] - a[1]);
+  const rows = Object.entries(state.analytics?.damage || report.damageBySource || {}).map(([id, value]) => [id, Math.max(0, Number(value) || 0)]).filter(([, value]) => value > 0).sort((a, b) => b[1] - a[1]);
   const total = rows.reduce((sum, [, value]) => sum + value, 0);
   const cause = typeof report.deathCause === 'string' ? report.deathCause : report.deathCause?.name || report.deathCause?.label || report.deathCause?.type;
   const conclusion = state.phase === 'won' ? '모든 수호자 격파' : state.endedReason === 'abandoned' ? '직접 런 종료' : cause || '전투 중 쓰러짐';
@@ -611,14 +623,16 @@ function runReportMarkup(state) {
   const triggerCount = typeof report.synergyTriggers === 'number' ? report.synergyTriggers : Object.values(report.synergyTriggers || {}).reduce((sum, count) => sum + (Number(count) || 0), 0);
   const routeHistory = Array.isArray(report.routeHistory) ? report.routeHistory : [];
   const regionHistory = Array.isArray(report.regionHistory) ? report.regionHistory : [];
-  return `<section class="run-report" aria-label="런 전투 분석"><div class="report-heading"><h3>${icon('target')} 이번 런 분석</h3><span>실제 준 피해 기준</span></div><div class="report-damage">${rows.length ? rows.map(([id, damage]) => `<div class="damage-row" data-damage-source="${escapeHTML(id)}"><div><span>${escapeHTML(sourceName[id] || '기타')}</span><strong>${formatGold(damage)} <small>${Math.round(damage / total * 100)}%</small></strong></div><div class="damage-track"><i style="width:${damage / total * 100}%;--damage-color:${({ sword: '#c1ff66', fireball: '#ffac61', frost: '#80e6f8', lightning: '#e3c0ff', orbit: '#a8ffc3', combo: '#ffd57c' })[id] || '#9fae8d'}"></i></div></div>`).join('') : '<p>적에게 피해를 주면 검·마법별 기여도가 기록됩니다.</p>'}</div><div class="report-facts"><div><span>받은 피해</span><strong>${decimal(report.damageTaken)}</strong></div><div><span>최고 연속 처치</span><strong>${Math.floor(report.peakCombo || state.combo || 0)}×</strong></div><div><span>조합 발동</span><strong>${Math.floor(triggerCount)}회</strong></div></div><p class="death-cause" data-death-cause>${icon(state.phase === 'won' ? 'trophy' : 'skull')}<span>런 종료 원인 <b>${escapeHTML(conclusion)}</b></span></p>${routeHistory.length ? `<details class="report-path"><summary>지역 · 경로 · 저주 기록 보기</summary>${regionHistory.length ? `<p data-region-history>지역: ${regionHistory.map((entry, index) => `${entry.stage || index + 1}층 ${escapeHTML(getRegion(entry.regionId || entry.id).title)}`).join(' → ')}</p>` : ''}<p>${routeHistory.map((entry, index) => { const id = typeof entry === 'string' ? entry : entry.routeId || entry.id || entry.route; const route = ROUTES.find(item => item.id === id); return `${typeof entry === 'object' ? entry.stage || index + 1 : index + 1}층 ${escapeHTML(route?.title || id || '일반 구역')}`; }).join(' → ')}</p><p>${(report.curseIds || []).map(id => escapeHTML(CURSES.find(curse => curse.id === id)?.title || id)).join(' · ') || '받은 저주 없음'}</p></details>` : ''}</section><p class="affordable-upgrades" data-affordable-count="${affordable.length}">${icon('coin')}${affordable.length ? `현재 지갑으로 <b>${affordable.length}종</b>의 영구 강화를 구매할 수 있습니다.` : '회수한 골드를 모아 다음 영구 강화를 준비하세요.'}</p>`;
+  return `<section class="run-report" aria-label="런 전투 분석"><div class="report-heading"><h3>${icon('target')} 이번 런 분석</h3><span>실제 준 피해 기준</span></div><div class="report-damage">${rows.length ? rows.map(([id, damage]) => `<div class="damage-row" data-damage-source="${escapeHTML(id)}"><div><span>${escapeHTML(sourceName[id] || '기타')}</span><strong>${formatGold(damage)} <small>${Math.round(damage / total * 100)}%</small></strong></div><div class="damage-track"><i style="width:${damage / total * 100}%;--damage-color:${({ sword: '#c1ff66', fireball: '#ffac61', frost: '#80e6f8', lightning: '#e3c0ff', orbit: '#a8ffc3', combo: '#ffd57c' })[id] || '#9fae8d'}"></i></div></div>`).join('') : '<p>적에게 피해를 주면 검·마법별 기여도가 기록됩니다.</p>'}</div><div class="report-facts"><div><span>받은 피해</span><strong>${decimal(report.damageTaken)}</strong></div><div><span>최고 연속 처치</span><strong>${Math.floor(report.peakCombo || state.combo || 0)}×</strong></div><div><span>조합 발동</span><strong>${Math.floor(triggerCount)}회</strong></div></div><p class="death-cause" data-death-cause>${icon(state.phase === 'won' ? 'trophy' : 'skull')}<span>런 종료 원인 <b>${escapeHTML(conclusion)}</b></span></p>${routeHistory.length ? `<details class="report-path"><summary>지역 · 경로 · 저주 기록 보기</summary>${regionHistory.length ? `<p data-region-history>지역: ${regionHistory.map((entry, index) => `${entry.stage || index + 1}층 ${escapeHTML(getRegion(entry.regionId || entry.id).title)}`).join(' → ')}</p>` : ''}<p>${routeHistory.map((entry, index) => { const id = typeof entry === 'string' ? entry : entry.routeId || entry.id || entry.route; const route = ROUTES.find(item => item.id === id); return `${typeof entry === 'object' ? entry.stage || index + 1 : index + 1}층 ${escapeHTML(route?.title || id || '일반 구역')}`; }).join(' → ')}</p><p>${(report.curseIds || []).map(id => escapeHTML(CURSES.find(curse => curse.id === id)?.title || id)).join(' · ') || '받은 저주 없음'}</p></details>` : ''}${analyticsMarkup(state.analytics,{damage:false})}</section><p class="affordable-upgrades" data-affordable-count="${affordable.length}">${icon('coin')}${affordable.length ? `현재 지갑으로 <b>${affordable.length}종</b>의 영구 강화를 구매할 수 있습니다.` : '회수한 골드를 모아 다음 영구 강화를 준비하세요.'}</p>`;
 }
 
 function showResult() {
   if (!lastResult) return;
   const { state, won, settlement } = lastResult;
   campFromResult = false;
-  openModal('result', `<div class="result-emblem">${icon(won ? 'trophy' : 'skull')}</div><div class="modal-eyebrow">${won ? 'THE VOID IS YOURS' : 'DEATH IS PROGRESS'}</div><h2 id="modal-title">${won ? '공허를 정복했습니다' : state.endedReason === 'abandoned' ? '돌아와서, 더 강하게' : '쓰러져도, 성장은 남습니다'}<span>.</span></h2><p class="modal-description">${won ? `${MAX_STAGES}층의 모든 수호자를 돌파했습니다. 회수한 골드로 다음 도전을 준비하세요.` : `${getRegion(state.regionId).title}에서 여정을 마쳤습니다. 번 골드는 잃지 않았습니다.`}</p><div class="settlement-panel"><span>${icon('coin')} 이번 런 골드 회수</span><strong id="settlement-gold">+${formatGold(settlement.amount)} G</strong><small>보유 골드 <b id="result-bank">${formatGold(progress.bank)} G</b> · 영구 강화에 사용할 수 있습니다</small></div><div class="result-stats"><div><span>생존 시간</span><strong>${time(state.elapsed)}</strong></div><div><span>처치 수</span><strong>${state.kills}</strong></div><div><span>도달 스테이지</span><strong>${state.stage} / ${state.mode === 'abyss' ? '∞' : MAX_STAGES}</strong></div><div><span>도달 레벨</span><strong>LV. ${state.level}</strong></div></div>${runReportMarkup(state)}<button class="primary-button" id="result-permanent">${icon('coin')} 영구 강화하고 재도전 ${icon('arrow')}</button><button class="secondary-button" id="result-modes">탐험 모드 선택 · 심연</button><button class="secondary-button" id="result-records">심연 기록 · 업적</button><button class="secondary-button" id="retry">${icon('refresh')} 강화 없이 바로 재도전</button><button class="secondary-button" id="result-settings">설정 · 저장 데이터 초기화</button>`, { pause: false, closeable: false });
+  openModal('result', `<div class="result-emblem">${icon(won ? 'trophy' : 'skull')}</div><div class="modal-eyebrow">${won ? 'THE VOID IS YOURS' : 'DEATH IS PROGRESS'}</div><h2 id="modal-title">${won ? '공허를 정복했습니다' : state.endedReason === 'abandoned' ? '돌아와서, 더 강하게' : '쓰러져도, 성장은 남습니다'}<span>.</span></h2><p class="modal-description">${won ? `${MAX_STAGES}층의 모든 수호자를 돌파했습니다. 회수한 골드로 다음 도전을 준비하세요.` : `${getRegion(state.regionId).title}에서 여정을 마쳤습니다. 번 골드는 잃지 않았습니다.`}</p><div class="settlement-panel"><span>${icon('coin')} 이번 런 골드 회수</span><strong id="settlement-gold">+${formatGold(settlement.amount)} G</strong><small>보유 골드 <b id="result-bank">${formatGold(progress.bank)} G</b> · 영구 강화에 사용할 수 있습니다</small></div><div class="result-stats"><div><span>생존 시간</span><strong>${time(state.elapsed)}</strong></div><div><span>처치 수</span><strong>${state.kills}</strong></div><div><span>도달 스테이지</span><strong>${state.stage} / ${state.mode === 'abyss' ? '∞' : MAX_STAGES}</strong></div><div><span>도달 레벨</span><strong>LV. ${state.level}</strong></div></div>${runReportMarkup(state)}<button class="primary-button" id="result-permanent">${icon('coin')} 영구 강화하고 재도전 ${icon('arrow')}</button><button class="secondary-button" id="result-camp">3D 야영지로 돌아가기</button><button class="secondary-button" id="result-story">기록 · 엔딩 선택</button><button class="secondary-button" id="result-modes">탐험 모드 선택 · 심연</button><button class="secondary-button" id="result-records">심연 기록 · 업적</button><button class="secondary-button" id="retry">${icon('refresh')} 강화 없이 바로 재도전</button><button class="secondary-button" id="result-settings">설정 · 저장 데이터 초기화</button>`, { pause: false, closeable: false });
+  $('#result-camp').addEventListener('click', () => {campFromResult = false; chronicleUI.enterCamp();});
+  $('#result-story').addEventListener('click', () => chronicleUI.story());
   $('#result-modes').addEventListener('click', () => expansionUI.modes());
   $('#result-records').addEventListener('click', () => expansionUI.records());
   $('#result-permanent').addEventListener('click', () => showPermanentUpgrades(true));
@@ -633,6 +647,10 @@ try {
     onRoute,
     onRegion,
     onCurse,
+    onStory: data => store('voidrun.story', data),
+    onCampFacility: id => chronicleUI.facility(id),
+    onPortal: choices => chronicleUI.portal(choices),
+    onRoomChoice: () => chronicleUI.curseRoom(),
     onEquipmentReward: choices => expansionUI.reward(choices),
     onNpc: (type, choices) => expansionUI.npc(type, choices),
     onLoot: message => showToast(typeof message === 'string' ? message : message?.message || message?.title || '새로운 보상을 획득했습니다.'),
@@ -641,7 +659,7 @@ try {
       sound(130, .5, .08);
     },
     onBossDefeat: () => {
-      showToast('수호자 격파! 유산은 다음 레벨업에서 선택할 수 있습니다.');
+      showToast(game.sideAreas.active ? '선택형 보스 격파! 제단에서 보상을 확인하세요.' : '수호자 격파! 유산은 다음 레벨업에서 선택할 수 있습니다.');
       sound(960, .3, .08);
     },
     onStage: stage => {
@@ -659,6 +677,8 @@ try {
   window.__game = game;
   game.abyssUnlocked = endgame.unlocked;
   expansionUI = createExpansionUi({game, openModal, forceClose: forceCloseModal, closeModal, notify: showToast, readEndgame: () => endgame});
+  chronicleUI = createChronicleUi({game, openModal, forceClose:forceCloseModal, closeModal, notify:showToast, showGuide, showBuild, showLoadout:()=>{campTab='loadout';showPermanentUpgrades();}, showTree:()=>{campTab='tree';showPermanentUpgrades();}, startRun, readHistory:()=>history, setRisk:id=>{prefs.risk=id;store('voidrun.preferences',prefs);game.setRiskPact(id);syncRisk();}});
+  game.story.load(readStorage('voidrun.story',{}),history,endgame);
   const readyButton = $('#start-button'), readyLabel = readyButton.innerHTML;
   readyButton.disabled = true; readyButton.textContent = '전장 준비 중…'; $('#game-canvas').setAttribute('aria-busy', 'true');
   game.presentation.ready.finally(() => { readyButton.innerHTML = readyLabel; readyButton.disabled = false; $('#game-canvas').setAttribute('aria-busy', 'false'); });
@@ -679,10 +699,14 @@ $('#mode-button').addEventListener('click', () => expansionUI?.modes());
 $('#abyss-records-button').addEventListener('click', () => expansionUI?.records());
 $('#equipment-button').addEventListener('click', () => { if (!isChoiceDialog()) expansionUI?.inventory(); });
 $('#guard-button').addEventListener('pointerdown', e => {e.preventDefault();game?.parry.press();});
-$('#interact-npc').addEventListener('click', () => game?.exploration.interact());
+$('#interact-npc').addEventListener('click', () => game?.interact());
+$('#enter-camp').addEventListener('click', () => {campFromResult = false;chronicleUI?.enterCamp();});
+$('#leave-camp').addEventListener('click',()=>{game.camp.leave();game._state.phase='menu';game.emit();});
+$('#set-passive').addEventListener('click',()=>{if(!isChoiceDialog())chronicleUI?.setGuide();});
+document.querySelectorAll('[data-camp-facility]').forEach(b=>b.addEventListener('click',()=>game.camp.focus(b.dataset.campFacility)));
 $('#start-loadout').addEventListener('click', () => { campTab = 'loadout'; showPermanentUpgrades(); });
 for (const button of document.querySelectorAll('[data-risk]')) button.addEventListener('click', () => {
-  if (!['menu', 'over', 'won'].includes(game?.state.phase)) return;
+  if (!['menu', 'over', 'won', 'camp'].includes(game?.state.phase)) return;
   prefs.risk = button.dataset.risk; store('voidrun.preferences', prefs); game.setRiskPact?.(prefs.risk); syncRisk();
 });
 $('#sound-toggle').addEventListener('click', () => { prefs.muted = !prefs.muted; syncSound(); sound(600); });
@@ -743,7 +767,7 @@ window.addEventListener('keydown', (event) => {
     event.preventDefault();
     if (dialogName === 'curse' && event.key === '0') document.querySelector('[data-curse="skip"]')?.click();
     else {
-      const selector = { upgrade: '[data-upgrade]', relic: '[data-chest-relic]', route: '[data-route]', region: '[data-region]', equipment: '[data-equipment-choice]', npc: '[data-npc-choice]', curse: '[data-curse]:not([data-curse="skip"])' }[dialogName];
+      const selector = { upgrade: '[data-upgrade]', relic: '[data-chest-relic]', route: '[data-route]', region: '[data-region]', equipment: '[data-equipment-choice]', npc: '[data-npc-choice]', portal:'[data-portal-choice]', 'room-choice':'[data-room-curse]', curse: '[data-curse]:not([data-curse="skip"])' }[dialogName];
       const choices = document.querySelectorAll(selector);
       const index = Number(event.key) - 1;
       if (index >= 0 && index < choices.length) choices[index]?.click();
