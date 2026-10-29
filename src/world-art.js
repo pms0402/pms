@@ -197,5 +197,5 @@ export function buildWorldArt(game) {
     mist.instanceMatrix.needsUpdate = true;
   };
   update(0);
-  return { occluders, landmark, grass: clumps, mist, update, detailCount: count, setQuality(value) { clumps.count = value === 'low' ? Math.floor(count * .38) : count; mist.visible = value !== 'low'; }, dispose() { mistMap.dispose(); } };
+  return { occluders, landmark, grass: clumps, mist, update, detailCount: count, setQuality(value) { clumps.count = value === 'low' ? Math.floor(count * .38) : value==='medium'?Math.floor(count*.67):count; mist.visible = value !== 'low';mist.count=value==='medium'?10:16; }, dispose() { mistMap.dispose(); } };
 }

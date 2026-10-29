@@ -30,6 +30,7 @@ import { EnemyStates } from './enemy-states.js';
 import {CreatureSurfaces} from './creature-surfaces.js';
 import {WorldAtmosphere} from './world-atmosphere.js';
 import {RegionalLandscape} from './regional-landscape.js';
+import {GRAPHICS,graphicsQuality} from './graphics-quality.js';
 import { ExplorationSystem } from './exploration.js';
 import { abyssStats, abyssBoss, abyssRule } from './abyss.js';
 import { RunAnalytics, damageCategory } from './analytics.js';
@@ -209,7 +210,7 @@ export class Game {
   get state() {
     const enemyKinds = Object.fromEntries(ENEMY_TYPES.map(type => [type.id, 0]));
     for (const enemy of this.enemies) if (enemy.definition) enemyKinds[enemy.definition.id]++;
-    return { ...this._state, view: this.view?.getState(), mode: this.mode, camp: this.camp?.state(), sideArea: this.sideAreas?.state(), story: this.story?.state(), analytics: this.analytics?.snapshot(this), stageStats: this.stageStats(), abyssConstraint: this.abyssConstraint, playbackSpeed: this.playbackSpeed, world: { hills: this.world?.hills.length || 0, structures: this.world?.structures.length || 0, elevation: this.player?.position.y || 0 }, enemyKinds, sword: getSwordProfile(this.stats), activeSynergies: getActiveSynergies(this.stats), activeCurses: [...this.activeCurses], equipment: this.equipment?.getState(), sets: this.setSystem?.state(), job: this.classes?.state(), parry: this.parry?.getState(), exploration: this.exploration?.getState(), routeId: this.routeId, regionId: this.regionId, region: getRegion(this.regionId), mutations: this.mutationSystem?.getDebugState(), runModifiers: this.getFloorModifiers(), runReport: this.runReport ? structuredClone(this.runReport) : this.freshRunReport(), pendingChests: this.pendingChestRewards?.length || 0, altar: this.altar ? { x: this.altar.group.position.x, z: this.altar.group.position.z, opened: this.altar.opened } : null, rewardTokens: this.pendingRelicSources?.length || 0, pendingBossRewards: (this.pendingBossRewards || []).map(reward => ({ ...reward })), maxHp: this.combatStats.maxHp, damage: this.combatStats.damage, attackRate: this.combatStats.attackRate, spellDamage: this.combatStats.spellDamage, spellRate: this.stats.spellRate, speed: this.combatStats.speed, risk: this.getThreat(), selectedRisk: this.selectedRisk, chests: this.chests.map(chest => ({ x: chest.group.position.x, z: chest.group.position.z, remaining: chest.guards.filter(guard => guard.hp > 0).length, opened: chest.opened })), eliteEnemies: this.enemies.filter(enemy => enemy.elite).length, goldenEnemies: this.enemies.filter(enemy => enemy.golden).length, dashCooldown: Math.max(0, this.dashCooldown || 0), dashReady: !(this.dashCooldown > 0), enemyCount: this.enemies.length, arenaRadius: ARENA_RADIUS, stageDuration: STAGE_DURATION, bossSpawnTime: BOSS_SPAWN_TIME, bossSpawned: this.bossSpawned, bossDefeated: this.bossDefeated, boss: this.boss ? { archetype: this.boss.archetype, hint: this.boss.hint, name: this.boss.name, hp: Math.max(0, this.boss.hp), maxHp: this.boss.maxHp, alive: this.boss.hp > 0, spawned: this.bossSpawned, defeated: this.bossDefeated, phase: this.boss.mode, combatPhase: this.boss.combatPhase || 1, parryStun: Math.max(0,this.boss.parryStun||0), parryResist: Math.max(0,(this.boss.nextParryStun||0)-this._state.elapsed) } : null, spellState: this.magic?.getState() || [], playerStats: { ...this.stats, relics: [...(this.stats.relics || [])], bossRewards: [...(this.stats.bossRewards || [])], spells: { ...this.stats.spells }, evolutions: { ...this.stats.evolutions }, passiveLevels: { ...this.stats.passiveLevels } } };
+    return { ...this._state, invulnerability:Math.max(0,this.invulnerable||0), view: this.view?.getState(), mode: this.mode, camp: this.camp?.state(), sideArea: this.sideAreas?.state(), story: this.story?.state(), analytics: this.analytics?.snapshot(this), stageStats: this.stageStats(), abyssConstraint: this.abyssConstraint, playbackSpeed: this.playbackSpeed, world: { hills: this.world?.hills.length || 0, structures: this.world?.structures.length || 0, elevation: this.player?.position.y || 0 }, enemyKinds, sword: getSwordProfile(this.stats), activeSynergies: getActiveSynergies(this.stats), activeCurses: [...this.activeCurses], equipment: this.equipment?.getState(), sets: this.setSystem?.state(), job: this.classes?.state(), parry: this.parry?.getState(), exploration: this.exploration?.getState(), routeId: this.routeId, regionId: this.regionId, region: getRegion(this.regionId), mutations: this.mutationSystem?.getDebugState(), runModifiers: this.getFloorModifiers(), runReport: this.runReport ? structuredClone(this.runReport) : this.freshRunReport(), pendingChests: this.pendingChestRewards?.length || 0, altar: this.altar ? { x: this.altar.group.position.x, z: this.altar.group.position.z, opened: this.altar.opened } : null, rewardTokens: this.pendingRelicSources?.length || 0, pendingBossRewards: (this.pendingBossRewards || []).map(reward => ({ ...reward })), maxHp: this.combatStats.maxHp, damage: this.combatStats.damage, attackRate: this.combatStats.attackRate, spellDamage: this.combatStats.spellDamage, spellRate: this.stats.spellRate, speed: this.combatStats.speed, risk: this.getThreat(), selectedRisk: this.selectedRisk, chests: this.chests.map(chest => ({ x: chest.group.position.x, z: chest.group.position.z, remaining: chest.guards.filter(guard => guard.hp > 0).length, opened: chest.opened })), eliteEnemies: this.enemies.filter(enemy => enemy.elite).length, goldenEnemies: this.enemies.filter(enemy => enemy.golden).length, dashCooldown: Math.max(0, this.dashCooldown || 0), dashReady: !(this.dashCooldown > 0), enemyCount: this.enemies.length, arenaRadius: ARENA_RADIUS, stageDuration: STAGE_DURATION, bossSpawnTime: BOSS_SPAWN_TIME, bossSpawned: this.bossSpawned, bossDefeated: this.bossDefeated, boss: this.boss ? { archetype: this.boss.archetype, hint: this.boss.hint, name: this.boss.name, hp: Math.max(0, this.boss.hp), maxHp: this.boss.maxHp, alive: this.boss.hp > 0, spawned: this.bossSpawned, defeated: this.bossDefeated, phase: this.boss.mode, combatPhase: this.boss.combatPhase || 1, parryStun: Math.max(0,this.boss.parryStun||0), parryResist: Math.max(0,(this.boss.nextParryStun||0)-this._state.elapsed) } : null, spellState: this.magic?.getState() || [], playerStats: { ...this.stats, relics: [...(this.stats.relics || [])], bossRewards: [...(this.stats.bossRewards || [])], spells: { ...this.stats.spells }, evolutions: { ...this.stats.evolutions }, passiveLevels: { ...this.stats.passiveLevels } } };
   }
   emit() { this.callbacks.onUpdate?.(this.state); }
 
@@ -304,13 +305,14 @@ export class Game {
     this.playerShadow = new THREE.Mesh(contactGeometry, this.mats.playerContact); this.playerShadow.scale.set(1.5, 1.15, 1); this.scene.add(this.playerShadow);
     this._groundNormal = new THREE.Vector3(); this._planeNormal = new THREE.Vector3(0, 0, 1);
     const marker = new THREE.Mesh(new THREE.RingGeometry(0.66, 0.71, 32), new THREE.MeshBasicMaterial({ color: '#b9f76c', transparent: true, opacity: 0.6, side: THREE.DoubleSide }));
-    marker.rotation.x = -Math.PI / 2; marker.position.y = 0.1; this.player.add(marker);
+    marker.rotation.x = -Math.PI / 2; marker.position.y = 0.1; this.player.add(marker);this.playerMarker=marker;
     this.playerLight = new THREE.PointLight('#dce4f2', 2.2, 8, 2); this.playerLight.position.set(1.4, 2.25, 2.4); this.player.add(this.playerLight);
     this.player.rotation.y = -0.65; this.applyLoadoutAppearance();
     this.resetTimers();
   }
 
   updateContactShadow() {
+    this.playerMarker.material.color.set(this.playerHitTime>0?'#d78a73':this.invulnerable>0?'#accdd7':'#b9ca9b');
     const { x, z } = this.player.position;
     const dx = (this.groundHeight(x + .25, z) - this.groundHeight(x - .25, z)) * 2;
     const dz = (this.groundHeight(x, z + .25) - this.groundHeight(x, z - .25)) * 2;
@@ -845,7 +847,7 @@ export class Game {
   setMuted(value) { this.muted = !!value; if (!this.muted) this.initAudio(); }
   setAccessibility({cameraShake = this.cameraShake, effectIntensity = this.effectIntensity} = {}) { this.cameraShake = [0,.5,1].includes(cameraShake) ? cameraShake : 1; this.effectIntensity = [0,.35,1].includes(effectIntensity) ? effectIntensity : 1; }
   setViewMode(mode) { return this.view.setMode(mode); }
-  setQuality(value) { this.quality = value; this.renderer.setPixelRatio(value === 'low' ? 1 : Math.min(window.devicePixelRatio || 1, 1.6)); this.renderer.shadowMap.enabled = value !== 'low'; this.world?.setQuality(value); this.resize(); }
+  setQuality(value) {this.quality=graphicsQuality(value);const q=GRAPHICS[this.quality];this.renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,q.pixelRatio));this.renderer.shadowMap.enabled=q.shadows;if(this.sunlight.shadow.mapSize.x!==q.shadowSize){this.sunlight.shadow.map?.dispose();this.sunlight.shadow.map=null;this.sunlight.shadow.mapSize.set(q.shadowSize,q.shadowSize);}this.combatArt.limit=q.particles;this.combatArt.count=Math.min(this.combatArt.count,q.particles);this.combatArt.density=q.density;this.defeats.limit=q.corpses;this.world?.setQuality(this.quality);this.landscape?.setQuality(q.detail);this.resize();}
 
   setPlaybackSpeed(value) {
     if (![1, 2, 3].includes(value)) return false;
@@ -1520,6 +1522,7 @@ export class Game {
   }
 
   animateEffects(dt) {
+    this.combatArt.density=GRAPHICS[this.quality].density*(this.enemies.length>90?.6:1);
     this.defeats?.update(dt);
     if(this._state.phase==='over'&&this._state.hp<=0){this.playerDeathTime=Math.min(.7,(this.playerDeathTime||0)+dt);this.playerVisual.rotation.z=-Math.sin(this.playerDeathTime/.7*Math.PI/2)*.85;this.playerVisual.position.y=-this.playerDeathTime*.4;}
     this.swordTrail?.update(dt);

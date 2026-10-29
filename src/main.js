@@ -1,4 +1,5 @@
 import './style.css';
+import './quality-ui.css';
 import { Game } from './game.js';
 import { formatGold, getStageStats, SPELLS, STAGE_DURATION, BOSS_SPAWN_TIME, MAX_STAGES } from './balance.js';
 import { createProgress, normalizeProgress, getPermanentUpgradeOffers, getPermanentBonuses, settleRun, purchasePermanentUpgrade, getUnlockOffers, purchaseUnlock, selectLoadout, CHARACTERS, WEAPONS } from './progression.js';
@@ -43,7 +44,7 @@ let expansionUI, chronicleUI;
 let endgame = normalizeEndgame(readStorage('voidrun.endgame', {}), history);
 let game, latest, dialogName = '', pausedForDialog = false, audioContext;
 let lastKills = 0;
-let toastTimeout, parryNoticeTimeout;
+let toastTimeout, parryNoticeTimeout,impactTimeout,bossCueTimeout,lastBossCue='';
 const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 const accessibility = () => ({cameraShake:prefs.cameraShake ?? (reducedMotion ? 0 : 1), effectIntensity:prefs.effectIntensity ?? (reducedMotion ? .35 : 1)});
 let lastBuildSignature = '';
@@ -78,7 +79,7 @@ $('#app').innerHTML = `
       <button class="nav-link" data-nav="history">런 기록 <span class="nav-count" id="history-count">${history.length.toString().padStart(2, '0')}</span></button>
       <button class="nav-link" data-nav="permanent">영구 강화</button>
     </nav>
-    <div class="header-actions"><span class="build-label"><i></i> BUILD YOUR LEGEND <b>v0.17.0</b></span><span class="header-divider"></span><button id="sound-toggle" class="icon-button" title="사운드 켜기" aria-label="사운드 켜기">${icon('muted')}</button><button id="settings" class="icon-button" title="설정" aria-label="설정">${icon('settings')}</button></div>
+    <div class="header-actions"><span class="build-label"><i></i> BUILD YOUR LEGEND <b>v0.18.0</b></span><span class="header-divider"></span><button id="sound-toggle" class="icon-button" title="사운드 켜기" aria-label="사운드 켜기">${icon('muted')}</button><button id="settings" class="icon-button" title="설정" aria-label="설정">${icon('settings')}</button></div>
   </header>
   <main class="page">
     <section class="page-intro">
@@ -95,7 +96,7 @@ $('#app').innerHTML = `
           <div class="arena-top-actions"><span class="difficulty"><i></i> <span id="difficulty">고요한 시작</span></span><button id="camera-mode" class="glass-button" title="시점 변경 (V)" aria-label="시점 변경 (V)">3인칭</button><button id="game-speed" class="glass-button" title="게임 배속 변경 · 적과 공격도 함께 빨라집니다" aria-label="게임 배속 변경">1×</button><button id="pause-button" class="glass-button" title="일시정지 (Esc)" aria-label="일시정지" disabled>${icon('pause')}</button><button id="fullscreen" class="glass-button" title="전체 화면 (Shift+F)" aria-label="전체 화면" aria-pressed="false">${icon('expand')}</button></div>
         </div>
         <div class="live-hud hidden" id="live-hud">
-          <div class="health-block"><div class="health-label">${icon('heart')}<span>HP</span><strong id="health-value">100 <small>/ 100</small></strong></div><div class="health-track"><div id="health-fill"></div></div><div class="xp-row"><span id="level-value">LV. 1</span><div class="xp-track"><div id="xp-fill"></div></div><span id="xp-value">0 / 10</span></div></div>
+          <div class="health-block"><div class="health-label">${icon('heart')}<span>HP</span><span id="invuln-state"></span><strong id="health-value">100 <small>/ 100</small></strong></div><div class="health-track"><div id="health-fill"></div></div><div class="xp-row"><span id="level-value">LV. 1</span><div class="xp-track"><div id="xp-fill"></div></div><span id="xp-value">0 / 10</span></div></div>
           <div class="run-counters"><div>${icon('clock')}<strong id="run-time">00:00</strong></div><div>${icon('skull')}<strong id="kill-count">0</strong></div><div class="gold-counter">${icon('coin')}<strong id="gold-count">0</strong></div></div>
         </div>
         <div class="boss-hud hidden" id="boss-hud" role="meter" aria-label="보스 체력" aria-valuemin="0" aria-valuemax="100"><div><strong id="boss-name"></strong><span id="boss-combat-phase"></span><span id="boss-health-value"></span></div><div class="boss-health-track"><div id="boss-health-fill"></div></div><span id="boss-stagger" class="hidden"></span></div>
@@ -121,7 +122,7 @@ $('#app').innerHTML = `
           <div class="scene-tag" id="scene-tag"><span class="live-dot"></span> REAL-TIME 3D</div>
         </div>
         <div class="expedition-actions hidden" id="expedition-actions"><button id="guard-button">패링 · F / G</button><button id="equipment-button">장비 · E</button><button id="interact-npc" class="hidden">교류 · R</button><span id="abyss-rule" class="hidden"></span></div><div class="growth-toolbar hidden" id="growth-toolbar"><div class="spell-loadout" id="spell-loadout" aria-label="보유 마법">${['fireball', 'frost', 'lightning', 'orbit'].map(id => `<button class="spell-slot locked" data-spell="${id}" title="마법 빌드 보기" aria-label="${id} 마법 정보"><span class="spell-slot-icon">${icon(upgradeIcons[id])}</span><span class="spell-slot-rank">—</span><span class="spell-cooldown"></span></button>`).join('')}</div><div id="synergy-status" class="synergy-status hidden" aria-label="발동 중인 조합"></div><button id="run-build-button" class="shop-button">${icon('book')} 이번 런 빌드 <span id="reward-pending" class="reward-pending hidden" title="다음 레벨업의 선택 보상"></span><kbd>B</kbd></button></div>
-        <div id="view-reticle" class="hidden" aria-hidden="true"></div><div id="view-hint" class="hidden"><span class="desktop-look"></span><span class="mobile-look">왼쪽 이동 · 오른쪽 드래그 시점</span></div><div class="touch-controls hidden" id="touch-controls"><div class="dpad"><button data-move="0,-1" aria-label="위로 이동">↑</button><button data-move="-1,0" aria-label="왼쪽 이동">←</button><button data-move="0,1" aria-label="아래로 이동">↓</button><button data-move="1,0" aria-label="오른쪽 이동">→</button></div><button id="touch-dash" aria-label="대시">${icon('bolt')}</button></div>
+        <div id="hit-direction" aria-hidden="true"></div><div id="view-reticle" class="hidden" aria-hidden="true"></div><div id="view-hint" class="hidden"><span class="desktop-look"></span><span class="mobile-look">왼쪽 이동 · 오른쪽 드래그 시점</span></div><div class="touch-controls hidden" id="touch-controls"><div class="dpad"><button data-move="0,-1" aria-label="위로 이동">↑</button><button data-move="-1,0" aria-label="왼쪽 이동">←</button><button data-move="0,1" aria-label="아래로 이동">↓</button><button data-move="1,0" aria-label="오른쪽 이동">→</button></div><button id="touch-dash" aria-label="대시">${icon('bolt')}</button></div>
         <div class="canvas-error hidden" id="canvas-error"><h2>3D 화면을 시작할 수 없어요</h2><p>브라우저의 하드웨어 가속을 켠 뒤 새로고침해 주세요.</p><button class="primary-button" id="reload">새로고침 ${icon('refresh')}</button></div>
       </div>
       <aside class="run-panel">
@@ -172,6 +173,10 @@ function showToast(message) {
 
 function update(state) {
   latest = state;
+  document.body.classList.toggle('boss-active',!!state.boss?.alive);document.body.classList.toggle('reduced-effects',accessibility().effectIntensity===0);
+  const cue=state.boss?.alive?`${state.stage}:${state.boss.archetype}:${state.boss.combatPhase}`:'';
+  if(cue&&lastBossCue&&cue!==lastBossCue){game.view.emphasize();$('#boss-hud').classList.add('phase-cue');clearTimeout(bossCueTimeout);bossCueTimeout=setTimeout(()=>$('#boss-hud').classList.remove('phase-cue'),650);}lastBossCue=cue;
+  hud('#invuln-state',state.invulnerability>0?'보호':'');
   syncView(state.view);
   if (['menu','over','won','camp'].includes(state.phase)) $('#parry-callout').classList.add('hidden');
   const stunned = (state.boss?.parryStun || 0) > 0;
@@ -193,7 +198,7 @@ function update(state) {
   $('#touch-dash').classList.toggle('hidden', state.phase === 'camp');
   $('#growth-toolbar').classList.toggle('hidden', !inRun);
   $('#pause-button').disabled = !['playing', 'paused'].includes(state.phase);
-  hud('#health-value', `${Math.ceil(state.hp)} <small>/ ${Math.round(state.maxHp)}</small>`, true);
+  hud('#health-value', `${formatGold(Math.ceil(state.hp))} <small>/ ${formatGold(Math.round(state.maxHp))}</small>`, true);
   $('#health-fill').style.width = `${Math.max(0, state.hp / state.maxHp * 100)}%`;
   $('#health-fill').classList.toggle('low', state.hp < state.maxHp * .3);
   hud('#level-value', `LV. ${state.level}`);
@@ -299,7 +304,7 @@ function update(state) {
   const route = $('.stage-route'), currentStop = route?.querySelector('.current');
   if (route && currentStop) route.scrollTop = Math.max(0, currentStop.offsetTop - route.offsetTop - route.clientHeight / 2 + currentStop.clientHeight / 2);
   }
-  if (state.kills > lastKills) sound(520 + Math.random() * 200, .06, .025);
+
   lastKills = state.kills;
   chronicleUI?.update(state);
 }
@@ -501,7 +506,7 @@ function showHistory() {
 }
 function showSettings() {
   if (isChoiceDialog()) return;
-  openModal('settings', `<div class="modal-eyebrow">MAKE IT YOURS</div><h2 id="modal-title">플레이 설정<span>.</span></h2><p class="modal-description">당신의 리듬에 맞춰 즐기세요.</p><div class="setting-row"><div><h3>${icon('sound')} 효과음</h3><p>처치, 레벨업, 스테이지 전환 효과음</p></div><button id="setting-sound" class="toggle ${!prefs.muted ? 'on' : ''}" role="switch" aria-checked="${!prefs.muted}" aria-label="효과음"><span></span></button></div><div class="setting-row"><div><h3>${icon('diamond')} 그래픽 품질</h3><p>낮음 모드는 그림자와 렌더링 해상도를 줄입니다.</p></div><div class="segmented"><button data-quality="low" class="${prefs.quality === 'low' ? 'selected' : ''}">낮음</button><button data-quality="high" class="${prefs.quality === 'high' ? 'selected' : ''}">높음</button></div></div><div class="guide-bottom">${icon('check')} 설정은 자동으로 저장됩니다.</div>`);
+  openModal('settings', `<div class="modal-eyebrow">MAKE IT YOURS</div><h2 id="modal-title">플레이 설정<span>.</span></h2><p class="modal-description">당신의 리듬에 맞춰 즐기세요.</p><div class="setting-row"><div><h3>${icon('sound')} 효과음</h3><p>처치, 레벨업, 스테이지 전환 효과음</p></div><button id="setting-sound" class="toggle ${!prefs.muted ? 'on' : ''}" role="switch" aria-checked="${!prefs.muted}" aria-label="효과음"><span></span></button></div><div class="setting-row"><div><h3>${icon('diamond')} 그래픽 품질</h3><p>낮음 모드는 그림자와 렌더링 해상도를 줄입니다.</p></div><div class="segmented"><button data-quality="low" class="${prefs.quality === 'low' ? 'selected' : ''}">낮음</button><button data-quality="medium" class="${prefs.quality === 'medium' ? 'selected' : ''}">중간</button><button data-quality="high" class="${prefs.quality === 'high' ? 'selected' : ''}">높음</button></div></div><div class="guide-bottom">${icon('check')} 설정은 자동으로 저장됩니다.</div>`);
   $('#setting-sound').addEventListener('click', (event) => {
     prefs.muted = !prefs.muted; syncSound(); sound(600);
     event.currentTarget.classList.toggle('on', !prefs.muted); event.currentTarget.setAttribute('aria-checked', String(!prefs.muted));
@@ -658,6 +663,7 @@ function showResult() {
 try {
   game = new Game($('#game-canvas'), {
     onUpdate: update,
+    onPlayerImpact: ({source})=>{const angle=source?Math.atan2(-(source.x-game.player.position.x)*Math.cos(game.view.yaw)+(source.z-game.player.position.z)*Math.sin(game.view.yaw),(source.x-game.player.position.x)*Math.sin(game.view.yaw)+(source.z-game.player.position.z)*Math.cos(game.view.yaw)):0;const el=$('#hit-direction');el.style.setProperty('--hit-angle',`${angle*180/Math.PI}deg`);el.classList.add('active');clearTimeout(impactTimeout);impactTimeout=setTimeout(()=>el.classList.remove('active'),250);},
     onViewChange: view => {prefs.viewMode=view.mode;store('voidrun.preferences',prefs);syncView(view);},
     onLevelUp,
     onChestReward,
@@ -673,6 +679,7 @@ try {
     onNpc: (type, choices) => expansionUI.npc(type, choices),
     onLoot: message => showToast(typeof message === 'string' ? message : message?.message || message?.title || '새로운 보상을 획득했습니다.'),
     onBoss: boss => {
+      game?.view.emphasize();
       showToast(`${boss.name} · ${boss.hint || getBossDefinition(latest?.stage || 1).hint}`);
       sound(130, .5, .08);
     },
@@ -821,3 +828,4 @@ for (const button of document.querySelectorAll('[data-move]')) {
   button.addEventListener('pointerup', release); button.addEventListener('pointercancel', release); button.addEventListener('lostpointercapture', release);
 }
 $('#touch-dash').addEventListener('pointerdown', (event) => { event.preventDefault(); game?.dash?.(); });
+

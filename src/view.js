@@ -217,7 +217,9 @@ export class ViewController {
     if (!this.canLook()) this.release();
     if (this.lastPlayer.distanceToSquared(p) > 64) this.snap = true;
     this.lastPlayer.copy(p);
-    const fov = this.fov(),
+    this.cueTime=Math.max(0,(this.cueTime||0)-dt);
+    const cue=this.effectiveMode()!=='first'&&g.cameraShake>0?Math.sin((this.cueTime||0)/(this.cueTotal||1)*Math.PI)*(g.effectIntensity??1)*1.8:0;
+    const fov = this.fov()+cue,
       near = mode === "first" ? 0.07 : 0.1;
     if (camera.fov !== fov || camera.near !== near) {
       camera.fov = fov;
@@ -295,6 +297,7 @@ export class ViewController {
     this.suppressed.length = 0;
   }
   reset() {
+    this.cueTime=0;
     this.release();
     this.restoreBody();
     this.snap = true;
@@ -306,4 +309,5 @@ export class ViewController {
     this.canvas.removeEventListener("contextmenu", this.onContextMenu);
     this.canvas.removeEventListener("wheel", this.onWheel);
   }
+  emphasize(){if((this.cueTime||0)>.4)return;this.cueTime=this.cueTotal=1.1;}
 }
