@@ -188,10 +188,14 @@ export function createExpansionUi({
       if (guard) {
         guard.textContent =
           parry.counterTime > 0
-            ? "반격 준비 · G"
+            ? `광역 반격 ${parry.counterTime.toFixed(1)}초`
             : parry.cooldown > 0
-              ? `방어 ${parry.cooldown.toFixed(1)}초`
-              : "정밀 방어 · G";
+              ? `패링 ${parry.cooldown.toFixed(1)}초`
+              : "패링 · F / G";
+        guard.style.setProperty('--parry-ready',String(parry.counterTime>0 ? 1 : Math.max(0,1-(parry.cooldown||0)/(parry.maxCooldown||4))));
+        guard.classList.toggle('counter-ready',parry.counterTime>0);
+        guard.title='전방 120° · 첫 0.16초 완벽한 패링 · 청색 직선/일반 탄환 가능 · 지면 공격 방어 불가';
+        guard.setAttribute('aria-label',parry.counterTime>0 ? `광역 반격 가능 ${parry.counterTime.toFixed(1)}초. 다음 자동 검격에 발동` : `패링 F 또는 G. ${parry.cooldown>0 ? '재사용 '+parry.cooldown.toFixed(1)+'초' : '사용 가능'}`);
         guard.disabled =
           state.phase !== "playing" ||
           (parry.cooldown > 0 && !parry.counterTime);

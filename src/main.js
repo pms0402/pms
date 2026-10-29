@@ -41,7 +41,9 @@ let expansionUI, chronicleUI;
 let endgame = normalizeEndgame(readStorage('voidrun.endgame', {}), history);
 let game, latest, dialogName = '', pausedForDialog = false, audioContext;
 let lastKills = 0;
-let toastTimeout;
+let toastTimeout, parryNoticeTimeout;
+const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+const accessibility = () => ({cameraShake:prefs.cameraShake ?? (reducedMotion ? 0 : 1), effectIntensity:prefs.effectIntensity ?? (reducedMotion ? .35 : 1)});
 let lastBuildSignature = '';
 let lastRouteStage = 0;
 let campTab = 'tree';
@@ -74,7 +76,7 @@ $('#app').innerHTML = `
       <button class="nav-link" data-nav="history">런 기록 <span class="nav-count" id="history-count">${history.length.toString().padStart(2, '0')}</span></button>
       <button class="nav-link" data-nav="permanent">영구 강화</button>
     </nav>
-    <div class="header-actions"><span class="build-label"><i></i> BUILD YOUR LEGEND <b>v0.14.0</b></span><span class="header-divider"></span><button id="sound-toggle" class="icon-button" title="사운드 켜기" aria-label="사운드 켜기">${icon('muted')}</button><button id="settings" class="icon-button" title="설정" aria-label="설정">${icon('settings')}</button></div>
+    <div class="header-actions"><span class="build-label"><i></i> BUILD YOUR LEGEND <b>v0.15.0</b></span><span class="header-divider"></span><button id="sound-toggle" class="icon-button" title="사운드 켜기" aria-label="사운드 켜기">${icon('muted')}</button><button id="settings" class="icon-button" title="설정" aria-label="설정">${icon('settings')}</button></div>
   </header>
   <main class="page">
     <section class="page-intro">
@@ -88,13 +90,13 @@ $('#app').innerHTML = `
         <div class="arena-vignette"></div>
         <div class="arena-top">
           <button class="area-label region-info" id="region-info" aria-label="현재 지역 특성과 보상 보기"><span class="live-dot"></span><span id="area-name">잊혀진 성역</span><span class="area-divider">/</span><span id="area-stage">STAGE 01</span>${icon('chevron')}<small id="region-summary"></small></button>
-          <div class="arena-top-actions"><span class="difficulty"><i></i> <span id="difficulty">고요한 시작</span></span><button id="game-speed" class="glass-button" title="게임 배속 변경 · 적과 공격도 함께 빨라집니다" aria-label="게임 배속 변경">1×</button><button id="pause-button" class="glass-button" title="일시정지 (Esc)" aria-label="일시정지" disabled>${icon('pause')}</button><button id="fullscreen" class="glass-button" title="전체 화면 (F)" aria-label="전체 화면" aria-pressed="false">${icon('expand')}</button></div>
+          <div class="arena-top-actions"><span class="difficulty"><i></i> <span id="difficulty">고요한 시작</span></span><button id="game-speed" class="glass-button" title="게임 배속 변경 · 적과 공격도 함께 빨라집니다" aria-label="게임 배속 변경">1×</button><button id="pause-button" class="glass-button" title="일시정지 (Esc)" aria-label="일시정지" disabled>${icon('pause')}</button><button id="fullscreen" class="glass-button" title="전체 화면 (Shift+F)" aria-label="전체 화면" aria-pressed="false">${icon('expand')}</button></div>
         </div>
         <div class="live-hud hidden" id="live-hud">
           <div class="health-block"><div class="health-label">${icon('heart')}<span>HP</span><strong id="health-value">100 <small>/ 100</small></strong></div><div class="health-track"><div id="health-fill"></div></div><div class="xp-row"><span id="level-value">LV. 1</span><div class="xp-track"><div id="xp-fill"></div></div><span id="xp-value">0 / 10</span></div></div>
           <div class="run-counters"><div>${icon('clock')}<strong id="run-time">00:00</strong></div><div>${icon('skull')}<strong id="kill-count">0</strong></div><div class="gold-counter">${icon('coin')}<strong id="gold-count">0</strong></div></div>
         </div>
-        <div class="boss-hud hidden" id="boss-hud" role="meter" aria-label="보스 체력" aria-valuemin="0" aria-valuemax="100"><div><strong id="boss-name"></strong><span id="boss-combat-phase"></span><span id="boss-health-value"></span></div><div class="boss-health-track"><div id="boss-health-fill"></div></div></div>
+        <div class="boss-hud hidden" id="boss-hud" role="meter" aria-label="보스 체력" aria-valuemin="0" aria-valuemax="100"><div><strong id="boss-name"></strong><span id="boss-combat-phase"></span><span id="boss-health-value"></span></div><div class="boss-health-track"><div id="boss-health-fill"></div></div><span id="boss-stagger" class="hidden"></span></div>
         <div class="start-content" id="start-content">
           <div class="roguelike-tag"><span></span> 3D SURVIVAL ROGUELIKE</div>
           <h2>작은 시작.<br>거대한 <span>한 방.</span></h2>
@@ -108,6 +110,7 @@ $('#app').innerHTML = `
         <div class="camp-navigation hidden" id="camp-navigation"><strong id="camp-nearby"></strong><div>${CAMP_FACILITIES.map(f=>`<button data-camp-facility="${f.id}">${f.name}</button>`).join('')}<button id="leave-camp">메뉴</button></div><small>WASD / 드래그 이동 · 근처에서 R · 버튼으로 빠른 이용</small></div><div class="side-area-status hidden" id="side-area-status"></div><div class="passive-status"><span id="job-passive" class="hidden"></span><button id="set-passive" class="hidden" title="세트 효과 설명"></button></div>
         <div class="scene-coordinate">SECTOR_001 <span>35° 41′ N / 139° 41′ E</span></div>
         <div class="combo-display hidden" id="combo-display"><strong id="combo-value"></strong><span>CHAIN KILLS</span></div>
+        <div class="parry-callout hidden" id="parry-callout" role="status" aria-live="polite"><strong>PERFECT PARRY</strong><small>2초 안 자동 검격 · 광역 반격</small></div>
         <div class="game-toast hidden" id="game-toast" role="status"></div>
         <div class="stage-banner hidden" id="stage-banner"><span id="banner-kicker">NEXT STAGE</span><strong id="banner-title"></strong><p>보상 ×10 <span>적 체력 ×1.7 · 피해 ×1.35</span></p></div>
         <div class="arena-bottom">
@@ -115,7 +118,7 @@ $('#app').innerHTML = `
           <div class="dash-indicator hidden" id="dash-indicator"><kbd>SPACE</kbd><div><strong id="dash-status">대시 준비</strong><div class="dash-track"><div id="dash-fill"></div></div></div>${icon('bolt')}</div>
           <div class="scene-tag" id="scene-tag"><span class="live-dot"></span> REAL-TIME 3D</div>
         </div>
-        <div class="expedition-actions hidden" id="expedition-actions"><button id="guard-button">정밀 방어 · G</button><button id="equipment-button">장비 · E</button><button id="interact-npc" class="hidden">교류 · R</button><span id="abyss-rule" class="hidden"></span></div><div class="growth-toolbar hidden" id="growth-toolbar"><div class="spell-loadout" id="spell-loadout" aria-label="보유 마법">${['fireball', 'frost', 'lightning', 'orbit'].map(id => `<button class="spell-slot locked" data-spell="${id}" title="마법 빌드 보기" aria-label="${id} 마법 정보"><span class="spell-slot-icon">${icon(upgradeIcons[id])}</span><span class="spell-slot-rank">—</span><span class="spell-cooldown"></span></button>`).join('')}</div><div id="synergy-status" class="synergy-status hidden" aria-label="발동 중인 조합"></div><button id="run-build-button" class="shop-button">${icon('book')} 이번 런 빌드 <span id="reward-pending" class="reward-pending hidden" title="다음 레벨업의 선택 보상"></span><kbd>B</kbd></button></div>
+        <div class="expedition-actions hidden" id="expedition-actions"><button id="guard-button">패링 · F / G</button><button id="equipment-button">장비 · E</button><button id="interact-npc" class="hidden">교류 · R</button><span id="abyss-rule" class="hidden"></span></div><div class="growth-toolbar hidden" id="growth-toolbar"><div class="spell-loadout" id="spell-loadout" aria-label="보유 마법">${['fireball', 'frost', 'lightning', 'orbit'].map(id => `<button class="spell-slot locked" data-spell="${id}" title="마법 빌드 보기" aria-label="${id} 마법 정보"><span class="spell-slot-icon">${icon(upgradeIcons[id])}</span><span class="spell-slot-rank">—</span><span class="spell-cooldown"></span></button>`).join('')}</div><div id="synergy-status" class="synergy-status hidden" aria-label="발동 중인 조합"></div><button id="run-build-button" class="shop-button">${icon('book')} 이번 런 빌드 <span id="reward-pending" class="reward-pending hidden" title="다음 레벨업의 선택 보상"></span><kbd>B</kbd></button></div>
         <div class="touch-controls hidden" id="touch-controls"><div class="dpad"><button data-move="0,-1" aria-label="위로 이동">↑</button><button data-move="-1,0" aria-label="왼쪽 이동">←</button><button data-move="0,1" aria-label="아래로 이동">↓</button><button data-move="1,0" aria-label="오른쪽 이동">→</button></div><button id="touch-dash" aria-label="대시">${icon('bolt')}</button></div>
         <div class="canvas-error hidden" id="canvas-error"><h2>3D 화면을 시작할 수 없어요</h2><p>브라우저의 하드웨어 가속을 켠 뒤 새로고침해 주세요.</p><button class="primary-button" id="reload">새로고침 ${icon('refresh')}</button></div>
       </div>
@@ -167,6 +170,10 @@ function showToast(message) {
 
 function update(state) {
   latest = state;
+  if (['menu','over','won','camp'].includes(state.phase)) $('#parry-callout').classList.add('hidden');
+  const stunned = (state.boss?.parryStun || 0) > 0;
+  $('#boss-stagger').classList.toggle('hidden', !stunned);
+  if (stunned) hud('#boss-stagger', `공격 차단 · 경직 ${state.boss.parryStun.toFixed(1)}초`);
   expansionUI?.update(state);
   $('#expedition-actions').classList.toggle('hidden', ['menu','over','won'].includes(state.phase));
   hud('#game-speed', `${state.playbackSpeed || 1}×`);
@@ -377,7 +384,7 @@ function expansionGuide() {
 function showGuide() {
   if (isChoiceDialog()) return;
   const steps = [
-    ['장비·탐험·정밀 방어', '장비는 <kbd>E</kbd> / 장비 버튼에서 비교·교체·버릴 수 있습니다. NPC 가까이에서 <kbd>R</kbd> / 교류로 대화하세요. <kbd>G</kbd> / 정밀 방어는 전방 120°를 0.5초 방어하며 처음 0.18초는 완벽한 패링입니다. 성공 후 2초 안 다음 검격은 한 대상에게 2배 피해를 줍니다. 붉은 지면 원형 위험은 방어할 수 없습니다.'],
+    ['장비·탐험·정밀 방어', '장비는 <kbd>E</kbd> / 장비 버튼에서 비교·교체·버릴 수 있습니다. NPC 가까이에서 <kbd>R</kbd> / 교류로 대화하세요. <kbd>F</kbd> / <kbd>G</kbd> 패링는 F / G는 전방 120°를 0.45초 방어하며 처음 0.16초는 완벽한 패링입니다. 성공하면 4m 충격파·0.1초 히트 스톱·공격한 보스 경직, 2초 안 다음 자동 검격은 180° 광역 250% 반격입니다. 재사용 4초, 보스 경직 저항 5초. 붉은 지면 공격은 방어 불가, 청색 직선·일반 탄환은 방어 가능. 붉은 지면 원형 위험은 방어할 수 없습니다.'],
     ['세 단계 수호자와 끝없는 심연', '보스 체력 70% 미만·35% 미만에서 새로운 패턴과 연계가 열립니다. 보스 장비는 하나 선택하거나 넘길 수 있습니다. 일반 10층 승리 후 모드 선택에서 11층부터 무한 심연을 탐험하세요. 5층마다 재앙 보스, 20층부터 10층마다 교대 제약이 등장합니다. 기록·업적은 이 브라우저에 저장됩니다.'],
     ['전장을 움직이고, 공격은 자동으로', '<kbd>W A S D</kbd> / 방향키로 이동, <kbd>SPACE</kbd>로 무적 대시. 모바일은 방향 버튼이나 전장 드래그를 사용합니다. 검은 <b>화면에 보이는 전방 궤적 안</b>의 적을 베며, 마법은 별도로 자동 시전합니다.'],
     ['검 범위도 선택으로 성장합니다', '기본 검은 가까운 적을 베는 무기입니다. <b>검 범위 강화</b>를 고르면 거리 +12%, 최대 8단계까지 늘어납니다. 검 공격력·속도·범위 강화 합계 <b>3단계</b>부터 대검 / 쌍검 / 검기 진화가 등장합니다. 한 런에는 하나의 검 진화를 고릅니다.'],
@@ -498,6 +505,8 @@ function showSettings() {
     prefs.quality = button.dataset.quality; game.setQuality(prefs.quality); store('voidrun.preferences', prefs);
     document.querySelectorAll('[data-quality]').forEach(b => b.classList.toggle('selected', b.dataset.quality === prefs.quality));
   });
+  $('#modal').insertAdjacentHTML('beforeend', `<div class="setting-row"><div><h3>카메라 흔들림</h3><p>피격·패링·반격의 흔들림 강도</p></div><div class="segmented" aria-label="카메라 흔들림">${[[0,'끄기'],[.5,'약하게'],[1,'기본']].map(([v,n])=>`<button data-camera-shake="${v}" aria-pressed="${accessibility().cameraShake===v}" class="${accessibility().cameraShake===v?'selected':''}">${n}</button>`).join('')}</div></div><div class="setting-row"><div><h3>패링 섬광·강한 효과</h3><p>끄면 밝은 빛을 제거합니다. 판정 표시는 유지됩니다.</p></div><div class="segmented" aria-label="패링 시각 효과">${[[0,'끄기'],[.35,'줄이기'],[1,'기본']].map(([v,n])=>`<button data-parry-effects="${v}" aria-pressed="${accessibility().effectIntensity===v}" class="${accessibility().effectIntensity===v?'selected':''}">${n}</button>`).join('')}</div></div>`);
+  for (const [selector,key] of [['data-camera-shake','cameraShake'],['data-parry-effects','effectIntensity']]) document.querySelectorAll(`[${selector}]`).forEach(b=>b.onclick=()=>{prefs[key]=Number(b.getAttribute(selector));game.setAccessibility(accessibility());store('voidrun.preferences',prefs);document.querySelectorAll(`[${selector}]`).forEach(x=>{const on=Number(x.getAttribute(selector))===prefs[key];x.classList.toggle('selected',on);x.setAttribute('aria-pressed',String(on));});});
   const canReset = ['menu', 'over', 'won', 'camp'].includes(game.state.phase);
   $('#modal').insertAdjacentHTML('beforeend', `<div class="reset-settings"><h3>게임 저장 데이터 초기화</h3><p>보유 골드·영구 강화·캐릭터와 무기 해금·런 기록을 모두 삭제합니다. 사운드와 그래픽 설정은 유지됩니다.</p><button class="secondary-button reset-danger" id="reset-save" ${canReset ? '' : 'disabled'}>저장 데이터 초기화</button>${canReset ? '' : '<p>진행 중인 런을 종료한 뒤 초기화할 수 있습니다.</p>'}</div>`);
   $('#reset-save').addEventListener('click', showResetConfirmation);
@@ -647,6 +656,7 @@ try {
     onRoute,
     onRegion,
     onCurse,
+    onParry: () => { clearTimeout(parryNoticeTimeout); const notice=$('#parry-callout'); notice.classList.remove('hidden'); notice.classList.toggle('quiet', accessibility().effectIntensity===0); parryNoticeTimeout=setTimeout(()=>notice.classList.add('hidden'),700); },
     onStory: data => store('voidrun.story', data),
     onCampFacility: id => chronicleUI.facility(id),
     onPortal: choices => chronicleUI.portal(choices),
@@ -684,6 +694,7 @@ try {
   game.presentation.ready.finally(() => { readyButton.innerHTML = readyLabel; readyButton.disabled = false; $('#game-canvas').setAttribute('aria-busy', 'false'); });
   game.setPermanentBonuses(getPermanentBonuses(progress));
   game.setPlaybackSpeed([1, 2, 3].includes(prefs.speed) ? prefs.speed : 1);
+  game.setAccessibility(accessibility());
   game.setQuality(prefs.quality); syncSound(); syncRisk(); syncLoadout();
   game.setRiskPact?.(prefs.risk);
   if (game.state) update(game.state);
@@ -726,7 +737,7 @@ function setTheaterMode(active) {
   document.body.classList.toggle('theater-mode', active);
   $('#fullscreen').setAttribute('aria-pressed', String(active));
   $('#fullscreen').ariaLabel = active ? '전체 화면 닫기' : '전체 화면';
-  $('#fullscreen').title = active ? '전체 화면 닫기 (F)' : '전체 화면 (F)';
+  $('#fullscreen').title = active ? '전체 화면 닫기 (Shift+F)' : '전체 화면 (Shift+F)';
   requestAnimationFrame(() => game?.resize());
 }
 async function toggleFullscreen() {
@@ -761,7 +772,7 @@ $('#modal-backdrop').addEventListener('click', (e) => { if (e.target.id === 'mod
 window.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') { event.preventDefault(); if (dialogName) closeModal(); else if (theaterMode) toggleFullscreen(); else showPause(); }
   if (event.key.toLowerCase() === 'e' && !event.repeat && !event.target?.closest?.('input,textarea,select') && !isChoiceDialog()) {event.preventDefault();if(dialogName === 'inventory')closeModal();else expansionUI?.inventory();}
-  if (event.key.toLowerCase() === 'f' && !event.repeat && !event.target?.closest?.('input,textarea,select')) { event.preventDefault(); toggleFullscreen(); }
+  if (event.key.toLowerCase() === 'f' && event.shiftKey && !event.repeat && !event.target?.closest?.('input,textarea,select')) { event.preventDefault(); toggleFullscreen(); }
   if (event.key.toLowerCase() === 'b' && !event.repeat && !event.target?.closest?.('input,textarea,select')) { event.preventDefault(); if (dialogName === 'build') closeModal(); else if (!dialogName) showBuild(); }
   if (isChoiceDialog() && /^[0-9]$/.test(event.key) && !event.repeat) {
     event.preventDefault();
