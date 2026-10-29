@@ -305,7 +305,7 @@ export class MagicSystem {
       this.scene.add(mesh);
       this.projectiles.push({ mesh, target: next, direction, life: 1.8, trailTimer: 0, rank, evolved, damage: this.damage('fireball') * 1.1 * (1 + 0.16 * (rank - 1)), radius: (3.3 + 0.35 * (rank - 1)) * this.area() });
     }
-    this.spellsCast.fireball++;this.game.playerCastTime=.3;this.game.lastCastSpell="fireball";
+    this.spellsCast.fireball++;this.game.playerCastTime=.3;this.game.lastCastSpell="fireball";this.game.sound?.("fireball",this.game.player.position);
     this.cooldowns.fireball = this.maxCooldown('fireball');
     return true;
   }
@@ -322,7 +322,7 @@ export class MagicSystem {
   }
 
   explode(position, radius, damage, evolved, secondary = false) {
-    this.ring(position, radius, 'fireball', 0.4, 0.55);
+    this.game.sound?.('fire-impact',position);this.ring(position, radius, 'fireball', 0.4, 0.55);
     this.particles(position, 'fireball', evolved ? 10 : 6);
     // Select the nearest capped targets in one pass instead of sorting the horde.
     const nearby = [], distances = [], limit = evolved ? 12 : 7;
@@ -398,7 +398,7 @@ export class MagicSystem {
       this.scene.add(marker);
       this.zones.push({ type: 'blizzard', position: origin.clone(), radius, damage: damage * 0.25, life: 2.4, tick: 0.5, marker });
     }
-    this.spellsCast.frost++;this.game.playerCastTime=.3;this.game.lastCastSpell="frost";
+    this.spellsCast.frost++;this.game.playerCastTime=.3;this.game.lastCastSpell="frost";this.game.sound?.("frost",this.game.player.position);
     this.cooldowns.frost = this.maxCooldown('frost');
     return true;
   }
@@ -420,7 +420,7 @@ export class MagicSystem {
       previous = point;
       target = this.nearest(point, (evolved ? 11 : 8) * this.area(), hit);
     }
-    this.spellsCast.lightning++;this.game.playerCastTime=.3;this.game.lastCastSpell="lightning";
+    this.spellsCast.lightning++;this.game.playerCastTime=.3;this.game.lastCastSpell="lightning";this.game.sound?.("lightning",this.game.player.position);
     this.cooldowns.lightning = this.maxCooldown('lightning');
     return true;
   }
@@ -469,7 +469,7 @@ export class MagicSystem {
       this.spark(impactPosition, 'orbit', 0.22, 1.3); hitAny = true;
     }
     if (hitAny && this.cooldowns.orbit <= 0) {
-      this.spellsCast.orbit++;
+      this.spellsCast.orbit++;this.game.sound?.("orbit",this.game.player.position);
       this.cooldowns.orbit = this.maxCooldown('orbit');
       if (evolved) this.ring(this.game.player.position, radius, 'orbit', 0.35, 0.25);
     }

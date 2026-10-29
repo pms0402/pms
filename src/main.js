@@ -42,7 +42,7 @@ let lastResult = null;
 let campFromResult = false;
 let expansionUI, chronicleUI;
 let endgame = normalizeEndgame(readStorage('voidrun.endgame', {}), history);
-let game, latest, dialogName = '', pausedForDialog = false, audioContext;
+let game, latest, dialogName = '', pausedForDialog = false;
 let lastKills = 0;
 let toastTimeout, parryNoticeTimeout,impactTimeout,bossCueTimeout,lastBossCue='';
 const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -147,17 +147,7 @@ $('#app').innerHTML = `
 `;
 
 function sound(note = 440, duration = .08, volume = .04) {
-  if (prefs.muted) return;
-  try {
-    audioContext ||= new (window.AudioContext || window.webkitAudioContext)();
-    if (audioContext.state === 'suspended') audioContext.resume();
-    const oscillator = audioContext.createOscillator();
-    const gain = audioContext.createGain();
-    oscillator.type = 'triangle'; oscillator.frequency.setValueAtTime(note, audioContext.currentTime);
-    oscillator.frequency.exponentialRampToValueAtTime(note / 2, audioContext.currentTime + duration);
-    gain.gain.setValueAtTime(volume, audioContext.currentTime); gain.gain.exponentialRampToValueAtTime(.001, audioContext.currentTime + duration);
-    oscillator.connect(gain).connect(audioContext.destination); oscillator.start(); oscillator.stop(audioContext.currentTime + duration);
-  } catch { /* Audio is optional on browsers without Web Audio. */ }
+  if(!prefs.muted)game?.sound('ui',null,{note,volume});
 }
 
 function syncSound() {
@@ -519,6 +509,8 @@ function showSettings() {
   $('#modal').insertAdjacentHTML('beforeend', `<div class="setting-row"><div><h3>카메라 시점</h3><p>V키 · 한/영 무관 · 선택은 자동 저장</p></div><div class="segmented" aria-label="카메라 시점">${VIEW_MODES.map(mode=>`<button data-view-mode="${mode}" aria-pressed="${game.view.mode===mode}">${VIEW_LABELS[mode]}</button>`).join('')}</div></div>`);
   document.querySelectorAll('[data-view-mode]').forEach(b=>b.onclick=()=>game.setViewMode(b.dataset.viewMode));
   for (const [selector,key] of [['data-camera-shake','cameraShake'],['data-parry-effects','effectIntensity']]) document.querySelectorAll(`[${selector}]`).forEach(b=>b.onclick=()=>{prefs[key]=Number(b.getAttribute(selector));game.setAccessibility(accessibility());store('voidrun.preferences',prefs);document.querySelectorAll(`[${selector}]`).forEach(x=>{const on=Number(x.getAttribute(selector))===prefs[key];x.classList.toggle('selected',on);x.setAttribute('aria-pressed',String(on));});});
+  $('#modal').insertAdjacentHTML('beforeend', `<div class="setting-row audio-mix"><div><h3>효과음 음량</h3><p>검·마법·피격·UI</p></div><label><input type="range" min="0" max="1" step="0.05" id="effects-volume" aria-label="효과음 음량" value="${game.soundscape.effectsVolume}"><output id="effects-volume-value">${Math.round(game.soundscape.effectsVolume*100)}%</output></label></div><div class="setting-row audio-mix"><div><h3>배경·환경음 음량</h3><p>지역별 바람과 낮은 화음</p></div><label><input type="range" min="0" max="1" step="0.05" id="background-volume" aria-label="배경 환경음 음량" value="${game.soundscape.backgroundVolume}"><output id="background-volume-value">${Math.round(game.soundscape.backgroundVolume*100)}%</output></label></div>`);
+  for(const [id,key] of [['effects-volume','effectsVolume'],['background-volume','backgroundVolume']]) $('#'+id).addEventListener('input',e=>{prefs[key]=Number(e.target.value);$('#'+id+'-value').textContent=Math.round(prefs[key]*100)+'%';game.setAudioVolumes(prefs.effectsVolume??.7,prefs.backgroundVolume??.3);store('voidrun.preferences',prefs);});
   const canReset = ['menu', 'over', 'won', 'camp'].includes(game.state.phase);
   $('#modal').insertAdjacentHTML('beforeend', `<div class="reset-settings"><h3>게임 저장 데이터 초기화</h3><p>보유 골드·영구 강화·캐릭터와 무기 해금·런 기록을 모두 삭제합니다. 사운드와 그래픽 설정은 유지됩니다.</p><button class="secondary-button reset-danger" id="reset-save" ${canReset ? '' : 'disabled'}>저장 데이터 초기화</button>${canReset ? '' : '<p>진행 중인 런을 종료한 뒤 초기화할 수 있습니다.</p>'}</div>`);
   $('#reset-save').addEventListener('click', showResetConfirmation);
@@ -711,6 +703,7 @@ try {
   game.setViewMode(VIEW_MODES.includes(prefs.viewMode)?prefs.viewMode:'third');
   game.setPlaybackSpeed([1, 2, 3].includes(prefs.speed) ? prefs.speed : 1);
   game.setAccessibility(accessibility());
+  game.setAudioVolumes(Number.isFinite(prefs.effectsVolume)?prefs.effectsVolume:.7,Number.isFinite(prefs.backgroundVolume)?prefs.backgroundVolume:.3);
   game.setQuality(prefs.quality); syncSound(); syncRisk(); syncLoadout();
   game.setRiskPact?.(prefs.risk);
   if (game.state) update(game.state);
@@ -829,3 +822,4 @@ for (const button of document.querySelectorAll('[data-move]')) {
 }
 $('#touch-dash').addEventListener('pointerdown', (event) => { event.preventDefault(); game?.dash?.(); });
 
+document.addEventListener('click',event=>{const b=event.target.closest?.('button');if(b&&!b.disabled&&!prefs.muted)game?.sound('ui');});

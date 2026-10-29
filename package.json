@@ -34,7 +34,8 @@
     "test:endgame": "node tests/endgame-smoke.mjs",
     "test:expansion": "node tests/expansion-smoke.mjs",
     "test:sanctum": "node tests/sanctum-smoke.mjs",
-    "benchmark:render": "node scripts/render-benchmark.mjs"
+    "benchmark:render": "node scripts/render-benchmark.mjs",
+    "test:audio": "node tests/audio-smoke.mjs"
   },
   "dependencies": {
     "@fontsource-variable/noto-sans-kr": "5.2.10",

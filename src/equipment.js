@@ -161,6 +161,7 @@ export class EquipmentSystem {
     this.slots[item.slot] = id;
     this.invalidate();
     this.clampHealth();
+    this.game.sound?.('equip');
     return true;
   }
   discard(id) {

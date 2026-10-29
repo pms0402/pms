@@ -31,6 +31,7 @@ import {CreatureSurfaces} from './creature-surfaces.js';
 import {WorldAtmosphere} from './world-atmosphere.js';
 import {RegionalLandscape} from './regional-landscape.js';
 import {GRAPHICS,graphicsQuality} from './graphics-quality.js';
+import {Soundscape} from './soundscape.js';
 import { ExplorationSystem } from './exploration.js';
 import { abyssStats, abyssBoss, abyssRule } from './abyss.js';
 import { RunAnalytics, damageCategory } from './analytics.js';
@@ -131,7 +132,7 @@ export class Game {
     for (const material of [this.mats.rock, this.mats.rockDark]) { material.map = this.presentation.stoneMap; material.normalMap = this.presentation.stoneNormal; material.roughnessMap = this.presentation.stoneRoughness; material.normalScale.set(.6, .6); }
     this.createWorld();
     this.createPlayer();
-    this.creatureSurfaces.hero();this.atmosphere=new WorldAtmosphere(this);this.landscape=new RegionalLandscape(this);
+    this.creatureSurfaces.hero();this.atmosphere=new WorldAtmosphere(this);this.landscape=new RegionalLandscape(this);this.soundscape=new Soundscape(this);
     this.combatArt = new CombatArt(this.scene); this.swordTrail = new SwordTrail(this);this.defeats=new DeathPresentation(this);this.enemyStates=new EnemyStates(this);
     this.actorShadows = new ActorShadows(this.scene, this.enemies, this.presentation.contactMap);
     this.equipment = new EquipmentSystem(this);
@@ -844,7 +845,8 @@ export class Game {
     this.sound('upgrade'); this.callbacks.onLevelUp?.(this.upgradeChoices); this.emit(); return true;
   }
 
-  setMuted(value) { this.muted = !!value; if (!this.muted) this.initAudio(); }
+  setMuted(value) { this.muted = !!value;this.soundscape?.setMuted(this.muted); if (!this.muted) this.initAudio(); }
+  setAudioVolumes(effects,background){this.soundscape.setVolumes(effects,background);}
   setAccessibility({cameraShake = this.cameraShake, effectIntensity = this.effectIntensity} = {}) { this.cameraShake = [0,.5,1].includes(cameraShake) ? cameraShake : 1; this.effectIntensity = [0,.35,1].includes(effectIntensity) ? effectIntensity : 1; }
   setViewMode(mode) { return this.view.setMode(mode); }
   setQuality(value) {this.quality=graphicsQuality(value);const q=GRAPHICS[this.quality];this.renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,q.pixelRatio));this.renderer.shadowMap.enabled=q.shadows;if(this.sunlight.shadow.mapSize.x!==q.shadowSize){this.sunlight.shadow.map?.dispose();this.sunlight.shadow.map=null;this.sunlight.shadow.mapSize.set(q.shadowSize,q.shadowSize);}this.combatArt.limit=q.particles;this.combatArt.count=Math.min(this.combatArt.count,q.particles);this.combatArt.density=q.density;this.defeats.limit=q.corpses;this.world?.setQuality(this.quality);this.landscape?.setQuality(q.detail);this.resize();}
@@ -881,6 +883,7 @@ export class Game {
     this.world?.updateOcclusion(this.player.position, this.camera.position, dt, this.view.effectiveMode()==='overhead');
     this.world?.art.update(dt);
     this.atmosphere?.update(dt);this.landscape?.update(dt);
+    this.soundscape?.update();
     this.renderer.render(this.scene, this.camera);
     if (time - this.lastUpdate > 100) { this.lastUpdate = time; this.emit(); }
     this.raf = requestAnimationFrame(this.loop);
@@ -1332,7 +1335,7 @@ export class Game {
     // Frost controls movement through its timed slow. Its repeated area hits
     // must not restart hit stun or add a push; an earlier sword hit still decays.
     if (knockbackScale > 0) enemy.stagger.copy(direction).setY(0).multiplyScalar((enemy.kind === 4 ? 0.4 : critical ? 12 : 7) * knockbackScale);
-    if (dealt > 0) {this.combatArt.hit(enemy.group.position, spellId || source, critical);enemy.impactDirection||=new THREE.Vector3();enemy.impactDirection.copy(direction).setY(0);enemy.impactTime=.16;this.sound(critical?'critical':'hit',enemy.group.position);}
+    if (dealt > 0) {this.combatArt.hit(enemy.group.position, spellId || source, critical);enemy.impactDirection||=new THREE.Vector3();enemy.impactDirection.copy(direction).setY(0);enemy.impactTime=.16;this.sound(critical?'critical':spellId?(spellId==='fireball'?'fire':spellId)+'-impact':'hit',enemy.group.position);}
     if (critical) { this.shake = Math.max(this.shake, 0.045); this.sound('critical'); }
     if (enemy.hp > 0) {
       if (source === 'sword') this.magic.onSwordHit(enemy, damage);
@@ -1577,35 +1580,14 @@ export class Game {
     this.playerVisual.visible = true;
   }
 
-  initAudio() {
-    if (this.muted) return;
-    try {
-      if (!this.audio) this.audio = new (window.AudioContext || window.webkitAudioContext)();
-      if (this.audio.state === 'suspended') this.audio.resume().catch(() => {});
-    } catch { /* Audio is optional; rendering and play never depend on it. */ }
-  }
-  sound(type) {
-    if (this.muted || !this.audio || this.audio.state !== 'running') return;
-    const now = this.audio.currentTime;
-    if (type === 'attack' && now - (this.lastAttackSound || 0) < 0.15) return;
-    if (type === 'critical' && now - (this.lastCriticalSound || 0) < 0.12) return;
-    if (type === 'critical') this.lastCriticalSound = now;
-    if (type === 'attack') this.lastAttackSound = now;
-    const frequencies = { guard:480, 'guard-hit':790, 'perfect-parry':1760, counter:280, attack: 190, hurt: 100, coin: 960, dash: 240, upgrade: 660, start: 440, stage: 580, win: 880, over: 110, critical: 1380, combo: 1120 };
-    const osc = this.audio.createOscillator(), gain = this.audio.createGain();
-    const duration = type === 'perfect-parry' ? .16 : type === 'counter' ? .2 : ['start', 'stage', 'win', 'upgrade'].includes(type) ? 0.25 : 0.08;
-    osc.type = ['perfect-parry','guard-hit'].includes(type) ? 'triangle' : type === 'counter' ? 'sawtooth' : type === 'hurt' || type === 'over' ? 'sawtooth' : 'sine';
-    osc.frequency.setValueAtTime(frequencies[type] || 400, now);
-    osc.frequency.exponentialRampToValueAtTime(Math.max(40, (frequencies[type] || 400) * (type === 'attack' ? 0.3 : type === 'over' ? 0.4 : 1.5)), now + duration);
-    gain.gain.setValueAtTime(type === 'attack' ? 0.025 : type === 'perfect-parry' ? .075 : type === 'guard' ? .018 : .045, now); gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
-    osc.connect(gain); gain.connect(this.audio.destination); osc.start(now); osc.stop(now + duration);
-    if (['perfect-parry','guard-hit'].includes(type)) { const overtone=this.audio.createOscillator(), partial=this.audio.createGain(); overtone.type='sine';overtone.frequency.setValueAtTime(type==='perfect-parry'?4820:2170,now);partial.gain.setValueAtTime(.018,now);partial.gain.exponentialRampToValueAtTime(.0001,now+duration);overtone.connect(partial).connect(this.audio.destination);overtone.start(now);overtone.stop(now+duration); }
-  }
+  initAudio() { if(!this.muted&&this.soundscape?.unlock())this.audio=this.soundscape.context; }
+  sound(type,position=null,options={}) { return this.soundscape?.play(type,position,options); }
 
   getDebugState() { return { ...this.state, presentation: { ready: this.artReady, ...this.presentation.status, particles: this.combatArt?.count || 0, actorShadows: this.actorShadows?.mesh.count || 0, grass: this.world?.art.grass.count || 0 }, enemyRender: this.enemyRenderer?.getDebugState(), permanentBonuses: { ...this.permanentBonuses }, player: this.player.position.toArray(), enemies: this.enemies.length, pickups: this.pickups.length, floatingTexts: this.floatingTexts.length, effects: this.effects.length, pools: { enemies: [...this.enemyPools.values()].reduce((sum, pool) => sum + pool.length, 0), effects: this.effectPool.length, texts: this.textPool.length }, resources: { geometries: this.renderer.info.memory.geometries, textures: this.renderer.info.memory.textures }, projectiles: this.projectiles.length, enemyProjectiles: this.enemyProjectiles.length, rangedEnemies: this.enemies.filter(e => e.kind === 3 || e.kind === 8).length, bossSystem: this.bossSystem?.getDebugState(), regionSystem: this.regionSystem?.getDebugState(), mutationSystem: this.mutationSystem?.getDebugState(), magic: this.magic?.getDebugState?.(), frames: this.frames, drawCalls: this.renderer.info.render.calls, triangles: this.renderer.info.render.triangles, renderer: this.renderer.capabilities.isWebGL2 ? 'WebGL2' : 'WebGL', canvas: { width: this.renderer.domElement.width, height: this.renderer.domElement.height } }; }
   /** Deterministic-time simulation hook for smoke tests; respects pause and choices. */
   stepForTest(seconds) { for (let t = 0; t < seconds && this._state.phase === 'playing'; t += 1 / 60) { this.frames++; this.advanceSimulation(1 / 60); } this.emit(); return this.getDebugState(); }
   dispose() {
+    this.soundscape?.dispose();this.audio=null;
     this.creatureSurfaces?.dispose();this.atmosphere?.dispose();this.landscape?.dispose();
     this.enemyStates?.dispose();
     this.defeats?.dispose();
