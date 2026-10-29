@@ -40,6 +40,7 @@ export class ParrySystem {
       return true;
     }
     if (this.cooldown > 0) return false;
+    this.game.analytics && this.game.analytics.parryAttempts++;
     this.age = 0;
     this.active = 0.5;
     this.cooldown = 3;
@@ -78,7 +79,7 @@ export class ParrySystem {
     if (this.age <= 0.18) {
       this.active = 0;
       this.counterTime = 2;
-      this.successes++;
+      this.successes++; if(g.analytics)g.analytics.parrySuccesses++;
       g.puff(g.player.position, "#b1edff", 2, 0.3);
       g.sound("critical");
       g.callbacks.onLoot?.(

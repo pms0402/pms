@@ -145,7 +145,7 @@ export class EquipmentSystem {
       this.bag.some((x) => x.id === item.id)
     )
       return false;
-    this.bag.push(item);
+    this.bag.push(item); this.game.analytics?.equipment(item);
     this.game.callbacks.onLoot?.(
       `${item.title} · 장비 가방에 보관 · E로 비교/장착`,
     );

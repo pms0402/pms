@@ -23,6 +23,7 @@ import { EquipmentSystem } from './equipment.js';
 import { ParrySystem } from './parry.js';
 import { ExplorationSystem } from './exploration.js';
 import { abyssStats, abyssBoss, abyssRule } from './abyss.js';
+import { RunAnalytics, damageCategory } from './analytics.js';
 
 const TAU = Math.PI * 2;
 const UP = new THREE.Vector3(0, 1, 0);
@@ -86,7 +87,7 @@ export class Game {
     this.quality = 'high';
     this.playbackSpeed = 1; this.mode = 'normal'; this.abyssUnlocked = false;
     this.permanentBonuses = normalizePermanentBonuses();
-    this.runCounter = 0;
+    this.runCounter = 0; this.analytics = new RunAnalytics();
     this._state = this.freshState('menu');
     this.stats = this.freshStats();
     this.scene = new THREE.Scene();
@@ -166,8 +167,9 @@ export class Game {
   bossStats(stage = this._state.stage) { return this.mode === 'abyss' ? abyssBoss(stage) : getBossStats(stage); }
   get abyssConstraint() { return this.mode === 'abyss' ? abyssRule(this._state.stage) : null; }
   setMode(mode) { if (!['menu','over','won'].includes(this._state.phase) || !['normal','abyss'].includes(mode) || mode === 'abyss' && !this.abyssUnlocked) return false; this.mode = mode; return true; }
-  heal(amount) { const mult = this.combatStats.healingMultiplier * (this.abyssConstraint?.healing || 1); this._state.hp = Math.min(this.combatStats.maxHp, this._state.hp + Math.max(0, amount) * mult); }
+  heal(amount) { const before = this._state.hp; const mult = this.combatStats.healingMultiplier * (this.abyssConstraint?.healing || 1); this._state.hp = Math.min(this.combatStats.maxHp, this._state.hp + Math.max(0, amount) * mult); this.analytics.healed += Math.max(0,this._state.hp - before); }
   freshRunReport() {
+    this.analytics?.reset();
     return { damageBySource: { sword: 0, fireball: 0, frost: 0, lightning: 0, orbit: 0, combo: 0, other: 0 },
       damageTaken: 0, deathCause: '', peakCombo: 0, curseIds: [], routeHistory: [{ stage: 1, id: 'standard' }], regionHistory: [{ stage: 1, id: 'sanctum' }], synergyTriggers: {} };
   }
@@ -183,7 +185,7 @@ export class Game {
   get state() {
     const enemyKinds = Object.fromEntries(ENEMY_TYPES.map(type => [type.id, 0]));
     for (const enemy of this.enemies) if (enemy.definition) enemyKinds[enemy.definition.id]++;
-    return { ...this._state, mode: this.mode, stageStats: this.stageStats(), abyssConstraint: this.abyssConstraint, playbackSpeed: this.playbackSpeed, world: { hills: this.world?.hills.length || 0, structures: this.world?.structures.length || 0, elevation: this.player?.position.y || 0 }, enemyKinds, sword: getSwordProfile(this.stats), activeSynergies: getActiveSynergies(this.stats), activeCurses: [...this.activeCurses], equipment: this.equipment?.getState(), parry: this.parry?.getState(), exploration: this.exploration?.getState(), routeId: this.routeId, regionId: this.regionId, region: getRegion(this.regionId), mutations: this.mutationSystem?.getDebugState(), runModifiers: this.getFloorModifiers(), runReport: this.runReport ? structuredClone(this.runReport) : this.freshRunReport(), pendingChests: this.pendingChestRewards?.length || 0, altar: this.altar ? { x: this.altar.group.position.x, z: this.altar.group.position.z, opened: this.altar.opened } : null, rewardTokens: this.pendingRelicSources?.length || 0, pendingBossRewards: (this.pendingBossRewards || []).map(reward => ({ ...reward })), maxHp: this.combatStats.maxHp, damage: this.combatStats.damage, attackRate: this.combatStats.attackRate, spellDamage: this.combatStats.spellDamage, spellRate: this.stats.spellRate, speed: this.combatStats.speed, risk: this.getThreat(), selectedRisk: this.selectedRisk, chests: this.chests.map(chest => ({ x: chest.group.position.x, z: chest.group.position.z, remaining: chest.guards.filter(guard => guard.hp > 0).length, opened: chest.opened })), eliteEnemies: this.enemies.filter(enemy => enemy.elite).length, goldenEnemies: this.enemies.filter(enemy => enemy.golden).length, dashCooldown: Math.max(0, this.dashCooldown || 0), dashReady: !(this.dashCooldown > 0), enemyCount: this.enemies.length, arenaRadius: ARENA_RADIUS, stageDuration: STAGE_DURATION, bossSpawnTime: BOSS_SPAWN_TIME, bossSpawned: this.bossSpawned, bossDefeated: this.bossDefeated, boss: this.boss ? { archetype: this.boss.archetype, hint: this.boss.hint, name: this.boss.name, hp: Math.max(0, this.boss.hp), maxHp: this.boss.maxHp, alive: this.boss.hp > 0, spawned: this.bossSpawned, defeated: this.bossDefeated, phase: this.boss.mode, combatPhase: this.boss.combatPhase || 1 } : null, spellState: this.magic?.getState() || [], playerStats: { ...this.stats, relics: [...(this.stats.relics || [])], bossRewards: [...(this.stats.bossRewards || [])], spells: { ...this.stats.spells }, evolutions: { ...this.stats.evolutions }, passiveLevels: { ...this.stats.passiveLevels } } };
+    return { ...this._state, mode: this.mode, analytics: this.analytics?.snapshot(this), stageStats: this.stageStats(), abyssConstraint: this.abyssConstraint, playbackSpeed: this.playbackSpeed, world: { hills: this.world?.hills.length || 0, structures: this.world?.structures.length || 0, elevation: this.player?.position.y || 0 }, enemyKinds, sword: getSwordProfile(this.stats), activeSynergies: getActiveSynergies(this.stats), activeCurses: [...this.activeCurses], equipment: this.equipment?.getState(), parry: this.parry?.getState(), exploration: this.exploration?.getState(), routeId: this.routeId, regionId: this.regionId, region: getRegion(this.regionId), mutations: this.mutationSystem?.getDebugState(), runModifiers: this.getFloorModifiers(), runReport: this.runReport ? structuredClone(this.runReport) : this.freshRunReport(), pendingChests: this.pendingChestRewards?.length || 0, altar: this.altar ? { x: this.altar.group.position.x, z: this.altar.group.position.z, opened: this.altar.opened } : null, rewardTokens: this.pendingRelicSources?.length || 0, pendingBossRewards: (this.pendingBossRewards || []).map(reward => ({ ...reward })), maxHp: this.combatStats.maxHp, damage: this.combatStats.damage, attackRate: this.combatStats.attackRate, spellDamage: this.combatStats.spellDamage, spellRate: this.stats.spellRate, speed: this.combatStats.speed, risk: this.getThreat(), selectedRisk: this.selectedRisk, chests: this.chests.map(chest => ({ x: chest.group.position.x, z: chest.group.position.z, remaining: chest.guards.filter(guard => guard.hp > 0).length, opened: chest.opened })), eliteEnemies: this.enemies.filter(enemy => enemy.elite).length, goldenEnemies: this.enemies.filter(enemy => enemy.golden).length, dashCooldown: Math.max(0, this.dashCooldown || 0), dashReady: !(this.dashCooldown > 0), enemyCount: this.enemies.length, arenaRadius: ARENA_RADIUS, stageDuration: STAGE_DURATION, bossSpawnTime: BOSS_SPAWN_TIME, bossSpawned: this.bossSpawned, bossDefeated: this.bossDefeated, boss: this.boss ? { archetype: this.boss.archetype, hint: this.boss.hint, name: this.boss.name, hp: Math.max(0, this.boss.hp), maxHp: this.boss.maxHp, alive: this.boss.hp > 0, spawned: this.bossSpawned, defeated: this.bossDefeated, phase: this.boss.mode, combatPhase: this.boss.combatPhase || 1 } : null, spellState: this.magic?.getState() || [], playerStats: { ...this.stats, relics: [...(this.stats.relics || [])], bossRewards: [...(this.stats.bossRewards || [])], spells: { ...this.stats.spells }, evolutions: { ...this.stats.evolutions }, passiveLevels: { ...this.stats.passiveLevels } } };
   }
   emit() { this.callbacks.onUpdate?.(this.state); }
 
@@ -568,7 +570,7 @@ export class Game {
       this.puff(this.player.position, '#a4e8ff', 3, 0.35);
       for (const enemy of this.queryEnemies(this.player.position, 5)) this.hitEnemy(enemy, this.combatStats.damage * 0.8, this.dashDirection, 'explosion');
     }
-    this.sound('dash'); this.emit(); return true;
+    this.analytics.dashes++; this.sound('dash'); this.emit(); return true;
   }
 
   start() {
@@ -956,7 +958,7 @@ export class Game {
     if (defense === 0) return false;
     const damage = defense * Math.max(1, rawDamage * this.getThreat().enemyDamage * (1 - Math.min(0.6, this.combatStats.armor)));
     const actualDamage = Math.min(this._state.hp, damage);
-    this.runReport.damageTaken += actualDamage;
+    this.runReport.damageTaken += actualDamage; this.analytics.hurt(actualDamage, this._state.stage);
     this.runReport.deathCause = typeof cause === 'string' ? cause : '적의 공격';
     this._state.hp -= damage; this.invulnerable = 0.75; this.shake = 0.22;
     if (attacker) { this.mutationSystem.onPlayerHit(attacker, actualDamage); this.regionSystem.onEnemyPlayerHit(attacker, actualDamage); }
@@ -1202,7 +1204,7 @@ export class Game {
       if (enemy.hp <= 0 || remaining <= 0) continue;
       const dx = enemy.group.position.x - this.player.position.x, dz = enemy.group.position.z - this.player.position.z;
       if (isSwordHit(profile, dx, dz, delta.x, delta.z)) {
-        this.hitEnemy(enemy, this.combatStats.damage * 1.25 * profile.damageMultiplier * counter * dashBonus, delta, 'sword'); remaining--;
+        this.hitEnemy(enemy, this.combatStats.damage * 1.25 * profile.damageMultiplier * counter * dashBonus, delta, 'sword', null, counter > 1 ? {analyticsSource:'counter'} : null); remaining--;
       }
     }
     this.sound('attack'); return true;
@@ -1249,6 +1251,7 @@ export class Game {
     this.floatText(`${critical ? '✦ ' : ''}${Math.round(dealt).toLocaleString('en-US')}`, enemy.group.position, critical ? '#eeffad' : '#f1f4dc', critical ? 1.35 : 1, 1.65);
     const bucket = ['fireball', 'frost', 'lightning', 'orbit'].includes(spellId) ? spellId : ['sword', 'combo'].includes(source) ? source : 'other';
     this.runReport.damageBySource[bucket] += Math.min(enemy.hp, dealt);
+    this.analytics.hit(damageCategory(source,spellId,impact),dealt,enemy.hp,this._state.elapsed,this._state.stage);
     enemy.hp -= dealt;
     if (enemy.kind === 4) this.bossPhases.sync(enemy);
     const hitStun = Number.isFinite(impact?.hitStun) ? clamp(impact.hitStun, 0, 0.16) : 0.16;
@@ -1264,6 +1267,7 @@ export class Game {
       return true;
     }
     const position = enemy.group.position.clone();
+    this.analytics.kill(enemy,this._state.stage);
     this._state.kills++; this._state.combo++; this.comboTimer = 3;
     this.runReport.peakCombo = Math.max(this.runReport.peakCombo, this._state.combo);
     const bossReward = enemy.kind === 4 ? this.bossStats() : null;

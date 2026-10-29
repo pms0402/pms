@@ -593,7 +593,7 @@ function finish(state, won) {
   progress = settlement.progress; progressionWritable = persistProgress(); syncBank();
   lastResult = { state, won, settlement };
   if (!settlement.duplicate) {
-  const record = { mode: state.mode, runId: state.runId, stage: state.stage, elapsed: state.elapsed, kills: state.kills, gold: Math.floor(state.gold), level: state.level, won, date: new Intl.DateTimeFormat('ko-KR', { month: 'numeric', day: 'numeric', timeZone: 'Asia/Seoul' }).format(new Date()) };
+  const record = { analytics: state.analytics, mode: state.mode, runId: state.runId, stage: state.stage, elapsed: state.elapsed, kills: state.kills, gold: Math.floor(state.gold), level: state.level, won, date: new Intl.DateTimeFormat('ko-KR', { month: 'numeric', day: 'numeric', timeZone: 'Asia/Seoul' }).format(new Date()) };
   history.unshift(record); history = history.slice(0, 30); store('voidrun.history', history);
   $('#history-count').textContent = String(history.length).padStart(2, '0');
   $('#personal-best').textContent = `${Math.max(...history.map(r => r.stage))} 스테이지`;
