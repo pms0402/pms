@@ -266,7 +266,7 @@ export class BossSystem {
     if (boss.mode === 'chase' && distance > .01) {
       const movement = distance < wanted - 2 ? -.65 : distance > wanted + 1 ? 1 : 0;
       const speed = (boss.speed || 2.6) * slow * movement * dt;
-      const steer = movement > 0 && this.game.world ? this.game.world.steer(pos, dx, dz, 1.4, 0) : { x: dx / distance, z: dz / distance };
+      const steer = movement > 0 && this.game.world && !this.game.sideAreas?.active ? this.game.world.steer(pos, dx, dz, 1.4, 0) : { x: dx / distance, z: dz / distance };
       pos.x += steer.x * speed; pos.z += steer.z * speed;
     }
     boss.group.rotation.y = Math.atan2(dx, dz);
@@ -306,7 +306,7 @@ export class BossSystem {
       zone.life -= dt; zone.tick -= dt;
       const player = this.game.player.position;
       const dx = player.x - zone.position.x, dz = player.z - zone.position.z;
-      if (zone.damage > 0 && zone.tick <= 0 && dx * dx + dz * dz < zone.radius * zone.radius) {
+      if (zone.damage > 0 && zone.tick <= 0 && dx * dx + dz * dz < zone.radius * zone.radius && dx * dx + dz * dz >= (zone.innerRadius || 0) ** 2) {
         this.game.takeDamage(zone.damage, zone.position, zone.cause, null, { unblockable: true }); zone.tick = .6;
         if (zone.type === 'pulse') zone.damage = 0;
       }

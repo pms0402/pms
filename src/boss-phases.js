@@ -2,6 +2,9 @@ import * as THREE from "three";
 export const bossPhase = (hp, maxHp) =>
   hp / Math.max(1, maxHp) < 0.35 ? 3 : hp / Math.max(1, maxHp) < 0.7 ? 2 : 1;
 export const PHASE_PATTERNS = Object.freeze({
+  king: "왕의 검격과 연계 탄막",
+  observer: "예고 순간이동과 다중 탄막",
+  primordial: "안전 원과 심연의 파문",
   warden: "연속 돌진과 충격파",
   artillery: "추적 포격과 지연 폭격",
   plague: "독의 고리 · 중앙 안전지대",
@@ -45,6 +48,7 @@ export class BossPhases {
       this.transitions.push(next);
     boss.combatPhase = phase;
     boss.phaseCooldown = 2;
+    if (boss.hiddenBoss) { boss.hiddenPending = null; boss.hiddenTimer = 1.5; }
     this.game.clearTelegraph?.(boss);
     this.game.bossSystem.cancelAttacks();
     this.rush = null;
@@ -78,7 +82,7 @@ export class BossPhases {
         }
       } else {
         boss.group.position.addScaledVector(r.direction, dt * 24);
-        this.game.world?.resolve(boss.group.position, 1.4);
+        this.game.resolvePosition?.(boss.group.position, 1.4);
         if (boss.group.position.distanceTo(this.game.player.position) < 2.3)
           this.game.takeDamage(
             this.game.bossStats().damage,

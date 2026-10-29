@@ -71,7 +71,7 @@ test("boss thresholds change immediately once, clear prior attacks and never hea
 });
 test("six guardian phase specials differ and every damaging zone has a reaction window", () => {
   const signatures = new Set();
-  for (const type of Object.keys(PHASE_PATTERNS)) {
+  for (const type of Object.keys(PHASE_PATTERNS).filter(id=>!["king","observer","primordial"].includes(id))) {
     const f = fixture(type);
     f.boss.hp = 30;
     f.system.sync();
