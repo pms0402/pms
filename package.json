@@ -25,6 +25,7 @@
     "test:world": "node tests/world-smoke.mjs",
     "test:characters": "node tests/characters-smoke.mjs",
     "test:motion": "node tests/motion-smoke.mjs",
+    "test:animation": "node tests/articulation-smoke.mjs",
     "test:quality": "node tests/quality-smoke.mjs",
     "test:world-expansion": "node tests/world-expansion-smoke.mjs",
     "test:parry": "node tests/parry-smoke.mjs",

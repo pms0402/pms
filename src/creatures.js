@@ -1,10 +1,11 @@
 import * as THREE from 'three';
+import { monsterJoint } from './monster-motion.js';
 import { damp, angleDelta, createActorMotion, advanceActorMotion, swordSwing } from './motion.js';
 const UP=new THREE.Vector3(0,1,0);
-function tools(game,parent) {
+function tools(game,parent,kind) {
  const {geo,mats}=game;
  const part=(shape,material,x,y,z,sx=1,sy=sx,sz=sx)=>{
-  const mesh=new THREE.Mesh(geo[shape],material);mesh.position.set(x,y,z);mesh.scale.set(sx,sy,sz);mesh.castShadow=true;mesh.receiveShadow=true;parent.add(mesh);return mesh;
+  const mesh=new THREE.Mesh(geo[shape],material);mesh.position.set(x,y,z);mesh.scale.set(sx,sy,sz);mesh.castShadow=true;mesh.receiveShadow=true;mesh.userData.rigJoint=monsterJoint(kind,x,y,z);parent.add(mesh);return mesh;
  };
  const link=(material,a,b,radius=.08)=>{
   const start=new THREE.Vector3(...a),end=new THREE.Vector3(...b),delta=end.clone().sub(start);
@@ -13,7 +14,7 @@ function tools(game,parent) {
  };
  const curve=(material,points,radius=.035)=>{
   const geometry=new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(...p))),10,radius,6,false);game.ownedGeometries.add(geometry);
-  const mesh=new THREE.Mesh(geometry,material);mesh.castShadow=true;parent.add(mesh);return mesh;
+  const mesh=new THREE.Mesh(geometry,material);mesh.castShadow=true;const c=points.reduce((v,p)=>v.add(new THREE.Vector3(...p)),new THREE.Vector3()).multiplyScalar(1/points.length);mesh.userData.rigJoint=monsterJoint(kind,c.x,c.y,c.z);parent.add(mesh);return mesh;
  };
  const horn=(points,radius=.1)=>{
   for(let i=1;i<points.length;i++){
@@ -26,14 +27,16 @@ function tools(game,parent) {
 
 /** Cohesive monster silhouettes built once and merged by material by the engine. */
 export function buildMonster(game,visual,kind,skin) {
- const {mats}=game,{part,link,curve,horn}=tools(game,visual);
+ const {mats}=game,{part,link,curve,horn}=tools(game,visual,kind);
  const eye=(x,y,z,size=.055)=>{part('round',mats.enemyDark,x,y,z,size*1.5,size*1.2,size*.6);part('roundSmall',mats.eye,x,y,z+size*.45,size,size*.7,size*.45);};
  const face=(y=1.18,z=.18,scale=1)=>{
+  const start=visual.children.length;
   part('round',skin,0,y,z,.29*scale,.29*scale,.27*scale);
   part('round',skin,0,y-.13,z+.17*scale,.24*scale,.15*scale,.18*scale);
   eye(-.12*scale,y+.035,z+.245*scale,.05*scale);eye(.12*scale,y+.035,z+.245*scale,.05*scale);
   curve(mats.enemyDark,[[-.14*scale,y-.13,z+.29*scale],[0,y-.17,z+.34*scale],[.14*scale,y-.13,z+.29*scale]],.02*scale);
   for(const side of [-1,1])part('roundCone',mats.bone,side*.13*scale,y-.14,z+.30*scale,.035*scale,.12*scale,.035*scale).rotation.z=Math.PI;
+  for(let i=start;i<visual.children.length;i++)visual.children[i].userData.rigJoint=1;
  };
  const humanoid=(bulk=1)=>{
   part('round',skin,0,.78,0,.36*bulk,.43*bulk,.27*bulk);
@@ -95,7 +98,7 @@ export function animatePlayerModel(game,time,moving,dt) {
  const counter=game.counterAnim>0;
  const stride=state.stride,gait=Math.sin(state.phase)*stride,attack=game.attackAnim>0||counter;
  const t=counter?1-game.counterAnim/.38:attack?1-game.attackAnim/(game.attackAnimTotal||.3):0;
- const swing=attack?Math.sin(Math.PI*t)**2:0,yaw=attack?swordSwing(t)*(counter?1.3:1):0;
+ const swing=attack?Math.sin(Math.PI*t)**2:0,side=counter?1:(game.swingSide||1),yaw=attack?swordSwing(t)*side*(counter?1.3:1):0;
  // Faster weapons retain their full stroke rather than losing it to a slow filter.
  const armRate=attack?Math.max(24,5/(game.attackAnimTotal||.3)):18;
  const joint=(part,axis,target,rate=18)=>{part.rotation[axis]=damp(part.rotation[axis],target,rate,dt);};
@@ -105,14 +108,14 @@ export function animatePlayerModel(game,time,moving,dt) {
  joint(game.kneeRight,'x',.08+Math.max(0,Math.sin(state.phase))**2*.5*stride);
  joint(game.footLeft,'x',-(game.legLeft.rotation.x+game.kneeLeft.rotation.x)*.65);
  joint(game.footRight,'x',-(game.legRight.rotation.x+game.kneeRight.rotation.x)*.65);
- joint(game.rightShoulder,'y',game.parry?.active>0?-.3:yaw,armRate);joint(game.rightShoulder,'x',game.parry?.active>0?-1.1:gait*.25-swing*.95,armRate);
+ joint(game.rightShoulder,'y',game.parry?.active>0?-.3:yaw,armRate);joint(game.rightShoulder,'x',game.parry?.active>0?-1.1:gait*.25-swing*1.05,armRate);
  const twin=game.stats.swordEvolution==='twinblade';
- joint(game.leftShoulder,'x',-gait*.25+(twin?swing*.4:0),armRate);joint(game.leftShoulder,'y',twin?-yaw:0,armRate);
- joint(game.rightElbow,'x',game.parry?.active>0?-1.5:-.65-swing*.45,armRate);joint(game.leftElbow,'x',twin?-.65-swing*.25:-.25,armRate);
+ joint(game.leftShoulder,'x',-gait*.25+(twin?swing*.4:-swing*.16),armRate);joint(game.leftShoulder,'y',twin?-yaw:0,armRate);
+ joint(game.rightElbow,'x',game.parry?.active>0?-1.5:-.65+swing*.38,armRate);joint(game.leftElbow,'x',twin?-.65-swing*.25:-.25,armRate);
  // Counter-rotate only the artwork; targeting, sword sectors and dashes stay exact.
  game.playerVisual.rotation.y=angleDelta(game.player.rotation.y,state.facing)+yaw*.14;
- joint(game.playerVisual,'x',dashing?.22:counter?.1:stride*.04,14);joint(game.playerVisual,'z',-gait*.025,14);
- joint(game.swordArm,'z',-.12+swing*.25,armRate);
+ joint(game.playerVisual,'x',dashing?.22:counter?.1:stride*.04,14);joint(game.playerVisual,'z',-gait*.025+side*swing*.045,14);
+ joint(game.swordArm,'z',-.12+side*swing*.36,armRate);joint(game.swordArm,'x',-yaw*.18,armRate);
  joint(game.offhandGrip,'z',twin?.12-swing*.25:0,armRate);
  game.cape.rotation.x=damp(game.cape.rotation.x,-(.08+stride*.17+(dashing?.22:0))+Math.sin(time*4)*.025,9,dt);
  for(const cloth of game.clothParts){
@@ -129,23 +132,28 @@ export function animatePlayerModel(game,time,moving,dt) {
   joint(hair,'x',-.025-stride*.055+Math.sin(time*3+i*.8)*.018,8);
   joint(hair,'z',Math.sin(time*2.7+i)*.018+gait*.028,8);
  }
+ game.swordTrail?.sample();
 }
 
-/** Whole-body motion keeps the shared monster meshes compatible with instancing. */
+/** GPU joint poses follow real travel and real attack events, without moving colliders. */
 export function animateEnemyModel(enemy,time,dt) {
  const state=enemy.motion||(enemy.motion=createActorMotion(enemy.group,enemy.seed));
- const kind=enemy.visualKind??enemy.kind,isBoss=enemy.kind===4;
- advanceActorMotion(state,enemy.group,dt,enemy.speed,true,(kind===1?2.6:1.7)/Math.max(.7,enemy.size));
- const stride=state.stride,beat=Math.sin(state.phase),bounce=(1-Math.cos(state.phase*2))*.5*stride;
- const slime=kind===7,beast=kind===1||kind===5;
- const height=isBoss?.025:beast?.045:slime?.11:.065;
+ if((enemy.freezeTime||0)>0||(enemy.parryStun||0)>0)return;
+ const kind=enemy.visualKind??enemy.kind,isBoss=enemy.kind===4,action=enemy.mode||enemy.action||'';
+ const locked=action.includes('warning')||(enemy.windup||0)>0;
+ advanceActorMotion(state,enemy.group,dt,enemy.speed,!locked,(kind===1?2.6:1.7)/Math.max(.7,enemy.size));
+ enemy.visualAttack=Math.max(0,(enemy.visualAttack||0)-dt);enemy.visualCast=Math.max(0,(enemy.visualCast||0)-dt);enemy.visualAttackCooldown=Math.max(0,(enemy.visualAttackCooldown||0)-dt);
+ const strike=enemy.visualAttack>0?swordSwing(1-enemy.visualAttack/.36):0,cast=enemy.visualCast>0?Math.sin(Math.PI*(1-enemy.visualCast/.35)):0;
+ const warning=locked?1:0;state.warning=damp(state.warning||0,warning,16,dt);state.strike=damp(state.strike||0,strike,24,dt);state.cast=damp(state.cast||0,cast,24,dt);
+ state.pose||=new Float32Array(8);state.pose[0]=state.phase;state.pose[1]=state.stride;state.pose[2]=state.strike;state.pose[3]=state.warning;state.pose[4]=state.cast;state.pose[5]=Math.max(0,enemy.hitTime||0);state.pose[6]=Math.sin(time*.8+enemy.seed);state.pose[7]=Math.sin(time*2.8+enemy.seed);
+ const stride=state.stride,beat=Math.sin(state.phase),bounce=(1-Math.cos(state.phase*2))*.5*stride,slime=kind===7,beast=kind===1||kind===5;
+ const height=isBoss?.025:beast?.045:slime?.11:.045;
  enemy.visual.position.y=damp(enemy.visual.position.y,bounce*height+(1-stride)*(.5+.5*Math.sin(time*2.8+enemy.seed))*.012,18,dt);
  enemy.visual.rotation.y=angleDelta(enemy.group.rotation.y,state.facing);
- enemy.visual.rotation.x=damp(enemy.visual.rotation.x,(enemy.action==='rush'?.12:0)+(beast?beat*.025*stride:0),18,dt);
- enemy.visual.rotation.z=damp(enemy.visual.rotation.z,beast?0:beat*.035*stride,16,dt);
+ const lean=action==='rush'||action==='charge'?.17:state.warning*(beast?.13:.06)+state.strike*.06;
+ enemy.visual.rotation.x=damp(enemy.visual.rotation.x,lean+(beast?beat*.025*stride:0),18,dt);
+ enemy.visual.rotation.z=damp(enemy.visual.rotation.z,beast?0:beat*.027*stride,16,dt);
  const hit=Math.max(0,enemy.hitTime||0),scale=1+(isBoss?Math.min(.04,hit*.6):Math.min(.16,hit*.6));
- const squash=slime?Math.sin(state.phase*2)*stride*.09:0;
- enemy.visual.scale.x=damp(enemy.visual.scale.x,scale-squash*.5,24,dt);
- enemy.visual.scale.y=damp(enemy.visual.scale.y,scale+squash,24,dt);
- enemy.visual.scale.z=damp(enemy.visual.scale.z,scale-squash*.5,24,dt);
+ const squash=slime?Math.sin(state.phase*2)*stride*.09:kind===6?state.warning*(.045+.025*Math.sin(time*10)):0;
+ enemy.visual.scale.x=damp(enemy.visual.scale.x,scale-squash*.5,24,dt);enemy.visual.scale.y=damp(enemy.visual.scale.y,scale+squash,24,dt);enemy.visual.scale.z=damp(enemy.visual.scale.z,scale-squash*.5,24,dt);
 }

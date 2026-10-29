@@ -58,6 +58,26 @@ try {
   assert.ok(input.active > 0 && input.pose <= -1);
   assert.equal(input.fullscreen, false);
   assert.equal(input.attempts, 1);
+  const koreanKeys=await p.evaluate(()=>{
+    const samples=[];
+    for(const [key,code] of [['ㅍ','KeyF'],['Process','KeyF'],['ㅎ','KeyG']]){
+      const g=window.fixture();
+      const send=(type,extra={})=>window.dispatchEvent(new KeyboardEvent(type,{key,code,isComposing:true,keyCode:229,bubbles:true,cancelable:true,...extra}));
+      send('keydown');send('keydown',{repeat:true});send('keyup');
+      samples.push({active:g.parry.active,attempts:g.analytics.parryAttempts,released:!g.keys.has(code.slice(3).toLowerCase())});
+    }
+    const g=window.fixture(),field=document.createElement('input');document.body.append(field);field.focus();
+    field.dispatchEvent(new KeyboardEvent('keydown',{key:'ㅍ',code:'KeyF',bubbles:true}));
+    const typing=g.parry.active;field.remove();
+    window.dispatchEvent(new KeyboardEvent('keydown',{key:'f',code:'KeyF',ctrlKey:true,bubbles:true}));
+    const shortcut=g.parry.active;
+    window.dispatchEvent(new KeyboardEvent('keydown',{key:'ㅈ',code:'KeyW',isComposing:true,bubbles:true}));
+    const moving=g.keys.has('w');
+    window.dispatchEvent(new KeyboardEvent('keyup',{key:'Process',code:'KeyW',isComposing:true,bubbles:true}));
+    return {samples,typing,shortcut,moving,released:!g.keys.has('w')};
+  });
+  assert.ok(koreanKeys.samples.every(s=>s.active>0&&s.attempts===1&&s.released));
+  assert.equal(koreanKeys.typing,0);assert.equal(koreanKeys.shortcut,0);assert.ok(koreanKeys.moving&&koreanKeys.released);
   await p.keyboard.press("Shift+F");
   assert.equal(
     await p.evaluate(() => document.body.classList.contains("theater-mode")),
@@ -131,7 +151,7 @@ try {
   assert.ok(stop.advanced > 0 && stop.moved > 0);
   near(stop.remaining, 0);
   console.log(
-    "PASS F/G guard pose, Shift+F fullscreen, perfect nullification, 4m crowd interrupt/elite resistance and real-time nonblocking hit-stop with pause/resume",
+    "PASS physical F/G including Korean IME/Process and repeat/typing guards, Shift+F fullscreen, perfect nullification, 4m crowd interrupt/elite resistance and real-time nonblocking hit-stop with pause/resume",
   );
   const failures = await p.evaluate(() => {
     const samples = [];

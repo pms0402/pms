@@ -1,6 +1,6 @@
 const TAU = Math.PI * 2;
 const clamp01 = value => Math.max(0, Math.min(1, value));
-const ease = value => { const t = clamp01(value); return t * t * (3 - 2 * t); };
+const ease = value => { const t = clamp01(value); return t * t * t * (t * (t * 6 - 15) + 10); };
 
 export const damp = (current, target, rate, dt) => current + (target - current) * -Math.expm1(-rate * Math.max(0, dt));
 export const angleDelta = (from, to) => ((to - from + Math.PI) % TAU + TAU) % TAU - Math.PI;
@@ -28,4 +28,13 @@ export function swordSwing(t) {
   if (t < .18) return -.95 * ease(t / .18);
   if (t < .62) return -.95 + 1.95 * ease((t - .18) / .44);
   return 1 - ease((t - .62) / .38);
+}
+
+// Damage may be faster than a readable stroke; only artwork is coalesced.
+export function beginSwordStroke(game, profile) {
+  const duration = Math.max(.13, Math.min(.3, .8 / Math.max(1, game.combatStats.attackRate * profile.attackRateMultiplier)));
+  if (game.attackAnim > 0 && game.attackAnim / (game.attackAnimTotal || duration) > .26) return false;
+  game.swingSide = -(game.swingSide || -1);
+  game.attackAnimTotal = duration; game.attackAnim = duration;
+  return true;
 }

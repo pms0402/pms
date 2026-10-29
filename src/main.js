@@ -16,6 +16,7 @@ import { createChronicleUi, analyticsMarkup } from './chronicle-ui.js';
 import { DAMAGE_SOURCES, normalizeRunHistory } from './analytics.js';
 import { normalizeStory } from './story.js';
 import { CAMP_FACILITIES } from './camp.js';
+import { gameKey, isGameShortcut } from './game-input.js';
 
 const $ = (s) => document.querySelector(s);
 const stageNames = STAGES.map(stage => stage.name);
@@ -76,7 +77,7 @@ $('#app').innerHTML = `
       <button class="nav-link" data-nav="history">런 기록 <span class="nav-count" id="history-count">${history.length.toString().padStart(2, '0')}</span></button>
       <button class="nav-link" data-nav="permanent">영구 강화</button>
     </nav>
-    <div class="header-actions"><span class="build-label"><i></i> BUILD YOUR LEGEND <b>v0.15.0</b></span><span class="header-divider"></span><button id="sound-toggle" class="icon-button" title="사운드 켜기" aria-label="사운드 켜기">${icon('muted')}</button><button id="settings" class="icon-button" title="설정" aria-label="설정">${icon('settings')}</button></div>
+    <div class="header-actions"><span class="build-label"><i></i> BUILD YOUR LEGEND <b>v0.16.0</b></span><span class="header-divider"></span><button id="sound-toggle" class="icon-button" title="사운드 켜기" aria-label="사운드 켜기">${icon('muted')}</button><button id="settings" class="icon-button" title="설정" aria-label="설정">${icon('settings')}</button></div>
   </header>
   <main class="page">
     <section class="page-intro">
@@ -384,7 +385,7 @@ function expansionGuide() {
 function showGuide() {
   if (isChoiceDialog()) return;
   const steps = [
-    ['장비·탐험·정밀 방어', '장비는 <kbd>E</kbd> / 장비 버튼에서 비교·교체·버릴 수 있습니다. NPC 가까이에서 <kbd>R</kbd> / 교류로 대화하세요. <kbd>F</kbd> / <kbd>G</kbd> 패링은 전방 120°를 0.45초 방어하며 처음 0.16초는 완벽한 패링입니다. 성공하면 4m 충격파·0.1초 히트 스톱·공격한 보스 경직, 2초 안 다음 자동 검격은 180° 광역 250% 반격입니다. 재사용 4초, 보스 경직 저항 5초. 붉은 지면 공격은 방어 불가, 청색 직선·일반 탄환은 방어 가능.'],
+    ['장비·탐험·정밀 방어', '장비는 <kbd>E</kbd> / 장비 버튼에서 비교·교체·버릴 수 있습니다. NPC 가까이에서 <kbd>R</kbd> / 교류로 대화하세요. <kbd>F</kbd> / <kbd>G</kbd> (한/영 무관) 패링은 전방 120°를 0.45초 방어하며 처음 0.16초는 완벽한 패링입니다. 성공하면 4m 충격파·0.1초 히트 스톱·공격한 보스 경직, 2초 안 다음 자동 검격은 180° 광역 250% 반격입니다. 재사용 4초, 보스 경직 저항 5초. 붉은 지면 공격은 방어 불가, 청색 직선·일반 탄환은 방어 가능.'],
     ['세 단계 수호자와 끝없는 심연', '보스 체력 70% 미만·35% 미만에서 새로운 패턴과 연계가 열립니다. 보스 장비는 하나 선택하거나 넘길 수 있습니다. 일반 10층 승리 후 모드 선택에서 11층부터 무한 심연을 탐험하세요. 5층마다 재앙 보스, 20층부터 10층마다 교대 제약이 등장합니다. 기록·업적은 이 브라우저에 저장됩니다.'],
     ['전장을 움직이고, 공격은 자동으로', '<kbd>W A S D</kbd> / 방향키로 이동, <kbd>SPACE</kbd>로 무적 대시. 모바일은 방향 버튼이나 전장 드래그를 사용합니다. 검은 <b>화면에 보이는 전방 궤적 안</b>의 적을 베며, 마법은 별도로 자동 시전합니다.'],
     ['검 범위도 선택으로 성장합니다', '기본 검은 가까운 적을 베는 무기입니다. <b>검 범위 강화</b>를 고르면 거리 +12%, 최대 8단계까지 늘어납니다. 검 공격력·속도·범위 강화 합계 <b>3단계</b>부터 대검 / 쌍검 / 검기 진화가 등장합니다. 한 런에는 하나의 검 진화를 고릅니다.'],
@@ -771,9 +772,9 @@ $('.brand').addEventListener('click', (event) => { event.preventDefault(); $('#g
 $('#modal-backdrop').addEventListener('click', (e) => { if (e.target.id === 'modal-backdrop') closeModal(); });
 window.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') { event.preventDefault(); if (dialogName) closeModal(); else if (theaterMode) toggleFullscreen(); else showPause(); }
-  if (event.key.toLowerCase() === 'e' && !event.repeat && !event.target?.closest?.('input,textarea,select') && !isChoiceDialog()) {event.preventDefault();if(dialogName === 'inventory')closeModal();else expansionUI?.inventory();}
-  if (event.key.toLowerCase() === 'f' && event.shiftKey && !event.repeat && !event.target?.closest?.('input,textarea,select')) { event.preventDefault(); toggleFullscreen(); }
-  if (event.key.toLowerCase() === 'b' && !event.repeat && !event.target?.closest?.('input,textarea,select')) { event.preventDefault(); if (dialogName === 'build') closeModal(); else if (!dialogName) showBuild(); }
+  if (gameKey(event) === 'e' && !event.repeat && isGameShortcut(event) && !isChoiceDialog()) {event.preventDefault();if(dialogName === 'inventory')closeModal();else expansionUI?.inventory();}
+  if (gameKey(event) === 'f' && event.shiftKey && !event.repeat && isGameShortcut(event)) { event.preventDefault(); toggleFullscreen(); }
+  if (gameKey(event) === 'b' && !event.repeat && isGameShortcut(event)) { event.preventDefault(); if (dialogName === 'build') closeModal(); else if (!dialogName) showBuild(); }
   if (isChoiceDialog() && /^[0-9]$/.test(event.key) && !event.repeat) {
     event.preventDefault();
     if (dialogName === 'curse' && event.key === '0') document.querySelector('[data-curse="skip"]')?.click();

@@ -10,9 +10,11 @@ import { CURSES, ROUTES, getRunModifiers, getCurseChoices } from './run-events.j
 import { getActiveSynergies } from './synergies.js';
 import { createTerrainWorld } from './world.js';
 import { buildMonster, createPlayerModel, animatePlayerModel, animateEnemyModel } from './creatures.js';
-import { createActorMotion } from './motion.js';
+import { createActorMotion, beginSwordStroke } from './motion.js';
+import { tagMotionGeometry } from './monster-motion.js';
 import { EnemyRenderer } from './enemy-renderer.js';
 import { createPresentationAssets } from './presentation.js';
+import { SwordTrail } from './sword-trail.js';
 import { CombatArt } from './combat-art.js';
 import { ActorShadows } from './actor-shadows.js';
 import { getRegion, getRegionChoices, getRegionModifiers, chooseRegionalEnemyKind, getRegionRelicChoices } from './regions.js';
@@ -21,6 +23,7 @@ import { MutationSystem } from './mutations.js';
 import { BossPhases } from './boss-phases.js';
 import { EquipmentSystem } from './equipment.js';
 import { ParrySystem, PARRY, counterProfile } from './parry.js';
+import { gameKey, isGameShortcut } from './game-input.js';
 import { ExplorationSystem } from './exploration.js';
 import { abyssStats, abyssBoss, abyssRule } from './abyss.js';
 import { RunAnalytics, damageCategory } from './analytics.js';
@@ -120,7 +123,7 @@ export class Game {
     for (const material of [this.mats.rock, this.mats.rockDark]) { material.map = this.presentation.stoneMap; material.normalMap = this.presentation.stoneNormal; material.roughnessMap = this.presentation.stoneRoughness; material.normalScale.set(.6, .6); }
     this.createWorld();
     this.createPlayer();
-    this.combatArt = new CombatArt(this.scene);
+    this.combatArt = new CombatArt(this.scene); this.swordTrail = new SwordTrail(this);
     this.actorShadows = new ActorShadows(this.scene, this.enemies, this.presentation.contactMap);
     this.equipment = new EquipmentSystem(this);
     this.parry = new ParrySystem(this);
@@ -346,7 +349,7 @@ export class Game {
     this.nextAltarTime = 45; this.activeCurses = []; this.routeId = 'standard'; this.regionId = 'sanctum'; this.runReport = this.freshRunReport(); this.nextSynergyToast = 0;
     this.pendingChestRewards = []; this.chestChoices = []; this.activeChestReward = null; this.curseChoices = []; this.routeChoices = []; this.regionChoices = []; this.pendingRouteId = null; this.pendingRouteStage = null;
     this.stageChestCount = 0; this.eliteKills = 0; this.pendingRelicSources = []; this.pendingBossRewards = []; this.relicChoices = []; this.upgradeChoices = [];
-    this.attackTimer = 0.2; this.spawnTimer = 1.3; this.bossSpawned = false; this.bossDefeated = false; this.boss = null; this.dashCooldown = 0; this.dashTime = 0; this.invulnerable = 0; this.shake = 0; this.comboTimer = 0; this.attackAnim = 0; this.counterAnim = 0;
+    this.attackTimer = 0.2; this.spawnTimer = 1.3; this.bossSpawned = false; this.bossDefeated = false; this.boss = null; this.dashCooldown = 0; this.dashTime = 0; this.invulnerable = 0; this.shake = 0; this.comboTimer = 0; this.attackAnim = 0; this.counterAnim = 0; this.swingSide = -1;
     this.playerMotion = createActorMotion(this.player);
     this.playerVisual.position.set(0, 0, 0); this.playerVisual.rotation.set(0, 0, 0);
     this.dashDirection = new THREE.Vector3(0.707, 0, 0.707);
@@ -370,7 +373,7 @@ export class Game {
       // Box/cone geometry is indexed while the faceted body is non-indexed.
       // Normalize the layout before merging so arms and the body stay intact.
       const geometry = mesh.geometry.index ? mesh.geometry.toNonIndexed() : mesh.geometry.clone();
-      entries.push(geometry.applyMatrix4(mesh.matrix));
+      entries.push(tagMotionGeometry(geometry.applyMatrix4(mesh.matrix),kind,mesh.userData.rigJoint||0));
       byMaterial.set(mesh.material, entries);
     }
     visual.clear();
@@ -427,6 +430,7 @@ export class Game {
 
   releaseEnemy(enemy) {
     this.activeEnemies.delete(enemy);
+    this.enemyRenderer?.release(enemy);
     enemy.specialModel?.removeFromParent(); enemy.specialModel = null;
     this.clearTelegraph(enemy); this.removeGroup(enemy.warning); this.removeGroup(enemy.aura); this.removeGroup(enemy.group);
     enemy.warning = null; enemy.aura = null;
@@ -549,8 +553,8 @@ export class Game {
 
   setupInput() {
     this.onKeyDown = (event) => {
-      if (!['playing','camp'].includes(this._state.phase) || this.camp?.suspended || event.target?.closest?.('input,textarea,select')) return;
-      const key = event.key.toLowerCase();
+      if (!['playing','camp'].includes(this._state.phase) || this.camp?.suspended || !isGameShortcut(event)) return;
+      const key = gameKey(event);
       if (key === ' ' && event.target?.closest?.('button,a')) return;
       if ([' ', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(key)) event.preventDefault();
       // Escape is owned by the UI so its pause dialog always follows game state.
@@ -560,7 +564,7 @@ export class Game {
       if ((key === 'g' || key === 'f' && !event.shiftKey) && !event.repeat) { event.preventDefault(); this.parry.press(); }
       if (key === 'r' && !event.repeat) this.interact();
     };
-    this.onKeyUp = (event) => this.keys.delete(event.key.toLowerCase());
+    this.onKeyUp = (event) => this.keys.delete(gameKey(event));
     this.onBlur = () => { this.keys.clear(); this.touchMove = { x: 0, y: 0 }; this.touchStart = null; };
     this.onVisibility = () => { if (document.hidden) this.onBlur(); this.lastTime = performance.now(); };
     window.addEventListener('keydown', this.onKeyDown); window.addEventListener('keyup', this.onKeyUp);
@@ -1102,7 +1106,7 @@ export class Game {
               this.puff(target.group.position, '#c0ffd0', .7, .3);
               if (++healed >= 5) break;
             }
-            this.puff(e.group.position, '#c5e4ff', 1.8, .4); e.action = 'chase'; e.actionTimer = 4; e.specialCasts++;
+            this.puff(e.group.position, '#c5e4ff', 1.8, .4); e.action = 'chase'; e.actionTimer = 4; e.specialCasts++; e.visualCast=.35;
           }
         } else if (e.actionTimer <= 0 && distance < 30) {
           e.action = 'heal-warning'; e.actionTimer = .8;
@@ -1146,6 +1150,7 @@ export class Game {
       this.resolvePosition(e.group.position, Math.min(1.2, e.size * .4));
       e.stagger.multiplyScalar(Math.max(0, 1 - dt * 9));
       if (distance < 1.2 && !(e.mutationContactCooldown > 0)) {
+        if(!(e.visualAttackCooldown>0)){e.visualAttack=.36;e.visualAttackCooldown=.8;}
         const rawDamage = this.stageStats().enemyDamage * e.baseDamageMultiplier * e.damageMultiplier * (e.kind === 5 && e.action === 'rush' ? 1.35 : 1);
         if (this.takeDamage(rawDamage, e.group.position, `${e.name} ${e.action === 'rush' ? '돌진' : '접촉'}`, e)) {
           e.stagger.set(-dx / Math.max(distance, 0.01) * 8, 0, -dz / Math.max(distance, 0.01) * 8);
@@ -1204,6 +1209,7 @@ export class Game {
 
   shootEnemyProjectile(source, direction, options = {}) {
     if (source.parryStun > 0) return;
+    if(source.group)source.visualCast=.35;
     const position = source.group?.position || source.position || source;
     const aim = direction?.clone?.() || this.player.position.clone().sub(position);
     aim.y = 0; aim.normalize();
@@ -1238,8 +1244,8 @@ export class Game {
     if (!nearest) return false;
     const delta = nearest.group.position.clone().sub(this.player.position).setY(0);
     if (delta.lengthSq() < 0.0001) delta.set(Math.sin(this.player.rotation.y), 0, Math.cos(this.player.rotation.y));
-    delta.normalize(); this.player.rotation.y = Math.atan2(delta.x, delta.z); this.attackAnimTotal = Math.min(.3, .8 / Math.max(1, this.combatStats.attackRate * profile.attackRateMultiplier)); this.attackAnim = this.attackAnimTotal;
-    if (counterReady) {this.counterAnim=.38;this.parry.feedback.strike(delta,profile);} else this.slash(delta, profile);
+    delta.normalize(); this.player.rotation.y = Math.atan2(delta.x, delta.z); const visualStroke=beginSwordStroke(this,profile);
+    if (counterReady) {this.counterAnim=.38;this.parry.feedback.strike(delta,profile);} else if(visualStroke) this.slash(delta, profile);
     const classBonus = this.classes.swordBonus();
     const counter = this.parry.consume();
     const dashBonus = this.equipmentDashUntil > this._state.elapsed && this.equipment.bonuses().dash ? 1.25 : 1; this.equipmentDashUntil = 0;
@@ -1263,12 +1269,13 @@ export class Game {
     if (!effect.groundGeometries.has(profile.mode)) { const geometry = template.clone(); geometry.parameters = { ...template.parameters }; effect.groundGeometries.set(profile.mode, geometry); this.ownedGeometries.add(geometry); }
     mesh.geometry = effect.groundGeometries.get(profile.mode);
     mesh.geometry.attributes.position.copy(template.attributes.position);
+    mesh.geometry.setDrawRange(this.swingSide>0?0:Math.max(0,mesh.geometry.index.count-6),6);
     // Ring theta=0 points along local +X. This transform maps it to the attack
     // direction in world X/Z, with exactly the same radius and arc as collision.
     mesh.rotation.set(-Math.PI / 2, 0, Math.atan2(direction.x, direction.z) - Math.PI / 2);
     mesh.position.copy(this.player.position); mesh.position.y += 0.38;
     mesh.scale.setScalar(profile.range); this.fitGroundMesh(mesh, .38);
-    Object.assign(effect, { life: 0.22, total: 0.22, type: 'slash', fixedScale: true }); this.effects.push(effect);
+    Object.assign(effect, { life: 0.22, total: 0.22, type: 'slash', fixedScale: true, sweepSide: this.swingSide||1 }); this.effects.push(effect);
   }
 
   updateProjectiles(dt) {
@@ -1494,6 +1501,7 @@ export class Game {
   }
 
   animateEffects(dt) {
+    this.swordTrail?.update(dt);
     this.parry?.feedback.update(dt);
     this.combatArt?.update(dt);
     for (let i = this.floatingTexts.length - 1; i >= 0; i--) {
@@ -1504,6 +1512,7 @@ export class Game {
     }
     for (let i = this.effects.length - 1; i >= 0; i--) {
       const e = this.effects[i]; e.life -= dt;
+      if(e.type==='slash'&&e.pooled){const progress=1-e.life/e.total,n=e.mesh.geometry.index?.count||0,tri=Math.floor(n/6);const head=Math.min(tri,Math.ceil(Math.max(0,progress)*tri*1.7)),tail=Math.max(0,head-12);e.mesh.geometry.setDrawRange((e.sweepSide>0?tail:tri-head)*6,Math.max(0,head-tail)*6);}
       if (e.mesh.material.opacity !== undefined) e.mesh.material.opacity = Math.max(0, e.life / e.total) * (e.type === 'slash' ? 0.8 : 1);
       if (e.type === 'particle') { e.mesh.position.addScaledVector(e.velocity, dt); e.velocity.y -= dt * 14; }
       else if (!e.fixedScale) e.mesh.scale.multiplyScalar(1 + dt * (e.type === 'slash' ? 2 : 4));
@@ -1535,7 +1544,7 @@ export class Game {
   removeGroup(group) { if (!group) return; group.parent?.remove(group); }
   clearDynamic() {
     this.sideAreas?.reset();
-    this.combatArt?.reset(); this.actorShadows?.reset();
+    this.swordTrail?.reset(); this.combatArt?.reset(); this.actorShadows?.reset();
     this.regionSystem?.reset(); this.mutationSystem?.reset(); this.equipment?.reset(); this.parry?.reset(); this.setSystem?.reset(); this.classes?.reset(); this.exploration?.reset();
     this.enemyRenderer?.reset();
     this.bossSystem?.clear(); this.bossPhases?.clear();
@@ -1584,7 +1593,7 @@ export class Game {
     this.disposed = true; cancelAnimationFrame(this.raf); this.observer.disconnect();
     window.removeEventListener('keydown', this.onKeyDown); window.removeEventListener('keyup', this.onKeyUp); window.removeEventListener('blur', this.onBlur); document.removeEventListener('visibilitychange', this.onVisibility);
     this.renderer.domElement.removeEventListener('pointerdown', this.onPointerDown); this.renderer.domElement.removeEventListener('pointermove', this.onPointerMove); this.renderer.domElement.removeEventListener('pointerup', this.onPointerUp); this.renderer.domElement.removeEventListener('pointercancel', this.onPointerUp);
-    this.camp?.leave(); this.clearDynamic(); this.camp?.dispose(); this.sideAreas?.dispose(); this.regionSystem?.dispose(); this.mutationSystem?.dispose(); this.enemyRenderer?.dispose(); this.actorShadows?.dispose(); this.combatArt?.dispose(); this.presentation?.dispose(); this.magic?.dispose(); this.bossSystem?.dispose(); this.bossPhases?.dispose(); this.equipment?.dispose(); this.parry?.dispose(); this.setSystem?.dispose(); this.classes?.dispose(); this.exploration?.dispose();
+    this.camp?.leave(); this.clearDynamic(); this.camp?.dispose(); this.sideAreas?.dispose(); this.regionSystem?.dispose(); this.mutationSystem?.dispose(); this.enemyRenderer?.dispose(); this.actorShadows?.dispose(); this.combatArt?.dispose(); this.swordTrail?.dispose(); this.presentation?.dispose(); this.magic?.dispose(); this.bossSystem?.dispose(); this.bossPhases?.dispose(); this.equipment?.dispose(); this.parry?.dispose(); this.setSystem?.dispose(); this.classes?.dispose(); this.exploration?.dispose();
     this.heroTextures?.forEach(texture => texture.dispose());
     this.world?.art.dispose();
     const geometries = new Set(), materials = new Set();
