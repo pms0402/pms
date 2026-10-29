@@ -41,7 +41,7 @@ try {
   assert.ok(result.variance > 12, 'the actual GPU image contains stone texture detail, not a flat fallback');
   assert.ok(result.highGrass > 1000 && result.low.grass < result.highGrass && !result.low.mist && !result.low.shadows && result.restored && result.drifting);
   assert.equal(result.hit.damage, 10); assert.ok(result.hit.particles > 0 && result.hit.unchanged); assert.equal(result.hit.shadowCount, 160);
-  assert.ok(result.hit.calls < 300 && result.hit.geometries < 180 && result.hit.textures < 32); assert.ok(result.capped && result.reset);
+  assert.ok(result.hit.calls < 300 && result.hit.geometries < 180 && result.hit.textures < 32, JSON.stringify(result.hit)); assert.ok(result.capped && result.reset);
   for (const viewport of [{ width: 390, height: 844 }, { width: 1180, height: 820 }]) {
     await page.setViewportSize(viewport); const dimensions = await page.evaluate(() => [document.documentElement.scrollWidth - innerWidth, document.documentElement.scrollHeight - innerHeight]); assert.ok(dimensions.every(n => n <= 1));
   }

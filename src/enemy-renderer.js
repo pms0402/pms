@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {rigMaterial,deformReference} from './monster-motion.js';
+import {rigMaterial,deformReference,jointAngles} from './monster-motion.js';
 const REST_POSE=new Float32Array(8);
 
 /** Draw identical opaque monster parts together, keeping their exact geometry and materials. */
@@ -12,6 +12,7 @@ export class EnemyRenderer {
     this.batches = new Map();
     this.hidden = new Set();
     this.rigMaterials=new Map();this.cpuParts=new Map();
+    this.rigidParts=new WeakMap();this.rigidAngles=new Float64Array(3);this.rigidEuler=new THREE.Euler(0,0,0,'ZYX');this.rigidMatrix=new THREE.Matrix4();this.rigidPoint=new THREE.Vector3();
     this.rigDepth=rigMaterial(new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking}));
     this.rigDistance=rigMaterial(new THREE.MeshDistanceMaterial());
     this.visibility = new WeakMap();
@@ -57,6 +58,20 @@ export class EnemyRenderer {
   cpuPose(part,enemy,reference=false){
     const existing=this.cpuParts.get(part),original=existing?.original||part.geometry;
     if(!original.attributes.vrJoint)return;
+    // A glow attached to one joint needs only a matrix, not one geometry per monster.
+    // Scene.updateMatrixWorld restores the bind matrix before every render.
+    if(!reference){
+      if(!this.rigidParts.has(original)){const joints=original.attributes.vrJoint.array,joint=joints[0];this.rigidParts.set(original,joints.every(j=>j===joint)?{joint,kind:original.attributes.vrKind.array[0],pivot:original.attributes.vrPivot.array.slice(0,3)}:null);}
+      const rigid=this.rigidParts.get(original);
+      if(rigid){
+        if(existing){part.geometry=original;existing.geometry.dispose();this.cpuParts.delete(part);}
+        if(!rigid.joint)return;
+        jointAngles(rigid.kind,rigid.joint,enemy.motion?.pose||REST_POSE,this.rigidAngles);
+        this.rigidEuler.set(...this.rigidAngles,'ZYX');this.rigidMatrix.makeRotationFromEuler(this.rigidEuler);
+        const p=rigid.pivot;this.rigidPoint.fromArray(p).applyMatrix4(this.rigidMatrix);this.rigidMatrix.setPosition(p[0]-this.rigidPoint.x,p[1]-this.rigidPoint.y,p[2]-this.rigidPoint.z);
+        part.matrixWorld.multiply(this.rigidMatrix);return;
+      }
+    }
     let entry=existing;if(!entry){entry={original,geometry:original.clone(),reference};this.cpuParts.set(part,entry);}entry.reference=reference;part.geometry=entry.geometry;deformReference(original,entry.geometry,enemy.motion?.pose||REST_POSE);
   }
   clearCpu(referenceOnly=false){for(const [part,e] of this.cpuParts)if(!referenceOnly||e.reference){part.geometry=e.original;e.geometry.dispose();this.cpuParts.delete(part);}}
@@ -75,6 +90,7 @@ export class EnemyRenderer {
         const material = part.material;
         if (!part.isMesh || !part.visible) continue;
         if(!this.enabled||enemy.kind===4||Array.isArray(material)||material.transparent||material.opacity<1||part.isSkinnedMesh){this.cpuPose(part,enemy,!this.enabled);continue;}
+        const posed=this.cpuParts.get(part);if(posed){part.geometry=posed.original;posed.geometry.dispose();this.cpuParts.delete(part);}
         if (!this.visibility.has(part)) this.visibility.set(part, part.visible);
         if (!part.geometry.boundingSphere) part.geometry.computeBoundingSphere();
         this.sphere.copy(part.geometry.boundingSphere).applyMatrix4(part.matrixWorld);
