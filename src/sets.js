@@ -18,7 +18,7 @@ export class SetSystem{
  onHit(enemy,source,spell){if(!['sword','magic'].includes(source))return;const g=this.game,t=g._state.elapsed;let color,radius,count,amount;
  if(spell==='fireball'&&this.count('inferno')>=4&&t>=this.nextFire&&Math.random()<.15){this.nextFire=t+3;color='#ff9c5b';radius=2.6;count=5;amount=.3;}
  else if(enemy.slowTime>0&&this.count('glacier')>=4&&t>=this.nextFrost){this.nextFrost=t+2.5;color='#93eaff';radius=2.5;count=4;amount=.25;}
- if(!color)return;const p=enemy.group.position.clone();g.magic.ring(p,radius,spell==='fireball'?'fireball':'frost',.35,.65);for(const e of g.queryEnemies(p,radius).slice(0,count))g.hitEnemy(e,g.combatStats.spellDamage*amount,undefined,'set',null,{knockbackScale:0,hitStun:0,analyticsSource:'set'});}
+ if(!color)return;const p=enemy.group.position.clone();g.magic.ring(p,radius,spell==='fireball'?'fireball':'frost',.35,.65);for(const e of g.queryEnemies(p,radius).filter(e=>e!==enemy).slice(0,count))g.hitEnemy(e,g.combatStats.spellDamage*amount,undefined,'set',null,{knockbackScale:0,hitStun:0,analyticsSource:'set'});}
  update(){const sets=this.game.equipment.bonuses().sets||[],active=sets.find(s=>s.count>=2);this.mesh.visible=!!active;if(active){this.material.color.set(active.color);this.mesh.position.copy(this.game.player.position);this.mesh.position.y+=.09;this.mesh.scale.setScalar(active.count>=4?1.5:1.1);this.mesh.rotation.z=this.game._state.elapsed*.4;}if(this.game._state.elapsed>=this.shieldUntil)this.shield=0;}
  reset(){this.hasteUntil=this.nextFire=this.nextFrost=this.nextShield=this.shield=this.shieldUntil=0;if(this.mesh)this.mesh.visible=false;}
  state(){return {sets:this.game.equipment.bonuses().sets||[],shield:this.shield,haste:Math.max(0,this.hasteUntil-this.game._state.elapsed)};}

@@ -92,7 +92,7 @@ test('selected character and sword produce distinct bounded sidegrades', () => {
   assert.equal(offers.length, CHARACTERS.length + WEAPONS.length);
   assert.equal(offers.filter(item => item.selected).length, 2);
   assert.ok(offers.find(item => item.id === 'arcanist').unlocked);
-  for (const character of CHARACTERS.slice(1)) assert.ok(character.damageMultiplier < 1 || character.spellDamageMultiplier < 1);
+  for (const character of CHARACTERS.slice(1)) assert.ok(character.damageMultiplier < 1 || character.spellDamageMultiplier < 1 || character.maxHpMultiplier < 1 || character.speedMultiplier < 1);
   for (const weapon of WEAPONS.slice(1)) assert.ok(weapon.damageMultiplier * weapon.attackRateMultiplier < 1.01, 'weapon DPS stays close to the starter with range as a tradeoff');
 });
 

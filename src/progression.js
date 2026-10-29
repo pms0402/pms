@@ -1,3 +1,4 @@
+import { NEW_CLASSES } from './classes.js';
 const MAX_SAFE = Number.MAX_SAFE_INTEGER;
 const RECEIPT_LIMIT = 200;
 
@@ -20,6 +21,7 @@ export const CHARACTERS = [
   { id: 'wanderer', name: '방랑자', description: '검과 마법을 균형 있게 다루는 기본 캐릭터.', icon: 'move', cost: 0, damageMultiplier: 1, spellDamageMultiplier: 1, maxHpMultiplier: 1 },
   { id: 'arcanist', name: '비전술사', description: '마법 공격력 +16% · 검 공격력 -15% · 최대 체력 -10%', icon: 'orbit', cost: 150, damageMultiplier: 0.85, spellDamageMultiplier: 1.16, maxHpMultiplier: 0.9 },
   { id: 'berserker', name: '광전사', description: '검 공격력 +20% · 마법 공격력 -18% · 최대 체력 -15%', icon: 'sword', cost: 200, damageMultiplier: 1.2, spellDamageMultiplier: 0.82, maxHpMultiplier: 0.85 },
+  ...NEW_CLASSES,
 ];
 
 export const WEAPONS = [
