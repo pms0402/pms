@@ -39,6 +39,7 @@ export class RunAnalytics {
     this.dashes = 0;
     this.parryAttempts = 0;
     this.parrySuccesses = 0;
+    this.parryBlocked = 0; this.parryBossStuns = 0;
     this.kills = { normal: 0, elite: 0, boss: 0 };
     this.floors = new Map();
     this.bins = [];
@@ -117,6 +118,8 @@ export class RunAnalytics {
       dashes: this.dashes,
       parryAttempts: this.parryAttempts,
       parrySuccesses: this.parrySuccesses,
+      parrySuccessRate: this.parryAttempts ? Math.min(1,this.parrySuccesses / this.parryAttempts) : 0,
+      parryBlocked: this.parryBlocked, parryBossStuns: this.parryBossStuns,
       gold: s.grossGold ?? s.gold,
       netGold: s.gold,
       gearCount: this.gearCount,

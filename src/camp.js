@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { counterProfile } from "./parry.js";
 import { SceneContext } from "./scene-context.js";
 export const CAMP_FACILITIES = Object.freeze([
   { id: "smith", name: "대장간", x: -8, z: -6, color: "#dfad75" },
@@ -173,7 +174,7 @@ export class CampSystem {
     this.game.player.position.set(f.x, 0, f.z + 3);
     this.game.player.rotation.y = Math.PI;
     this.game.callbacks.onLoot?.(
-      "훈련 · 푸른 구체가 켜진 뒤 G. 체력과 런 통계는 변하지 않습니다.",
+      "훈련 · 푸른 구체가 켜진 뒤 F / G. 체력과 런 통계는 변하지 않습니다.",
     );
     return true;
   }
@@ -181,7 +182,9 @@ export class CampSystem {
     if (!this.practice || this.game.parry.counterTime <= 0) return false;
     this.game.parry.consume();
     this.game.attackAnim = this.game.attackAnimTotal = 0.3;
-    this.game.slash(new THREE.Vector3(0, 0, -1));
+    this.game.counterAnim = .38;
+    this.game.parry.feedback.strike(new THREE.Vector3(0, 0, -1), counterProfile(this.game.stats));
+    this.game.sound('counter');
     this.game.callbacks.onLoot?.("훈련 반격 성공");
     return true;
   }
@@ -213,9 +216,9 @@ export class CampSystem {
         const blocked = g.parry.defend(new THREE.Vector3(f.x, 0, f.z));
         g.callbacks.onLoot?.(
           blocked === 0
-            ? "패링 연습 성공 · G로 반격"
+            ? "패링 연습 성공 · F / G로 반격"
             : blocked < 1
-              ? "기본 방어 성공 · 더 늦게 G를 눌러 보세요"
+              ? "기본 방어 성공 · 더 늦게 F / G를 눌러 보세요"
               : "훈련 공격 · 실제 체력 피해 없음",
         );
         this.practiceTimer = 3;

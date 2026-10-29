@@ -49,7 +49,8 @@ test("parry accepts a brief forward attack, rejects rear/unblockable attacks and
   const game = {
     scene: new THREE.Scene(),
     player: new THREE.Group(),
-    _state: { phase: "playing" },
+    _state: { phase: "playing", elapsed: 0 },
+    camera:new THREE.PerspectiveCamera(), groundHeight:()=>0, combatArt:{emit(){}}, queryEnemies:()=>[],
     stats: { relics: [] },
     callbacks: {},
     sound() {},
@@ -62,10 +63,10 @@ test("parry accepts a brief forward attack, rejects rear/unblockable attacks and
   assert.equal(p.defend(new THREE.Vector3(0, 0, 1), { unblockable: true }), 1);
   assert.equal(p.defend(new THREE.Vector3(0, 0, 1)), 0);
   assert.equal(p.successes, 1);
-  assert.equal(p.consume(), 2);
+  assert.equal(p.consume(), 2.5);
   assert.equal(p.consume(), 1);
   assert.equal(p.press(), false);
-  p.update(3);
+  p.update(4);
   p.press();
   p.update(0.2);
   assert.equal(p.defend(new THREE.Vector3(0, 0, 1)), 0.35);

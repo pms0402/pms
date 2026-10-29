@@ -92,9 +92,10 @@ export function animatePlayerModel(game,time,moving,dt) {
  const state=game.playerMotion||(game.playerMotion=createActorMotion(game.player));
  const dashing=game.dashTime>0;
  advanceActorMotion(state,game.player,dt,game.stats.speed,moving&&!dashing);
- const stride=state.stride,gait=Math.sin(state.phase)*stride,attack=game.attackAnim>0;
- const t=attack?1-game.attackAnim/(game.attackAnimTotal||.3):0;
- const swing=attack?Math.sin(Math.PI*t)**2:0,yaw=attack?swordSwing(t):0;
+ const counter=game.counterAnim>0;
+ const stride=state.stride,gait=Math.sin(state.phase)*stride,attack=game.attackAnim>0||counter;
+ const t=counter?1-game.counterAnim/.38:attack?1-game.attackAnim/(game.attackAnimTotal||.3):0;
+ const swing=attack?Math.sin(Math.PI*t)**2:0,yaw=attack?swordSwing(t)*(counter?1.3:1):0;
  // Faster weapons retain their full stroke rather than losing it to a slow filter.
  const armRate=attack?Math.max(24,5/(game.attackAnimTotal||.3)):18;
  const joint=(part,axis,target,rate=18)=>{part.rotation[axis]=damp(part.rotation[axis],target,rate,dt);};
@@ -110,7 +111,7 @@ export function animatePlayerModel(game,time,moving,dt) {
  joint(game.rightElbow,'x',game.parry?.active>0?-1.5:-.65-swing*.45,armRate);joint(game.leftElbow,'x',twin?-.65-swing*.25:-.25,armRate);
  // Counter-rotate only the artwork; targeting, sword sectors and dashes stay exact.
  game.playerVisual.rotation.y=angleDelta(game.player.rotation.y,state.facing)+yaw*.14;
- joint(game.playerVisual,'x',dashing?.22:stride*.04,14);joint(game.playerVisual,'z',-gait*.025,14);
+ joint(game.playerVisual,'x',dashing?.22:counter?.1:stride*.04,14);joint(game.playerVisual,'z',-gait*.025,14);
  joint(game.swordArm,'z',-.12+swing*.25,armRate);
  joint(game.offhandGrip,'z',twin?.12-swing*.25:0,armRate);
  game.cape.rotation.x=damp(game.cape.rotation.x,-(.08+stride*.17+(dashing?.22:0))+Math.sin(time*4)*.025,9,dt);

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-const COLORS = { sword: '#ddcaff', fireball: '#ffad63', frost: '#9fdfff', lightning: '#c3edff', orbit: '#c4a0ff', combo: '#f0ccff', default: '#cdbda5' };
+const COLORS = { parry:'#c8f5ff',counter:'#ffe4a3', sword: '#ddcaff', fireball: '#ffad63', frost: '#9fdfff', lightning: '#c3edff', orbit: '#c4a0ff', combo: '#f0ccff', default: '#cdbda5' };
 
 /** Cosmetic particles share one draw call and never consume the gameplay RNG. */
 export class CombatArt {

@@ -90,6 +90,7 @@ export class BossPhases {
             `${boss.name} 연속 돌진`,
             boss,
           );
+        if (boss.parryStun > 0) return true;
         if (r.time <= 0) {
           if (--r.left > 0) this.startRush(boss, r.left);
           else {

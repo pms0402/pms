@@ -11,7 +11,7 @@ export class SceneContext {
         g.player,
         g.playerShadow,
         g.actorShadows?.mesh,
-        g.parry?.mesh,
+        g.parry?.mesh, g.parry?.feedback.root,
         g.setSystem?.mesh,
         g.classes?.pet,
       ]);
@@ -49,6 +49,7 @@ export class SceneContext {
   }
 }
 export function clearCosmetics(g) {
+  g.parry.feedback.reset(); g.parry.hitStop = 0;
   g.enemyRenderer.reset();
   g.combatArt.reset();
   while (g.floatingTexts.length) g.removeFloatingText(0);

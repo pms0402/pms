@@ -128,12 +128,12 @@ try {
   });
   assert.equal(defense.perfect.hp, 100);
   assert.ok(defense.perfect.counter > 0);
-  near(defense.damage[0], 45);
-  assert.equal(defense.damage[1], 0);
+  near(defense.damage[0], 56.25);
+  near(defense.damage[1], 56.25);
   near(defense.guarded, 3.5);
   near(defense.unblockable, 10);
   console.log(
-    "PASS forward perfect parry, single-target counter, partial late guard and unblockable attacks",
+    "PASS forward perfect parry, wide counter, partial late guard and unblockable attacks",
   );
   for (const type of [
     "warden",

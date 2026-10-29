@@ -212,6 +212,7 @@ export class HiddenBossSystem {
         "blade",
       );
       if (z) {
+        z.parryable = true;
         const m = z.marker.children[0];
         m.geometry.dispose();
         m.geometry = new THREE.RingGeometry(

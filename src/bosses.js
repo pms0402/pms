@@ -111,7 +111,7 @@ export class BossSystem {
 
   marker(position, radius, { type = 'disc', direction, length = 19 } = {}) {
     const group = new THREE.Group(); group.position.copy(position); group.position.y = (this.game.groundHeight?.(position.x, position.z) ?? position.y ?? 0) + .13;
-    const material = new THREE.MeshBasicMaterial({ color: type === 'line' ? this.color : '#ff7065', transparent: true, opacity: .18, side: THREE.DoubleSide, depthWrite: false });
+    const material = new THREE.MeshBasicMaterial({ color: type === 'line' ? '#8bdcff' : '#ff7065', transparent: true, opacity: .18, side: THREE.DoubleSide, depthWrite: false });
     const fill = new THREE.Mesh((type === 'line' ? this.geometry.plane : this.geometry.disc).clone(), material);
     fill.rotation.x = -Math.PI / 2;
     if (type === 'line') {
@@ -149,6 +149,7 @@ export class BossSystem {
   }
 
   fire(boss, direction, options = {}) {
+    if (boss.parryStun > 0) return;
     const bolts = this.game.enemyProjectiles || [];
     const before = bolts.length;
     const attack = { artillery: '포격', plague: '독침', storm: '전격 탄막', reaper: '십자 탄막' }[boss.archetype] || '원거리 공격';
@@ -166,7 +167,7 @@ export class BossSystem {
   }
 
   schedule(boss, delay, direction, options = {}) {
-    if (this.pendingShots.length >= 12) return;
+    if (boss.parryStun > 0 || this.pendingShots.length >= 12) return;
     this.pendingShots.push({ boss, delay, direction: direction?.clone(), ...options });
   }
 
@@ -278,7 +279,7 @@ export class BossSystem {
     const radius = Math.hypot(pos.x, pos.z);
     if (radius > ARENA_RADIUS - 2) pos.multiplyScalar((ARENA_RADIUS - 2) / radius);
     const contactDistance = Math.hypot(target.x - pos.x, target.z - pos.z);
-    if (contactDistance < 2.3) this.game.takeDamage(this.damage(), pos, `${boss.name || getBossStats(this.stage()).name} · 접촉`);
+    if (contactDistance < 2.3) this.game.takeDamage(this.damage(), pos, `${boss.name || getBossStats(this.stage()).name} · 접촉`, boss);
   }
 
   updateEffects(dt) {
@@ -312,6 +313,13 @@ export class BossSystem {
       }
       if (zone.life <= 0) { this.removeMarker(zone.marker); this.zones.splice(i, 1); }
     }
+  }
+
+  cancelParryable(boss) {
+    this.pendingShots = this.pendingShots.filter(shot=>shot.boss !== boss);
+    for (let i=this.zones.length-1;i>=0;i--) if(this.zones[i].type==='aim'||this.zones[i].parryable) {this.removeMarker(this.zones[i].marker);this.zones.splice(i,1);}
+    // Mark instead of splice: a parry can occur inside the projectile iteration.
+    for (const p of this.game.enemyProjectiles || []) if ((p.bossOwner===boss||p.attacker===boss)&&p.parryable!==false) {p.life=0;p.mesh.visible=false;}
   }
 
   cancelAttacks() {
