@@ -34,13 +34,13 @@ export class ParrySystem {
   }
   press() {
     const g = this.game;
-    if (g._state.phase !== "playing") return false;
+    if (g._state.phase !== "playing" && !(g._state.phase === "camp" && g.camp.practice && !g.camp.suspended)) return false;
     if (this.counterTime > 0) {
-      g.attack();
+      if (g.camp?.active) g.camp.counter(); else g.attack();
       return true;
     }
     if (this.cooldown > 0) return false;
-    this.game.analytics && this.game.analytics.parryAttempts++;
+    if (g._state.phase === "playing" && g.analytics) g.analytics.parryAttempts++;
     this.age = 0;
     this.active = 0.5;
     this.cooldown = 3;
@@ -79,13 +79,13 @@ export class ParrySystem {
     if (this.age <= 0.18) {
       this.active = 0;
       this.counterTime = 2;
-      this.successes++; g.setSystem?.onParry(); g.classes?.onParry(); if(g.analytics)g.analytics.parrySuccesses++;
+      if (g._state.phase === "playing") { this.successes++; g.setSystem?.onParry(); g.classes?.onParry(); if(g.analytics)g.analytics.parrySuccesses++; }
       g.puff(g.player.position, "#b1edff", 2, 0.3);
       g.sound("critical");
       g.callbacks.onLoot?.(
         "완벽한 패링 · 2초 안 다음 검격은 단일 대상 2배 반격",
       );
-      if (g.stats.relics?.includes("shockwave") && !(this.relicCooldown > 0)) {
+      if (g._state.phase === "playing" && g.stats.relics?.includes("shockwave") && !(this.relicCooldown > 0)) {
         this.relicCooldown = 6;
         for (const e of g.queryEnemies(g.player.position, 2.4).slice(0, 4))
           g.hitEnemy(e, g.combatStats.damage * 0.2, undefined, "parry");

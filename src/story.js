@@ -124,7 +124,7 @@ export function normalizeStory(input = {}) {
       s.endings,
       ENDINGS.map((e) => e.id),
     ),
-    normalClear: !!s.normalClear,
+    normalClear: s.normalClear === true,
     normalBossStages: unique(
       s.normalBossStages,
       [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],

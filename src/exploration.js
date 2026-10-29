@@ -298,6 +298,7 @@ export class ExplorationSystem {
         }
       }
     }
+    if (g.regionId === "void" && id !== "skip") g.story?.find("voidLens");
     g.equipment.invalidate();
     this.npc.used = true;
     this.npc.group.visible = false;

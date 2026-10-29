@@ -51,6 +51,7 @@ export class MagicSystem {
     this.material.core = new THREE.MeshBasicMaterial({ color: '#fff3bf', transparent: true, opacity: 0.95, depthWrite: false });
   }
 
+  projectileBudget() { return MAX_PROJECTILES - (this.game.sideAreas?.snapshot?.fields.magic.projectiles.length || 0); }
   rank(id) { return Math.max(0, Math.min(5, Number(this.game.stats.spells?.[id]) || 0)); }
   evolved(id) { return this.rank(id) >= 5 && !!this.game.stats.evolutions?.[id]; }
   isAlive(enemy) { return enemy?.hp > 0; }
@@ -288,11 +289,11 @@ export class MagicSystem {
   castFireball() {
     const origin = this.game.player.position;
     const target = this.nearest(origin, 22);
-    if (!target || this.projectiles.length >= MAX_PROJECTILES) return false;
+    if (!target || this.projectiles.length >= this.projectileBudget()) return false;
     const rank = this.rank('fireball'), evolved = this.evolved('fireball');
     const count = evolved ? 3 : rank >= 4 ? 2 : 1;
     const chosen = new Set();
-    for (let index = 0; index < count && this.projectiles.length < MAX_PROJECTILES; index++) {
+    for (let index = 0; index < count && this.projectiles.length < this.projectileBudget(); index++) {
       const next = this.nearest(origin, 22, chosen) || target;
       chosen.add(next);
       const direction = next.group.position.clone().sub(origin).setY(0).normalize();
@@ -357,7 +358,7 @@ export class MagicSystem {
       }
       projectile.mesh.position.addScaledVector(projectile.direction, dt * 20);
       projectile.mesh.position.y = (this.game.groundHeight?.(projectile.mesh.position.x, projectile.mesh.position.z) ?? this.game.player.position.y) + 1;
-      if (this.game.world && !this.game.world.isWalkable(projectile.mesh.position.x, projectile.mesh.position.z, .1)) projectile.life = 0;
+      if (this.game.world && !this.game.sideAreas?.active && !this.game.world.isWalkable(projectile.mesh.position.x, projectile.mesh.position.z, .1)) projectile.life = 0;
       projectile.mesh.rotation.z += dt * 6; projectile.mesh.rotation.y += dt * 4;
       if (projectile.trailTimer <= 0) {
         if (this.game.combatArt) this.game.combatArt.trail(projectile.mesh.position, 'fireball');

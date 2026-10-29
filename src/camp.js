@@ -109,7 +109,9 @@ export class CampSystem {
     const g = this.game;
     if (!["menu", "over", "won"].includes(g._state.phase)) return false;
     g.clearDynamic();
+    g._state = g.freshState("camp");
     g.stats = g.freshStats();
+    g.resetTimers();
     g.applyLoadoutAppearance();
     g._state.hp = g.combatStats.maxHp;
     this.context.hide();
