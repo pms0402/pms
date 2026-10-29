@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { activeSets, rollSet } from "./sets.js";
 export const EQUIPMENT_SLOTS = Object.freeze({
   weapon: "무기",
   armor: "방어구",
@@ -71,7 +72,7 @@ export function rollEquipment(
     power: (0.06 + Math.min(20, floor) * 0.008) * grade.power,
     options,
     element,
-    level: 0,
+    level: 0, setId: rollSet(region,random),
     unique: grade.id === "legendary" ? "resonance" : "",
   };
 }
@@ -116,6 +117,7 @@ export function equipmentBonuses(items = []) {
     }
     if (item.unique === "resonance") b.combo += 0.12;
   }
+  b.sets = activeSets(items);
   return b;
 }
 export class EquipmentSystem {

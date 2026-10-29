@@ -79,7 +79,7 @@ export class ParrySystem {
     if (this.age <= 0.18) {
       this.active = 0;
       this.counterTime = 2;
-      this.successes++; if(g.analytics)g.analytics.parrySuccesses++;
+      this.successes++; g.setSystem?.onParry(); if(g.analytics)g.analytics.parrySuccesses++;
       g.puff(g.player.position, "#b1edff", 2, 0.3);
       g.sound("critical");
       g.callbacks.onLoot?.(

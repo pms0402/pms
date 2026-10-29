@@ -60,7 +60,7 @@ export class MagicSystem {
     const synergy = this.rank('lightning') && this.rank('orbit') ? Math.max(0, Math.min(0.12, this.game.stats.runeSynergyBonus || 0)) : 0;
     const bonus = Number((this.game.stats[`${spellId}Bonus`] || 0) + (this.game.equipment?.bonuses().element[spellId] || 0));
     const spellBonus = Number.isFinite(bonus) ? Math.max(0, Math.min(1, bonus)) : 0;
-    return (Number.isFinite(base) ? Math.max(0, base) : 18) * (1 + synergy) * (1 + spellBonus);
+    return (this.game.setSystem?.damage(spellId) || 1) * (Number.isFinite(base) ? Math.max(0, base) : 18) * (1 + synergy) * (1 + spellBonus);
   }
   area() { return Math.max(1, Math.min(2.5, Number(this.game.stats.spellAreaMultiplier) || 1)); }
   distanceSquared(a, b) { const x = a.x - b.x, z = a.z - b.z; return x * x + z * z; }
@@ -87,6 +87,7 @@ export class MagicSystem {
 
   hit(enemy, damage, origin, slowTime = 0, slowFactor = 0.5, source = 'magic', spellId = null, impact = null) {
     if (!this.isAlive(enemy)) return;
+    if (spellId === 'frost' && this.game.setSystem?.count('glacier') >= 2) { slowFactor = Math.max(.35,slowFactor - .05); slowTime *= 1.1; }
     if (slowTime > 0) {
       const active = enemy.slowTime > 0;
       const currentFactor = active ? enemy.slowFactor || 1 : 1;
@@ -405,7 +406,7 @@ export class MagicSystem {
     const first = this.nearest(origin, 15 * this.area());
     if (!first) return false;
     const rank = this.rank('lightning'), evolved = this.evolved('lightning');
-    const count = 3 + Math.floor((rank - 1) / 2) + (evolved ? 3 : 0);
+    const count = 3 + Math.floor((rank - 1) / 2) + (evolved ? 3 : 0) + (this.game.setSystem?.count('storm') >= 4 ? 1 : 0);
     const damage = this.damage('lightning') * 1.1 * (1 + 0.18 * (rank - 1));
     const hit = new Set();
     let previous = origin.clone(), target = first;

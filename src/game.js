@@ -24,6 +24,7 @@ import { ParrySystem } from './parry.js';
 import { ExplorationSystem } from './exploration.js';
 import { abyssStats, abyssBoss, abyssRule } from './abyss.js';
 import { RunAnalytics, damageCategory } from './analytics.js';
+import { SetSystem } from './sets.js';
 
 const TAU = Math.PI * 2;
 const UP = new THREE.Vector3(0, 1, 0);
@@ -119,6 +120,7 @@ export class Game {
     this.actorShadows = new ActorShadows(this.scene, this.enemies, this.presentation.contactMap);
     this.equipment = new EquipmentSystem(this);
     this.parry = new ParrySystem(this);
+    this.setSystem = new SetSystem(this);
     this.exploration = new ExplorationSystem(this);
     this.magic = new MagicSystem(this);
     this.bossSystem = new BossSystem(this);
@@ -143,7 +145,7 @@ export class Game {
     const base = this.stats, b = this.equipment?.bonuses();
     if (!b) return base;
     const events = this.exploration?.modifiers() || { damage: 1, maxHp: 1, healing: 1 };
-    return { ...base, damage: Math.min(1e14, base.damage * b.damage * events.damage), spellDamage: Math.min(1e14, base.spellDamage * b.spellDamage * events.damage), maxHp: Math.min(1e14, base.maxHp * b.maxHp * events.maxHp), attackRate: Math.min(30, base.attackRate * b.attackRate), critChance: Math.min(.65, base.critChance + b.crit), armor: Math.min(.6, base.armor + b.armor + (this._state.hp <= base.maxHp * b.maxHp * events.maxHp * .35 ? b.desperate : 0)), bossDamage: b.boss, criticalMultiplier: 2 + Math.min(1,b.criticalDamage), comboMultiplier: b.combo, healingMultiplier: events.healing };
+    return { ...base, damage: Math.min(1e14, base.damage * b.damage * events.damage), spellDamage: Math.min(1e14, base.spellDamage * b.spellDamage * events.damage), maxHp: Math.min(1e14, base.maxHp * b.maxHp * events.maxHp * (this.setSystem?.count('abyss') >= 2 ? 1.12 : 1)), attackRate: Math.min(30, base.attackRate * b.attackRate * (this.setSystem?.hasteUntil > this._state.elapsed ? 1.2 : 1)), critChance: Math.min(.65, base.critChance + b.crit + (this.setSystem?.count('stalker') >= 2 ? .05 : 0)), armor: Math.min(.6, base.armor + b.armor + (this.setSystem?.count('abyss') >= 2 ? .03 : 0) + (this._state.hp <= base.maxHp * b.maxHp * events.maxHp * .35 ? b.desperate : 0)), bossDamage: b.boss, criticalMultiplier: 2 + Math.min(1,b.criticalDamage), comboMultiplier: b.combo, healingMultiplier: events.healing };
   }
   freshStats() {
     const bonus = normalizePermanentBonuses(this.permanentBonuses);
@@ -185,7 +187,7 @@ export class Game {
   get state() {
     const enemyKinds = Object.fromEntries(ENEMY_TYPES.map(type => [type.id, 0]));
     for (const enemy of this.enemies) if (enemy.definition) enemyKinds[enemy.definition.id]++;
-    return { ...this._state, mode: this.mode, analytics: this.analytics?.snapshot(this), stageStats: this.stageStats(), abyssConstraint: this.abyssConstraint, playbackSpeed: this.playbackSpeed, world: { hills: this.world?.hills.length || 0, structures: this.world?.structures.length || 0, elevation: this.player?.position.y || 0 }, enemyKinds, sword: getSwordProfile(this.stats), activeSynergies: getActiveSynergies(this.stats), activeCurses: [...this.activeCurses], equipment: this.equipment?.getState(), parry: this.parry?.getState(), exploration: this.exploration?.getState(), routeId: this.routeId, regionId: this.regionId, region: getRegion(this.regionId), mutations: this.mutationSystem?.getDebugState(), runModifiers: this.getFloorModifiers(), runReport: this.runReport ? structuredClone(this.runReport) : this.freshRunReport(), pendingChests: this.pendingChestRewards?.length || 0, altar: this.altar ? { x: this.altar.group.position.x, z: this.altar.group.position.z, opened: this.altar.opened } : null, rewardTokens: this.pendingRelicSources?.length || 0, pendingBossRewards: (this.pendingBossRewards || []).map(reward => ({ ...reward })), maxHp: this.combatStats.maxHp, damage: this.combatStats.damage, attackRate: this.combatStats.attackRate, spellDamage: this.combatStats.spellDamage, spellRate: this.stats.spellRate, speed: this.combatStats.speed, risk: this.getThreat(), selectedRisk: this.selectedRisk, chests: this.chests.map(chest => ({ x: chest.group.position.x, z: chest.group.position.z, remaining: chest.guards.filter(guard => guard.hp > 0).length, opened: chest.opened })), eliteEnemies: this.enemies.filter(enemy => enemy.elite).length, goldenEnemies: this.enemies.filter(enemy => enemy.golden).length, dashCooldown: Math.max(0, this.dashCooldown || 0), dashReady: !(this.dashCooldown > 0), enemyCount: this.enemies.length, arenaRadius: ARENA_RADIUS, stageDuration: STAGE_DURATION, bossSpawnTime: BOSS_SPAWN_TIME, bossSpawned: this.bossSpawned, bossDefeated: this.bossDefeated, boss: this.boss ? { archetype: this.boss.archetype, hint: this.boss.hint, name: this.boss.name, hp: Math.max(0, this.boss.hp), maxHp: this.boss.maxHp, alive: this.boss.hp > 0, spawned: this.bossSpawned, defeated: this.bossDefeated, phase: this.boss.mode, combatPhase: this.boss.combatPhase || 1 } : null, spellState: this.magic?.getState() || [], playerStats: { ...this.stats, relics: [...(this.stats.relics || [])], bossRewards: [...(this.stats.bossRewards || [])], spells: { ...this.stats.spells }, evolutions: { ...this.stats.evolutions }, passiveLevels: { ...this.stats.passiveLevels } } };
+    return { ...this._state, mode: this.mode, analytics: this.analytics?.snapshot(this), stageStats: this.stageStats(), abyssConstraint: this.abyssConstraint, playbackSpeed: this.playbackSpeed, world: { hills: this.world?.hills.length || 0, structures: this.world?.structures.length || 0, elevation: this.player?.position.y || 0 }, enemyKinds, sword: getSwordProfile(this.stats), activeSynergies: getActiveSynergies(this.stats), activeCurses: [...this.activeCurses], equipment: this.equipment?.getState(), sets: this.setSystem?.state(), parry: this.parry?.getState(), exploration: this.exploration?.getState(), routeId: this.routeId, regionId: this.regionId, region: getRegion(this.regionId), mutations: this.mutationSystem?.getDebugState(), runModifiers: this.getFloorModifiers(), runReport: this.runReport ? structuredClone(this.runReport) : this.freshRunReport(), pendingChests: this.pendingChestRewards?.length || 0, altar: this.altar ? { x: this.altar.group.position.x, z: this.altar.group.position.z, opened: this.altar.opened } : null, rewardTokens: this.pendingRelicSources?.length || 0, pendingBossRewards: (this.pendingBossRewards || []).map(reward => ({ ...reward })), maxHp: this.combatStats.maxHp, damage: this.combatStats.damage, attackRate: this.combatStats.attackRate, spellDamage: this.combatStats.spellDamage, spellRate: this.stats.spellRate, speed: this.combatStats.speed, risk: this.getThreat(), selectedRisk: this.selectedRisk, chests: this.chests.map(chest => ({ x: chest.group.position.x, z: chest.group.position.z, remaining: chest.guards.filter(guard => guard.hp > 0).length, opened: chest.opened })), eliteEnemies: this.enemies.filter(enemy => enemy.elite).length, goldenEnemies: this.enemies.filter(enemy => enemy.golden).length, dashCooldown: Math.max(0, this.dashCooldown || 0), dashReady: !(this.dashCooldown > 0), enemyCount: this.enemies.length, arenaRadius: ARENA_RADIUS, stageDuration: STAGE_DURATION, bossSpawnTime: BOSS_SPAWN_TIME, bossSpawned: this.bossSpawned, bossDefeated: this.bossDefeated, boss: this.boss ? { archetype: this.boss.archetype, hint: this.boss.hint, name: this.boss.name, hp: Math.max(0, this.boss.hp), maxHp: this.boss.maxHp, alive: this.boss.hp > 0, spawned: this.bossSpawned, defeated: this.bossDefeated, phase: this.boss.mode, combatPhase: this.boss.combatPhase || 1 } : null, spellState: this.magic?.getState() || [], playerStats: { ...this.stats, relics: [...(this.stats.relics || [])], bossRewards: [...(this.stats.bossRewards || [])], spells: { ...this.stats.spells }, evolutions: { ...this.stats.evolutions }, passiveLevels: { ...this.stats.passiveLevels } } };
   }
   emit() { this.callbacks.onUpdate?.(this.state); }
 
@@ -570,7 +572,7 @@ export class Game {
       this.puff(this.player.position, '#a4e8ff', 3, 0.35);
       for (const enemy of this.queryEnemies(this.player.position, 5)) this.hitEnemy(enemy, this.combatStats.damage * 0.8, this.dashDirection, 'explosion');
     }
-    this.analytics.dashes++; this.sound('dash'); this.emit(); return true;
+    this.setSystem.onDash(); this.analytics.dashes++; this.sound('dash'); this.emit(); return true;
   }
 
   start() {
@@ -843,7 +845,7 @@ export class Game {
 
   tick(dt) {
     if (this._state.phase !== 'playing' || this.openNextChestReward() || this.equipment.nextReward()) return;
-    this.parry.update(dt); this.parry.relicCooldown = Math.max(0, (this.parry.relicCooldown || 0) - dt); this.equipment.update(dt);
+    this.setSystem.update(); this.parry.update(dt); this.parry.relicCooldown = Math.max(0, (this.parry.relicCooldown || 0) - dt); this.equipment.update(dt);
     this.exploration.update(dt);
     const s = this._state; s.elapsed += dt; s.stageTime = Math.min(STAGE_DURATION, s.stageTime + dt);
     const threat = this.getThreat();
@@ -956,7 +958,8 @@ export class Game {
     if (this._state.phase !== 'playing' || this.invulnerable > 0 || this._state.hp <= 0) return false;
     const defense = this.parry.defend(source, options);
     if (defense === 0) return false;
-    const damage = defense * Math.max(1, rawDamage * this.getThreat().enemyDamage * (1 - Math.min(0.6, this.combatStats.armor)));
+    let damage = defense * Math.max(1, rawDamage * this.getThreat().enemyDamage * (1 - Math.min(0.6, this.combatStats.armor)));
+    damage -= this.setSystem.absorb(damage);
     const actualDamage = Math.min(this._state.hp, damage);
     this.runReport.damageTaken += actualDamage; this.analytics.hurt(actualDamage, this._state.stage);
     this.runReport.deathCause = typeof cause === 'string' ? cause : '적의 공격';
@@ -1254,6 +1257,7 @@ export class Game {
     this.analytics.hit(damageCategory(source,spellId,impact),dealt,enemy.hp,this._state.elapsed,this._state.stage);
     enemy.hp -= dealt;
     if (enemy.kind === 4) this.bossPhases.sync(enemy);
+    this.setSystem.onHit(enemy,source,spellId);
     const hitStun = Number.isFinite(impact?.hitStun) ? clamp(impact.hitStun, 0, 0.16) : 0.16;
     const knockbackScale = Number.isFinite(impact?.knockbackScale) ? clamp(impact.knockbackScale, 0, 1) : 1;
     enemy.hitTime = Math.max(enemy.hitTime || 0, hitStun);
@@ -1487,7 +1491,7 @@ export class Game {
   removeGroup(group) { if (!group) return; group.parent?.remove(group); }
   clearDynamic() {
     this.combatArt?.reset(); this.actorShadows?.reset();
-    this.regionSystem?.reset(); this.mutationSystem?.reset(); this.equipment?.reset(); this.parry?.reset(); this.exploration?.reset();
+    this.regionSystem?.reset(); this.mutationSystem?.reset(); this.equipment?.reset(); this.parry?.reset(); this.setSystem?.reset(); this.exploration?.reset();
     this.enemyRenderer?.reset();
     this.bossSystem?.clear(); this.bossPhases?.clear();
     while (this.floatingTexts.length) this.removeFloatingText(0);
@@ -1534,7 +1538,7 @@ export class Game {
     this.disposed = true; cancelAnimationFrame(this.raf); this.observer.disconnect();
     window.removeEventListener('keydown', this.onKeyDown); window.removeEventListener('keyup', this.onKeyUp); window.removeEventListener('blur', this.onBlur); document.removeEventListener('visibilitychange', this.onVisibility);
     this.renderer.domElement.removeEventListener('pointerdown', this.onPointerDown); this.renderer.domElement.removeEventListener('pointermove', this.onPointerMove); this.renderer.domElement.removeEventListener('pointerup', this.onPointerUp); this.renderer.domElement.removeEventListener('pointercancel', this.onPointerUp);
-    this.clearDynamic(); this.regionSystem?.dispose(); this.mutationSystem?.dispose(); this.enemyRenderer?.dispose(); this.actorShadows?.dispose(); this.combatArt?.dispose(); this.presentation?.dispose(); this.magic?.dispose(); this.bossSystem?.dispose(); this.bossPhases?.dispose(); this.equipment?.dispose(); this.parry?.dispose(); this.exploration?.dispose();
+    this.clearDynamic(); this.regionSystem?.dispose(); this.mutationSystem?.dispose(); this.enemyRenderer?.dispose(); this.actorShadows?.dispose(); this.combatArt?.dispose(); this.presentation?.dispose(); this.magic?.dispose(); this.bossSystem?.dispose(); this.bossPhases?.dispose(); this.equipment?.dispose(); this.parry?.dispose(); this.setSystem?.dispose(); this.exploration?.dispose();
     this.heroTextures?.forEach(texture => texture.dispose());
     this.world?.art.dispose();
     const geometries = new Set(), materials = new Set();
