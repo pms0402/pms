@@ -10,6 +10,7 @@ export class SceneContext {
       keep = new Set([
         g.player,
         g.playerShadow, g.swordTrail?.mesh,
+        g.defeats?.root,g.enemyStates?.mesh,
         g.actorShadows?.mesh,
         g.parry?.mesh, g.parry?.feedback.root,
         g.setSystem?.mesh,
@@ -52,6 +53,8 @@ export function clearCosmetics(g) {
   g.parry.feedback.reset(); g.parry.hitStop = 0;
   g.enemyRenderer.reset();
   g.swordTrail?.reset();
+  g.defeats?.reset();
+  g.enemyStates?.reset();
   g.combatArt.reset();
   while (g.floatingTexts.length) g.removeFloatingText(0);
   for (const e of g.effects) g.releaseEffect(e);

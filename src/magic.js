@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {createRuneGeometry} from './rune-geometry.js';
 import { SPELLS } from './balance.js';
 import { SYNERGIES, getActiveSynergies } from './synergies.js';
 
@@ -304,7 +305,7 @@ export class MagicSystem {
       this.scene.add(mesh);
       this.projectiles.push({ mesh, target: next, direction, life: 1.8, trailTimer: 0, rank, evolved, damage: this.damage('fireball') * 1.1 * (1 + 0.16 * (rank - 1)), radius: (3.3 + 0.35 * (rank - 1)) * this.area() });
     }
-    this.spellsCast.fireball++;
+    this.spellsCast.fireball++;this.game.playerCastTime=.3;this.game.lastCastSpell="fireball";
     this.cooldowns.fireball = this.maxCooldown('fireball');
     return true;
   }
@@ -397,7 +398,7 @@ export class MagicSystem {
       this.scene.add(marker);
       this.zones.push({ type: 'blizzard', position: origin.clone(), radius, damage: damage * 0.25, life: 2.4, tick: 0.5, marker });
     }
-    this.spellsCast.frost++;
+    this.spellsCast.frost++;this.game.playerCastTime=.3;this.game.lastCastSpell="frost";
     this.cooldowns.frost = this.maxCooldown('frost');
     return true;
   }
@@ -419,7 +420,7 @@ export class MagicSystem {
       previous = point;
       target = this.nearest(point, (evolved ? 11 : 8) * this.area(), hit);
     }
-    this.spellsCast.lightning++;
+    this.spellsCast.lightning++;this.game.playerCastTime=.3;this.game.lastCastSpell="lightning";
     this.cooldowns.lightning = this.maxCooldown('lightning');
     return true;
   }
@@ -435,7 +436,8 @@ export class MagicSystem {
     const count = 2 + Math.floor((rank - 1) / 2) + (evolved ? 3 : 0);
     for (let index = 0; index < count; index++) {
       const orb = new THREE.Group();
-      const rune = new THREE.Mesh(this.geometry.rune, this.material.orbit);
+      this.geometry.glyph ||=createRuneGeometry(false);this.geometry.glyphEvolved ||=createRuneGeometry(true);
+      const rune = new THREE.Mesh(evolved?this.geometry.glyphEvolved:this.geometry.glyph, this.material.orbit);
       const core = new THREE.Mesh(this.geometry.core, this.material.core);
       core.scale.setScalar(0.7); orb.add(rune, core); this.scene.add(orb); this.orbs.push(orb);
     }
@@ -451,7 +453,7 @@ export class MagicSystem {
       const orb = this.orbs[index];
       orb.position.copy(this.game.player.position); orb.position.x += Math.cos(angle) * radius; orb.position.z += Math.sin(angle) * radius;
       orb.position.y = this.game.player.position.y + 0.95 + Math.sin(this.time * 3 + index) * 0.12;
-      orb.rotation.y += dt * 2.4; orb.rotation.z += dt * 1.4;
+      const glyph=orb.children[0];if(this.game.camera){glyph.quaternion.copy(this.game.camera.quaternion);glyph.rotateZ(this.time*1.2+index);}orb.children[1].rotation.y+=dt*1.4;
     }
     let hitAny = false;
     for (const enemy of this.query(this.game.player.position, radius + 3.5)) {

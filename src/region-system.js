@@ -41,6 +41,7 @@ export class RegionSystem {
     };
     this.warningMesh = groundBatch(false, this.material.warning);
     this.areaMesh = groundBatch(true, this.material.area);
+    this.warningMesh.renderOrder=7;this.areaMesh.renderOrder=1;
     this.markerMesh = batch(this.geometry.ring, this.material.marker, MAX_MARKERS);
     this.accentMesh = batch(this.geometry.shard, this.material.accent, 48);
     const points = new Float32Array(64 * 3), seeds = new Float32Array(64 * 3);

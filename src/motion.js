@@ -33,8 +33,9 @@ export function swordSwing(t) {
 // Damage may be faster than a readable stroke; only artwork is coalesced.
 export function beginSwordStroke(game, profile) {
   const duration = Math.max(.13, Math.min(.3, .8 / Math.max(1, game.combatStats.attackRate * profile.attackRateMultiplier)));
-  if (game.attackAnim > 0 && game.attackAnim / (game.attackAnimTotal || duration) > .26) return false;
+  if (game.attackAnim > 0 && ((game.strokeHold||0)>0 || game.attackAnim / (game.attackAnimTotal || duration) > .26)) return false;
   game.swingSide = -(game.swingSide || -1);
-  game.attackAnimTotal = duration; game.attackAnim = duration;
+  // Automatic ready poses happen before the hit. The contact frame begins the cut.
+  game.attackAnimTotal = duration; game.attackAnim = duration*.58;game.strokeHold=Math.min(.13,duration*.7);game.swordReady=0;
   return true;
 }

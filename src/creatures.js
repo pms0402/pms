@@ -98,7 +98,7 @@ export function animatePlayerModel(game,time,moving,dt) {
  const counter=game.counterAnim>0;
  const stride=state.stride,gait=Math.sin(state.phase)*stride,attack=game.attackAnim>0||counter,first=game.view?.firstPerson(),pitch=first?game.view.pitch.first:0;
  const t=counter?1-game.counterAnim/.38:attack?1-game.attackAnim/(game.attackAnimTotal||.3):0;
- const swing=attack?Math.sin(Math.PI*t)**2:0,side=counter?1:(game.swingSide||1),yaw=attack?swordSwing(t)*side*(counter?1.3:1):0;
+ const ready=game.swordReady||0,heavy=game.stats.weaponId==='greatsword'||game.stats.swordEvolution==='broadsword',cast=Math.sin(Math.max(0,game.playerCastTime||0)/.3*Math.PI),swing=attack?Math.sin(Math.PI*t)**2:ready*.22,side=counter?1:(game.swingSide||1),yaw=(attack?swordSwing(t):-.72*ready)*side*(counter?1.3:heavy?1.12:1);
  // Faster weapons retain their full stroke rather than losing it to a slow filter.
  const armRate=attack?Math.max(24,5/(game.attackAnimTotal||.3)):18;
  const joint=(part,axis,target,rate=18)=>{part.rotation[axis]=damp(part.rotation[axis],target,rate,dt);};
@@ -110,11 +110,11 @@ export function animatePlayerModel(game,time,moving,dt) {
  joint(game.footRight,'x',-(game.legRight.rotation.x+game.kneeRight.rotation.x)*.65);
  joint(game.rightShoulder,'y',game.parry?.active>0?-.3:yaw,armRate);joint(game.rightShoulder,'x',game.parry?.active>0?-1.1:first?-.45-swing*.45+pitch*.65:gait*.25-swing*1.05,armRate);
  const twin=game.stats.swordEvolution==='twinblade';
- joint(game.leftShoulder,'x',first?-.45+(twin?-swing*.45:0)+pitch*.65:-gait*.25+(twin?swing*.4:-swing*.16),armRate);joint(game.leftShoulder,'y',twin?-yaw:0,armRate);
+ joint(game.leftShoulder,'x',(first?-.45+(twin?-swing*.45:0)+pitch*.65:-gait*.25+(twin?swing*.4:-swing*.16))-(twin?0:cast*.8),armRate);joint(game.leftShoulder,'y',twin?-yaw:0,armRate);
  joint(game.rightElbow,'x',game.parry?.active>0?-1.5:first?-.75+swing*.45:-.65+swing*.38,armRate);joint(game.leftElbow,'x',first?-.75+(twin?swing*.45:0):twin?-.65-swing*.25:-.25,armRate);
  // Counter-rotate only the artwork; targeting, sword sectors and dashes stay exact.
  game.playerVisual.rotation.y=first?angleDelta(game.player.rotation.y,game.view.yaw):angleDelta(game.player.rotation.y,state.facing)+yaw*.14;
- joint(game.playerVisual,'x',dashing?.22:counter?.1:stride*.04,14);joint(game.playerVisual,'z',-gait*.025+side*swing*.045,14);
+ joint(game.playerVisual,'x',(dashing?.22:counter?.1:stride*.04)+(game.playerHitTime||0)*.65,14);joint(game.playerVisual,'z',-gait*.025+side*swing*(heavy?.075:.045),14);
  joint(game.swordArm,'z',-.12+side*swing*.36,armRate);joint(game.swordArm,'x',first?.65+pitch*.35-yaw*.18:-yaw*.18,armRate);joint(game.offhandGrip,'x',first?.65+pitch*.35+yaw*.18:0,armRate);
  joint(game.offhandGrip,'z',twin?.12-swing*.25:0,armRate);
  game.cape.rotation.x=damp(game.cape.rotation.x,-(.08+stride*.17+(dashing?.22:0))+Math.sin(time*4)*.025,9,dt);
@@ -140,6 +140,7 @@ export function animateEnemyModel(enemy,time,dt) {
  const state=enemy.motion||(enemy.motion=createActorMotion(enemy.group,enemy.seed));
  if((enemy.freezeTime||0)>0||(enemy.parryStun||0)>0)return;
  const kind=enemy.visualKind??enemy.kind,isBoss=enemy.kind===4,action=enemy.mode||enemy.action||'';
+ enemy.impactTime=Math.max(0,(enemy.impactTime||0)-dt);
  const locked=action.includes('warning')||(enemy.windup||0)>0;
  advanceActorMotion(state,enemy.group,dt,enemy.speed,!locked,(kind===1?2.6:1.7)/Math.max(.7,enemy.size));
  enemy.visualAttack=Math.max(0,(enemy.visualAttack||0)-dt);enemy.visualCast=Math.max(0,(enemy.visualCast||0)-dt);enemy.visualAttackCooldown=Math.max(0,(enemy.visualAttackCooldown||0)-dt);
@@ -151,7 +152,8 @@ export function animateEnemyModel(enemy,time,dt) {
  enemy.visual.position.y=damp(enemy.visual.position.y,bounce*height+(1-stride)*(.5+.5*Math.sin(time*2.8+enemy.seed))*.012,18,dt);
  enemy.visual.rotation.y=angleDelta(enemy.group.rotation.y,state.facing);
  const lean=action==='rush'||action==='charge'?.17:state.warning*(beast?.13:.06)+state.strike*.06;
- enemy.visual.rotation.x=damp(enemy.visual.rotation.x,lean+(beast?beat*.025*stride:0),18,dt);
+ const reaction=enemy.impactTime?Math.sin(enemy.impactTime/.16*Math.PI)*(isBoss?.035:.16):0,impact=enemy.impactDirection;
+ enemy.visual.rotation.x=damp(enemy.visual.rotation.x,lean+(beast?beat*.025*stride:0)+reaction*(impact?Math.cos(enemy.group.rotation.y)*impact.z+Math.sin(enemy.group.rotation.y)*impact.x:0),18,dt);
  enemy.visual.rotation.z=damp(enemy.visual.rotation.z,beast?0:beat*.027*stride,16,dt);
  const hit=Math.max(0,enemy.hitTime||0),scale=1+(isBoss?Math.min(.04,hit*.6):Math.min(.16,hit*.6));
  const squash=slime?Math.sin(state.phase*2)*stride*.09:kind===6?state.warning*(.045+.025*Math.sin(time*10)):0;

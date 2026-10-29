@@ -9,13 +9,14 @@ export class CombatArt {
     this.life = new Float32Array(capacity); this.total = new Float32Array(capacity); this.velocity = new Float32Array(capacity * 3);
     this.position = new Float32Array(capacity * 3); this.color = new Float32Array(capacity * 3); this.size = new Float32Array(capacity); this.alpha = new Float32Array(capacity);
     this.baseSize = new Float32Array(capacity); this.trailBudget = 12;
+    this.shape=new Float32Array(capacity);this.priority=new Uint8Array(capacity);this.density=1;this.limit=capacity;
     const plane = new THREE.PlaneGeometry(1, 1), geometry = this.geometry = new THREE.InstancedBufferGeometry();
     geometry.index = plane.index; geometry.attributes.position = plane.attributes.position; geometry.attributes.uv = plane.attributes.uv; geometry.instanceCount = 0;
-    for (const [name, array, length] of [['aPosition', this.position, 3], ['aColor', this.color, 3], ['aSize', this.size, 1], ['aAlpha', this.alpha, 1]]) geometry.setAttribute(name, new THREE.InstancedBufferAttribute(array, length).setUsage(THREE.DynamicDrawUsage));
+    for (const [name, array, length] of [['aPosition', this.position, 3], ['aColor', this.color, 3], ['aSize', this.size, 1], ['aAlpha', this.alpha, 1],['aShape',this.shape,1]]) geometry.setAttribute(name, new THREE.InstancedBufferAttribute(array, length).setUsage(THREE.DynamicDrawUsage));
     this.material = new THREE.ShaderMaterial({
       transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false,
-      vertexShader: 'attribute vec3 aPosition;attribute vec3 aColor;attribute float aSize;attribute float aAlpha;varying vec2 vUv;varying vec3 vColor;varying float vAlpha;void main(){vUv=uv;vColor=aColor;vAlpha=aAlpha;vec4 p=modelViewMatrix*vec4(aPosition,1.0);p.xy+=position.xy*aSize;gl_Position=projectionMatrix*p;}',
-      fragmentShader: 'varying vec2 vUv;varying vec3 vColor;varying float vAlpha;void main(){float d=length(vUv-.5)*2.0;float halo=pow(max(0.0,1.0-d),2.5);float core=exp(-d*d*85.0);gl_FragColor=vec4(vColor*(.65+core),vAlpha*(halo*.65+core*.45));}',
+      vertexShader: 'attribute vec3 aPosition;attribute vec3 aColor;attribute float aSize;attribute float aAlpha;attribute float aShape;varying vec2 vUv;varying vec3 vColor;varying float vAlpha;varying float vShape;void main(){vUv=uv;vColor=aColor;vAlpha=aAlpha;vShape=aShape;vec4 p=modelViewMatrix*vec4(aPosition,1.0);p.xy+=position.xy*aSize;gl_Position=projectionMatrix*p;}',
+      fragmentShader: 'varying vec2 vUv;varying vec3 vColor;varying float vAlpha;varying float vShape;void main(){vec2 uv=(vUv-.5)*2.;float d=length(uv);if(vShape>.5&&vShape<1.5)d=abs(uv.x)*1.4+abs(uv.y)*.75;else if(vShape>1.5&&vShape<2.5)d=min(length(uv*vec2(3.,.7)),length(uv*vec2(.7,3.)));else if(vShape>2.5)d=abs(max(abs(uv.x),abs(uv.y))-.55)*3.;float halo=pow(max(0.0,1.0-d),2.5);float core=exp(-d*d*85.0);gl_FragColor=vec4(vColor*(.65+core),vAlpha*(halo*.65+core*.45));}',
     });
     this.mesh = new THREE.Mesh(geometry, this.material); this.mesh.name = 'Batched impact embers'; this.mesh.frustumCulled = false; this.mesh.renderOrder = 4; this.mesh.visible = false; scene.add(this.mesh);
     this.colors = Object.fromEntries(Object.entries(COLORS).map(([key, value]) => [key, new THREE.Color(value)]));
@@ -23,8 +24,13 @@ export class CombatArt {
   random() { this.seed = (Math.imul(this.seed, 1664525) + 1013904223) >>> 0; return this.seed / 4294967296; }
   emit(origin, source, count, trail = false) {
     const color = this.colors[source] || this.colors.default;
-    for (let n = 0; n < count && this.count < this.capacity; n++) {
-      const i = this.count++, at = i * 3, angle = this.random() * Math.PI * 2, speed = trail ? .25 : 1.1 + this.random() * 2.8;
+    const important=['parry','counter','combo'].includes(source),priority=important?3:trail?0:1;
+    if(!important)count=Math.max(1,Math.round(count*this.density));
+    for (let n = 0; n < count; n++) {
+      let i=this.count;
+      if(i>=this.limit){if(!important)break;i=-1;for(let k=0;k<this.count;k++)if(this.priority[k]<priority){i=k;break;}if(i<0)break;}else this.count++;
+      const at = i * 3, angle = this.random() * Math.PI * 2, speed = trail ? .25 : 1.1 + this.random() * 2.8;
+      this.shape[i]=source==='frost'?1:['lightning','sword','parry','counter'].includes(source)?2:source==='orbit'?3:0;this.priority[i]=priority;
       this.position[at] = origin.x; this.position[at + 1] = origin.y + (trail ? 0 : .7); this.position[at + 2] = origin.z;
       this.velocity[at] = Math.cos(angle) * speed; this.velocity[at + 1] = trail ? .15 : .8 + this.random() * 2; this.velocity[at + 2] = Math.sin(angle) * speed;
       this.color[at] = color.r; this.color[at + 1] = color.g; this.color[at + 2] = color.b;
@@ -43,7 +49,7 @@ export class CombatArt {
         const last = --this.count;
         if (i !== last) {
           for (const array of [this.position, this.color, this.velocity]) for (let n = 0; n < 3; n++) array[i * 3 + n] = array[last * 3 + n];
-          for (const array of [this.life, this.total, this.baseSize, this.size, this.alpha]) array[i] = array[last];
+          for (const array of [this.life, this.total, this.baseSize, this.size, this.alpha,this.shape,this.priority]) array[i] = array[last];
         }
         continue;
       }

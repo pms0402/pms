@@ -25,6 +25,8 @@ import { EquipmentSystem } from './equipment.js';
 import { ParrySystem, PARRY, counterProfile } from './parry.js';
 import { gameKey, isGameShortcut } from './game-input.js';
 import { ViewController, viewMovement } from './view.js';
+import { DeathPresentation } from './death-presentation.js';
+import { EnemyStates } from './enemy-states.js';
 import { ExplorationSystem } from './exploration.js';
 import { abyssStats, abyssBoss, abyssRule } from './abyss.js';
 import { RunAnalytics, damageCategory } from './analytics.js';
@@ -124,7 +126,7 @@ export class Game {
     for (const material of [this.mats.rock, this.mats.rockDark]) { material.map = this.presentation.stoneMap; material.normalMap = this.presentation.stoneNormal; material.roughnessMap = this.presentation.stoneRoughness; material.normalScale.set(.6, .6); }
     this.createWorld();
     this.createPlayer();
-    this.combatArt = new CombatArt(this.scene); this.swordTrail = new SwordTrail(this);
+    this.combatArt = new CombatArt(this.scene); this.swordTrail = new SwordTrail(this);this.defeats=new DeathPresentation(this);this.enemyStates=new EnemyStates(this);
     this.actorShadows = new ActorShadows(this.scene, this.enemies, this.presentation.contactMap);
     this.equipment = new EquipmentSystem(this);
     this.parry = new ParrySystem(this);
@@ -137,7 +139,7 @@ export class Game {
     this.regionSystem = new RegionSystem(this);
     this.mutationSystem = new MutationSystem(this);
     this.regionSystem.setRegion(this.regionId);
-    this.scene.onBeforeRender = () => { this.view?.maskBody(); this.updateContactShadow(); this.actorShadows.sync(); this.mutationSystem.sync(); };
+    this.scene.onBeforeRender = () => { this.view?.maskBody(); this.enemyStates?.sync(); this.updateContactShadow(); this.actorShadows.sync(); this.mutationSystem.sync(); };
     this.scene.onAfterRender = () => this.view?.restoreBody();
     this.enemyRenderer = new EnemyRenderer(this.scene, this.enemies);
     this.story = new StorySystem(this);
@@ -353,7 +355,7 @@ export class Game {
     this.pendingChestRewards = []; this.chestChoices = []; this.activeChestReward = null; this.curseChoices = []; this.routeChoices = []; this.regionChoices = []; this.pendingRouteId = null; this.pendingRouteStage = null;
     this.stageChestCount = 0; this.eliteKills = 0; this.pendingRelicSources = []; this.pendingBossRewards = []; this.relicChoices = []; this.upgradeChoices = [];
     this.attackTimer = 0.2; this.spawnTimer = 1.3; this.bossSpawned = false; this.bossDefeated = false; this.boss = null; this.dashCooldown = 0; this.dashTime = 0; this.invulnerable = 0; this.shake = 0; this.comboTimer = 0; this.attackAnim = 0; this.counterAnim = 0; this.swingSide = -1;
-    this.playerMotion = createActorMotion(this.player);
+    this.playerMotion = createActorMotion(this.player);this.strokeHold=0;this.swordReady=0;this.playerHitTime=0;this.playerDeathTime=0;
     this.playerVisual.position.set(0, 0, 0); this.playerVisual.rotation.set(0, 0, 0);
     this.dashDirection = new THREE.Vector3(0.707, 0, 0.707);
   }
@@ -889,7 +891,7 @@ export class Game {
     const s = this._state; s.elapsed += dt; if (!inRoom) s.stageTime = Math.min(STAGE_DURATION, s.stageTime + dt);
     this.sideAreas.update(dt);
     const threat = this.getThreat();
-    this.dashCooldown -= dt; this.invulnerable -= dt; this.dashTime -= dt; this.attackAnim = Math.max(0, this.attackAnim - dt); this.counterAnim = Math.max(0,(this.counterAnim||0)-dt);
+    this.dashCooldown -= dt; this.invulnerable -= dt; this.dashTime -= dt; this.attackAnim = Math.max(0, this.attackAnim - dt); this.counterAnim = Math.max(0,(this.counterAnim||0)-dt);this.playerCastTime=Math.max(0,(this.playerCastTime||0)-dt);
     this.comboTimer -= dt; if (this.comboTimer <= 0) s.combo = 0;
     if (this.stats.regen > 0) this.heal(this.combatStats.maxHp * this.stats.regen / 100 * dt);
     const direction = this.inputDirection();
@@ -901,7 +903,7 @@ export class Game {
     const distance = Math.hypot(this.player.position.x, this.player.position.z);
     if (distance > ARENA_RADIUS) { this.player.position.x *= ARENA_RADIUS / distance; this.player.position.z *= ARENA_RADIUS / distance; }
     this.resolvePosition(this.player.position, .65);
-    this.playerVisual.visible = this.invulnerable > 0.4 ? Math.floor(s.elapsed * 20) % 2 === 0 : true;
+    this.playerVisual.visible = true;
 
     if(this.view.firstPerson())this.player.rotation.y=this.view.yaw;
     else if (moving) this.player.rotation.y = this.lerpAngle(this.player.rotation.y, Math.atan2(direction.x, direction.z), dt * 13);
@@ -918,6 +920,8 @@ export class Game {
     }
     this.rebuildSpatialIndex();
     this.attackTimer -= dt;
+    this.strokeHold=Math.max(0,(this.strokeHold||0)-dt);this.playerHitTime=Math.max(0,(this.playerHitTime||0)-dt);this.swordReady=0;
+    if(this.attackTimer>0&&this.attackTimer<.16&&!(this.attackAnim>0)&&this.queryEnemies(this.player.position,getSwordProfile(this.stats).range).length)this.swordReady=1-this.attackTimer/.16;
     if (this.attackTimer <= 0) { this.attack(); this.attackTimer = 1 / Math.max(0.2, this.combatStats.attackRate * getSwordProfile(this.stats).attackRateMultiplier); }
     this.magic.update(dt);
     if (!inRoom) { this.world?.updateNavigation(this.player.position, s.elapsed); this.regionSystem.update(dt); }
@@ -1007,7 +1011,8 @@ export class Game {
     const actualDamage = Math.min(this._state.hp, damage);
     this.runReport.damageTaken += actualDamage; this.analytics.hurt(actualDamage, this._state.stage);
     this.runReport.deathCause = typeof cause === 'string' ? cause : '적의 공격';
-    this._state.hp -= damage; this.invulnerable = 0.75; this.shake = 0.22;
+    this._state.hp -= damage; this.invulnerable = 0.75; this.shake = 0.22;this.playerHitTime=.2;
+    this.callbacks.onPlayerImpact?.({source,damage:actualDamage,blocked:false});
     if (attacker) { this.mutationSystem.onPlayerHit(attacker, actualDamage); this.regionSystem.onEnemyPlayerHit(attacker, actualDamage); }
     this.floatText(`-${Math.round(damage)}`, this.player.position, '#ff8974', 1.1, 3);
     this.burst(this.player.position, '#ff996c', 6); this.sound('hurt'); return true;
@@ -1019,6 +1024,7 @@ export class Game {
     const geometry = line ? new THREE.PlaneGeometry(enemy.kind === 8 ? .32 : enemy.kind === 5 ? 2.6 : 1.8, extent, 1, Math.ceil(extent / 1.5)) : new THREE.RingGeometry(.1, extent, 32, 5);
     const material = new THREE.MeshBasicMaterial({ color: line ? '#8bdcff' : enemy.kind === 6 ? '#ff7065' : color, transparent: true, opacity: .24, side: THREE.DoubleSide, depthWrite: false });
     const marker = new THREE.Mesh(geometry, material); marker.rotation.x = -Math.PI / 2;
+    marker.renderOrder=7;
     marker.position.copy(enemy.group.position); marker.position.y += .14;
     if (line) { marker.rotation.z = Math.atan2(enemy.aim.x, enemy.aim.z); marker.position.addScaledVector(enemy.aim, extent * .5); }
     this.scene.add(marker); this.fitGroundMesh(marker, .14); enemy.telegraph = marker;
@@ -1318,7 +1324,7 @@ export class Game {
     // Frost controls movement through its timed slow. Its repeated area hits
     // must not restart hit stun or add a push; an earlier sword hit still decays.
     if (knockbackScale > 0) enemy.stagger.copy(direction).setY(0).multiplyScalar((enemy.kind === 4 ? 0.4 : critical ? 12 : 7) * knockbackScale);
-    if (dealt > 0) this.combatArt.hit(enemy.group.position, spellId || source, critical);
+    if (dealt > 0) {this.combatArt.hit(enemy.group.position, spellId || source, critical);enemy.impactDirection||=new THREE.Vector3();enemy.impactDirection.copy(direction).setY(0);enemy.impactTime=.16;this.sound(critical?'critical':'hit',enemy.group.position);}
     if (critical) { this.shake = Math.max(this.shake, 0.045); this.sound('critical'); }
     if (enemy.hp > 0) {
       if (source === 'sword') this.magic.onSwordHit(enemy, damage);
@@ -1365,6 +1371,7 @@ export class Game {
     if (!this.sideAreas.active) this.exploration?.onKill(enemy);
     this.sideAreas.onKill(enemy);
     this.mutationSystem.onDeath(enemy);
+    this.defeats.capture(enemy,direction);
     this.releaseEnemy(enemy);
     if (enemy.kind === 7 && !enemy.minion && !enemy.splitChild) {
       const limit = Math.min(160, this.stageStats().maxEnemies);
@@ -1507,6 +1514,8 @@ export class Game {
   }
 
   animateEffects(dt) {
+    this.defeats?.update(dt);
+    if(this._state.phase==='over'&&this._state.hp<=0){this.playerDeathTime=Math.min(.7,(this.playerDeathTime||0)+dt);this.playerVisual.rotation.z=-Math.sin(this.playerDeathTime/.7*Math.PI/2)*.85;this.playerVisual.position.y=-this.playerDeathTime*.4;}
     this.swordTrail?.update(dt);
     this.parry?.feedback.update(dt);
     this.combatArt?.update(dt);
@@ -1538,6 +1547,8 @@ export class Game {
   }
   removeGroup(group) { if (!group) return; group.parent?.remove(group); }
   clearDynamic() {
+    this.enemyStates?.reset();
+    this.defeats?.reset();
     this.view?.reset();
     this.sideAreas?.reset();
     this.swordTrail?.reset(); this.combatArt?.reset(); this.actorShadows?.reset();
@@ -1586,6 +1597,8 @@ export class Game {
   /** Deterministic-time simulation hook for smoke tests; respects pause and choices. */
   stepForTest(seconds) { for (let t = 0; t < seconds && this._state.phase === 'playing'; t += 1 / 60) { this.frames++; this.advanceSimulation(1 / 60); } this.emit(); return this.getDebugState(); }
   dispose() {
+    this.enemyStates?.dispose();
+    this.defeats?.dispose();
     this.view?.dispose();
     this.disposed = true; cancelAnimationFrame(this.raf); this.observer.disconnect();
     window.removeEventListener('keydown', this.onKeyDown); window.removeEventListener('keyup', this.onKeyUp); window.removeEventListener('blur', this.onBlur); document.removeEventListener('visibilitychange', this.onVisibility);
