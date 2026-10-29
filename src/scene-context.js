@@ -11,6 +11,7 @@ export class SceneContext {
         g.player,
         g.playerShadow, g.swordTrail?.mesh,
         g.defeats?.root,g.enemyStates?.mesh,
+        g.atmosphere?.sky,
         g.actorShadows?.mesh,
         g.parry?.mesh, g.parry?.feedback.root,
         g.setSystem?.mesh,

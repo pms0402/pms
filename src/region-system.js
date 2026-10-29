@@ -53,15 +53,22 @@ export class RegionSystem {
     this.ambientGeometry = new THREE.BufferGeometry(); this.ambientGeometry.setAttribute('position', new THREE.BufferAttribute(points, 3));
     this.ambientMaterial = new THREE.ShaderMaterial({ transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, uniforms: { color: { value: new THREE.Color('#ffb16e') }, size: { value: 3 } }, vertexShader: 'uniform float size;void main(){vec4 p=modelViewMatrix*vec4(position,1.0);gl_Position=projectionMatrix*p;gl_PointSize=clamp(size*35.0/max(5.0,-p.z),1.0,5.0);}', fragmentShader: 'uniform vec3 color;void main(){float r=length(gl_PointCoord-.5)*2.0;float a=pow(max(0.0,1.0-r),2.0)*.65;gl_FragColor=vec4(color,a);}' });
     this.ambient = new THREE.Points(this.ambientGeometry, this.ambientMaterial); this.ambient.visible = false; this.ambient.frustumCulled = false; this.scene.add(this.ambient);
-    this.surfaceUniforms = { color: { value: new THREE.Color('#ffffff') }, blend: { value: 0 } };
+    this.surfaceUniforms = { color: { value: new THREE.Color('#ffffff') }, blend: { value: 0 },kind:{value:0},time:{value:0} };
     const material = game.world?.ground?.material;
     if (material) {
       const compile = material.onBeforeCompile, key = material.customProgramCacheKey.bind(material);
       material.onBeforeCompile = (shader, renderer) => {
         compile.call(material, shader, renderer);
         shader.uniforms.uRegionColor = this.surfaceUniforms.color; shader.uniforms.uRegionBlend = this.surfaceUniforms.blend;
-        shader.fragmentShader = 'uniform vec3 uRegionColor;uniform float uRegionBlend;\n' + shader.fragmentShader;
+        shader.uniforms.uRegionKind=this.surfaceUniforms.kind;shader.uniforms.uRegionTime=this.surfaceUniforms.time;
+        shader.fragmentShader = 'uniform vec3 uRegionColor;uniform float uRegionBlend;uniform float uRegionKind;uniform float uRegionTime;\n' + shader.fragmentShader;
         shader.fragmentShader = shader.fragmentShader.replace('#include <metalnessmap_fragment>', '#include <metalnessmap_fragment>\nfloat regionLuma=dot(diffuseColor.rgb,vec3(.299,.587,.114));diffuseColor.rgb=mix(diffuseColor.rgb,uRegionColor*(.48+regionLuma*.8),uRegionBlend);');
+        shader.fragmentShader=shader.fragmentShader.replace('#include <emissivemap_fragment>',`#include <emissivemap_fragment>
+          if(uRegionKind>0.5&&uRegionKind<1.5){float fissure=abs(sin(vArtPosition.x*.43+sin(vArtPosition.z*.31)) * cos(vArtPosition.z*.37+sin(vArtPosition.x*.27)));float glow=(1.-smoothstep(.018,.06,fissure))*(1.-artBlend*.9);diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.12,.095,.08),.4*(1.-artBlend));totalEmissiveRadiance+=vec3(.65,.095,.012)*glow*(.7+.1*sin(uRegionTime*.7));}
+          else if(uRegionKind>1.5&&uRegionKind<2.5){float snow=clamp((1.-artBlend*.75)*(.75+.2*sin(vArtPosition.x*.11+vArtPosition.z*.16)),0.,.95);diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.65,.76,.79),snow);roughnessFactor=mix(roughnessFactor,.87,snow);}
+          else if(uRegionKind>2.5&&uRegionKind<3.5){float moss=(.5+.5*sin(vArtPosition.x*.6+sin(vArtPosition.z*.4)))*(1.-artBlend);diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.10,.17,.11),moss*.35);}
+          else if(uRegionKind>4.5){float seams=pow(max(0.,sin(vArtPosition.x*.22+vArtPosition.z*.18)),35.);totalEmissiveRadiance+=vec3(.045,.018,.09)*seams;}
+        `);
       };
       material.customProgramCacheKey = () => `${key()}:regions-v1`; material.needsUpdate = true;
     }
@@ -69,12 +76,14 @@ export class RegionSystem {
 
   setRegion(id) {
     this.reset(); this.region = getRegion(id);
+    this.game.atmosphere?.setRegion(id);this.game.landscape?.setRegion(id);this.game.soundscape?.setRegion(id);
     this.game.moodTarget = this.region.palette.map(color => new THREE.Color(color));
     this.game.updateMood?.(100);
     const colors = { volcano: ['#503e33', '#966f6c'], tundra: ['#c0d7d9', '#cfedf6'], forest: ['#60714a', '#95b875'], ruins: ['#706342', '#bcab97'], void: ['#66506f', '#a78ec4'], throne: ['#665064', '#ba96c1'], sanctum: ['#58624e', '#b0c2cc'] };
     tint(this.game.mats?.ruinGrass, colors[this.region.id][0]); tint(this.game.mats?.groundMist, colors[this.region.id][1]);
     const mix = { volcano: .34, tundra: .79, forest: .23, ruins: .14, void: .29 }[this.region.id] || 0;
     this.surfaceUniforms.blend.value = mix; this.surfaceUniforms.color.value.set(this.region.palette[0]);
+    this.surfaceUniforms.kind.value={volcano:1,tundra:2,forest:3,ruins:4,void:5,throne:5}[id]||0;
     for (const material of [this.material.warning, this.material.area, this.material.marker, this.material.crack]) material.color.set(this.region.color);
     this.material.warning.color.set('#ff7065'); this.material.area.color.set('#ff7065');
     this.material.accent.color.set(this.region.color); this.material.accent.emissive.set(this.region.color); this.ambientMaterial.uniforms.color.value.set(this.region.color);
@@ -174,6 +183,7 @@ export class RegionSystem {
   hurt(factor, position, cause) { if (this.game.takeDamage((this.game.stageStats?.() || getStageStats(this.game._state.stage)).enemyDamage * factor, position, cause, null, { unblockable: true })) this.damageEvents++; }
 
   updateVisuals() {
+    this.surfaceUniforms.time.value=this.time;
     const draw = (mesh, index, position, size, lift = .055) => { this.dummy.position.set(position.x, (this.game.groundHeight?.(position.x, position.z) || 0) + lift, position.z); this.dummy.rotation.set(0, 0, 0); this.dummy.scale.set(size, 1, size); this.dummy.updateMatrix(); mesh.setMatrixAt(index, this.dummy.matrix); };
     const drawGround = (mesh, index, hazard, filled) => {
       const positions = mesh.geometry.attributes.position, vertices = filled ? 37 : 72, offset = index * vertices;

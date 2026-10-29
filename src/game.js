@@ -27,6 +27,9 @@ import { gameKey, isGameShortcut } from './game-input.js';
 import { ViewController, viewMovement } from './view.js';
 import { DeathPresentation } from './death-presentation.js';
 import { EnemyStates } from './enemy-states.js';
+import {CreatureSurfaces} from './creature-surfaces.js';
+import {WorldAtmosphere} from './world-atmosphere.js';
+import {RegionalLandscape} from './regional-landscape.js';
 import { ExplorationSystem } from './exploration.js';
 import { abyssStats, abyssBoss, abyssRule } from './abyss.js';
 import { RunAnalytics, damageCategory } from './analytics.js';
@@ -119,6 +122,7 @@ export class Game {
     this.renderer.domElement.style.touchAction = 'none';
     container.appendChild(this.renderer.domElement);
     this.createMaterials();
+    this.creatureSurfaces=new CreatureSurfaces(this);
     this.presentation = createPresentationAssets(this.renderer);
     this.scene.environment = this.presentation.environment; this.scene.environmentIntensity = .6;
     this.artReady = false;
@@ -126,6 +130,7 @@ export class Game {
     for (const material of [this.mats.rock, this.mats.rockDark]) { material.map = this.presentation.stoneMap; material.normalMap = this.presentation.stoneNormal; material.roughnessMap = this.presentation.stoneRoughness; material.normalScale.set(.6, .6); }
     this.createWorld();
     this.createPlayer();
+    this.creatureSurfaces.hero();this.atmosphere=new WorldAtmosphere(this);this.landscape=new RegionalLandscape(this);
     this.combatArt = new CombatArt(this.scene); this.swordTrail = new SwordTrail(this);this.defeats=new DeathPresentation(this);this.enemyStates=new EnemyStates(this);
     this.actorShadows = new ActorShadows(this.scene, this.enemies, this.presentation.contactMap);
     this.equipment = new EquipmentSystem(this);
@@ -873,6 +878,7 @@ export class Game {
     this.updateCamera(dt);
     this.world?.updateOcclusion(this.player.position, this.camera.position, dt, this.view.effectiveMode()==='overhead');
     this.world?.art.update(dt);
+    this.atmosphere?.update(dt);this.landscape?.update(dt);
     this.renderer.render(this.scene, this.camera);
     if (time - this.lastUpdate > 100) { this.lastUpdate = time; this.emit(); }
     this.raf = requestAnimationFrame(this.loop);
@@ -1597,6 +1603,7 @@ export class Game {
   /** Deterministic-time simulation hook for smoke tests; respects pause and choices. */
   stepForTest(seconds) { for (let t = 0; t < seconds && this._state.phase === 'playing'; t += 1 / 60) { this.frames++; this.advanceSimulation(1 / 60); } this.emit(); return this.getDebugState(); }
   dispose() {
+    this.creatureSurfaces?.dispose();this.atmosphere?.dispose();this.landscape?.dispose();
     this.enemyStates?.dispose();
     this.defeats?.dispose();
     this.view?.dispose();
