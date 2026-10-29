@@ -173,7 +173,7 @@ try {
 
   await fresh();
   const beforeCurse = await page.evaluate(() => {
-    const game = window.__game, enemy = game.spawnEnemy(0, 10, 0); enemy.hp = enemy.maxHp * .4; enemy.speed = 0;
+    const game = window.__game, enemy = game.spawnEnemy(0, 10, 0,{noMutations:true}); enemy.hp = enemy.maxHp * .4; enemy.speed = 0;
     const stats = JSON.stringify(game.stats), result = { maxHp: enemy.maxHp, hp: enemy.hp, stats, beforeTime: game.state.elapsed };
     if (!game.openCurseAltar()) throw new Error('The optional altar should open while playing');
     return result;
@@ -183,7 +183,7 @@ try {
   const curse = CURSES.find(item => item.id === 'bloodDebt');
   await page.locator('[data-curse="bloodDebt"]').click();
   const afterCurse = await page.evaluate(() => {
-    const game = window.__game, existing = game.enemies[0], future = game.spawnEnemy(10, 0, 0);
+    const game = window.__game, existing = game.enemies[0], future = game.spawnEnemy(10, 0, 0,{noMutations:true});
     const gold = game.state.gold; game.collectPickup({ type: 'gold', value: 10, mesh: null });
     game.invulnerable = 0; const hp = game.state.hp; game.takeDamage(10, game.player.position);
     return { phase: game.state.phase, existingHp: existing.hp, existingMax: existing.maxHp, futureHp: future.maxHp, gold: game.state.gold - gold, damage: hp - game.state.hp, stats: JSON.stringify(game.stats), curses: game.state.activeCurses };

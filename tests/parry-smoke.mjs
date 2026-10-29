@@ -513,6 +513,9 @@ try {
     "PASS collision-safe wall/boundary knockback, 160-monster repeated parries, bounded cached effects and clean restart",
     JSON.stringify(stress),
   );
+  // This synthetic task submits sixteen full crowd frames without yielding.
+  // Wait for their actual pixels before starting normal DOM interaction checks.
+  await p.evaluate(()=>{const gl=window.__game.renderer.getContext();gl.readPixels(0,0,1,1,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array(4));});
   await p.locator("#settings").click();
   await p.locator('[data-camera-shake="0"]').click();
   await p.locator('[data-parry-effects="0"]').click();

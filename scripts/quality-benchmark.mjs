@@ -20,7 +20,7 @@ try{
   await p.locator('#game-canvas').screenshot({path:`${output}/${mode}.png`});
  }
  for(const region of ['volcano','tundra','forest','ruins','void']){
-  await p.evaluate(id=>{const g=window.__game;g.regionId=id;g.regionSystem.setRegion(id);g.setViewMode('third');g.updateMood(100);g.world.art.update(0);g.playerVisual.visible=true;g.updateCamera(100);g.renderer.render(g.scene,g.camera);g.emit();},region);
+  await p.evaluate(id=>{const g=window.__game;g.regionId=id;g.regionSystem.setRegion(id);g.setViewMode('third');g.updateMood(100);g.world.art.update(0);g.landscape?.update(0);g.atmosphere?.update(0);g.playerVisual.visible=true;g.updateCamera(100);g.renderer.render(g.scene,g.camera);g.emit();},region);
   await p.locator('#game-canvas').screenshot({path:`${output}/${region}.png`});
  }
  await p.setViewportSize({width:390,height:844});await p.evaluate(()=>{const g=window.__game;g.resize();g.updateCamera(100);g.playerVisual.visible=true;g.renderer.render(g.scene,g.camera);});await p.screenshot({path:`${output}/mobile.png`});

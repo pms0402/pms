@@ -279,7 +279,8 @@ try {
   assert.ok(stress.state.enemies <= 160 && stress.state.mutationSystem.active > 0 && stress.state.mutationSystem.markers <= 320);
   assert.ok(stress.state.regionSystem.hazards <= 4 && stress.state.mutationSystem.warningCount <= 12);
   assert.ok(stress.state.magic.effects <= 100 && stress.state.magic.projectiles <= 40 && stress.state.magic.zones <= 12);
-  assert.ok(stress.state.drawCalls < 420 && stress.state.resources.textures <= 52, `bounded loaded scene: ${JSON.stringify({ calls: stress.state.drawCalls, resources: stress.state.resources })}`);
+  // Three fixed, shared pore/albedo/weave maps extend the previous texture budget.
+  assert.ok(stress.state.drawCalls < 420 && stress.state.resources.textures <= 55, `bounded loaded scene: ${JSON.stringify({ calls: stress.state.drawCalls, resources: stress.state.resources })}`);
   assert.equal(stress.batches, 6); assert.equal(stress.resetMutations.active, 0); assert.equal(stress.resetMutations.markers, 0); assert.equal(stress.resetRegion.hazards, 0);
   assert.ok(Object.values(stress.resetCombos.comboTriggers).every(count => count === 0));
   console.log('PASS once-per-run unlocks and bounded 160 dual-mutation battle, regional hazards, combo effects and clean restart', JSON.stringify({ calls: stress.state.drawCalls, resources: stress.state.resources }));

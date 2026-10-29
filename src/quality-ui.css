@@ -1,5 +1,5 @@
 :root{--surface:#161c20;--surface-raised:#20282d;--stroke:#495058;--ink:#e5e4da;--ink-muted:#aab1ae;--focus:#cfdeb2;--lime:#c0d99b}
-.modal{background:linear-gradient(150deg,#252c30,#151c20 70%);border-color:#4a555b;box-shadow:0 22px 80px #0009,inset 0 1px #aebbb311;color:var(--ink)}
+.modal{animation:fade-in .18s ease-out;background:linear-gradient(150deg,#252c30,#151c20 70%);border-color:#4a555b;box-shadow:0 22px 80px #0009,inset 0 1px #aebbb311;color:var(--ink)}
 .modal-description,.guide-steps p,.setting-row p,.gear-card p,.npc-choice p{color:var(--ink-muted);font-size:12px;line-height:1.8}
 .modal h2{letter-spacing:-.7px}.modal h3,.upgrade-card h3,.gear-card h3{font-weight:600;letter-spacing:-.25px}
 .modal-eyebrow{color:#c7b78f;letter-spacing:2px}.modal-close{min-width:36px;min-height:36px;border:1px solid #52606655;border-radius:6px}

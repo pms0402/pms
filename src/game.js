@@ -849,7 +849,7 @@ export class Game {
   setAudioVolumes(effects,background){this.soundscape.setVolumes(effects,background);}
   setAccessibility({cameraShake = this.cameraShake, effectIntensity = this.effectIntensity} = {}) { this.cameraShake = [0,.5,1].includes(cameraShake) ? cameraShake : 1; this.effectIntensity = [0,.35,1].includes(effectIntensity) ? effectIntensity : 1; }
   setViewMode(mode) { return this.view.setMode(mode); }
-  setQuality(value) {this.quality=graphicsQuality(value);const q=GRAPHICS[this.quality];this.renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,q.pixelRatio));this.renderer.shadowMap.enabled=q.shadows;if(this.sunlight.shadow.mapSize.x!==q.shadowSize){this.sunlight.shadow.map?.dispose();this.sunlight.shadow.map=null;this.sunlight.shadow.mapSize.set(q.shadowSize,q.shadowSize);}this.combatArt.limit=q.particles;this.combatArt.count=Math.min(this.combatArt.count,q.particles);this.combatArt.density=q.density;this.defeats.limit=q.corpses;this.world?.setQuality(this.quality);this.landscape?.setQuality(q.detail);this.resize();}
+  setQuality(value) {this.quality=graphicsQuality(value);if(this.enemyRenderer)this.enemyRenderer.lod.quality=this.quality;const q=GRAPHICS[this.quality];this.renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,q.pixelRatio));this.renderer.shadowMap.enabled=q.shadows;if(this.sunlight.shadow.mapSize.x!==q.shadowSize){this.sunlight.shadow.map?.dispose();this.sunlight.shadow.map=null;this.sunlight.shadow.mapSize.set(q.shadowSize,q.shadowSize);}this.combatArt.limit=q.particles;this.combatArt.count=Math.min(this.combatArt.count,q.particles);this.combatArt.density=q.density;this.defeats.setLimit(q.corpses);this.world?.setQuality(this.quality);this.landscape?.setQuality(q.detail);this.resize();}
 
   setPlaybackSpeed(value) {
     if (![1, 2, 3].includes(value)) return false;
@@ -1559,7 +1559,7 @@ export class Game {
   }
   removeGroup(group) { if (!group) return; group.parent?.remove(group); }
   clearDynamic() {
-    this.enemyStates?.reset();
+    this.soundscape?.reset();this.enemyStates?.reset();
     this.defeats?.reset();
     this.view?.reset();
     this.sideAreas?.reset();

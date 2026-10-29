@@ -173,6 +173,7 @@ export class BossSystem {
 
   prepare(boss) {
     const origin = boss.group.position, target = this.game.player.position;
+    this.game.sound?.('boss',origin);
     boss.aimDirection.copy(target).sub(origin).setY(0).normalize();
     if (boss.aimDirection.lengthSq() === 0) boss.aimDirection.set(0, 0, 1);
     boss.actionIndex++; this.actions++;

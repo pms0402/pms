@@ -1,0 +1,45 @@
+{
+  "version": "v0.17.0",
+  "hardware": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+  "viewport": [
+    960,
+    540
+  ],
+  "pixelRatio": 1,
+  "quality": "high",
+  "enemies": 160,
+  "frames": 60,
+  "frameMedianMs": 916.6999999999971,
+  "frameP95Ms": 1849.800000000003,
+  "cpuMedianMs": 6.299999997019768,
+  "cpuP95Ms": 12.300000000745058,
+  "calls": 174,
+  "triangles": 547896,
+  "geometries": 180,
+  "textures": 15,
+  "heap": 42585132,
+  "resetSamples": [
+    {
+      "heap": 30811501,
+      "geometries": 184,
+      "textures": 15
+    },
+    {
+      "heap": 30842449,
+      "geometries": 185,
+      "textures": 15
+    },
+    {
+      "heap": 30917233,
+      "geometries": 185,
+      "textures": 15
+    },
+    {
+      "heap": 30924777,
+      "geometries": 185,
+      "textures": 15
+    }
+  ],
+  "errors": [],
+  "method": "Chromium/SwiftShader, 960×540 backing buffer, fixed 160 actors, 12 warmup + 60 sampled RAF frames; CPU is simulation + render submission, not GPU hardware time. GC is invoked only by this benchmark."
+}

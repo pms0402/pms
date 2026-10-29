@@ -48,6 +48,7 @@ export class SceneContext {
     g.moodTarget = s.mood;
     g.camera.position.copy(s.camera);
     this.saved = null;
+    g.world?.setQuality(g.quality);
   }
 }
 export function clearCosmetics(g) {

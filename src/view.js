@@ -248,8 +248,11 @@ export class ViewController {
         this.desired
           .copy(this.anchor)
           .addScaledVector(this.direction, -this.distance);
+        const shoulder = camera.aspect < .9 ? .55 : 1.15;
+        this.desired.x -= cy * shoulder;this.desired.z += sy * shoulder;
         this.clip(this.desired);
         this.look.copy(this.anchor);
+        this.look.x -= cy * shoulder;this.look.z += sy * shoulder;
       }
     }
     if (this.snap || mode === "first") camera.position.copy(this.desired);

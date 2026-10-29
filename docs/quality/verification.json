@@ -1,0 +1,188 @@
+{
+  "release": "v0.18.0",
+  "unit": {
+    "passed": 186,
+    "failed": 0
+  },
+  "browserSuites": [
+    {
+      "test": "adventure-smoke.mjs",
+      "exit": 0,
+      "seconds": 204.2,
+      "run": "regression"
+    },
+    {
+      "test": "archive-smoke.mjs",
+      "exit": 0,
+      "seconds": 10.5,
+      "run": "regression"
+    },
+    {
+      "test": "articulation-smoke.mjs",
+      "exit": 0,
+      "seconds": 47.5,
+      "run": "final-render-regression"
+    },
+    {
+      "test": "audio-smoke.mjs",
+      "exit": 0,
+      "seconds": 27.1,
+      "run": "final-ui-regression"
+    },
+    {
+      "test": "browser-smoke.mjs",
+      "exit": 0,
+      "seconds": 85.1,
+      "run": "regression"
+    },
+    {
+      "test": "builds-smoke.mjs",
+      "exit": 0,
+      "seconds": 176.4,
+      "run": "final-render-regression"
+    },
+    {
+      "test": "characters-smoke.mjs",
+      "exit": 0,
+      "seconds": 18.0,
+      "run": "regression"
+    },
+    {
+      "test": "combat-smoke.mjs",
+      "exit": 0,
+      "seconds": 145.0,
+      "run": "regression"
+    },
+    {
+      "test": "controls-smoke.mjs",
+      "exit": 0,
+      "seconds": 23.2,
+      "run": "regression"
+    },
+    {
+      "test": "deploy-smoke.mjs",
+      "exit": 0,
+      "seconds": 21.6,
+      "run": "regression"
+    },
+    {
+      "test": "economy-scale-smoke.mjs",
+      "exit": 0,
+      "seconds": 40.3,
+      "run": "regression"
+    },
+    {
+      "test": "encounter-smoke.mjs",
+      "exit": 0,
+      "seconds": 40.4,
+      "run": "regression"
+    },
+    {
+      "test": "endgame-smoke.mjs",
+      "exit": 0,
+      "seconds": 75.2,
+      "run": "regression"
+    },
+    {
+      "test": "expansion-smoke.mjs",
+      "exit": 0,
+      "seconds": 54.9,
+      "run": "final-render-regression"
+    },
+    {
+      "test": "frost-smoke.mjs",
+      "exit": 0,
+      "seconds": 10.1,
+      "run": "regression"
+    },
+    {
+      "test": "growth-smoke.mjs",
+      "exit": 0,
+      "seconds": 102.7,
+      "run": "regression"
+    },
+    {
+      "test": "manual-growth-smoke.mjs",
+      "exit": 0,
+      "seconds": 73.7,
+      "run": "regression"
+    },
+    {
+      "test": "motion-smoke.mjs",
+      "exit": 0,
+      "seconds": 16.1,
+      "run": "final-render-regression"
+    },
+    {
+      "test": "parry-smoke.mjs",
+      "exit": 0,
+      "run": "parry-final.log"
+    },
+    {
+      "test": "permanent-smoke.mjs",
+      "exit": 0,
+      "seconds": 84.0,
+      "run": "regression"
+    },
+    {
+      "test": "presentation-smoke.mjs",
+      "exit": 0,
+      "seconds": 31.6,
+      "run": "final-render-regression"
+    },
+    {
+      "test": "quality-smoke.mjs",
+      "exit": 0,
+      "seconds": 29.4,
+      "run": "final-render-regression"
+    },
+    {
+      "test": "resources-smoke.mjs",
+      "exit": 0,
+      "run": "resources-final.log",
+      "cycles": 16
+    },
+    {
+      "test": "sanctum-smoke.mjs",
+      "exit": 0,
+      "seconds": 16.9,
+      "run": "final-render-regression"
+    },
+    {
+      "test": "standalone-smoke.mjs",
+      "exit": 0,
+      "seconds": 40.6,
+      "run": "final-ui-regression"
+    },
+    {
+      "test": "view-smoke.mjs",
+      "exit": 0,
+      "seconds": 46.0,
+      "run": "final-render-regression"
+    },
+    {
+      "test": "world-expansion-smoke.mjs",
+      "exit": 0,
+      "seconds": 62.2,
+      "run": "final-render-regression"
+    },
+    {
+      "test": "world-smoke.mjs",
+      "exit": 0,
+      "seconds": 16.0,
+      "run": "final-render-regression"
+    }
+  ],
+  "builds": [
+    "vite production",
+    "self-contained HTML"
+  ],
+  "runtime": "Chromium with SwiftShader; desktop and mobile/touch viewports, not physical mobile hardware",
+  "fixturesCorrected": [
+    "isolate curse multipliers from random mutations",
+    "mesh-only occlusion traversal for grouped scenery",
+    "fixed geometry/texture budget additions documented",
+    "ready/contact and newly sampled blade points checked separately",
+    "read one pixel after a synthetic 16-frame stress task before DOM input checks"
+  ]
+}

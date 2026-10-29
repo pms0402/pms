@@ -11,3 +11,9 @@ test('defeat copies reuse shared geometry, never mutate targets/materials and st
 test('parry particles replace expendable particles without exceeding the fixed GPU buffer',()=>{
  const scene=new THREE.Scene(),vfx=new CombatArt(scene,8),p=new THREE.Vector3();vfx.emit(p,'fireball',8,true);assert.equal(vfx.count,8);vfx.emit(p,'parry',6);assert.equal(vfx.count,8);assert.equal(Array.from(vfx.priority).filter(x=>x===3).length,6);assert.ok(Array.from(vfx.shape).filter(x=>x===2).length>=6);vfx.update(.1);assert.ok(vfx.count<=8);vfx.dispose();
 });
+test('lower quality trims active copies and never displaces a living boss with a normal defeat',()=>{
+ const game={scene:new THREE.Scene(),effectIntensity:1},deaths=new DeathPresentation(game),geo=new THREE.SphereGeometry(1,8,6),mat=new THREE.MeshBasicMaterial();
+ const actor=kind=>{const group=new THREE.Group(),visual=new THREE.Group();visual.add(new THREE.Mesh(geo,mat));group.add(visual);return{group,visual,kind,visualKind:kind};};
+ for(let i=0;i<10;i++)deaths.capture(actor(0));deaths.setLimit(3);assert.equal(deaths.slots.filter(s=>s.life>0).length,3);
+ deaths.reset();for(let i=0;i<3;i++)deaths.capture(actor(4));deaths.capture(actor(0));assert.equal(deaths.slots.filter(s=>s.life>0).length,3);assert.equal(deaths.slots.filter(s=>s.life>0&&s.boss).length,3);deaths.dispose();geo.dispose();mat.dispose();
+});

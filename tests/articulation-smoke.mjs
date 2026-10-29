@@ -157,18 +157,23 @@ try {
     e.hp = e.maxHp = 1e7;
     const stats = JSON.stringify(g.stats),
       hp = e.hp;
+    g.attackTimer=.15;
+    const yaws=[];
+    for(let i=0;i<10;i++){g.advanceSimulation(1/120);yaws.push(g.rightShoulder.rotation.y);}
+    const anticipation=e.hp===hp&&g.swordReady>0;
+    g.attackTimer=1e6;
     g.attack();
     const immediate = e.hp < hp,
       after = e.hp;
     let peak = 0,
       aligned = true;
-    const yaws = [];
     for (let i = 0; i < 22; i++) {
+      const previousSample=g.swordTrail.sampleTime[0];
       g.advanceSimulation(1 / 120);
       const trail = g.swordTrail;
       peak = Math.max(peak, trail.geometry.drawRange.count);
       const p = trail.paths[0].at(-1);
-      if (p) {
+      if (p&&trail.sampleTime[0]!==previousSample) {
         const tip = g.player.position
           .clone()
           .set(0, 0, 1)
@@ -212,6 +217,7 @@ try {
       peak,
       aligned,
       immediate,
+      anticipation,
       noExtraDamage,
       unchanged,
       sector,
@@ -226,6 +232,7 @@ try {
       sword.peak <= 204 &&
       sword.aligned &&
       sword.immediate &&
+      sword.anticipation &&
       sword.noExtraDamage &&
       sword.unchanged &&
       sword.reset,

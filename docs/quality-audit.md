@@ -35,4 +35,4 @@ Observed renderer: ANGLE Vulkan **SwiftShader software rasterizer**, not a physi
 5. Procedural audio/mix and controls.
 6. Screen-size LOD, resource/performance regression checks, comparison images and final report.
 
-Each stage is committed independently. Final measurements, tests and remaining limitations will be recorded after verification.
+Each stage is committed independently. Final measurements, screenshots, tests, tradeoffs and remaining limitations are recorded in [quality-report.md](quality-report.md).
