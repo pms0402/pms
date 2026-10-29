@@ -26,6 +26,7 @@
     "test:characters": "node tests/characters-smoke.mjs",
     "test:motion": "node tests/motion-smoke.mjs",
     "test:quality": "node tests/quality-smoke.mjs",
+    "test:world-expansion": "node tests/world-expansion-smoke.mjs",
     "test:endgame": "node tests/endgame-smoke.mjs",
     "test:expansion": "node tests/expansion-smoke.mjs",
     "test:sanctum": "node tests/sanctum-smoke.mjs",

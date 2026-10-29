@@ -195,3 +195,16 @@ test('reaper contact damage uses its landing position rather than the position b
   close(f.boss.group.position.x, 6.5);
   f.system.dispose();
 });
+
+
+test('annular hidden boss zones retain a safe inner circle after the warning', () => {
+  const f = fixture('storm');
+  const zone = f.system.zone(new THREE.Vector3(), 12, 1.2, .18, 30, 'primordial');
+  zone.innerRadius = 4;
+  for (let i = 0; i < 12; i++) f.system.updateEffects(.1);
+  assert.equal(f.hits.length, 0, 'center remains safe');
+  f.game.player.position.set(7, 0, 0);
+  f.system.updateEffects(.01);
+  assert.equal(f.hits.length, 1, 'the warned annulus deals actual damage');
+  f.system.dispose();
+});

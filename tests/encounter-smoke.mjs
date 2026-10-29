@@ -30,6 +30,12 @@ async function fixture(stage = 1) {
   await page.evaluate(stage => {
     const game = window.__game;
     game.start(); cancelAnimationFrame(game.raf);
+    // Base archetype fixtures isolate mutations; the expansion suite tests those separately.
+    if (!game.spawnEnemy.baselineFixture) {
+      const spawn = game.spawnEnemy.bind(game);
+      game.spawnEnemy = (x, z, kind, options = {}) => spawn(x, z, kind, {...options, mutations: options.mutations ?? []});
+      game.spawnEnemy.baselineFixture = true;
+    }
     game._state.stage = stage; game._state.xpNeeded = 1e9;
     game.spawnTimer = game.attackTimer = game.nextChestTime = game.nextEliteTime = game.nextGoldenTime = game.nextAltarTime = 1e6;
     game.stats.spells = { fireball: 0, frost: 0, lightning: 0, orbit: 0 };

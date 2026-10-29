@@ -9,6 +9,7 @@ try {
   if(localStorage.getItem('controls-seeded'))return;
   localStorage.setItem('controls-seeded','1');
   localStorage.setItem('unrelated-save','keep');
+  localStorage.setItem('voidrun.story',JSON.stringify({records:['sanctuary','royalOath'],endings:['guardian'],normalClear:true}));
   localStorage.setItem('voidrun.progression',JSON.stringify({bank:123456789,upgrades:{power:12},settledRunIds:['old-run'],unlocks:{characters:['wanderer','arcanist'],weapons:['voidblade','tempest']},loadout:{character:'arcanist',weapon:'tempest'}}));
   localStorage.setItem('voidrun.history',JSON.stringify([{stage:4,elapsed:150,kills:20,gold:800,level:5,date:'10/27',runId:'old-run'}]));
  });
@@ -41,8 +42,8 @@ try {
  await page.locator('#pause-button').click();await page.locator('#pause-restart').click();
  await page.locator('#result-settings').click();await page.locator('#reset-save').click();
  await Promise.all([page.waitForNavigation(),page.locator('#reset-confirm').click()]);await ready();
- const reset=await page.evaluate(()=>({p:JSON.parse(localStorage.getItem('voidrun.progression')),h:JSON.parse(localStorage.getItem('voidrun.history')),prefs:JSON.parse(localStorage.getItem('voidrun.preferences')),other:localStorage.getItem('unrelated-save'),phase:window.__game.state.phase}));
- assert.equal(reset.p.bank,0);assert.equal(reset.p.lifetimeGold,0);assert.ok(Object.values(reset.p.upgrades).every(x=>x===0));assert.deepEqual(reset.p.settledRunIds,[]);assert.deepEqual(reset.p.loadout,{character:'wanderer',weapon:'voidblade'});assert.deepEqual(reset.p.unlocks,{characters:['wanderer'],weapons:['voidblade']});assert.deepEqual(reset.h,[]);assert.equal(reset.prefs.speed,3);assert.equal(reset.other,'keep');assert.equal(reset.phase,'menu');
+ const reset=await page.evaluate(()=>({p:JSON.parse(localStorage.getItem('voidrun.progression')),h:JSON.parse(localStorage.getItem('voidrun.history')),prefs:JSON.parse(localStorage.getItem('voidrun.preferences')),other:localStorage.getItem('unrelated-save'),story:JSON.parse(localStorage.getItem('voidrun.story')),phase:window.__game.state.phase}));
+ assert.deepEqual(reset.story.records,[]);assert.deepEqual(reset.story.endings,[]);assert.equal(reset.story.normalClear,false);assert.equal(reset.p.bank,0);assert.equal(reset.p.lifetimeGold,0);assert.ok(Object.values(reset.p.upgrades).every(x=>x===0));assert.deepEqual(reset.p.settledRunIds,[]);assert.deepEqual(reset.p.loadout,{character:'wanderer',weapon:'voidblade'});assert.deepEqual(reset.p.unlocks,{characters:['wanderer'],weapons:['voidblade']});assert.deepEqual(reset.h,[]);assert.equal(reset.prefs.speed,3);assert.equal(reset.other,'keep');assert.equal(reset.phase,'menu');
  await page.reload();await ready();assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('voidrun.progression')).bank),0);
  for(const viewport of [{width:390,height:844},{width:844,height:390}]) {await page.setViewportSize(viewport);assert.ok(await page.locator('#game-speed').isVisible());const dims=await page.evaluate(()=>({w:innerWidth,h:innerHeight,sw:document.documentElement.scrollWidth,sh:document.documentElement.scrollHeight}));assert.ok(dims.sw<=dims.w+1&&dims.sh<=dims.h+1);}
  assert.deepEqual(errors,[]);console.log('PASS reset confirmation/cancel, full persistent reset without re-import, preserved preferences; 1/2/3× real simulation, blur/visibility recovery, manual pause and mobile controls');
