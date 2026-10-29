@@ -158,7 +158,12 @@ try {
   );
   await p.keyboard.press("Space");
   assert.ok(await p.evaluate(() => window.__game.dashTime > 0));
+  await p.locator("#settings").focus();
   await p.mouse.click(x, y);
+  assert.equal(
+    await p.evaluate(() => document.activeElement.id),
+    "game-canvas",
+  );
   await p.waitForFunction(
     () => document.pointerLockElement === window.__game.renderer.domElement,
   );

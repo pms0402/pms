@@ -124,6 +124,7 @@ export class ViewController {
     if (e.pointerType === "touch" && e.clientX < rect.left + rect.width * 0.5)
       return false;
     if (this.drag) return true;
+    this.game.container.focus?.({ preventScroll: true });
     this.drag = {
       id: e.pointerId,
       x: e.clientX,
