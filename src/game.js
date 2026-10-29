@@ -1217,8 +1217,9 @@ export class Game {
   }
 
   updateEnemyProjectiles(dt) {
+    const serial = this.projectileUpdateSerial = (this.projectileUpdateSerial || 0) + 1;
     for (let i = this.enemyProjectiles.length - 1; i >= 0; i--) {
-      const p = this.enemyProjectiles[i]; if (!p) continue; if (p.tracking > 0) { p.tracking -= dt; const wanted = this.player.position.clone().sub(p.mesh.position).setY(0).normalize().multiplyScalar(p.velocity.length()); p.velocity.lerp(wanted, Math.min(1, dt * .8)).setLength(wanted.length()); } p.life -= dt; p.mesh.position.addScaledVector(p.velocity, dt); p.mesh.position.y = this.groundHeight(p.mesh.position.x, p.mesh.position.z) + .9; p.mesh.rotation.y += dt * 4;
+      const p = this.enemyProjectiles[i]; if (!p || p.updateSerial === serial) continue; p.updateSerial = serial; if (p.tracking > 0) { p.tracking -= dt; const wanted = this.player.position.clone().sub(p.mesh.position).setY(0).normalize().multiplyScalar(p.velocity.length()); p.velocity.lerp(wanted, Math.min(1, dt * .8)).setLength(wanted.length()); } p.life -= dt; p.mesh.position.addScaledVector(p.velocity, dt); p.mesh.position.y = this.groundHeight(p.mesh.position.x, p.mesh.position.z) + .9; p.mesh.rotation.y += dt * 4;
       if (this.world && !this.sideAreas.active && !this.world.isWalkable(p.mesh.position.x, p.mesh.position.z, .12)) p.life = 0;
       const dx = p.mesh.position.x - this.player.position.x, dz = p.mesh.position.z - this.player.position.z;
       if (p.life > 0 && dx * dx + dz * dz < 1) { this.takeDamage(p.damage, p.mesh.position, p.cause, p.attacker, { incomingDirection: p.velocity, parryable: p.parryable !== false }); p.life = 0; }
