@@ -39,7 +39,7 @@ try {
  assert.equal(speeds.phase,'playing');assert.equal(speeds.cleared,true);assert.equal(speeds.paused,'paused');assert.ok(speeds.frozen&&speeds.resumed);
  await page.locator('#settings').click();assert.equal(await page.locator('#reset-save').isDisabled(),true);
  await page.locator('#modal-close').click();
- await page.locator('#pause-button').click();await page.locator('#pause-restart').click();
+ await page.keyboard.press('Escape');await page.locator('#pause-restart').click();
  await page.locator('#result-settings').click();await page.locator('#reset-save').click();
  await Promise.all([page.waitForNavigation(),page.locator('#reset-confirm').click()]);await ready();
  const reset=await page.evaluate(()=>({p:JSON.parse(localStorage.getItem('voidrun.progression')),h:JSON.parse(localStorage.getItem('voidrun.history')),prefs:JSON.parse(localStorage.getItem('voidrun.preferences')),other:localStorage.getItem('unrelated-save'),story:JSON.parse(localStorage.getItem('voidrun.story')),phase:window.__game.state.phase}));

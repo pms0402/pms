@@ -2,7 +2,16 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import * as THREE from "three";
 import { cameraArmFraction, CAMERA_SOLIDS } from "../src/camera-collision.js";
-import { viewMovement,MovementSteering } from "../src/view.js";
+import { viewMovement,MovementSteering,usesTouchSteering } from "../src/view.js";
+
+test('mouse presence takes priority over touch capability, while touch-only devices keep steering', () => {
+  assert.equal(usesTouchSteering({fine:true,coarse:false}),false);
+  assert.equal(usesTouchSteering({fine:true,coarse:true,touches:10}),false);
+  assert.equal(usesTouchSteering({coarse:true,touches:5}),true);
+  assert.equal(usesTouchSteering({touches:1}),true);
+  assert.equal(usesTouchSteering({}),false);
+  assert.equal(usesTouchSteering({coarse:true,touches:5,mouseObserved:true}),false);
+});
 
 test("view-relative movement keeps direction, analog magnitude and diagonal speed", () => {
   for (const yaw of [0, 0.7, Math.PI, 4.2]) {

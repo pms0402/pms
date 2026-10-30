@@ -24,7 +24,7 @@ import { BossPhases } from './boss-phases.js';
 import { EquipmentSystem } from './equipment.js';
 import { ParrySystem, PARRY, counterProfile } from './parry.js';
 import { gameKey, isGameShortcut } from './game-input.js';
-import { ViewController } from './view.js';
+import { ViewController,viewMovement } from './view.js';
 import { DeathPresentation } from './death-presentation.js';
 import { EnemyStates } from './enemy-states.js';
 import {CreatureSurfaces} from './creature-surfaces.js';
@@ -611,8 +611,8 @@ export class Game {
         this.container.focus?.({preventScroll:true});
         if(event.button===1&&!Object.values(this.bindings).includes('mouse1')){this.view.pointerDown(event);return;}
         this.aimPointer(event);const action=Object.keys(this.bindings).find(id=>this.bindings[id]===controlKey(event));
-        if(action){event.preventDefault();this.keys.add(controlKey(event));this.triggerControl(action);this.renderer.domElement.setPointerCapture?.(event.pointerId);}
-        if(this.view.canLook()&&this.view.mode!=='overhead'&&document.pointerLockElement!==this.renderer.domElement){try{this.renderer.domElement.requestPointerLock?.()?.catch?.(()=>{});}catch{}}
+        if(action){event.preventDefault();this.keys.add(controlKey(event));this.triggerControl(action);if(document.pointerLockElement!==this.renderer.domElement)this.renderer.domElement.setPointerCapture?.(event.pointerId);}
+        this.view.capture();
         return;
       }
       if(this.view.pointerDown(event))return;if(this.touchStart)return;
@@ -646,12 +646,13 @@ export class Game {
   inputDirection() {
     const {x,y}=this.inputAxes();
     if(this.lockOn?.target)return this.lockOn.movement(x,y);
-    if(this.view?.mode!=='overhead')return this.view.movement.direction(x,y,this.player.rotation.y);
+    if(this.view?.mode!=='overhead')return this.view.touchSteering()?this.view.movement.direction(x,y,this.player.rotation.y):viewMovement(x,y,this.player.rotation.y);
     return new THREE.Vector3((x + y) * Math.SQRT1_2, 0, (y - x) * Math.SQRT1_2);
   }
   faceMovement(dt) {
     if(this.lockOn?.target){this.view.movement.reset();return;}
     if(!this.view.canLook()||this.view.mode==='overhead')return;
+    if(!this.view.touchSteering()){this.view.movement.reset();return;}
     if(this.actions.current||this.dashTime>0){this.view.movement.reset();return;}
     this.aimFromView(this.player.rotation.y+this.view.movement.step(this.inputAxes().x,dt));
   }

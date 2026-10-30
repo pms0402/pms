@@ -210,9 +210,11 @@ try {
         g.advanceSimulation(1/60);measure();
         if(i===5||i===23||i===83)turn.push(initialYaw-g.player.rotation.y);
       }
-      const progressive=turn[0]>0&&turn[0]<.2&&turn[1]>turn[0]*2.5&&turn[1]<Math.PI/2&&turn[2]>Math.PI/2;
+      const mouseMode=g.view.getState().inputMode==='mouse';
+      const progressive=mouseMode?turn.every(n=>Math.abs(n)<1e-10):turn[0]>0&&turn[0]<.2&&turn[1]>turn[0]*2.5&&turn[1]<Math.PI/2&&turn[2]>Math.PI/2;
       const facing=g.player.position.clone().set(Math.sin(g.player.rotation.y),0,Math.cos(g.player.rotation.y));
-      const followsMovement=g.inputDirection().normalize().dot(facing)>.999999;
+      const movementDot=g.inputDirection().normalize().dot(facing);
+      const followsMovement=mouseMode?Math.abs(movementDot)<1e-8:movementDot>.999999;
       const followed=measure();
       g.keys.clear();g.inputDirection();
       for(let i=0;i<30;i++){g.advanceSimulation(1/60);measure();}

@@ -88,7 +88,7 @@ $('#app').innerHTML = `
       <button class="nav-link" data-nav="history">런 기록 <span class="nav-count" id="history-count">${history.length.toString().padStart(2, '0')}</span></button>
       <button class="nav-link" data-nav="permanent">영구 강화</button>
     </nav>
-    <div class="header-actions"><span class="build-label"><i></i> BUILD YOUR LEGEND <b>v0.20.0</b></span><span class="header-divider"></span><button id="sound-toggle" class="icon-button" title="사운드 켜기" aria-label="사운드 켜기">${icon('muted')}</button><button id="settings" class="icon-button" title="설정" aria-label="설정">${icon('settings')}</button></div>
+    <div class="header-actions"><span class="build-label"><i></i> BUILD YOUR LEGEND <b>v0.20.1</b></span><span class="header-divider"></span><button id="sound-toggle" class="icon-button" title="사운드 켜기" aria-label="사운드 켜기">${icon('muted')}</button><button id="settings" class="icon-button" title="설정" aria-label="설정">${icon('settings')}</button></div>
   </header>
   <main class="page">
     <section class="page-intro">
@@ -397,10 +397,10 @@ function expansionGuide() {
 function showGuide() {
   if (isChoiceDialog()) return;
   const steps = [
-    ['시점과 카메라', '기본은 3인칭입니다. <kbd>V</kbd> / 상단 시점 버튼으로 3인칭→1인칭→항공을 전환합니다. 자유 조준의 가까운 시점에서는 W/S로 전후진하고 A/D로 이동량에 비례해 부드럽게 선회합니다. PC는 전장 드래그로 시점을 돌리고 3인칭에서 휠로 거리를 바꿉니다. 1인칭에서는 전장을 클릭해 마우스를 잠글 수 있고 ESC/메뉴로 해제합니다. 모바일은 왼쪽 드래그·방향 버튼으로 이동, 오른쪽 드래그로 둘러봅니다. 공격은 직접 입력해야 발동하며 바라보는 방향으로 나갑니다. L로 락온/해제, K/J로 대상을 전환합니다. 락온 중 A/D는 적을 바라보며 옆으로 이동합니다. 모바일은 상단 락온·전환 버튼을 사용하세요. F(한글 ㄹ)는 패링, V(한글 ㅍ)는 시점 변경입니다.'],
+    ['시점과 카메라', '기본은 3인칭입니다. <kbd>V</kbd> / 상단 시점 버튼으로 3인칭→1인칭→항공을 전환합니다. 마우스가 있으면 WASD로 전후좌우 이동하며 이동으로 시점이 돌아가지 않습니다. 마우스로 캐릭터와 화면을 함께 돌립니다. 터치 전용 기기에서는 이동량에 따라 부드럽게 선회합니다. PC는 전장 드래그로 시점을 돌리고 3인칭에서 휠로 거리를 바꿉니다. 1인칭에서는 전장을 클릭해 마우스를 잠글 수 있고 ESC/메뉴로 해제합니다. 모바일은 왼쪽 드래그·방향 버튼으로 이동, 오른쪽 드래그로 둘러봅니다. 공격은 직접 입력해야 발동하며 바라보는 방향으로 나갑니다. L로 락온/해제, K/J로 대상을 전환합니다. 락온 중 A/D는 적을 바라보며 옆으로 이동합니다. 모바일은 상단 락온·전환 버튼을 사용하세요. F(한글 ㄹ)는 패링, V(한글 ㅍ)는 시점 변경입니다.'],
     ['장비·탐험·정밀 방어', '장비는 <kbd>TAB</kbd> / 장비 버튼에서 비교·교체·버릴 수 있습니다. NPC 가까이에서 <kbd>C</kbd> / 교류로 대화하세요. <kbd>F</kbd> (한/영 무관) 패링은 전방 120°를 0.45초 방어하며 처음 0.16초는 완벽한 패링입니다. 성공하면 4m 충격파·0.1초 히트 스톱·공격한 보스 경직, 2초 안 다음 직접 검 공격은 180° 광역 250% 반격입니다. 재사용 4초, 보스 경직 저항 5초. 붉은 지면 공격은 방어 불가, 청색 직선·일반 탄환은 방어 가능.'],
     ['세 단계 수호자와 끝없는 심연', '보스 체력 70% 미만·35% 미만에서 새로운 패턴과 연계가 열립니다. 보스 장비는 하나 선택하거나 넘길 수 있습니다. 일반 10층 승리 후 모드 선택에서 11층부터 무한 심연을 탐험하세요. 5층마다 재앙 보스, 20층부터 10층마다 교대 제약이 등장합니다. 기록·업적은 이 브라우저에 저장됩니다.'],
-    ['전장을 움직이고, 좌클릭 공격 · 우클릭 강공격', '<kbd>W A S D</kbd> / 방향키로 이동, <kbd>SHIFT</kbd>로 무적 대시. 모바일은 방향 버튼이나 전장 드래그를 사용합니다. 좌클릭은 3/5타 콤보, 우클릭은 강공격입니다. 대검은 우클릭을 누른 채 차징합니다. <kbd>Q/E/R</kbd> 배치 스킬, <kbd>X</kbd> 궁극기, <kbd>F</kbd> 패링. 클릭하면 시점이 잠기고, 잠금이 안 되면 휠 버튼 드래그로 시점을 바꿉니다.'],
+    ['전장을 움직이고, 좌클릭 공격 · 우클릭 강공격', '<kbd>W A S D</kbd> / 방향키로 이동, <kbd>SHIFT</kbd>로 무적 대시. 모바일은 방향 버튼이나 전장 드래그를 사용합니다. 좌클릭은 3/5타 콤보, 우클릭은 강공격입니다. 대검은 우클릭을 누른 채 차징합니다. <kbd>Q/E/R</kbd> 배치 스킬, <kbd>X</kbd> 궁극기, <kbd>F</kbd> 패링. 런 시작과 선택 완료 후에는 마우스가 자동으로 잠깁니다. ESC로 일시정지하고 커서를 풀 수 있습니다. 잠금을 지원하지 않는 환경은 휠 버튼 드래그로 시점을 바꿉니다.'],
     ['검 범위도 선택으로 성장합니다', '기본 검은 가까운 적을 베는 무기입니다. <b>검 범위 강화</b>를 고르면 거리 +12%, 최대 8단계까지 늘어납니다. 검 공격력·속도·범위 강화 합계 <b>3단계</b>부터 대검 / 쌍검 / 검기 진화가 등장합니다. 한 런에는 하나의 검 진화를 고릅니다.'],
     ['마법을 키우고 조합을 완성하세요', '레벨업마다 강화 하나를 고릅니다. 검·마법 공격력은 각각 <b>20%</b>, 모션·시전 가속 능력치는 <b>8%</b> (실제 가속 상한 적용), 최대 체력은 <b>15%</b>씩 곱해 성장합니다. 마법은 5단계 뒤 진화합니다. <b>서리 + 검 범위 2단계</b>, <b>화염구 + 검기</b>, <b>번개 + 궤도 룬</b> 조합은 추가 공격을 발동합니다. <kbd>B</kbd>에서 스킬을 배치하고, 이번 런 빌드 버튼에서 조합 조건을 확인하세요.'],
     ['순서와 타이밍으로 전투 연계', '서리로 둔화시킨 적에게 강공격은 추가 피해, 화염 적중 뒤 검격은 작은 폭발, 대시 후 0.8초 안 번개는 직선 관통, 완벽한 패링 후 2초 안 마법은 25% 강화됩니다. 연계는 별도 재사용 제한이 있고 숨겨진 진화 조합과 구분됩니다. B에서 조건과 정확한 수치를 확인하세요.'],
@@ -762,7 +762,7 @@ function syncView(view=game?.view.getState()){
   $('#view-reticle').classList.toggle('hidden',!active||view.mode!=='first');
   document.body.dataset.view=game?.view.effectiveMode()||view.mode;
   const targeting=!!game?.lockOn?.target;
-  writeText($('#view-hint .desktop-look'), targeting?'락온 중 옆걸음 · 락온 키로 해제':view.locked?'마우스로 캐릭터 회전 · ESC 일시정지':'좌우 입력으로 부드러운 회전 · 클릭으로 조작');
+  writeText($('#view-hint .desktop-look'), targeting?'락온 중 옆걸음 · 락온 키로 해제':view.inputMode==='touch'?'이동에 따라 부드러운 회전':view.locked?'마우스로 화면 회전 · WASD 이동 · ESC 일시정지':'마우스로 화면 회전 · 클릭으로 조작');
   writeText($('#view-hint .mobile-look'), targeting?'왼쪽 이동 · 락온 버튼으로 해제':'왼쪽 이동 · 오른쪽 드래그 캐릭터 회전');
   document.querySelectorAll('[data-view-mode]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.viewMode===view.mode)));
 }

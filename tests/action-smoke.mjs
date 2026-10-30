@@ -215,7 +215,7 @@ try {
   mobile.on("pageerror", (e) => errors.push(e.message));
   await mobile.goto(base);
   await mobile.waitForFunction(() => window.__game?.artReady);
-  await mobile.locator("#start-button").click();
+  await mobile.locator("#start-button").tap();
   await mobile.evaluate(() => {
     const g = window.__game;
     cancelAnimationFrame(g.raf);

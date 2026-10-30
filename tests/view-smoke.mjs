@@ -237,7 +237,8 @@ try {
     ),
   );
   assert.equal(await p.locator("#camera-mode").textContent(), "3인칭");
-  await p.locator("#settings").click();
+  await p.keyboard.press('Escape');
+  await p.locator('#pause-settings').click();
   await p.locator('[data-view-mode="first"]').click();
   await p.locator("#modal-close").click();
   await p.reload();
@@ -249,7 +250,8 @@ try {
   );
   await p.locator("#start-button").click();
   await p.evaluate(() => cancelAnimationFrame(window.__game.raf));
-  await p.locator("#pause-button").click();
+  await p.keyboard.press('Escape');
+  await p.waitForFunction(()=>!document.pointerLockElement);
   assert.equal(await p.evaluate(() => document.pointerLockElement), null);
   await p.locator("#modal-close").click();
   console.log(
@@ -265,7 +267,7 @@ try {
   mobile.on("pageerror", (e) => errors.push(e.message));
   await mobile.goto(process.env.BASE_URL || "http://127.0.0.1:5181");
   await mobile.waitForFunction(() => window.__game?.artReady);
-  await mobile.locator("#start-button").click();
+  await mobile.locator("#start-button").tap();
   const touch = await mobile.evaluate(() => {
     const g = window.__game;
     cancelAnimationFrame(g.raf);

@@ -1,0 +1,253 @@
+{
+  "release": "v0.20.1",
+  "baseline": "v0.20.0",
+  "unit": {
+    "passed": 234,
+    "failed": 0
+  },
+  "relatedBrowserSuites": [
+    {
+      "test": "mouse-controls-smoke.mjs",
+      "exit": 0,
+      "seconds": 26.1
+    },
+    {
+      "test": "view-smoke.mjs",
+      "exit": 0,
+      "seconds": 30.7
+    },
+    {
+      "test": "follow-interaction-smoke.mjs",
+      "exit": 0,
+      "seconds": 28.2
+    },
+    {
+      "test": "action-smoke.mjs",
+      "exit": 0,
+      "seconds": 32.2
+    },
+    {
+      "test": "action-encounters-smoke.mjs",
+      "exit": 0,
+      "seconds": 11.0
+    },
+    {
+      "test": "controls-smoke.mjs",
+      "exit": 0,
+      "seconds": 15.4
+    },
+    {
+      "test": "tactical-smoke.mjs",
+      "exit": 0,
+      "seconds": 39.5
+    },
+    {
+      "test": "standalone-smoke.mjs",
+      "exit": 0,
+      "seconds": 25.2
+    },
+    {
+      "test": "archive-smoke.mjs",
+      "exit": 0,
+      "seconds": 5.8
+    },
+    {
+      "test": "motion-smoke.mjs",
+      "exit": 0,
+      "seconds": 8.9
+    }
+  ],
+  "nativeInput": {
+    "lock": [
+      {
+        "mode": "third",
+        "step": 0.009196230732585464,
+        "dot": 0.9999999999999999,
+        "side": 0,
+        "back": -0.9999999999999999,
+        "moved": 1.498379073170552,
+        "same": true
+      },
+      {
+        "mode": "first",
+        "step": 0.00997677810299985,
+        "dot": 0.9999999999999998,
+        "side": 0,
+        "back": -0.9999999999999999,
+        "moved": 1.4965237874307664,
+        "same": true
+      },
+      {
+        "mode": "overhead",
+        "step": 0.009976352841504055,
+        "dot": 1,
+        "side": 0,
+        "back": -1,
+        "moved": 1.4964680687851277,
+        "same": true
+      }
+    ],
+    "collision": {
+      "rows": [
+        {
+          "mode": "first",
+          "early": 100000000,
+          "front": 99999960.4,
+          "rear": 100000000,
+          "outside": 100000000,
+          "close": 99999960.4
+        },
+        {
+          "mode": "third",
+          "early": 100000000,
+          "front": 99999960.4,
+          "rear": 100000000,
+          "outside": 100000000,
+          "close": 99999960.4
+        },
+        {
+          "mode": "overhead",
+          "early": 100000000,
+          "front": 99999960.4,
+          "rear": 100000000,
+          "outside": 100000000,
+          "close": 99999960.4
+        }
+      ],
+      "blocked": true,
+      "clipped": true
+    },
+    "links": {
+      "shatter": 1,
+      "ignite": 1,
+      "dash": 1,
+      "parry": 1,
+      "counter": 2,
+      "damage": 21.78,
+      "total": 692.6399999856949
+    },
+    "goals": [
+      {
+        "type": "elite",
+        "complete": true,
+        "rewarded": true,
+        "coin": 400,
+        "summoned": true,
+        "advanced": true,
+        "noFreeGrowth": true
+      },
+      {
+        "type": "hunt",
+        "complete": true,
+        "rewarded": true,
+        "coin": 450,
+        "summoned": true,
+        "advanced": true,
+        "noFreeGrowth": true
+      },
+      {
+        "type": "seals",
+        "complete": true,
+        "rewarded": true,
+        "coin": 450,
+        "summoned": true,
+        "advanced": true,
+        "noFreeGrowth": true
+      },
+      {
+        "type": "crossing",
+        "complete": true,
+        "rewarded": true,
+        "coin": 500,
+        "summoned": true,
+        "advanced": true,
+        "noFreeGrowth": true
+      },
+      {
+        "type": "ritual",
+        "complete": true,
+        "rewarded": true,
+        "coin": 400,
+        "summoned": true,
+        "advanced": true,
+        "noFreeGrowth": true
+      },
+      {
+        "type": "defense",
+        "complete": true,
+        "rewarded": true,
+        "coin": 531.25,
+        "summoned": true,
+        "advanced": true,
+        "noFreeGrowth": true
+      }
+    ],
+    "training": {
+      "same": true,
+      "phase": "camp",
+      "cd": 7.25,
+      "heavy": 3,
+      "parry": 2,
+      "story": true,
+      "progress": true,
+      "history": true,
+      "shader": true
+    },
+    "practiceCycles": {
+      "counts": [
+        {
+          "geometries": 156,
+          "textures": 22
+        },
+        {
+          "geometries": 161,
+          "textures": 22
+        },
+        {
+          "geometries": 161,
+          "textures": 22
+        },
+        {
+          "geometries": 161,
+          "textures": 22
+        },
+        {
+          "geometries": 161,
+          "textures": 22
+        },
+        {
+          "geometries": 161,
+          "textures": 22
+        },
+        {
+          "geometries": 161,
+          "textures": 22
+        },
+        {
+          "geometries": 161,
+          "textures": 22
+        }
+      ],
+      "same": true,
+      "shader": true
+    },
+    "practicePatterns": {
+      "unseenRejected": true,
+      "split": true,
+      "finite": true,
+      "admitted": true,
+      "hidden": true,
+      "preserved": true
+    },
+    "errors": []
+  },
+  "builds": {
+    "production": true,
+    "standalone": true
+  },
+  "archiveSHA256": "e8867949d23b1319d9f111432b4ce02f6982fca30ea40d564bc76b1d31b019aa",
+  "limitations": [
+    "Chromium/SwiftShader with real mouse/touch events and touch emulation; physical iPad/Safari support requires device verification.",
+    "Pointer lock is requested from start/final-selection gestures, and remains optional in unsupported or sandboxed browsers."
+  ]
+}

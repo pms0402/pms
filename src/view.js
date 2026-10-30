@@ -12,6 +12,9 @@ export const VIEW_LABELS = Object.freeze({
   first: "1인칭",
   overhead: "항공",
 });
+export function usesTouchSteering({ fine = false, coarse = false, touches = 0, mouseObserved = false } = {}) {
+  return !fine && !mouseObserved && (coarse || touches > 0);
+}
 export function viewMovement(x, y, yaw, out = new THREE.Vector3()) {
   return out.set(
     -Math.cos(yaw) * x - Math.sin(yaw) * y,
@@ -65,21 +68,56 @@ export class ViewController {
     this.direction = new THREE.Vector3();
     this.suppressed = [];
     this.canvas = game.renderer.domElement;
+    this.finePointer = window.matchMedia('(any-pointer: fine)');
+    this.coarsePointer = window.matchMedia('(any-pointer: coarse)');
+    this.mouseObserved = false;
+    this.onInputChange = event => {
+      if (event.media === this.finePointer.media && !event.matches) this.mouseObserved = false;
+      this.movement.reset();
+      this.game.callbacks.onViewChange?.(this.getState());
+    };
+    this.onPointerObserved = event => {
+      if (event.pointerType !== 'mouse' || !this.touchSteering()) return;
+      this.mouseObserved = true;
+      this.movement.reset();
+      this.game.callbacks.onViewChange?.(this.getState());
+    };
+    // Observe the old UI state before handlers, then capture after the choice.
+    // Chained mandatory choices keep their cursor until the final selection.
+    this.resumeClicks = new WeakSet();
+    this.onResumeIntent = event => {
+      if (!event.isTrusted || this.game.rebinding || event.repeat ||
+        event.key === 'Escape' || event.ctrlKey || event.metaKey || event.altKey ||
+        event.target?.closest?.('input,select,textarea,[contenteditable="true"]')) return;
+      const leavingUI = this.game._state.phase !== 'playing' || this.game.callbacks.isUIBlocked?.();
+      if (!leavingUI) return;
+      if (event.type === 'click') this.resumeClicks.add(event);
+      else this.resumeKey = event.code || event.key;
+    };
+    this.onResumeGesture = event => {
+      if (!event.isTrusted || this.disposed) return;
+      const finishing = event.type === 'click' ? this.resumeClicks.has(event) :
+        this.resumeKey && this.resumeKey === (event.code || event.key);
+      if (event.type === 'keyup') this.resumeKey = null;
+      if (finishing && this.game._state.phase === 'playing') this.capture();
+    };
+    this.onLockError = () => { this.lockPending = false; };
     this.onMouseMove = (e) => {
       if (document.pointerLockElement === this.canvas && this.canLook())
         {this.rotate(e.movementX, e.movementY);}
     };
     this.onLockChange = () => {
-      const locked=document.pointerLockElement===this.canvas;if(!locked&&this.wasLocked&&!this.releasing&&this.game._state.phase==='playing'){this.game.unlockPauseAt=performance.now();this.game.callbacks.onControlAction?.('pause');}this.wasLocked=locked;this.releasing=false;
+      const locked=document.pointerLockElement===this.canvas;if(!locked&&this.wasLocked&&!this.releasing&&this.game._state.phase==='playing'&&!this.game.callbacks.isUIBlocked?.()){this.game.unlockPauseAt=performance.now();this.game.callbacks.onControlAction?.('pause');}this.wasLocked=locked;this.releasing=false;this.lockPending=false;
 
       if (
         document.pointerLockElement === this.canvas &&
-        (this.mode === "overhead" || !this.canLook())
+        !this.canCapture()
       ) {
         this.release();
         return;
       }
       this.drag = null;
+      if (!locked && this.captureQueued) { this.captureQueued = false; this.capture(); }
       this.game.callbacks.onViewChange?.(this.getState());
     };
     this.onContextMenu = (e) => {
@@ -92,6 +130,15 @@ export class ViewController {
     };
     document.addEventListener("mousemove", this.onMouseMove);
     document.addEventListener("pointerlockchange", this.onLockChange);
+    document.addEventListener('pointerlockerror', this.onLockError);
+    document.addEventListener('pointerdown', this.onPointerObserved, true);
+    document.addEventListener('pointermove', this.onPointerObserved, true);
+    document.addEventListener('click', this.onResumeIntent, true);
+    document.addEventListener('click', this.onResumeGesture);
+    window.addEventListener('keydown', this.onResumeIntent, true);
+    window.addEventListener('keyup', this.onResumeGesture);
+    this.finePointer.addEventListener('change', this.onInputChange);
+    this.coarsePointer.addEventListener('change', this.onInputChange);
     this.canvas.addEventListener("contextmenu", this.onContextMenu);
     this.canvas.addEventListener("wheel", this.onWheel, { passive: false });
   }
@@ -102,6 +149,25 @@ export class ViewController {
       : this.mode;
   }
   following(){return this.mode!=='overhead'&&!['menu','over','won'].includes(this.game._state.phase);}
+  touchSteering() {
+    return usesTouchSteering({fine:this.finePointer.matches,coarse:this.coarsePointer.matches,
+      touches:navigator.maxTouchPoints,mouseObserved:this.mouseObserved});
+  }
+  canCapture() {
+    return !this.touchSteering() && this.mode !== 'overhead' && this.canLook() &&
+      !this.game.callbacks.isUIBlocked?.();
+  }
+  capture() {
+    if (!this.canCapture() || !this.canvas.requestPointerLock) return false;
+    if (this.releasing) { this.captureQueued = true; return false; }
+    if (document.pointerLockElement === this.canvas || this.lockPending) return true;
+    this.canvas.focus({preventScroll:true});
+    try {
+      this.lockPending = true;
+      this.canvas.requestPointerLock()?.catch?.(() => { this.lockPending = false; });
+      return true;
+    } catch { this.lockPending = false; return false; }
+  }
   firstPerson() {
     return this.effectiveMode() === "first";
   }
@@ -128,6 +194,7 @@ export class ViewController {
     this.setMode(
       VIEW_MODES[(VIEW_MODES.indexOf(this.mode) + 1) % VIEW_MODES.length],
     );
+    this.capture();
   }
   rotate(dx, dy, touch = false) {
     if (!this.canLook() || this.mode === "overhead") return;
@@ -158,19 +225,7 @@ export class ViewController {
       y: e.clientY,
       touch: e.pointerType === "touch",
     };
-    this.canvas.setPointerCapture?.(e.pointerId);
-    if (
-      e.pointerType !== "touch" &&
-      e.button === 0 &&
-      this.firstPerson() &&
-      this.canvas.requestPointerLock
-    ) {
-      try {
-        this.canvas.requestPointerLock()?.catch?.(() => {});
-      } catch {
-        /* Drag remains available in embedded browsers. */
-      }
-    }
+    if (document.pointerLockElement !== this.canvas) this.canvas.setPointerCapture?.(e.pointerId);
     e.preventDefault();
     return true;
   }
@@ -195,6 +250,7 @@ export class ViewController {
   }
   release() {
     this.drag = null;
+    this.captureQueued = false;
     if (document.pointerLockElement === this.canvas){this.releasing=true;document.exitPointerLock?.();}
   }
   getState() {
@@ -206,6 +262,7 @@ export class ViewController {
       distance: this.distance,
       locked: document.pointerLockElement === this.canvas,
       following:this.following(),
+      inputMode:this.touchSteering()?'touch':'mouse',
     };
   }
   fov() {
@@ -345,9 +402,19 @@ export class ViewController {
     this.snap = true;
   }
   dispose() {
+    this.disposed = true;
     this.reset();
     document.removeEventListener("mousemove", this.onMouseMove);
     document.removeEventListener("pointerlockchange", this.onLockChange);
+    document.removeEventListener('pointerlockerror', this.onLockError);
+    document.removeEventListener('pointerdown', this.onPointerObserved, true);
+    document.removeEventListener('pointermove', this.onPointerObserved, true);
+    document.removeEventListener('click', this.onResumeIntent, true);
+    document.removeEventListener('click', this.onResumeGesture);
+    window.removeEventListener('keydown', this.onResumeIntent, true);
+    window.removeEventListener('keyup', this.onResumeGesture);
+    this.finePointer.removeEventListener('change', this.onInputChange);
+    this.coarsePointer.removeEventListener('change', this.onInputChange);
     this.canvas.removeEventListener("contextmenu", this.onContextMenu);
     this.canvas.removeEventListener("wheel", this.onWheel);
   }
