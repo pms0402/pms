@@ -1,0 +1,10 @@
+{
+  "size": [
+    360,
+    640,
+    3
+  ],
+  "meanRgbError255": 0.012517361111111111,
+  "changedPixelsOver3Fraction": 0.0012760416666666666,
+  "note": "Fixed seeded overhead scene; tiny time-dependent environmental movement remains. No geometry, material, shadow or resolution reduction."
+}

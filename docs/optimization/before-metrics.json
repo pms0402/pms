@@ -1,0 +1,272 @@
+{
+  "cases": [
+    {
+      "actors": 15,
+      "remaining": 15,
+      "frames": 360,
+      "totalMs": 565,
+      "perFrameMs": 1.5694444444444444,
+      "measured": {
+        "simulate": {
+          "calls": 360,
+          "ms": 320.70000000228174
+        },
+        "collision": {
+          "calls": 7942,
+          "ms": 49.89999999804422
+        },
+        "steering": {
+          "calls": 4007,
+          "ms": 68.80000000016298
+        },
+        "batch": {
+          "calls": 360,
+          "ms": 70.19999999634456
+        },
+        "aim": {
+          "calls": 360,
+          "ms": 6.099999999976717
+        },
+        "hud": {
+          "calls": 70,
+          "ms": 142.89999999979045
+        }
+      },
+      "domMutations": 3576,
+      "domChildren": 1686,
+      "sampledHot": [
+        [
+          "(program) ",
+          147055
+        ],
+        [
+          "(garbage collector) ",
+          46820
+        ],
+        [
+          "(anonymous) index-PnWLRhCb.js",
+          43116
+        ],
+        [
+          "X5 index-PnWLRhCb.js",
+          40525
+        ],
+        [
+          "Ee index-PnWLRhCb.js",
+          34923
+        ],
+        [
+          "batchFor index-PnWLRhCb.js",
+          31617
+        ],
+        [
+          "Oe index-PnWLRhCb.js",
+          31048
+        ],
+        [
+          "Tr index-PnWLRhCb.js",
+          19017
+        ],
+        [
+          "V3 index-PnWLRhCb.js",
+          18857
+        ],
+        [
+          "tick index-PnWLRhCb.js",
+          18565
+        ],
+        [
+          "updateMatrixWorld index-PnWLRhCb.js",
+          17599
+        ],
+        [
+          "updateEnemies index-PnWLRhCb.js",
+          15376
+        ]
+      ]
+    },
+    {
+      "actors": 25,
+      "remaining": 25,
+      "frames": 360,
+      "totalMs": 399.0999999999767,
+      "perFrameMs": 1.1086111111110464,
+      "measured": {
+        "simulate": {
+          "calls": 360,
+          "ms": 245.00000000058208
+        },
+        "collision": {
+          "calls": 13860,
+          "ms": 96.20000000065193
+        },
+        "steering": {
+          "calls": 7606,
+          "ms": 43.29999999923166
+        },
+        "batch": {
+          "calls": 360,
+          "ms": 63.899999999208376
+        },
+        "aim": {
+          "calls": 360,
+          "ms": 4.199999999720603
+        },
+        "hud": {
+          "calls": 70,
+          "ms": 62.000000000349246
+        }
+      },
+      "domMutations": 3576,
+      "domChildren": 1686,
+      "sampledHot": [
+        [
+          "X5 index-PnWLRhCb.js",
+          68644
+        ],
+        [
+          "Oe index-PnWLRhCb.js",
+          41757
+        ],
+        [
+          "(program) ",
+          36000
+        ],
+        [
+          "batchFor index-PnWLRhCb.js",
+          28356
+        ],
+        [
+          "En index-PnWLRhCb.js",
+          20616
+        ],
+        [
+          "melee index-PnWLRhCb.js",
+          19240
+        ],
+        [
+          "obj.<computed> ",
+          17959
+        ],
+        [
+          "(anonymous) index-PnWLRhCb.js",
+          14039
+        ],
+        [
+          "sync index-PnWLRhCb.js",
+          12190
+        ],
+        [
+          "Ee index-PnWLRhCb.js",
+          11545
+        ],
+        [
+          "(garbage collector) ",
+          11481
+        ],
+        [
+          "tick index-PnWLRhCb.js",
+          9781
+        ]
+      ]
+    },
+    {
+      "actors": 160,
+      "remaining": 160,
+      "frames": 360,
+      "totalMs": 1332.1000000000931,
+      "perFrameMs": 3.7002777777780365,
+      "measured": {
+        "simulate": {
+          "calls": 360,
+          "ms": 966.5999999999767
+        },
+        "collision": {
+          "calls": 86560,
+          "ms": 413.7000000034459
+        },
+        "steering": {
+          "calls": 52417,
+          "ms": 320.19999999855645
+        },
+        "batch": {
+          "calls": 360,
+          "ms": 201.3000000003958
+        },
+        "aim": {
+          "calls": 360,
+          "ms": 3.9999999998835847
+        },
+        "hud": {
+          "calls": 70,
+          "ms": 85.39999999955762
+        }
+      },
+      "domMutations": 3576,
+      "domChildren": 1686,
+      "sampledHot": [
+        [
+          "X5 index-PnWLRhCb.js",
+          365711
+        ],
+        [
+          "Oe index-PnWLRhCb.js",
+          245972
+        ],
+        [
+          "obj.<computed> ",
+          99738
+        ],
+        [
+          "(program) ",
+          88210
+        ],
+        [
+          "sync index-PnWLRhCb.js",
+          68623
+        ],
+        [
+          "updateEnemies index-PnWLRhCb.js",
+          43418
+        ],
+        [
+          "batchFor index-PnWLRhCb.js",
+          42524
+        ],
+        [
+          "updateMatrixWorld index-PnWLRhCb.js",
+          33014
+        ],
+        [
+          "(garbage collector) ",
+          28787
+        ],
+        [
+          "melee index-PnWLRhCb.js",
+          25194
+        ],
+        [
+          "now ",
+          22606
+        ],
+        [
+          "prepare index-PnWLRhCb.js",
+          22280
+        ]
+      ]
+    }
+  ],
+  "staticFrame": {
+    "hardware": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+    "frames": 24,
+    "frameMedianMs": 633.3000000000029,
+    "frameP95Ms": 1183.2999999999993,
+    "submitMedianMs": 4.400000000023283,
+    "calls": 176,
+    "triangles": 387652,
+    "geometries": 175,
+    "textures": 18
+  },
+  "errors": [],
+  "method": "Chromium/SwiftShader, fixed seed, high quality unchanged, 640×360 backing buffer. 360 real simulation/aim/batch preparation frames with manual action commands and HUD every sixth frame; no render inside CPU loop. Named timings are nested, not additive. Separate 4 warmup + 24 RAF static crowd frames include software rasterization. Profiler instrumentation is test-only."
+}

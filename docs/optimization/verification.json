@@ -1,0 +1,227 @@
+{
+  "baseline": "890ee945cc5d239e091c3b3799d964df1173198f",
+  "build": "v0.19.1",
+  "unitTests": {
+    "passed": 213,
+    "failed": 0
+  },
+  "browserSuites": {
+    "unique": 31,
+    "passed": 31,
+    "initial": [
+      {
+        "test": "action-encounters-smoke.mjs",
+        "exit": 0,
+        "seconds": 12.3
+      },
+      {
+        "test": "action-smoke.mjs",
+        "exit": 0,
+        "seconds": 33.0
+      },
+      {
+        "test": "archive-smoke.mjs",
+        "exit": 0,
+        "seconds": 9.1
+      },
+      {
+        "test": "articulation-smoke.mjs",
+        "exit": 0,
+        "seconds": 50.1
+      },
+      {
+        "test": "audio-smoke.mjs",
+        "exit": 0,
+        "seconds": 19.1
+      },
+      {
+        "test": "adventure-smoke.mjs",
+        "exit": 0,
+        "seconds": 149.5
+      },
+      {
+        "test": "browser-smoke.mjs",
+        "exit": 0,
+        "seconds": 87.0
+      },
+      {
+        "test": "characters-smoke.mjs",
+        "exit": 0,
+        "seconds": 17.8
+      },
+      {
+        "test": "combat-smoke.mjs",
+        "exit": 1,
+        "seconds": 15.6
+      },
+      {
+        "test": "controls-smoke.mjs",
+        "exit": 0,
+        "seconds": 28.6
+      },
+      {
+        "test": "deploy-smoke.mjs",
+        "exit": 0,
+        "seconds": 27.6
+      },
+      {
+        "test": "builds-smoke.mjs",
+        "exit": 0,
+        "seconds": 133.1
+      },
+      {
+        "test": "economy-scale-smoke.mjs",
+        "exit": 0,
+        "seconds": 42.8
+      },
+      {
+        "test": "encounter-smoke.mjs",
+        "exit": 0,
+        "seconds": 42.0
+      },
+      {
+        "test": "expansion-smoke.mjs",
+        "exit": 0,
+        "seconds": 49.0
+      },
+      {
+        "test": "endgame-smoke.mjs",
+        "exit": 0,
+        "seconds": 71.9
+      },
+      {
+        "test": "follow-interaction-smoke.mjs",
+        "exit": 0,
+        "seconds": 27.3
+      },
+      {
+        "test": "frost-smoke.mjs",
+        "exit": 0,
+        "seconds": 12.2
+      },
+      {
+        "test": "manual-growth-smoke.mjs",
+        "exit": 0,
+        "seconds": 59.4
+      },
+      {
+        "test": "motion-smoke.mjs",
+        "exit": 0,
+        "seconds": 15.3
+      },
+      {
+        "test": "growth-smoke.mjs",
+        "exit": 0,
+        "seconds": 79.6
+      },
+      {
+        "test": "permanent-smoke.mjs",
+        "exit": 0,
+        "seconds": 62.5
+      },
+      {
+        "test": "parry-smoke.mjs",
+        "exit": 0,
+        "seconds": 90.9
+      },
+      {
+        "test": "presentation-smoke.mjs",
+        "exit": 0,
+        "seconds": 27.8
+      },
+      {
+        "test": "resources-smoke.mjs",
+        "exit": 0,
+        "seconds": 24.5
+      },
+      {
+        "test": "quality-smoke.mjs",
+        "exit": 0,
+        "seconds": 28.6
+      },
+      {
+        "test": "sanctum-smoke.mjs",
+        "exit": 0,
+        "seconds": 16.4
+      },
+      {
+        "test": "standalone-smoke.mjs",
+        "exit": 0,
+        "seconds": 42.3
+      },
+      {
+        "test": "view-smoke.mjs",
+        "exit": 0,
+        "seconds": 44.4
+      },
+      {
+        "test": "world-expansion-smoke.mjs",
+        "exit": 1,
+        "seconds": 17.6
+      },
+      {
+        "test": "world-smoke.mjs",
+        "exit": 0,
+        "seconds": 12.6
+      }
+    ],
+    "rechecks": [
+      {
+        "test": "follow-interaction-smoke.mjs",
+        "exit": 0,
+        "seconds": 33.9
+      },
+      {
+        "test": "combat-smoke.mjs",
+        "exit": 0,
+        "seconds": 98.4
+      },
+      {
+        "test": "world-expansion-smoke.mjs",
+        "exit": 0,
+        "seconds": 65.9
+      },
+      {
+        "test": "deploy-smoke.mjs",
+        "exit": 0,
+        "seconds": 22.8
+      },
+      {
+        "test": "view-smoke.mjs",
+        "exit": 0,
+        "seconds": 41.6
+      },
+      {
+        "test": "standalone-smoke.mjs",
+        "exit": 0,
+        "seconds": 30.4
+      }
+    ]
+  },
+  "notes": [
+    "Initial combat camera framing assertion updated to requested upper-body framing and whole-character visibility; rerun passed.",
+    "Initial camp practice exposed stale pre-training aim; production train() now aligns body and action aim, full camp/class/room/save suite passed.",
+    "Source review caught an out-of-scope identifier in the new room reward key label; fixed with a direct onKill unit and actual trial kill/reward browser flow.",
+    "Final rechecks rebuilt production and self-contained HTML after UI/room/camp corrections. Initial passing suites retained; changed flows, camera, deployment, standalone rerun.",
+    "SwiftShader WebGL; mobile is Chromium touch/viewport emulation. Actual Safari performance and heat unmeasured."
+  ],
+  "bundle": {
+    "path": "dist/assets/index-BE7EHzG0.js",
+    "sha256": "fff2502979a67ebd0c853c9011109df9375abd818fa0bea9f8655a198a02544c"
+  },
+  "archive": {
+    "path": "public/versions/v0.16.0.html",
+    "sha256": "e8867949d23b1319d9f111432b4ce02f6982fca30ea40d564bc76b1d31b019aa"
+  },
+  "benchmark": "compare-cpu.json",
+  "finalFeatureCheck": {
+    "exit": 0,
+    "includes": [
+      "actual trial kills → reward prompt → equipment choice",
+      "rendered mobile portrait and landscape after resize",
+      "no UI overlap or scroll",
+      "exact first/third character heading during movement and recovery"
+    ]
+  },
+  "testedSourceCommit": "a4c4e6ce30ac2c06f1b5fa50c9c1fdfdcd3f410c"
+}

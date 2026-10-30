@@ -1,0 +1,69 @@
+{
+  "cases": [
+    {
+      "actors": 15,
+      "before": [
+        0.5230555555563317,
+        0.5197222222224809,
+        0.5041666666666667,
+        0.5286111111105937,
+        0.47833333333255723
+      ],
+      "after": [
+        0.35555555555555557,
+        0.3550000000007761,
+        0.33083333333359205,
+        0.3488888888891476,
+        0.3122222222219635
+      ],
+      "beforeMedianMs": 0.5197222222224809,
+      "afterMedianMs": 0.3488888888891476,
+      "reductionPercent": 32.870122928898645,
+      "identicalSimulation": true
+    },
+    {
+      "actors": 25,
+      "before": [
+        0.6741666666671841,
+        0.6338888888881128,
+        0.6111111111111112,
+        0.5902777777777778,
+        0.5988888888891476
+      ],
+      "after": [
+        0.39277777777881256,
+        0.39305555555555555,
+        0.3858333333330746,
+        0.3783333333338507,
+        0.3850000000002587
+      ],
+      "beforeMedianMs": 0.6111111111111112,
+      "afterMedianMs": 0.3858333333330746,
+      "reductionPercent": 36.8636363636787,
+      "identicalSimulation": true
+    },
+    {
+      "actors": 160,
+      "before": [
+        2.639722222222998,
+        2.772222222222222,
+        2.686111111111111,
+        2.8008333333341096,
+        2.6927777777775193
+      ],
+      "after": [
+        1.4319444444444445,
+        1.4680555555555554,
+        1.549444444443927,
+        1.4186111111116284,
+        1.5097222222222222
+      ],
+      "beforeMedianMs": 2.6927777777775193,
+      "afterMedianMs": 1.4680555555555554,
+      "reductionPercent": 45.481741283262764,
+      "identicalSimulation": true
+    }
+  ],
+  "errors": [],
+  "method": "Alternating before/after CPU preparation without CDP sampling or timing wrappers. Each of 7 rounds restarts a seeded 15/25/160-actor scene, warms 60 full steps, times 360 simulation/aim/matrix/batch steps and HUD every sixth step; first 2 rounds discarded, median of remaining 5. No rasterization inside timed work. Exact final positions, HP and surviving count compared across both builds. Same high-quality settings. CPU timings are not GPU FPS."
+}
