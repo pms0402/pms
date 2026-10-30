@@ -9,7 +9,7 @@ export class SceneContext {
     const g = this.game,
       keep = new Set([
         g.player,
-        g.playerShadow, g.swordTrail?.mesh,
+        g.playerShadow, g.swordTrail?.mesh,g.aimVisual?.mesh,
         g.defeats?.root,g.enemyStates?.mesh,
         g.atmosphere?.sky,
         g.actorShadows?.mesh,
@@ -52,7 +52,7 @@ export class SceneContext {
   }
 }
 export function clearCosmetics(g) {
-  g.parry.feedback.reset(); g.parry.hitStop = 0;
+  g.actions?.cancel();g.parry.feedback.reset(); g.parry.hitStop = 0;
   g.enemyRenderer.reset();
   g.swordTrail?.reset();
   g.defeats?.reset();

@@ -54,9 +54,10 @@ export class SwordTrail {
   }
   sample() {
     const g = this.game,
-      counter = g.counterAnim > 0,
-      total = counter ? 0.38 : g.attackAnimTotal || 0.3,
-      remaining = counter ? g.counterAnim : g.attackAnim,
+      manual=g.actions?.current?.type==='sword',
+      counter = manual?g.actions.current.counter:g.counterAnim > 0,
+      total = manual?g.attackAnimTotal:counter ? 0.38 : g.attackAnimTotal || 0.3,
+      remaining = manual?g.attackAnim:counter ? g.counterAnim : g.attackAnim,
       progress = 1 - remaining / total;
     if (
       remaining <= 0 ||

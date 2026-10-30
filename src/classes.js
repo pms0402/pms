@@ -25,7 +25,7 @@ export const NEW_CLASSES = Object.freeze([
     maxHpMultiplier: 1,
     speedMultiplier: 1,
     description:
-      "마법 +18% · 검 -25%. 소환수 1마리. 직접 마법 적중 8회로 다음 소환수 공격 강화.",
+      "마법 +18% · 검 -25%. 수동 공격 후 소환수 지원. 직접 마법 적중 8회로 다음 소환수 공격 강화.",
     passive: "계약수 · 1.2초 공격 주기, 마법 8회 적중 시 다음 공격 ×1.8",
     color: "#77d5c9",
   },
@@ -97,12 +97,13 @@ export class ClassSystem {
         0;
     this.nextShield = 12;
     this.petTimer = 0;
-    this.magicHits = this.stacks = 0;
+    this.petCommandUntil=0;this.petAim=new THREE.Vector3(0,0,1);this.magicHits = this.stacks = 0;
     this.pet.visible = false;
     this.magicHitCooldown = new WeakMap();
     this.nextStack = 0;
     this.effects = 0;
   }
+  command(direction){this.petCommandUntil=this.game._state.elapsed+1.3;this.petAim.copy(direction);}
   onKill() {
     const t = this.game._state.elapsed;
     if (this.id() === "assassin") this.hasteUntil = t + 1.5;
@@ -155,7 +156,7 @@ export class ClassSystem {
     this.pet.visible = this.id() === "summoner";
     if (this.pet.visible) {
       const target = g
-        .queryEnemies(g.player.position, 12)
+        .queryEnemies(g.player.position, 12).filter(e=>t<this.petCommandUntil&&(e.group.position.x-g.player.position.x)*this.petAim.x+(e.group.position.z-g.player.position.z)*this.petAim.z>0)
         .reduce(
           (best, e) =>
             !best ||

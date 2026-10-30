@@ -72,19 +72,15 @@ export class ParrySystem {
     )
       return false;
     if (this.counterTime > 0) {
-      if (this.hitStop > 0 && g._state.phase === "playing") {
-        g.attackTimer = 0;
-        return true;
-      }
       if (g.camp?.active) g.camp.counter();
-      else g.attack();
+      else return g.attack();
       return true;
     }
     if (this.cooldown > 0) return false;
     if (g._state.phase === "playing" && g.analytics)
       g.analytics.parryAttempts++;
     this.age = 0;
-    if(g.view?.firstPerson())g.player.rotation.y=g.view.yaw;
+    g.actions?.cancel();if(g.actions){const aim=g.actions.direction();g.player.rotation.y=Math.atan2(aim.x,aim.z);}else if(g.view?.firstPerson?.())g.player.rotation.y=g.view.yaw;
     this.active = PARRY.window;
     this.cooldown = PARRY.cooldown;
     g.sound("guard");

@@ -84,7 +84,7 @@ export class SideAreaSystem {
             Math.max(0, Math.floor(g._state.stage / 2) - 1) % options.length
           ];
     this.portal = { group, type, used: false };
-    g.callbacks.onLoot?.("희미한 균열 발견 · 근처에서 R / 비밀 입구");
+    g.callbacks.onLoot?.("희미한 균열 발견 · 근처에서 C / 비밀 입구");
     return true;
   }
   offers() {
@@ -128,7 +128,7 @@ export class SideAreaSystem {
         if (this.active.type === "ancient") {
           g.story.find("royalOath");
           this.active.claimed = true;
-          g.callbacks.onLoot?.("왕의 맹세를 읽었습니다 · 입구에서 R로 복귀");
+          g.callbacks.onLoot?.("왕의 맹세를 읽었습니다 · 입구에서 C로 복귀");
           return true;
         }
         if (
@@ -229,7 +229,7 @@ export class SideAreaSystem {
           : ["#453548", "#20142d", "#d5c5e8", "#c89adc"],
     );
     g.mutationSystem = new MutationSystem(g);
-    g.magic = new MagicSystem(g);
+    g.magic = new MagicSystem(g);g.magic.cooldowns={...s.fields.magic.cooldowns};
     g.magic.unlockedSynergies = new Set(s.fields.magic.unlockedSynergies);
     g.bossSystem = new BossSystem(g);
     g.bossPhases = new BossPhases(g);
@@ -345,7 +345,7 @@ export class SideAreaSystem {
       this.active.complete = true;
       if (this.active.type === "dungeon") this.game.story.find("buriedTruth");
       this.game.callbacks.onLoot?.(
-        "비밀 공간 시련 완료 · 중앙 제단에서 R로 보상",
+        "비밀 공간 시련 완료 · 중앙 제단에서 C로 보상",
       );
     }
   }
@@ -436,13 +436,14 @@ export class SideAreaSystem {
     g.equipment.drops.length = 0;
     g.equipment.drops.push(...s.equipmentDrops);
     g.mutationSystem.dispose();
-    g.magic.dispose();
+    const roomCooldowns={...g.magic.cooldowns};g.magic.dispose();
     g.bossSystem.dispose();
     g.bossPhases.dispose();
     this.hidden.clear();
     this.room.removeFromParent();
     this.room = null;
     for (const key of FIELD_KEYS) g[key] = s.fields[key];
+    for(const id of Object.keys(roomCooldowns))g.magic.cooldowns[id]=Math.max(g.magic.cooldowns[id],roomCooldowns[id]);
     for (const key of ARRAY_KEYS) g[key].push(...s.arrays[key]);
     for (const e of g.enemies) g.activeEnemies.add(e);
     g.player.position.copy(s.position);

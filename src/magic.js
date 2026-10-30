@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {createRuneGeometry} from './rune-geometry.js';
+import {SKILL_TIMINGS} from './action-combat.js';
 import { SPELLS } from './balance.js';
 import { SYNERGIES, getActiveSynergies } from './synergies.js';
 
@@ -38,7 +39,7 @@ export class MagicSystem {
     this.time = 0;
     this.disposed = false;
     this.orbitSignature = '';
-    this.cooldowns = { fireball: 0.2, frost: 0.2, lightning: 0.2, orbit: 0 };
+    this.cooldowns = { fireball: 0, frost: 0, lightning: 0, orbit: 0 };
     this.spellsCast = { fireball: 0, frost: 0, lightning: 0, orbit: 0 };
     this.hits = 0;
     this.geometry = {
@@ -66,16 +67,10 @@ export class MagicSystem {
   }
   area() { return Math.max(1, Math.min(2.5, Number(this.game.stats.spellAreaMultiplier) || 1)); }
   distanceSquared(a, b) { const x = a.x - b.x, z = a.z - b.z; return x * x + z * z; }
-  maxCooldown(id) {
-    const rank = this.rank(id);
-    const haste = Math.max(0.7, Math.min(12, this.game.stats.spellRate / 1.5 || 1));
-    if (id === 'fireball') return (1.5 - Math.max(0, rank - 1) * 0.1) / haste;
-    // Frost controls a crowd rather than replacing the other damage spells.
-    // Its own haste ceiling and minimum interval leave room to approach.
-    if (id === 'frost') return Math.max(2.75, (6 - Math.max(0, rank - 1) * 0.25) / Math.min(2, haste));
-    if (id === 'lightning') return (3 - Math.max(0, rank - 1) * 0.18) / haste;
-    return 0.6 / haste;
-  }
+  maxCooldown(id) {const rank=this.rank(id),haste=Math.max(.95,Math.min(1.35,Math.pow(Math.max(.1,this.game.stats.spellRate/1.5||1),.12)));return Math.max({fireball:8,frost:10,lightning:8,orbit:14}[id]||35,(SKILL_TIMINGS[id]?.cooldown||45)*(1-Math.max(0,rank-1)*.025)/haste);}
+  radius(id){const r=this.rank(id),e=this.evolved(id);return Math.min(20,({fireball:6+(r-1)*.3+(e?1.5:0),frost:9+(r-1)*.4+(e?1.5:0),orbit:5.5+(r-1)*.3+(e?1.8:0),ultimate:11}[id]||8)*this.area());}
+  manualDirection(){return this.game.actions?.direction().clone()||new THREE.Vector3(Math.sin(this.game.player.rotation?.y||0),0,Math.cos(this.game.player.rotation?.y||0));}
+  castManual(id,direction=this.manualDirection(),target=null,reserved=false){if(this.disposed||this.game._state.phase!=='playing'||(id!=='ultimate'&&!this.rank(id)))return false;if(id==='ultimate')return this.castUltimate(direction,target);const paid=this.cooldowns[id];const result=({fireball:()=>this.castFireball(direction,target),frost:()=>this.castFrost(),lightning:()=>this.castLightning(direction),orbit:()=>this.castOrbit(target)})[id]?.()||false;if(reserved)this.cooldowns[id]=paid;return result;}
 
   nearest(position, range, excluded = null) {
     let result = null, distance = range * range;
@@ -112,7 +107,7 @@ export class MagicSystem {
   resetEnemyStatus(enemy) {
     if (!enemy) return;
     enemy.burnTime = 0;
-    enemy.freezeTime = 0;
+    enemy.freezeTime = 0;enemy.nextManualFreeze=0;
     this.comboHitTimes.delete(enemy);
     this.frostExposure.delete(enemy);
     this.orbitHitTimes.delete(enemy);
@@ -273,11 +268,9 @@ export class MagicSystem {
     const active = this.refreshSynergies();
     this.synergyCooldown = Math.max(0, this.synergyCooldown - dt);
     this.buildSynergyCooldown = Math.max(0, this.buildSynergyCooldown - dt);
-    for (const id of SPELL_IDS) this.cooldowns[id] = Math.max(0, this.cooldowns[id] - dt);
+    for(const id of SPELL_IDS){const before=this.cooldowns[id];this.cooldowns[id]=Math.max(0,before-dt);if(before>0&&this.cooldowns[id]===0&&this.game.stats.skillSlots?.includes(id)){this.game.sound?.('skill-ready');this.game.callbacks?.onSkillReady?.(id);}}
     this.syncOrbit();
-    if (this.rank('fireball') && this.cooldowns.fireball <= 0) this.castFireball();
-    if (this.rank('frost') && this.cooldowns.frost <= 0) this.castFrost();
-    if (this.rank('lightning') && this.cooldowns.lightning <= 0) this.castLightning();
+    // Input owns every cast. Only already-issued projectiles/zones and conditional procs advance here.
     this.updateProjectiles(dt);
     this.updateOrbit(dt);
     this.updateRuneSynergy();
@@ -287,27 +280,15 @@ export class MagicSystem {
     this.updateEffects(dt);
   }
 
-  castFireball() {
-    const origin = this.game.player.position;
-    const target = this.nearest(origin, 22);
-    if (!target || this.projectiles.length >= this.projectileBudget()) return false;
-    const rank = this.rank('fireball'), evolved = this.evolved('fireball');
-    const count = evolved ? 3 : rank >= 4 ? 2 : 1;
-    const chosen = new Set();
-    for (let index = 0; index < count && this.projectiles.length < this.projectileBudget(); index++) {
-      const next = this.nearest(origin, 22, chosen) || target;
-      chosen.add(next);
-      const direction = next.group.position.clone().sub(origin).setY(0).normalize();
-      const mesh = this.projectilePool.pop() || this.createFireballMesh();
-      const shell = mesh.children[0];
-      mesh.rotation.set(0, 0, 0); shell.scale.setScalar(evolved ? 1.35 : 1);
-      mesh.position.copy(origin); mesh.position.y += 1;
-      this.scene.add(mesh);
-      this.projectiles.push({ mesh, target: next, direction, life: 1.8, trailTimer: 0, rank, evolved, damage: this.damage('fireball') * 1.1 * (1 + 0.16 * (rank - 1)), radius: (3.3 + 0.35 * (rank - 1)) * this.area() });
+  castFireball(aim=this.manualDirection(),targetPoint=null) {
+    if(!this.rank('fireball')||this.projectiles.length>=this.projectileBudget())return false;
+    const origin=this.game.player.position,rank=this.rank('fireball'),evolved=this.evolved('fireball'),count=Math.min(5,(evolved?3:rank>=4?2:1)+Math.max(0,(this.game.stats.projectiles||1)-1)+(this.game.stats.skillExtraHits||0));
+    for(let index=0;index<count&&this.projectiles.length<this.projectileBudget();index++){
+      const angle=Math.atan2(aim.x,aim.z)+(index-(count-1)/2)*.16,direction=new THREE.Vector3(Math.sin(angle),0,Math.cos(angle)),mesh=this.projectilePool.pop()||this.createFireballMesh();mesh.rotation.set(0,0,0);mesh.children[0].scale.setScalar(evolved?1.7:1.3);mesh.position.copy(origin);mesh.position.y+=1;this.scene.add(mesh);
+      const distance=targetPoint?Math.max(2,Math.min(22,origin.distanceTo(targetPoint))):18;
+      this.projectiles.push({mesh,target:null,direction,life:distance/20,trailTimer:0,rank,evolved,damage:this.damage('fireball')*7.2*(1+.14*(rank-1))/Math.max(1,Math.sqrt(count)),radius:this.radius('fireball')});
     }
-    this.spellsCast.fireball++;this.game.playerCastTime=.3;this.game.lastCastSpell="fireball";this.game.sound?.("fireball",this.game.player.position);
-    this.cooldowns.fireball = this.maxCooldown('fireball');
-    return true;
+    this.spellsCast.fireball++;this.game.sound?.('fireball',origin);this.cooldowns.fireball=this.maxCooldown('fireball');return true;
   }
 
   createFireballMesh() {
@@ -344,9 +325,7 @@ export class MagicSystem {
       if (bonus) { steamed = true; this.synergyHits++; }
     }
     if (steamed) { this.ring(position, radius * 0.8, 'steam', 0.55, 0.45); this.particles(position, 'steam', 6, radius * 0.25); }
-    if (evolved && !secondary && this.zones.length < 12) {
-      this.zones.push({ type: 'ember', position: position.clone(), radius: radius * 1.1, damage: damage * 0.55, life: 0.33, tick: 0.32 });
-    }
+    if(!secondary&&this.zones.length<12){const marker=new THREE.Mesh(this.geometry.ring,this.material.fireball);marker.rotation.x=-Math.PI/2;marker.position.copy(position);marker.position.y+=.12;marker.scale.setScalar(radius);this.scene.add(marker);this.zones.push({type:'burn',position:position.clone(),radius,damage:damage*.18,life:4+(this.game.stats.statusBonus||0),tick:.8,marker});if(evolved&&this.zones.length<12)this.zones.push({type:'ember',position:position.clone(),radius,damage:damage*.45,life:.4,tick:.35});}
   }
 
   updateProjectiles(dt) {
@@ -380,36 +359,22 @@ export class MagicSystem {
   }
 
   castFrost() {
-    const rank = this.rank('frost'), evolved = this.evolved('frost');
-    const radius = (6 + (rank - 1) * 0.5 + (evolved ? 1.5 : 0)) * this.area();
-    const origin = this.game.player.position;
-    if (!this.nearest(origin, radius + 0.5)) return false;
-    const damage = this.damage('frost') * 0.8 * (1 + 0.18 * (rank - 1));
-    this.ring(origin, radius, 'frost', 0.65, 0.8);
-    this.ring(origin, radius * 0.8, 'frost', 0.45, 0.35);
-    this.particles(origin, 'frost', 10, radius * 0.6);
-    for (const enemy of this.query(origin, radius)) {
-      if (!this.isAlive(enemy)) continue;
-      if (this.distanceSquared(origin, enemy.group.position) <= radius ** 2) this.hit(enemy, damage, origin, evolved ? 1.8 : 1.4, evolved ? 0.45 : 0.6, 'magic', 'frost');
-    }
-    if (evolved && this.zones.length < 12) {
-      const marker = new THREE.Mesh(this.geometry.ring, this.material.frost);
-      marker.rotation.x = -Math.PI / 2; marker.position.copy(origin); marker.position.y = origin.y + 0.15; marker.scale.setScalar(radius);
-      this.scene.add(marker);
-      this.zones.push({ type: 'blizzard', position: origin.clone(), radius, damage: damage * 0.25, life: 2.4, tick: 0.5, marker });
-    }
-    this.spellsCast.frost++;this.game.playerCastTime=.3;this.game.lastCastSpell="frost";this.game.sound?.("frost",this.game.player.position);
-    this.cooldowns.frost = this.maxCooldown('frost');
-    return true;
+    if(!this.rank('frost'))return false;
+    const rank=this.rank('frost'),evolved=this.evolved('frost'),radius=this.radius('frost'),origin=this.game.player.position.clone(),damage=this.damage('frost')*5.5*(1+.14*(rank-1));
+    this.ring(origin,radius,'frost',.65,.8);this.particles(origin,'frost',12,radius*.5);
+    for(const enemy of this.query(origin,radius))if(this.isAlive(enemy)&&this.distanceSquared(origin,enemy.group.position)<=radius**2){this.hit(enemy,damage,origin,2.2*(1+(this.game.stats.statusBonus||0)),.5,'magic','frost');if(enemy.kind!==4&&(enemy.nextManualFreeze||0)<=this.time){enemy.freezeTime=Math.max(enemy.freezeTime||0,Math.min(.6,.35*(1+(this.game.stats.statusBonus||0))));enemy.nextManualFreeze=this.time+6;}}
+    if(evolved&&this.zones.length<12){const marker=new THREE.Mesh(this.geometry.ring,this.material.frost);marker.rotation.x=-Math.PI/2;marker.position.copy(origin);marker.position.y+=.15;marker.scale.setScalar(radius);this.scene.add(marker);this.zones.push({type:'blizzard',position:origin,radius,damage:damage*.14,life:4,tick:.8,marker});}
+    const echoes=Math.min(3,this.game.stats.skillExtraHits||0);if(echoes&&this.zones.length<12)this.zones.push({type:'frostEcho',position:origin,radius,damage:damage*.2,ticks:echoes,tick:.45,life:echoes*.5});
+    this.spellsCast.frost++;this.game.sound?.('frost',origin);this.cooldowns.frost=this.maxCooldown('frost');return true;
   }
 
-  castLightning() {
+  castLightning(aim=this.manualDirection()) {
     const origin = this.game.player.position;
-    const first = this.nearest(origin, 15 * this.area());
-    if (!first) return false;
+    if(!this.rank('lightning'))return false;let first=null,score=Infinity;for(const enemy of this.query(origin,22)){const delta=enemy.group.position.clone().sub(origin),along=delta.x*aim.x+delta.z*aim.z,side=Math.abs(delta.x*aim.z-delta.z*aim.x);if(along>0&&along<=22&&side<2.2&&side+along*.02<score&&(!this.game.combatLineClear||this.game.combatLineClear(origin,enemy.group.position))){first=enemy;score=side+along*.02;}}
+    if(!first)this.lightningLine(origin,origin.clone().addScaledVector(aim,20),.3,.8);
     const rank = this.rank('lightning'), evolved = this.evolved('lightning');
-    const count = 3 + Math.floor((rank - 1) / 2) + (evolved ? 3 : 0) + (this.game.setSystem?.count('storm') >= 4 ? 1 : 0);
-    const damage = this.damage('lightning') * 1.1 * (1 + 0.18 * (rank - 1));
+    const count = 5 + (this.game.stats.skillExtraHits||0)*2 + Math.floor((rank - 1) / 2) + (evolved ? 3 : 0) + (this.game.setSystem?.count('storm') >= 4 ? 1 : 0);
+    const damage = this.damage('lightning') * 7.5 * (1 + 0.18 * (rank - 1));
     const hit = new Set();
     let previous = origin.clone(), target = first;
     for (let index = 0; index < count && target; index++) {
@@ -425,64 +390,32 @@ export class MagicSystem {
     return true;
   }
 
-  syncOrbit() {
-    const rank = this.rank('orbit'), evolved = this.evolved('orbit');
-    const signature = `${rank}:${evolved}`;
-    if (signature === this.orbitSignature) return;
-    this.orbitSignature = signature;
-    for (const orb of this.orbs) orb.removeFromParent();
-    this.orbs.length = 0;
-    if (!rank) return;
-    const count = 2 + Math.floor((rank - 1) / 2) + (evolved ? 3 : 0);
-    for (let index = 0; index < count; index++) {
-      const orb = new THREE.Group();
-      this.geometry.glyph ||=createRuneGeometry(false);this.geometry.glyphEvolved ||=createRuneGeometry(true);
-      const rune = new THREE.Mesh(evolved?this.geometry.glyphEvolved:this.geometry.glyph, this.material.orbit);
-      const core = new THREE.Mesh(this.geometry.core, this.material.core);
-      core.scale.setScalar(0.7); orb.add(rune, core); this.scene.add(orb); this.orbs.push(orb);
-    }
+  castOrbit(target=null){
+    if(!this.rank('orbit')||this.zones.length>=12)return false;
+    const position=target?.clone()||this.game.player.position.clone().addScaledVector(this.manualDirection(),8),radius=this.radius('orbit'),evolved=this.evolved('orbit'),marker=new THREE.Group();
+    this.geometry.glyph ||=createRuneGeometry(false);this.geometry.glyphEvolved ||=createRuneGeometry(true);
+    const ring=new THREE.Mesh(this.geometry.ring,this.material.orbit);ring.rotation.x=-Math.PI/2;ring.scale.setScalar(radius);marker.add(ring);marker.position.copy(position);marker.position.y+=.14;this.scene.add(marker);
+    const count=3+(evolved?3:0);for(let i=0;i<count;i++){const orb=new THREE.Group();orb.add(new THREE.Mesh(evolved?this.geometry.glyphEvolved:this.geometry.glyph,this.material.orbit));const core=new THREE.Mesh(this.geometry.core,this.material.core);core.scale.setScalar(.7);orb.add(core);marker.add(orb);this.orbs.push(orb);orb.userData.field=marker;orb.userData.offset=i/count*Math.PI*2;}
+    this.zones.push({type:'rune',position,radius,damage:this.damage('orbit')*2.3*(1+.12*(this.rank('orbit')-1)),life:6,tick:0,marker,evolved});this.spellsCast.orbit++;this.cooldowns.orbit=this.maxCooldown('orbit');this.game.sound?.('orbit',position);return true;
   }
-
-  updateOrbit(dt) {
-    const rank = this.rank('orbit');
-    if (!rank || !this.orbs.length) return;
-    const evolved = this.evolved('orbit');
-    const radius = (3.5 + (rank - 1) * 0.2 + (evolved ? 1.2 : 0)) * this.area();
-    for (let index = 0; index < this.orbs.length; index++) {
-      const angle = this.time * (evolved ? 2 : 1.7) + index / this.orbs.length * TAU;
-      const orb = this.orbs[index];
-      orb.position.copy(this.game.player.position); orb.position.x += Math.cos(angle) * radius; orb.position.z += Math.sin(angle) * radius;
-      orb.position.y = this.game.player.position.y + 0.95 + Math.sin(this.time * 3 + index) * 0.12;
-      const glyph=orb.children[0];if(this.game.camera){glyph.quaternion.copy(this.game.camera.quaternion);glyph.rotateZ(this.time*1.2+index);}orb.children[1].rotation.y+=dt*1.4;
-    }
-    let hitAny = false;
-    for (const enemy of this.query(this.game.player.position, radius + 3.5)) {
-      if (!this.isAlive(enemy)) continue;
-      if ((this.orbitHitTimes.get(enemy) || 0) > this.time) continue;
-      const near = this.orbs.find(orb => this.distanceSquared(orb.position, enemy.group.position) < (1.1 + Math.max(0, (enemy.size || 1) - 1) * 0.7) ** 2);
-      const centerPulse = evolved && this.cooldowns.orbit <= 0 && this.distanceSquared(this.game.player.position, enemy.group.position) < (4.5 * this.area()) ** 2;
-      if (!near && !centerPulse) continue;
-      this.orbitHitTimes.set(enemy, this.time + this.maxCooldown('orbit'));
-      const impactPosition = enemy.group.position.clone();
-      this.hit(enemy, this.damage('orbit') * 0.55 * (1 + (rank - 1) * 0.15), near?.position || this.game.player.position, 0, 0.5, 'magic', 'orbit');
-      this.onOrbitHit(enemy, impactPosition);
-      this.spark(impactPosition, 'orbit', 0.22, 1.3); hitAny = true;
-    }
-    if (hitAny && this.cooldowns.orbit <= 0) {
-      this.spellsCast.orbit++;this.game.sound?.("orbit",this.game.player.position);
-      this.cooldowns.orbit = this.maxCooldown('orbit');
-      if (evolved) this.ring(this.game.player.position, radius, 'orbit', 0.35, 0.25);
-    }
+  castUltimate(direction,target=null){
+    const origin=target?.clone()||this.game.player.position.clone().addScaledVector(direction,10),radius=this.radius('ultimate'),active=this.game.actions?.syncSlots()||SPELL_IDS.filter(id=>this.rank(id));
+    this.ring(origin,radius,'orbit',.85,.9);this.ring(origin,radius*.8,'lightning',.65,.6);this.game.combatArt?.emit(origin,'counter',20);
+    const damage=this.damage('orbit')*(12+active.filter(Boolean).length);
+    for(const enemy of this.query(origin,radius).slice(0,32))if(this.isAlive(enemy)&&this.distanceSquared(origin,enemy.group.position)<=radius**2){this.hit(enemy,damage,origin,active.includes('frost')?1.5:0,.65,'magic','orbit',{analyticsSource:'ultimate',knockbackScale:.5,hitStun:.12});if(active.includes('fireball'))enemy.burnTime=3;}
+    this.game.sound?.('counter',origin);this.game.shake=Math.max(this.game.shake,.12);return true;
   }
+  syncOrbit() {} // Runes exist only while a manually installed field is alive.
+  updateOrbit(dt){for(const orb of this.orbs){const angle=this.time*1.2+orb.userData.offset,field=this.zones.find(z=>z.marker===orb.userData.field);if(!field)continue;orb.position.set(Math.cos(angle)*field.radius*.65,.6,Math.sin(angle)*field.radius*.65);if(this.game.camera){orb.children[0].quaternion.copy(this.game.camera.quaternion);orb.children[0].rotateZ(this.time);}orb.updateWorldMatrix(true,true);}}
 
   updateRuneSynergy() {
     if (!this.game.stats.runeSynergyBonus || !this.rank('lightning') || !this.rank('orbit') || this.synergyCooldown > 0) return;
     for (const orb of this.orbs) {
-      const target = this.nearest(orb.position, 5 * this.area());
+      const target = this.nearest(orb.getWorldPosition(this.scratch), 5 * this.area());
       if (!target) continue;
-      this.lightningLine(orb.position, target.group.position, 0.32, 0.8);
-      this.ring(orb.position, 0.9, 'orbit', 0.3, 0.6);
-      this.hit(target, this.damage('lightning') * 0.2, orb.position, 0, 0.5, 'magic', 'lightning');
+      this.lightningLine(orb.getWorldPosition(new THREE.Vector3()), target.group.position, 0.32, 0.8);
+      this.ring(orb.getWorldPosition(new THREE.Vector3()), 0.9, 'orbit', 0.3, 0.6);
+      this.hit(target, this.damage('lightning') * 0.2, orb.getWorldPosition(new THREE.Vector3()), 0, 0.5, 'magic', 'lightning');
       this.synergyHits++; this.synergyCooldown = 4; return;
     }
   }
@@ -490,11 +423,11 @@ export class MagicSystem {
   updateBuildSynergy() {
     if (this.buildSynergyCooldown > 0 || !this.rank('lightning') || !this.rank('orbit')) return false;
     for (const orb of this.orbs) {
-      const target = this.nearest(orb.position, 5 * this.area());
+      const target = this.nearest(orb.getWorldPosition(this.scratch), 5 * this.area());
       if (!target) continue;
-      this.lightningLine(orb.position, target.group.position, 0.3, 0.75);
-      this.ring(orb.position, 0.9, 'orbit', 0.3, 0.6);
-      this.hit(target, this.damage('lightning') * 0.35, orb.position, 0, 0.5, 'combo');
+      this.lightningLine(orb.getWorldPosition(new THREE.Vector3()), target.group.position, 0.3, 0.75);
+      this.ring(orb.getWorldPosition(new THREE.Vector3()), 0.9, 'orbit', 0.3, 0.6);
+      this.hit(target, this.damage('lightning') * 0.35, orb.getWorldPosition(new THREE.Vector3()), 0, 0.5, 'combo');
       this.buildSynergyCooldown = 3;
       this.recordCombo('runelight');
       return true;
@@ -505,7 +438,8 @@ export class MagicSystem {
   updateZones(dt) {
     for (let index = this.zones.length - 1; index >= 0; index--) {
       const zone = this.zones[index]; zone.life -= dt; zone.tick -= dt;
-      if (zone.type === 'ember' && zone.tick <= 0) {
+      if(['burn','rune','frostEcho'].includes(zone.type)&&zone.tick<=0){const id=zone.type==='burn'?'fireball':zone.type==='rune'?'orbit':'frost';for(const enemy of this.query(zone.position,zone.radius).slice(0,24)){if(!this.isAlive(enemy)||this.distanceSquared(zone.position,enemy.group.position)>zone.radius**2)continue;const impact=enemy.group.position.clone();this.hit(enemy,zone.damage,zone.position,zone.type==='rune'?.7:0,.8,'magic',id,NO_IMPACT);if(zone.type==='rune')this.onOrbitHit(enemy,impact);}zone.tick+=zone.type==='rune'?.8/(1+.1*(this.game.stats.skillExtraHits||0)):.8;if(zone.type==='frostEcho'&&--zone.ticks<=0)zone.life=0;
+      } else if (zone.type === 'ember' && zone.tick <= 0) {
         this.explode(zone.position, zone.radius, zone.damage, true, true); zone.life = 0;
       } else if (zone.type === 'blizzard' && zone.tick <= 0) {
         for (const enemy of this.query(zone.position, zone.radius)) {
@@ -528,7 +462,7 @@ export class MagicSystem {
           }
         } else zone.marker.rotation.z += dt * 0.1;
       }
-      if (zone.life <= 0) { zone.marker?.removeFromParent(); this.zones.splice(index, 1); }
+      if(zone.life<=0){if(zone.type==='rune'){this.orbs=this.orbs.filter(o=>o.userData.field!==zone.marker);if(zone.evolved)this.comboArea('voidBurst',zone.position,zone.radius,zone.damage*2,16,1);}zone.marker?.removeFromParent();this.zones.splice(index,1);}
     }
   }
 
@@ -615,7 +549,7 @@ export class MagicSystem {
     for (const zone of this.zones) zone.marker?.removeFromParent();
     for (const orb of this.orbs) orb.removeFromParent();
     this.projectiles.length = 0; this.zones.length = 0; this.orbs.length = 0;
-    this.cooldowns = { fireball: 0.2, frost: 0.2, lightning: 0.2, orbit: 0 };
+    this.cooldowns = { fireball: 0, frost: 0, lightning: 0, orbit: 0 };
     this.spellsCast = { fireball: 0, frost: 0, lightning: 0, orbit: 0 };
     this.hits = 0; this.synergyHits = 0; this.synergyCooldown = 0; this.time = 0; this.orbitSignature = ''; this.orbitHitTimes = new WeakMap();
     this.buildSynergyCooldown = 0; this.comboHitTimes = new WeakMap();

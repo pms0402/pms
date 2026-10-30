@@ -1,5 +1,5 @@
 export const DAMAGE_SOURCES = Object.freeze({
-  sword: "검",
+  sword: "검",ultimate:"궁극기",
   fireball: "화염구",
   frost: "서리 파동",
   lightning: "연쇄 번개",

@@ -1,5 +1,6 @@
 const clamp = (v) => Math.max(0, Math.min(1, Number(v) || 0));
 export const SOUND_PROFILES = Object.freeze({
+  "skill-ready":[880,1320,.16,.045,0,"sine",.4],
   "fire-impact": [70, 35, 0.28, 0.1, 0.25, "triangle", 0.12],
   "frost-impact": [2200, 1200, 0.14, 0.06, 0.04, "sine", 0.1],
   "lightning-impact": [130, 45, 0.07, 0.07, 0.14, "triangle", 0.09],

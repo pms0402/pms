@@ -47,12 +47,14 @@ export class ViewController {
     this.canvas = game.renderer.domElement;
     this.onMouseMove = (e) => {
       if (document.pointerLockElement === this.canvas && this.canLook())
-        this.rotate(e.movementX, e.movementY);
+        {this.rotate(e.movementX, e.movementY);this.game.actions?.setAim(new THREE.Vector3(Math.sin(this.yaw),0,Math.cos(this.yaw)));}
     };
     this.onLockChange = () => {
+      const locked=document.pointerLockElement===this.canvas;if(!locked&&this.wasLocked&&!this.releasing&&this.game._state.phase==='playing'){this.game.unlockPauseAt=performance.now();this.game.callbacks.onControlAction?.('pause');}this.wasLocked=locked;this.releasing=false;
+
       if (
         document.pointerLockElement === this.canvas &&
-        (!this.firstPerson() || !this.canLook())
+        (this.mode === "overhead" || !this.canLook())
       ) {
         this.release();
         return;
@@ -61,7 +63,7 @@ export class ViewController {
       this.game.callbacks.onViewChange?.(this.getState());
     };
     this.onContextMenu = (e) => {
-      if (this.mode !== "overhead") e.preventDefault();
+      e.preventDefault();
     };
     this.onWheel = (e) => {
       if (this.mode !== "third" || !this.canLook()) return;
@@ -120,6 +122,7 @@ export class ViewController {
   }
   pointerDown(e) {
     if (this.mode === "overhead" || !this.canLook()) return false;
+    if(e.pointerType!=="touch"&&e.button!==1)return false;
     const rect = this.canvas.getBoundingClientRect();
     if (e.pointerType === "touch" && e.clientX < rect.left + rect.width * 0.5)
       return false;
@@ -168,8 +171,7 @@ export class ViewController {
   }
   release() {
     this.drag = null;
-    if (document.pointerLockElement === this.canvas)
-      document.exitPointerLock?.();
+    if (document.pointerLockElement === this.canvas){this.releasing=true;document.exitPointerLock?.();}
   }
   getState() {
     return {
