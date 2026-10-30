@@ -416,6 +416,7 @@ export class ActionCombat {
     }
     if (a.elapsed >= a.duration) {
       this.current = null;
+      if(this.hasAim)g.player.rotation.y=Math.atan2(this.aim.x,this.aim.z);
       g.attackAnim = g.counterAnim = 0;
       this.comboTime = 0.7;
       const buffered = this.buffer;

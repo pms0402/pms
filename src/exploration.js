@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import {keyLabel} from "./control-bindings.js";
 import { rollEquipment, EQUIPMENT_OPTIONS } from "./equipment.js";
 export const NPC_TYPES = Object.freeze({
   merchant: "떠돌이 상인",
@@ -67,7 +68,7 @@ export class ExplorationSystem {
     this.game.scene.add(group);
     this.npc = { type, group, used: false };
     this.game.callbacks.onLoot?.(
-      `${NPC_TYPES[type]} 출현 · 가까이에서 R / 교류`,
+      `${NPC_TYPES[type]} 출현 · 가까이에서 ${keyLabel(this.game.bindings.interact)} / 교류`,
     );
     return this.npc;
   }

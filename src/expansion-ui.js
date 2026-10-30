@@ -1,4 +1,4 @@
-import {keyLabel} from './control-bindings.js';
+import {style,toggle,disabled,text} from './dom-update.js';
 import { setsMarkup } from './chronicle-ui.js';
 import { SETS } from './sets.js';
 import {
@@ -183,45 +183,25 @@ export function createExpansionUi({
       );
     },
     update(state) {
-      const parry = state.parry || {},
-        npc = state.exploration?.npc;
+      const parry = state.parry || {};
       const guard = document.querySelector("#guard-button");
       if (guard) {
-        guard.textContent =
-          parry.counterTime > 0
-            ? `광역 반격 ${parry.counterTime.toFixed(1)}초`
-            : parry.cooldown > 0
-              ? `패링 ${parry.cooldown.toFixed(1)}초`
-              : `패링 · ${keyLabel(game.bindings.parry)}`;
-        guard.style.setProperty('--parry-ready',String(parry.counterTime>0 ? 1 : Math.max(0,1-(parry.cooldown||0)/(parry.maxCooldown||4))));
-        guard.classList.toggle('counter-ready',parry.counterTime>0);
-        guard.title=keyLabel(game.bindings.parry)+' 물리 키 · 한글 입력 상태에서도 사용 가능 · 전방 120° · 첫 0.16초 완벽한 패링 · 청색 직선/일반 탄환 가능 · 지면 공격 방어 불가';
-        guard.setAttribute('aria-label',parry.counterTime>0 ? `광역 반격 가능 ${parry.counterTime.toFixed(1)}초. 다음 직접 검 공격에 발동` : `패링 ${keyLabel(game.bindings.parry)}. ${parry.cooldown>0 ? '재사용 '+parry.cooldown.toFixed(1)+'초' : '사용 가능'}`);
-        guard.disabled =
-          (state.phase !== "playing" && !(state.phase==='camp'&&state.camp?.practice&&!game.camp.suspended)) ||
-          (parry.cooldown > 0 && !parry.counterTime);
-      }
-      const interact = document.querySelector("#interact-npc");
-      if (interact) {
-        interact.classList.toggle("hidden", !npc || npc.used);
-        interact.disabled =
-          !npc || state.phase !== "playing" || npc.distance > 3.2;
-        interact.textContent = npc
-          ? `${npc.name} · ${npc.distance <= 3.2 ? `교류 ${keyLabel(game.bindings.interact)}` : `${npc.distance.toFixed(0)}m`}`
-          : `교류 ${keyLabel(game.bindings.interact)}`;
+        style(guard,'--parry-ready',parry.counterTime>0?1:Math.max(0,1-(parry.cooldown||0)/(parry.maxCooldown||4)));
+        toggle(guard,'counter-ready',parry.counterTime>0);
+        disabled(guard, (state.phase !== "playing" && !(state.phase==='camp'&&state.camp?.practice&&!game.camp.suspended)) ||
+          (parry.cooldown > 0 && !parry.counterTime));
       }
       const phase = document.querySelector("#boss-combat-phase");
       if (phase)
-        phase.textContent = state.boss?.alive
+        text(phase,state.boss?.alive
           ? `${state.boss.combatPhase || 1} / 3페이즈`
-          : "";
+          : "");
       const rule = document.querySelector("#abyss-rule");
       if (rule) {
         rule.classList.toggle("hidden", state.mode !== "abyss");
-        rule.textContent =
-          state.mode === "abyss"
+        text(rule, state.mode === "abyss"
             ? `심연 ${state.stage}층 · ${state.abyssConstraint?.title || "심연 탐사"}`
-            : "";
+            : "");
         rule.title =
           state.abyssConstraint?.description ||
           "5층마다 재앙 보스 · 10층마다 제약 교대";

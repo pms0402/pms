@@ -29,7 +29,7 @@ const CAMP_SOLIDS = CAMP_FACILITIES.map((f) => ({
   maxY: 3.4,
 }));
 
-/** Camera-only orbit, collision and first-person presentation. No combat stat changes. */
+/** Character-aligned first/third person follow with camera-only collision. */
 export class ViewController {
   constructor(game) {
     this.game = game;
@@ -39,6 +39,7 @@ export class ViewController {
     this.distance = 9.2;
     this.snap = true;
     this.anchor = new THREE.Vector3();
+    this.followAnchor = new THREE.Vector3();
     this.desired = new THREE.Vector3();
     this.look = new THREE.Vector3();
     this.lastPlayer = new THREE.Vector3(Infinity, 0, 0);
@@ -47,7 +48,7 @@ export class ViewController {
     this.canvas = game.renderer.domElement;
     this.onMouseMove = (e) => {
       if (document.pointerLockElement === this.canvas && this.canLook())
-        {this.rotate(e.movementX, e.movementY);this.game.aimFromView?.();}
+        {this.rotate(e.movementX, e.movementY);}
     };
     this.onLockChange = () => {
       const locked=document.pointerLockElement===this.canvas;if(!locked&&this.wasLocked&&!this.releasing&&this.game._state.phase==='playing'){this.game.unlockPauseAt=performance.now();this.game.callbacks.onControlAction?.('pause');}this.wasLocked=locked;this.releasing=false;
@@ -81,6 +82,7 @@ export class ViewController {
       ? "third"
       : this.mode;
   }
+  following(){return this.mode!=='overhead'&&!['menu','over','won'].includes(this.game._state.phase);}
   firstPerson() {
     return this.effectiveMode() === "first";
   }
@@ -98,7 +100,7 @@ export class ViewController {
     this.snap = true;
     this.game.swordTrail?.reset();
     this.update(0);
-    if(mode!=='overhead')this.game.aimFromView?.();
+    if(this.following())this.game.aimFromView?.();
     this.game.callbacks.onViewChange?.(this.getState());
     return true;
   }
@@ -110,17 +112,16 @@ export class ViewController {
   rotate(dx, dy, touch = false) {
     if (!this.canLook() || this.mode === "overhead") return;
     const scale = touch ? 0.005 : 0.0028;
-    this.yaw = THREE.MathUtils.euclideanModulo(
-      this.yaw - dx * scale,
-      Math.PI * 2,
-    );
+    const actions=this.game.actions,base=actions?.hasAim?Math.atan2(actions.aim.x,actions.aim.z):this.game.player.rotation.y;
+    const requestedYaw=THREE.MathUtils.euclideanModulo(base-dx*scale,Math.PI*2);
     const mode = this.effectiveMode();
     this.pitch[mode] = clamp(
       this.pitch[mode] + dy * scale,
       mode === "first" ? -1.2 : -0.1,
       1.15,
     );
-    this.game.aimFromView?.();
+    this.game.aimFromView?.(requestedYaw);
+    this.yaw=this.game.player.rotation.y;
   }
   pointerDown(e) {
     if (this.mode === "overhead" || !this.canLook()) return false;
@@ -183,6 +184,7 @@ export class ViewController {
       pitch: this.pitch[this.effectiveMode()] || 0,
       distance: this.distance,
       locked: document.pointerLockElement === this.canvas,
+      following:this.following(),
     };
   }
   fov() {
@@ -219,6 +221,7 @@ export class ViewController {
       mode = this.effectiveMode(),
       p = g.player.position;
     if (!this.canLook()) this.release();
+    const following=this.following();if(following)this.yaw=g.player.rotation.y;
     if (this.lastPlayer.distanceToSquared(p) > 64) this.snap = true;
     this.lastPlayer.copy(p);
     this.cueTime=Math.max(0,(this.cueTime||0)-dt);
@@ -231,7 +234,9 @@ export class ViewController {
       camera.updateProjectionMatrix();
     }
     this.anchor.copy(p);
-    this.anchor.y += (mode === "first" ? 2.105 : 1.2) * g.player.scale.y;
+    this.anchor.y += (mode === "first" ? 2.105 : following?2.35:1.2) * g.player.scale.y;
+    if(this.snap||mode!=='third')this.followAnchor.copy(this.anchor);
+    else this.followAnchor.lerp(this.anchor,1-Math.exp(-Math.max(0,dt)*12));
     if (mode === "overhead") {
       const menu = g._state.phase === "menu" ? 3.5 : 0;
       this.desired.set(p.x + 20 - menu, p.y + 26, p.z + 25 + menu);
@@ -250,22 +255,22 @@ export class ViewController {
         this.look.copy(this.desired).add(this.direction);
       } else {
         this.desired
-          .copy(this.anchor)
+          .copy(following?this.followAnchor:this.anchor)
           .addScaledVector(this.direction, -this.distance);
-        const shoulder = camera.aspect < .9 ? .55 : 1.15;
+        const shoulder = following?0:camera.aspect < .9 ? .55 : 1.15;
         this.desired.x -= cy * shoulder;this.desired.z += sy * shoulder;
         this.clip(this.desired);
         this.look.copy(this.anchor);
         this.look.x -= cy * shoulder;this.look.z += sy * shoulder;
       }
     }
-    if (this.snap || mode === "first") camera.position.copy(this.desired);
+    if (this.snap || mode === "first" || following) camera.position.copy(this.desired);
     else
       camera.position.lerp(
         this.desired,
         1 - Math.exp(-Math.max(0, dt) * (mode === "overhead" ? 4 : 12)),
       );
-    if (mode === "third") this.clip(camera.position);
+    if (mode === "third" && !following) this.clip(camera.position);
     const shakeScale = mode === "overhead" ? 1 : mode === "first" ? 0.18 : 0.45;
     if (g.shake > 0 && g.cameraShake > 0) {
       const shake = g.shake * g.cameraShake * shakeScale;
@@ -273,6 +278,7 @@ export class ViewController {
       camera.position.z += (Math.random() * 2 - 1) * shake;
       if (mode === "third") this.clip(camera.position);
     }
+    if(following)this.look.copy(camera.position).add(this.direction);
     camera.lookAt(this.look);
     camera.updateMatrixWorld();
     this.snap = false;

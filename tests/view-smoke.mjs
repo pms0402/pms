@@ -58,16 +58,16 @@ try {
       });
     }
     g.setViewMode("third");
-    g.view.yaw = 0;
+    g.view.yaw=0;g.player.rotation.y=0;g.actions.hasAim=false;
     g.keys.add("w");
     const forward = g.inputDirection().toArray();
     g.keys.clear();
-    g.view.yaw = Math.PI / 2;
+    g.view.yaw=Math.PI/2;g.player.rotation.y=Math.PI/2;g.actions.hasAim=false;
     g.keys.add("w");
     const east = g.inputDirection().toArray();
     g.keys.clear();
     g.setViewMode("first");
-    g.view.yaw = 0;
+    g.view.yaw=0;g.player.rotation.y=0;g.actions.hasAim=false;
     const e = g.spawnEnemy(g.player.position.x, g.player.position.z + 2, 0, {
       noMutations: true,
     });
@@ -168,6 +168,9 @@ try {
   await p.waitForFunction(
     () => document.pointerLockElement === window.__game.renderer.domElement,
   );
+  // The lock-acquiring click also requests a sword attack. Finish its locked
+  // stroke before checking free mouse turning; the follow suite covers buffering.
+  await p.evaluate(()=>{const g=window.__game;if(g.actions.current)g.actions.update(g.actions.current.duration+.01);});
   const lockedYaw = await p.evaluate(() => window.__game.view.yaw);
   await p.mouse.move(x + 40, y + 10);
   assert.ok(
@@ -184,7 +187,7 @@ try {
     const g = window.__game,
       wall = g.world.colliders.find((c) => c.id === "chapel");
     g.setViewMode("third");
-    g.view.yaw = Math.PI / 2;
+    g.view.yaw=Math.PI/2;g.player.rotation.y=Math.PI/2;g.actions.hasAim=false;
     g.view.pitch.third = 0.24;
     g.player.position.set(
       wall.x + 0.9,
@@ -195,7 +198,7 @@ try {
     g.updateCamera(1);
     const blocked = g.camera.position.x > wall.x + 0.4;
     g.player.position.set(46, g.groundHeight(46, -37), -37);
-    g.view.yaw = 0.3;
+    g.view.yaw=.3;g.player.rotation.y=.3;g.actions.hasAim=false;
     g.view.pitch.third = 0;
     g.updateCamera(1);
     const terrain =

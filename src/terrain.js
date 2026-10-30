@@ -56,9 +56,24 @@ export const WORLD_COLLIDERS=Object.freeze(STRUCTURES.flatMap(s=>{
   ...[-1,1].map(side=>({type:'rect',x:s.x+side*(half+door)/2,z:s.z+s.depth/2,hx:(half-door)/2,hz:.4,id:s.id})),
  ];
 }).concat([-1,1].map(side => ({type:'circle',x:LANDMARK.x+side*LANDMARK.pillarOffset,z:LANDMARK.z,radius:LANDMARK.radius,id:'sanctumArch'}))).map(Object.freeze));
+// Static broad phase. Buckets include every collider within the usual actor
+// radius; unusual/debug radii retain the original complete scan.
+const COLLISION_STEP=12,COLLISION_EXTENT=96,COLLISION_SIZE=16,COLLISION_MARGIN=2;
+const collisionBuckets=Array.from({length:COLLISION_SIZE**2},()=>[]);
+for(const c of WORLD_COLLIDERS){
+ const hx=(c.hx??c.radius)+COLLISION_MARGIN,hz=(c.hz??c.radius)+COLLISION_MARGIN;
+ const x0=Math.max(0,Math.floor((c.x-hx+COLLISION_EXTENT)/COLLISION_STEP)),x1=Math.min(COLLISION_SIZE-1,Math.floor((c.x+hx+COLLISION_EXTENT)/COLLISION_STEP));
+ const z0=Math.max(0,Math.floor((c.z-hz+COLLISION_EXTENT)/COLLISION_STEP)),z1=Math.min(COLLISION_SIZE-1,Math.floor((c.z+hz+COLLISION_EXTENT)/COLLISION_STEP));
+ for(let z=z0;z<=z1;z++)for(let x=x0;x<=x1;x++)collisionBuckets[z*COLLISION_SIZE+x].push(c);
+}
+function nearbyColliders(x,z,radius){
+ if(radius<0||radius>COLLISION_MARGIN||!Number.isFinite(x+z+radius))return WORLD_COLLIDERS;
+ const gx=Math.floor((x+COLLISION_EXTENT)/COLLISION_STEP),gz=Math.floor((z+COLLISION_EXTENT)/COLLISION_STEP);
+ return gx>=0&&gx<COLLISION_SIZE&&gz>=0&&gz<COLLISION_SIZE?collisionBuckets[gz*COLLISION_SIZE+gx]:WORLD_COLLIDERS;
+}
 export function isWalkable(x,z,radius=.65) {
  if(Math.hypot(x,z)>WORLD_RADIUS-radius)return false;
- for(const c of WORLD_COLLIDERS) {
+ for(const c of nearbyColliders(x,z,radius)) {
   if(c.type==='circle'){if(Math.hypot(x-c.x,z-c.z)<radius+c.radius)return false;}
   else {const dx=Math.max(0,Math.abs(x-c.x)-c.hx),dz=Math.max(0,Math.abs(z-c.z)-c.hz);if(dx*dx+dz*dz<radius*radius)return false;}
  }
@@ -66,6 +81,9 @@ export function isWalkable(x,z,radius=.65) {
 }
 export function resolveTerrainMovement(position,radius=.65) {
  for(let pass=0;pass<3;pass++)for(const c of WORLD_COLLIDERS) {
+  // Keep the original resolution order and all three passes. Far-away walls
+  // cannot contribute a push and need no distance or corner calculations.
+  if(radius>=0&&(Math.abs(position.x-c.x)>(c.hx??c.radius)+radius||Math.abs(position.z-c.z)>(c.hz??c.radius)+radius))continue;
   if(c.type==='circle') {
    const dx=position.x-c.x,dz=position.z-c.z,d=Math.hypot(dx,dz),r=radius+c.radius;
    if(d<r){position.x=c.x+(d?dx/d:1)*r;position.z=c.z+(d?dz/d:0)*r;}

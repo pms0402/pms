@@ -1,3 +1,4 @@
+import {text,attr,style,toggle} from './dom-update.js';
 import { SPELLS } from "./balance.js";
 import {
   CONTROL_NAMES,
@@ -161,89 +162,30 @@ export function createActionUi({
       Math.max(0, Math.min(60, prefs.touchY || 0)) + "px",
     );
   }
+  const slots=[...document.querySelectorAll('[data-action-slot]')].map(button=>({button,index:+button.dataset.actionSlot,icon:button.querySelector('.spell-slot-icon'),rank:button.querySelector('.spell-slot-rank'),key:button.querySelector('kbd'),iconId:null}));
+  const hudNodes=new Map();
+  const node=selector=>{let n=hudNodes.get(selector);if(!n){n=$(selector);hudNodes.set(selector,n);}return n;};
   function update(state) {
-    const a = state.action;
-    if (!a) return;
-    const all = game.magic.getState();
-    document.querySelectorAll("[data-action-slot]").forEach((button) => {
-      const i = +button.dataset.actionSlot,
-        id = i === 3 ? "ultimate" : a.slots[i],
-        spell = all.find((s) => s.id === id),
-        cd = i === 3 ? a.ultimateCooldown : spell?.cooldown || 0,
-        max = i === 3 ? 45 : spell?.maxCooldown || 1,
-        ready = !!id && cd <= 0;
-      button.dataset.spell = id || "";
-      button.classList.toggle("locked", !id);
-      button.classList.toggle("skill-ready", ready);
-      button.classList.toggle("on-cooldown", cd > 0);
-      button.style.setProperty(
-        "--spell",
-        i === 3 ? "#e0c17c" : spell?.color || "#66746d",
-      );
-      button.style.setProperty(
-        "--cooldown",
-        Math.max(0, Math.min(1, cd / max)),
-      );
-      button.querySelector(".spell-slot-icon").innerHTML = icon(
-        i === 3 ? "bolt" : SPELLS.find((s) => s.id === id)?.icon || "plus",
-      );
-      button.querySelector(".spell-slot-rank").textContent =
-        cd > 0
-          ? cd.toFixed(1) + "s"
-          : i === 3
-            ? "궁극기"
-            : spell?.rank
-              ? spell.evolved
-                ? "진화"
-                : "LV." + spell.rank
-              : "빈 슬롯";
-      button.querySelector("kbd").textContent = keyLabel(
-        game.bindings[i === 3 ? "ultimate" : "skill" + i],
-      );
-      button.setAttribute(
-        "aria-label",
-        (i === 3 ? "공허 붕괴" : spellName(id)) +
-          " · " +
-          (ready ? "사용 가능" : cd > 0 ? cd.toFixed(1) + "초" : "미배치"),
-      );
-      button.title = button.getAttribute("aria-label");
-    });
-    $("#dash-indicator kbd").textContent = keyLabel(game.bindings.dash);
-    const hint = $("#manual-combo");
-    hint.textContent =
-      a.phase === "charging"
-        ? "차징 " + Math.round(a.charge * 100) + "%"
-        : `${keyLabel(game.bindings.light)} · ${a.combo || 0}/${a.comboMax}연계`;
-    $("#manual-heavy").textContent =
-      a.heavyCooldown > 0
-        ? `강공격 ${a.heavyCooldown.toFixed(1)}s`
-        : `${keyLabel(game.bindings.heavy)} · 강공격`;
-    $("#mobile-heavy").textContent =
-      a.phase === "charging"
-        ? Math.round(a.charge * 100) + "%"
-        : a.heavyCooldown > 0
-          ? a.heavyCooldown.toFixed(1)
-          : "강공격";
-    $("#mobile-parry").textContent = state.parry?.counterReady
-      ? "반격"
-      : state.parry?.cooldown > 0
-        ? state.parry.cooldown.toFixed(1)
-        : "패링";
-    $("#guard-button").textContent = state.parry?.counterReady
-      ? "반격 · " + keyLabel(game.bindings.light)
-      : state.parry?.cooldown > 0
-        ? "패링 " + state.parry.cooldown.toFixed(1) + "s"
-        : "패링 · " + keyLabel(game.bindings.parry);
-    $("#guard-button").title =
-      "전방 120° · 첫 0.16초 완벽한 패링 · 성공 후 직접 공격으로 반격";
-    $("#guard-button").setAttribute(
-      "aria-label",
-      $("#guard-button").textContent,
-    );
-    $("#equipment-button").textContent =
-      "장비 · " + keyLabel(game.bindings.inventory);
-    $("#interact-npc").textContent =
-      "교류 · " + keyLabel(game.bindings.interact);
+    const a=state.action;if(!a)return;
+    const all=state.spellState||game.magic.getState();
+    for(const slot of slots){
+      const {button,index:i}=slot,id=i===3?'ultimate':a.slots[i],spell=all.find(s=>s.id===id),cd=i===3?a.ultimateCooldown:spell?.cooldown||0,max=i===3?45:spell?.maxCooldown||1,ready=!!id&&cd<=0;
+      attr(button,'data-spell',id||'');toggle(button,'locked',!id);toggle(button,'skill-ready',ready);toggle(button,'on-cooldown',cd>0);
+      style(button,'--spell',i===3?'#e0c17c':spell?.color||'#66746d');style(button,'--cooldown',Math.max(0,Math.min(1,cd/max)));
+      const iconId=i===3?'bolt':SPELLS.find(s=>s.id===id)?.icon||'plus';
+      if(slot.iconId!==iconId){slot.icon.innerHTML=icon(iconId);slot.iconId=iconId;}
+      text(slot.rank,cd>0?cd.toFixed(1)+'s':i===3?'궁극기':spell?.rank?spell.evolved?'진화':'LV.'+spell.rank:'빈 슬롯');
+      text(slot.key,keyLabel(game.bindings[i===3?'ultimate':'skill'+i]));
+      const label=(i===3?'공허 붕괴':spellName(id))+' · '+(ready?'사용 가능':cd>0?cd.toFixed(1)+'초':'미배치');attr(button,'aria-label',label);attr(button,'title',label);
+    }
+    text(node('#dash-indicator kbd'),keyLabel(game.bindings.dash));
+    text(node('#manual-combo'),a.phase==='charging'?'차징 '+Math.round(a.charge*100)+'%':`${keyLabel(game.bindings.light)} · ${a.combo||0}/${a.comboMax}연계`);
+    text(node('#manual-heavy'),a.heavyCooldown>0?`강공격 ${a.heavyCooldown.toFixed(1)}s`:`${keyLabel(game.bindings.heavy)} · 강공격`);
+    text(node('#mobile-heavy'),a.phase==='charging'?Math.round(a.charge*100)+'%':a.heavyCooldown>0?a.heavyCooldown.toFixed(1):'강공격');
+    text(node('#mobile-parry'),state.parry?.counterReady?'반격':state.parry?.cooldown>0?state.parry.cooldown.toFixed(1):'패링');
+    const guard=node('#guard-button'),label=state.parry?.counterReady?'반격 · '+keyLabel(game.bindings.light):state.parry?.cooldown>0?'패링 '+state.parry.cooldown.toFixed(1)+'s':'패링 · '+keyLabel(game.bindings.parry);
+    text(guard,label);attr(guard,'title',keyLabel(game.bindings.parry)+' · 전방 120° · 첫 0.16초 완벽한 패링 · 성공 후 직접 공격으로 반격 · 붉은 지면 공격 방어 불가');attr(guard,'aria-label',label);
+    text(node('#equipment-button'),'장비 · '+keyLabel(game.bindings.inventory));
   }
   function bind() {
     document.querySelectorAll("[data-action-slot]").forEach((b) =>

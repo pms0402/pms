@@ -11,6 +11,7 @@ export class EnemyRenderer {
     this.capacity = capacity;
     this.enabled = true;
     this.batches = new Map();
+    this.bindings = new WeakMap();
     this.hidden = new Set();
     this.rigMaterials = new Map();
     this.cpuParts = new Map();
@@ -44,9 +45,14 @@ export class EnemyRenderer {
   }
 
   batchFor(part) {
-    const key = `${part.geometry.uuid}:${part.material.uuid}:${part.castShadow}:${part.receiveShadow}:${part.layers.mask}`;
-    let batch = this.batches.get(key);
     const selected = this.lod.geometry(part.geometry);
+    let binding=this.bindings.get(part);
+    if(!binding||binding.geometry!==part.geometry||binding.material!==part.material||binding.cast!==part.castShadow||binding.receive!==part.receiveShadow||binding.layers!==part.layers.mask){
+      binding={geometry:part.geometry,material:part.material,cast:part.castShadow,receive:part.receiveShadow,layers:part.layers.mask,key:`${part.geometry.uuid}:${part.material.uuid}:${part.castShadow}:${part.receiveShadow}:${part.layers.mask}`};
+      this.bindings.set(part,binding);
+    }
+    const key=binding.key;
+    let batch = this.batches.get(key);
     if (batch && batch.source !== selected) {
       batch.mesh.removeFromParent();
       batch.mesh.dispose();
@@ -182,6 +188,7 @@ export class EnemyRenderer {
   }
   release(enemy) {
     for (const part of enemy.visual.children) {
+      this.bindings.delete(part);
       const e = this.cpuParts.get(part);
       if (e) {
         part.geometry = e.original;
@@ -231,19 +238,14 @@ export class EnemyRenderer {
           this.cpuParts.delete(part);
         }
         if (!this.visibility.has(part)) this.visibility.set(part, part.visible);
-        if (!part.geometry.boundingSphere)
-          part.geometry.computeBoundingSphere();
-        this.sphere
-          .copy(part.geometry.boundingSphere)
-          .applyMatrix4(part.matrixWorld);
-        if (part.geometry.attributes.vrJoint)
-          this.sphere.radius += 1.4 * part.matrixWorld.getMaxScaleOnAxis();
         // Off-screen casters remain so their shadows still reach visible terrain.
-        const visible = this.frustum.intersectsSphere(this.sphere);
-        if (!visible && !part.castShadow) {
-          part.visible = false;
-          this.hidden.add(part);
-          continue;
+        if(!part.castShadow){
+          if (!part.geometry.boundingSphere)part.geometry.computeBoundingSphere();
+          this.sphere.copy(part.geometry.boundingSphere).applyMatrix4(part.matrixWorld);
+          if (part.geometry.attributes.vrJoint)this.sphere.radius+=1.4*part.matrixWorld.getMaxScaleOnAxis();
+          if(!this.frustum.intersectsSphere(this.sphere)){
+            part.visible=false;this.hidden.add(part);continue;
+          }
         }
         const batch = this.batchFor(part);
         // Debug fixtures can exceed the gameplay cap: render overflow individually.

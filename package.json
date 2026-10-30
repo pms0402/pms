@@ -40,7 +40,9 @@
     "benchmark:quality": "node scripts/quality-benchmark.mjs",
     "test:resources": "node tests/resources-smoke.mjs",
     "test:actions": "node tests/action-smoke.mjs",
-    "test:action-encounters": "node tests/action-encounters-smoke.mjs"
+    "test:action-encounters": "node tests/action-encounters-smoke.mjs",
+    "test:follow-interaction": "node tests/follow-interaction-smoke.mjs",
+    "benchmark:optimization": "node scripts/optimization-benchmark.mjs"
   },
   "dependencies": {
     "@fontsource-variable/noto-sans-kr": "5.2.10",

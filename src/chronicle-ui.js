@@ -1,3 +1,5 @@
+import {text,disabled} from './dom-update.js';
+import {keyLabel} from './control-bindings.js';
 import { DAMAGE_SOURCES } from "./analytics.js";
 import { CHARACTERS, WEAPONS } from "./progression.js";
 import { SPELLS, formatGold } from "./balance.js";
@@ -227,7 +229,7 @@ export function createChronicleUi({
     portal(choices) {
       openModal(
         "portal",
-        `<div class="modal-eyebrow">HIDDEN PASSAGE</div><h2 id="modal-title">균열 너머로 향할까요?</h2><p class="modal-description">원래 층의 시간과 적·보스·탄환 상태가 보존됩니다. 방 안의 아래쪽 황금 문에서 C / 복귀. 보상 없이도 언제든 돌아올 수 있습니다.</p><div class="npc-choices">${choices.map((c) => `<button class="npc-choice" data-portal-choice="${c.id}"><strong>${c.title}</strong><p>${c.description}</p></button>`).join("")}</div><p id="portal-feedback" role="status"></p><button class="secondary-button" data-portal-choice="skip">원래 전투 계속</button>`,
+        `<div class="modal-eyebrow">HIDDEN PASSAGE</div><h2 id="modal-title">균열 너머로 향할까요?</h2><p class="modal-description">원래 층의 시간과 적·보스·탄환 상태가 보존됩니다. 방 안의 아래쪽 황금 문에서 ${keyLabel(game.bindings.interact)} / 복귀. 보상 없이도 언제든 돌아올 수 있습니다.</p><div class="npc-choices">${choices.map((c) => `<button class="npc-choice" data-portal-choice="${c.id}"><strong>${c.title}</strong><p>${c.description}</p></button>`).join("")}</div><p id="portal-feedback" role="status"></p><button class="secondary-button" data-portal-choice="skip">원래 전투 계속</button>`,
         { pause: false, closeable: false },
       );
       document.querySelectorAll("[data-portal-choice]").forEach(
@@ -256,50 +258,22 @@ export function createChronicleUi({
     },
     update(s) {
       const camp = s.phase === "camp",
-        a = s.sideArea?.active,
-        p = s.sideArea?.portal;
+        a = s.sideArea?.active;
       $("#camp-navigation").classList.toggle("hidden", !camp);
       $("#arena").classList.toggle("in-camp", camp);
-      $("#camp-nearby").textContent = camp
-        ? `${s.camp?.nearest?.name || "야영지"} ${s.camp?.nearest?.distance <= 3.4 ? "· 시설 이용 R" : "· " + Math.round(s.camp?.nearest?.distance || 0) + "m"}`
-        : "";
-      const interact = $("#interact-npc");
-      if (camp) {
-        interact.classList.remove("hidden");
-        interact.disabled =
-          !!game.camp.suspended || s.camp.nearest.distance > 3.4;
-        interact.textContent = "시설 이용 · R";
-      } else if (a) {
-        interact.classList.remove("hidden");
-        interact.disabled =
-          s.phase !== "playing" ||
-          Math.min(a.returnDistance, a.altarDistance) > 3.2;
-        interact.textContent =
-          a.returnDistance <= 3.2
-            ? "원래 전장 복귀 · R"
-            : a.altarDistance <= 3.2
-              ? "제단 확인 · R"
-              : "비밀 공간 · 제단 / 복귀 문";
-      } else if (p && !p.used) {
-        interact.classList.remove("hidden");
-        interact.disabled = s.phase !== "playing" || p.distance > 3.5;
-        interact.textContent =
-          p.distance <= 3.5
-            ? "비밀 입구 · R"
-            : `비밀 입구 ${Math.ceil(p.distance)}m`;
-      }
+      text($("#camp-nearby"), camp
+        ? `${s.camp?.nearest?.name || "야영지"} ${s.camp?.nearest?.distance <= 3.4 ? "· 시설 이용 "+keyLabel(game.bindings.interact) : "· " + Math.round(s.camp?.nearest?.distance || 0) + "m"}`
+        : "");
       $("#arena").classList.toggle("has-side-area",!!a);
       if (camp) {
-        $("#camp-hero-info").textContent = `${job(s.playerStats?.characterId)} · ${weapon(s.playerStats?.weaponId)} · 최대 체력 ${n(s.maxHp)}`;
-        $("#guard-button").disabled =
-          !s.camp.practice ||
+        text($("#camp-hero-info"), `${job(s.playerStats?.characterId)} · ${weapon(s.playerStats?.weaponId)} · 최대 체력 ${n(s.maxHp)}`);
+        disabled($("#guard-button"), !s.camp.practice ||
           game.camp.suspended ||
-          (s.parry.cooldown > 0 && !s.parry.counterTime);
+          (s.parry.cooldown > 0 && !s.parry.counterTime));
       }
       $("#side-area-status").classList.toggle("hidden", !a);
       if (a)
-        $("#side-area-status").textContent =
-          `${a.title} · ${a.claimed ? "보상 확인 완료" : a.complete ? "위쪽 제단에서 C" : "남은 적 " + a.remaining} · 아래쪽 황금 문 R 복귀`;
+        text($("#side-area-status"), `${a.title} · ${a.claimed ? "보상 확인 완료" : a.complete ? "위쪽 제단에서 "+keyLabel(game.bindings.interact) : "남은 적 " + a.remaining} · 아래쪽 황금 문 ${keyLabel(game.bindings.interact)} 복귀`);
       const j = s.job,
         sets = s.sets?.sets || [],
         passive = $("#job-passive");
@@ -316,7 +290,7 @@ export function createChronicleUi({
               : j.id === "paladin"
                 ? `보호막 ${n(j.shield)} · 생성 ${n(j.shieldCooldown)}초 · 회복 ${n(j.healCooldown)}초`
                 : `대시 검격 ${n(j.dashBoost)}초 · 처치 가속 ${n(j.haste)}초`;
-        passive.textContent = `${j.name} · ${detail}`;
+        text(passive, `${j.name} · ${detail}`);
         passive.title = j.passive;
       }
       const set = $("#set-passive");
@@ -324,9 +298,8 @@ export function createChronicleUi({
         "hidden",
         !sets.length || ["menu", "over", "won", "camp"].includes(s.phase),
       );
-      set.textContent =
-        sets.map((x) => `${x.name} ${x.count}/4`).join(" · ") +
-        (s.sets?.shield ? ` · 방패 ${n(s.sets.shield)}` : "");
+      text(set, sets.map((x) => `${x.name} ${x.count}/4`).join(" · ") +
+        (s.sets?.shield ? ` · 방패 ${n(s.sets.shield)}` : ""));
     },
   };
   return ui;

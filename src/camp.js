@@ -145,10 +145,9 @@ export class CampSystem {
   }
   nearest() {
     const p = this.game.player.position;
-    return CAMP_FACILITIES.map((f) => ({
-      ...f,
-      distance: Math.hypot(p.x - f.x, p.z - f.z),
-    })).sort((a, b) => a.distance - b.distance)[0];
+    let best=null,distance=Infinity;
+    for(const f of CAMP_FACILITIES){const d=Math.hypot(p.x-f.x,p.z-f.z);if(d<distance){distance=d;best=f;}}
+    return {...best,distance};
   }
   use(id) {
     if (!this.active || !CAMP_FACILITIES.some((f) => f.id === id)) return false;
@@ -173,6 +172,8 @@ export class CampSystem {
     const f = CAMP_FACILITIES.find((f) => f.id === "training");
     this.game.player.position.set(f.x, 0, f.z + 3);
     this.game.player.rotation.y = Math.PI;
+    this.game.actions.setAim(new THREE.Vector3(0,0,-1));
+    this.game.view.snap=true;
     this.game.callbacks.onLoot?.(
       "훈련 · 푸른 구체가 켜진 뒤 F. 체력과 런 통계는 변하지 않습니다.",
     );
@@ -196,7 +197,8 @@ export class CampSystem {
     const r = Math.hypot(g.player.position.x, g.player.position.z);
     if (r > 16) g.player.position.multiplyScalar(16 / r);
     g.player.position.y = 0;
-    if (d.lengthSq() > 0.01)
+    if(g.view.mode!=='overhead')g.aimFromView();
+    if (d.lengthSq() > 0.01 && g.view.mode==='overhead')
       g.player.rotation.y = g.lerpAngle(
         g.player.rotation.y,
         Math.atan2(d.x, d.z),

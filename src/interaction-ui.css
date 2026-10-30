@@ -1,0 +1,71 @@
+.interaction-prompt {
+  position: absolute;
+  left: 50%;
+  bottom: 174px;
+  transform: translateX(-50%);
+  z-index: 9;
+  max-width: calc(100% - 32px);
+  pointer-events: none;
+}
+.interaction-prompt button {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 11px;
+  min-height: 46px;
+  max-width: 100%;
+  padding: 9px 16px;
+  color: #e7eedc;
+  background: #15221df2;
+  border: 1px solid #a5bd7c;
+  border-radius: 7px;
+  box-shadow: 0 4px 20px #0005;
+  font-family: inherit;
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 1.5;
+  touch-action: manipulation;
+}
+.interaction-prompt kbd {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  min-width: 28px;
+  min-height: 27px;
+  width: auto;
+  height: auto;
+  padding: 2px 7px;
+  font-size: 12px;
+  color: #d7eea8;
+  border: 1px solid #89a16b;
+  background: #29382a;
+  border-radius: 4px;
+}
+.interaction-prompt span {
+  white-space: normal;
+  text-align: left;
+}
+@media (pointer: coarse) {
+  .interaction-prompt {
+    bottom: 286px;
+    width: max-content;
+    max-width: calc(100% - 32px);
+  }
+  .interaction-prompt button {
+    min-height: 48px;
+    padding: 9px 13px;
+    font-size: 12px;
+  }
+}
+@media (pointer: coarse) and (max-height: 520px) {
+  .interaction-prompt {
+    bottom: 132px;
+    max-width: 46%;
+  }
+  .interaction-prompt button {
+    min-height: 44px;
+    padding: 6px 10px;
+    font-size: 11px;
+  }
+}

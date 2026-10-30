@@ -1,3 +1,6 @@
+import {attr as writeAttr,style as writeStyle,text as writeText} from './dom-update.js';
+import {createInteractionUi} from './interaction-ui.js';
+import './interaction-ui.css';
 import './style.css';
 import './quality-ui.css';
 import './action-ui.css';
@@ -19,6 +22,7 @@ import { createChronicleUi, analyticsMarkup } from './chronicle-ui.js';
 import { DAMAGE_SOURCES, normalizeRunHistory } from './analytics.js';
 import { normalizeStory } from './story.js';
 import { CAMP_FACILITIES } from './camp.js';
+import {keyLabel} from "./control-bindings.js";
 import { gameKey, isGameShortcut } from './game-input.js';
 import { VIEW_MODES, VIEW_LABELS } from './view.js';
 
@@ -44,7 +48,7 @@ let lastResult = null;
 let campFromResult = false;
 let expansionUI, chronicleUI;
 let endgame = normalizeEndgame(readStorage('voidrun.endgame', {}), history);
-let actionUi;let game, latest, dialogName = '', pausedForDialog = false;
+let actionUi,interactionUi;let game, latest, dialogName = '', pausedForDialog = false;
 let lastKills = 0;
 let toastTimeout, parryNoticeTimeout,impactTimeout,bossCueTimeout,lastBossCue='';
 const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -81,7 +85,7 @@ $('#app').innerHTML = `
       <button class="nav-link" data-nav="history">런 기록 <span class="nav-count" id="history-count">${history.length.toString().padStart(2, '0')}</span></button>
       <button class="nav-link" data-nav="permanent">영구 강화</button>
     </nav>
-    <div class="header-actions"><span class="build-label"><i></i> BUILD YOUR LEGEND <b>v0.19.0</b></span><span class="header-divider"></span><button id="sound-toggle" class="icon-button" title="사운드 켜기" aria-label="사운드 켜기">${icon('muted')}</button><button id="settings" class="icon-button" title="설정" aria-label="설정">${icon('settings')}</button></div>
+    <div class="header-actions"><span class="build-label"><i></i> BUILD YOUR LEGEND <b>v0.19.1</b></span><span class="header-divider"></span><button id="sound-toggle" class="icon-button" title="사운드 켜기" aria-label="사운드 켜기">${icon('muted')}</button><button id="settings" class="icon-button" title="설정" aria-label="설정">${icon('settings')}</button></div>
   </header>
   <main class="page">
     <section class="page-intro">
@@ -123,8 +127,8 @@ $('#app').innerHTML = `
           <div class="dash-indicator hidden" id="dash-indicator"><kbd>SHIFT</kbd><div><strong id="dash-status">대시 준비</strong><div class="dash-track"><div id="dash-fill"></div></div></div>${icon('bolt')}</div>
           <div class="scene-tag" id="scene-tag"><span class="live-dot"></span> REAL-TIME 3D</div>
         </div>
-        <div class="expedition-actions hidden" id="expedition-actions"><button id="guard-button">패링 · F</button><button id="equipment-button">장비 · TAB</button><button id="interact-npc" class="hidden">교류 · C</button><span id="abyss-rule" class="hidden"></span></div><div class="growth-toolbar hidden" id="growth-toolbar"><div class="spell-loadout" id="spell-loadout" aria-label="보유 마법">${[0,1,2,3].map(index=>`<button class="spell-slot locked" data-action-slot="${index}" aria-label="수동 스킬 ${index+1}"><kbd>${['Q','E','R','X'][index]}</kbd><span class="spell-slot-icon">${icon('bolt')}</span><span class="spell-slot-rank">—</span><span class="spell-cooldown"></span></button>`).join('')}</div><div id="synergy-status" class="synergy-status hidden" aria-label="발동 중인 조합"></div><button id="run-build-button" class="shop-button">${icon('book')} 배치 · 빌드 <span id="reward-pending" class="reward-pending hidden" title="다음 레벨업의 선택 보상"></span><kbd>B</kbd></button></div>
-        <div class="manual-combat-readout"><span id="manual-combo">좌클릭 · 일반 공격</span><span id="manual-heavy">우클릭 · 강공격</span></div><div class="mobile-actions" id="mobile-actions"><button id="mobile-light" aria-label="일반 공격">공격</button><button id="mobile-heavy" aria-label="강공격 차징">강공격</button><button id="mobile-parry" aria-label="패링">패링</button></div><div id="virtual-stick" class="virtual-stick hidden" aria-hidden="true"><i></i></div><div id="hit-direction" aria-hidden="true"></div><div id="view-reticle" class="hidden" aria-hidden="true"></div><div id="view-hint" class="hidden"><span class="desktop-look"></span><span class="mobile-look">왼쪽 이동 · 오른쪽 드래그 시점</span></div><div class="touch-controls hidden" id="touch-controls"><div class="dpad"><button data-move="0,-1" aria-label="위로 이동">↑</button><button data-move="-1,0" aria-label="왼쪽 이동">←</button><button data-move="0,1" aria-label="아래로 이동">↓</button><button data-move="1,0" aria-label="오른쪽 이동">→</button></div><button id="touch-dash" aria-label="대시">${icon('bolt')}</button></div>
+        <div class="expedition-actions hidden" id="expedition-actions"><button id="guard-button">패링 · F</button><button id="equipment-button">장비 · TAB</button><span id="abyss-rule" class="hidden"></span></div><div class="growth-toolbar hidden" id="growth-toolbar"><div class="spell-loadout" id="spell-loadout" aria-label="보유 마법">${[0,1,2,3].map(index=>`<button class="spell-slot locked" data-action-slot="${index}" aria-label="수동 스킬 ${index+1}"><kbd>${['Q','E','R','X'][index]}</kbd><span class="spell-slot-icon">${icon('bolt')}</span><span class="spell-slot-rank">—</span><span class="spell-cooldown"></span></button>`).join('')}</div><div id="synergy-status" class="synergy-status hidden" aria-label="발동 중인 조합"></div><button id="run-build-button" class="shop-button">${icon('book')} 배치 · 빌드 <span id="reward-pending" class="reward-pending hidden" title="다음 레벨업의 선택 보상"></span><kbd>B</kbd></button></div>
+        <div id="interaction-prompt" class="interaction-prompt hidden" role="status" aria-live="polite"><button id="interact-npc" class="hidden" aria-label="상호작용"><kbd>C</kbd><span></span></button></div><div class="manual-combat-readout"><span id="manual-combo">좌클릭 · 일반 공격</span><span id="manual-heavy">우클릭 · 강공격</span></div><div class="mobile-actions" id="mobile-actions"><button id="mobile-light" aria-label="일반 공격">공격</button><button id="mobile-heavy" aria-label="강공격 차징">강공격</button><button id="mobile-parry" aria-label="패링">패링</button></div><div id="virtual-stick" class="virtual-stick hidden" aria-hidden="true"><i></i></div><div id="hit-direction" aria-hidden="true"></div><div id="view-reticle" class="hidden" aria-hidden="true"></div><div id="view-hint" class="hidden"><span class="desktop-look"></span><span class="mobile-look">왼쪽 이동 · 오른쪽 드래그 캐릭터 회전</span></div><div class="touch-controls hidden" id="touch-controls"><div class="dpad"><button data-move="0,-1" aria-label="위로 이동">↑</button><button data-move="-1,0" aria-label="왼쪽 이동">←</button><button data-move="0,1" aria-label="아래로 이동">↓</button><button data-move="1,0" aria-label="오른쪽 이동">→</button></div><button id="touch-dash" aria-label="대시">${icon('bolt')}</button></div>
         <div class="canvas-error hidden" id="canvas-error"><h2>3D 화면을 시작할 수 없어요</h2><p>브라우저의 하드웨어 가속을 켠 뒤 새로고침해 주세요.</p><button class="primary-button" id="reload">새로고침 ${icon('refresh')}</button></div>
       </div>
       <aside class="run-panel">
@@ -177,7 +181,7 @@ function update(state) {
   expansionUI?.update(state);
   $('#expedition-actions').classList.toggle('hidden', ['menu','over','won'].includes(state.phase));
   hud('#game-speed', `${state.playbackSpeed || 1}×`);
-  $('#game-speed').setAttribute('aria-label', `현재 ${state.playbackSpeed || 1}배속 · 눌러서 배속 변경`);
+  writeAttr($('#game-speed'), 'aria-label', `현재 ${state.playbackSpeed || 1}배속 · 눌러서 배속 변경`);
   const inRun = !['menu', 'over', 'won', 'camp'].includes(state.phase);
   $('#arena').classList.toggle('in-run', inRun);
   document.body.classList.toggle('run-active', inRun);
@@ -191,10 +195,10 @@ function update(state) {
   $('#growth-toolbar').classList.toggle('hidden', !inRun);
   $('#pause-button').disabled = !['playing', 'paused'].includes(state.phase);
   hud('#health-value', `${formatGold(Math.ceil(state.hp))} <small>/ ${formatGold(Math.round(state.maxHp))}</small>`, true);
-  $('#health-fill').style.width = `${Math.max(0, state.hp / state.maxHp * 100)}%`;
+  writeStyle($('#health-fill'), 'width', `${Math.max(0, state.hp / state.maxHp * 100)}%`);
   $('#health-fill').classList.toggle('low', state.hp < state.maxHp * .3);
   hud('#level-value', `LV. ${state.level}`);
-  $('#xp-fill').style.width = `${Math.min(100, state.xp / state.xpNeeded * 100)}%`;
+  writeStyle($('#xp-fill'), 'width', `${Math.min(100, state.xp / state.xpNeeded * 100)}%`);
   hud('#xp-value', `${Math.floor(state.xp)} / ${state.xpNeeded}`);
   hud('#run-time', time(state.elapsed));
   hud('#kill-count', state.kills.toLocaleString());
@@ -206,10 +210,10 @@ function update(state) {
   hud('#stage-name', inCamp ? '재건된 성역' : region.title); hud('#area-name', inCamp ? '재건된 성역 · 야영지' : region.title);
   hud('#stage-english', inCamp ? 'SANCTUARY CAMP' : region.english || floor.english);
   const regionHints = { sanctum: '탐험의 시작', volcano: '용암 예고', tundra: '서리 둔화', forest: '독성 장판', ruins: '마법 사선', void: '변이 · 균열', throne: '최종 수호자' };
-  hud('#region-summary', inCamp ? '이동 · 시설 C · 빠른 메뉴' : `${regionHints[region.id] || '지역 특성'} · 골드 ×${decimal(region.goldMultiplier || 1, 2)}`);
+  hud('#region-summary', inCamp ? `이동 · 시설 ${keyLabel(game.bindings.interact)} · 빠른 메뉴` : `${regionHints[region.id] || '지역 특성'} · 골드 ×${decimal(region.goldMultiplier || 1, 2)}`);
   $('#region-info').style.setProperty('--region', region.color || '#b9cda5');
-  $('#region-info').title = `${region.title} · ${region.hazard} · ${region.reward}`;
-  $('#region-info').setAttribute('aria-label', `${region.title} · 지역 특성 및 보상 보기`);
+  writeAttr($('#region-info'), 'title', `${region.title} · ${region.hazard} · ${region.reward}`);
+  writeAttr($('#region-info'), 'aria-label', `${region.title} · 지역 특성 및 보상 보기`);
   hud('#area-stage', inCamp ? 'CAMP' : `STAGE ${String(state.stage).padStart(2, '0')}`);
   const boss = state.boss;
   const bossAlive = !!boss && boss.hp > 0;
@@ -217,15 +221,15 @@ function update(state) {
   const beforeBoss = state.stageTime < BOSS_SPAWN_TIME && !boss?.spawned;
   hud('#stage-timer-label', waitingForBoss ? '수호자를 처치해야 진행됩니다' : beforeBoss ? '보스 출현까지' : bossAlive ? '보스전 · 생존 목표까지' : '다음 스테이지까지');
   hud('#stage-time', waitingForBoss ? '처치 대기' : time(Math.ceil((beforeBoss ? BOSS_SPAWN_TIME : STAGE_DURATION) - state.stageTime)));
-  $('#stage-progress').style.width = `${state.stageTime / STAGE_DURATION * 100}%`;
+  writeStyle($('#stage-progress'), 'width', `${state.stageTime / STAGE_DURATION * 100}%`);
   const risk = state.phase === 'menu' ? getRiskStats(prefs.risk) : state.risk || getRiskStats(prefs.risk);
   const goldBonus = (risk.goldMultiplier || 1) * (state.playerStats?.goldMultiplier || 1);
   const baseKillGold=(state.stageStats || getStageStats(state.stage)).coinValue*2.5;
   hud('#reward-multiplier', `${baseKillGold<1e4?decimal(baseKillGold,1):formatGold(baseKillGold)} G · ×${decimal(goldBonus, 2)}`);
-  $('#reward-multiplier').title = `기본 처치 골드 × 계약 × 유물·영구 강화 × 제단·경로·지역. 현재 총 보상 배율 ×${decimal(goldBonus, 2)}`;
+  writeAttr($('#reward-multiplier'), 'title', `기본 처치 골드 × 계약 × 유물·영구 강화 × 제단·경로·지역. 현재 총 보상 배율 ×${decimal(goldBonus, 2)}`);
   const enemyStats = state.stageStats || getStageStats(state.stage), baseEnemyStats = getStageStats(1);
   hud('#enemy-multiplier', `×${decimal(enemyStats.enemyHealth / baseEnemyStats.enemyHealth * (risk.enemyHealth || 1))} / ×${decimal(enemyStats.enemyDamage / baseEnemyStats.enemyDamage * (risk.enemyDamage || 1))}`);
-  $('#enemy-multiplier').title = '1층 기본 적 대비 체력 / 피해. 계약·유물·제단·현재 경로·지역을 포함합니다. 변이 개체는 별도 배율이 적용됩니다.';
+  writeAttr($('#enemy-multiplier'), 'title', '1층 기본 적 대비 체력 / 피해. 계약·유물·제단·현재 경로·지역을 포함합니다. 변이 개체는 별도 배율이 적용됩니다.');
   hud('#difficulty', bossAlive ? '수호자 출현' : state.stage >= 3 ? '원거리 몬스터 주의' : state.stageTime > 60 ? '몰려오는 적들' : '생존과 성장');
   $('#boss-hud').classList.toggle('hidden', !bossAlive);
   $('#arena').classList.toggle('has-boss', bossAlive);
@@ -233,23 +237,23 @@ function update(state) {
     hud('#boss-name', boss.name);
     const bossPercent = Math.max(0, Math.min(100, boss.hp / boss.maxHp * 100));
     hud('#boss-health-value', `${Math.ceil(bossPercent)}%`);
-    $('#boss-health-fill').style.width = `${bossPercent}%`;
-    $('#boss-hud').setAttribute('aria-valuenow', String(Math.ceil(bossPercent)));
-    $('#boss-hud').setAttribute('aria-valuetext', `${boss.name} 체력 ${Math.ceil(bossPercent)}%`);
-    $('#boss-hud').title = `${boss.name} · ${Math.ceil(boss.hp).toLocaleString('ko-KR')} / ${Math.ceil(boss.maxHp).toLocaleString('ko-KR')} · ${boss.hint || getBossDefinition(state.stage).hint}`;
+    writeStyle($('#boss-health-fill'), 'width', `${bossPercent}%`);
+    writeAttr($('#boss-hud'), 'aria-valuenow', String(Math.ceil(bossPercent)));
+    writeAttr($('#boss-hud'), 'aria-valuetext', `${boss.name} 체력 ${Math.ceil(bossPercent)}%`);
+    writeAttr($('#boss-hud'), 'title', `${boss.name} · ${Math.ceil(boss.hp).toLocaleString('ko-KR')} / ${Math.ceil(boss.maxHp).toLocaleString('ko-KR')} · ${boss.hint || getBossDefinition(state.stage).hint}`);
   }
   const weapon = WEAPONS.find(item => item.id === (state.playerStats?.weaponId || progress.loadout?.weapon)) || WEAPONS[0];
   const sword = state.sword || getSwordProfile(state.playerStats || {});
   const swordName = swordNames[sword.mode] || swordNames.default;
   hud('#weapon-name', `${escapeHTML(sword.mode && sword.mode !== 'default' ? swordName : weapon.name)} <span>${decimal(sword.range)}m</span>`, true);
-  $('#weapon-name').title = `${swordName} · 실제 타격 거리 ${decimal(sword.range, 2)}m · 전방 ${Math.round(sword.arc * 180 / Math.PI)}° · 범위 강화로 성장`;
+  writeAttr($('#weapon-name'), 'title', `${swordName} · 실제 타격 거리 ${decimal(sword.range, 2)}m · 전방 ${Math.round(sword.arc * 180 / Math.PI)}° · 범위 강화로 성장`);
   $('#weapon-name').style.setProperty('--blade-color', sword.color || '#c1ff66');
   $('#combo-display').classList.toggle('hidden', !inRun || state.combo < 3);
   hud('#combo-value', `${state.combo}×`);
-  $('.loadout-label').textContent = inRun ? `검 ${formatGold(state.damage)} · 마법 ${formatGold(state.spellDamage || state.playerStats?.spellDamage || 18)}` : '시작 무기';
+  hud('.loadout-label', inRun ? `검 ${formatGold(state.damage)} · 마법 ${formatGold(state.spellDamage || state.playerStats?.spellDamage || 18)}` : '시작 무기');
   const cooldown = state.dashCooldown || 0;
   hud('#dash-status', cooldown <= 0 ? '대시 준비' : `${cooldown.toFixed(1)}초`);
-  $('#dash-fill').style.width = `${Math.max(0, 1 - cooldown / 2.4) * 100}%`;
+  writeStyle($('#dash-fill'), 'width', `${Math.max(0, 1 - cooldown / 2.4) * 100}%`);
   $('#dash-indicator').classList.toggle('on-cooldown', cooldown > 0);
   const spells = getSpellStates(state);
   actionUi?.update(state);
@@ -264,9 +268,9 @@ function update(state) {
   $('#reward-pending').classList.toggle('hidden', !inRun || pendingRewards === 0);
   hud('#reward-pending', String(pendingRewards));
   const rewardHint = `다음 레벨업 선택 대기 · 유물 ${rewardTokens}개 · 보스 유산 ${pendingBossRewards.length}개`;
-  $('#reward-pending').title = rewardHint;
-  $('#run-build-button').title = pendingRewards ? rewardHint : '이번 런의 마법 · 유물 · 강화 보기';
-  $('#run-build-button').setAttribute('aria-label', `이번 런 빌드${pendingRewards ? ` · ${rewardHint}` : ''}`);
+  writeAttr($('#reward-pending'), 'title', rewardHint);
+  writeAttr($('#run-build-button'), 'title', pendingRewards ? rewardHint : '이번 런의 마법 · 유물 · 강화 보기');
+  writeAttr($('#run-build-button'), 'aria-label', `이번 런 빌드${pendingRewards ? ` · ${rewardHint}` : ''}`);
   const buildSignature = `${state.level}:${sword.mode}:${sword.range}:${owned.map(s => `${s.id}:${s.rank}:${s.evolved}`).join(',')}:${relicIds.join(',')}:${activeSynergies.map(item => item.id).join(',')}`;
   if (buildSignature !== lastBuildSignature) {
     lastBuildSignature = buildSignature;
@@ -291,6 +295,7 @@ function update(state) {
 
   lastKills = state.kills;
   chronicleUI?.update(state);
+  interactionUi?.update();
 }
 
 function getSpellStates(state = latest) {
@@ -697,7 +702,7 @@ try {
     onGameOver: state => finish(state, false),
     onWin: state => finish(state, true),
   });
-  window.__game = game;actionUi=createActionUi({game,openModal,forceCloseModal,notify:showToast,prefs,save:()=>store('voidrun.preferences',prefs),icon,showBuild});actionUi.bind();$('#mobile-actions').appendChild($('#touch-dash'));game.setBindings(prefs.bindings);game.actions.hasAim=false;
+  window.__game = game;actionUi=createActionUi({game,openModal,forceCloseModal,notify:showToast,prefs,save:()=>store('voidrun.preferences',prefs),icon,showBuild});actionUi.bind();interactionUi=createInteractionUi(game);$('#mobile-actions').appendChild($('#touch-dash'));game.setBindings(prefs.bindings);game.actions.hasAim=false;
   game.abyssUnlocked = endgame.unlocked;
   expansionUI = createExpansionUi({game, openModal, forceClose: forceCloseModal, closeModal, notify: showToast, readEndgame: () => endgame});
   chronicleUI = createChronicleUi({game, openModal, forceClose:forceCloseModal, closeModal, notify:showToast, showGuide, showBuild, showLoadout:()=>{campTab='loadout';showPermanentUpgrades();}, showTree:()=>{campTab='tree';showPermanentUpgrades();}, startRun, readHistory:()=>history, setRisk:id=>{prefs.risk=id;store('voidrun.preferences',prefs);game.setRiskPact(id);syncRisk();}});
@@ -745,7 +750,7 @@ function syncView(view=game?.view.getState()){
   $('#view-hint').classList.toggle('hidden',!active||view.mode==='overhead');
   $('#view-reticle').classList.toggle('hidden',!active||view.mode!=='first');
   document.body.dataset.view=game?.view.effectiveMode()||view.mode;
-  $('#view-hint .desktop-look').textContent=view.locked?'마우스 조준 · ESC 일시정지':'클릭으로 시점 잠금 · 가운데 버튼 드래그';
+  writeText($('#view-hint .desktop-look'), view.locked?'마우스로 캐릭터 회전 · ESC 일시정지':'캐릭터 방향 고정 추적 · 클릭으로 조작');
   document.querySelectorAll('[data-view-mode]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.viewMode===view.mode)));
 }
 $('#camera-mode').addEventListener('click',event=>{event.preventDefault();game?.view.cycle();$('#game-canvas').focus({preventScroll:true});});

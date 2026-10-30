@@ -44,6 +44,7 @@ import {ActionCombat,weaponStyle} from './action-combat.js';
 import {DEFAULT_BINDINGS,normalizeBindings,controlKey} from './control-bindings.js';
 import {CombatAim} from './combat-aim.js';
 import {TacticalAI,encounterBudget} from './tactical-ai.js';
+import {interactionTarget} from './interaction.js';
 
 const TAU = Math.PI * 2;
 const UP = new THREE.Vector3(0, 1, 0);
@@ -124,7 +125,7 @@ export class Game {
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.12;
-    this.renderer.domElement.setAttribute('aria-label', 'VOIDRUN 3D 전장. WASD 또는 방향키 이동, 스페이스 회피.');
+    this.renderer.domElement.setAttribute('aria-label', 'VOIDRUN 3D 전장. WASD 이동, Shift 대시, F 패링, C 상호작용.');
     this.renderer.domElement.style.touchAction = 'none';
     container.appendChild(this.renderer.domElement);
     this.createMaterials();
@@ -401,6 +402,9 @@ export class Game {
       if (!geometry) continue;
       this.ownedGeometries.add(geometry);
       const mesh = new THREE.Mesh(geometry, material); mesh.castShadow = true; mesh.receiveShadow = true;
+      // Animation lives in the actor root and GPU joints; leaf local transforms
+      // stay at their authored bind pose while world matrices still follow it.
+      mesh.updateMatrix();mesh.matrixAutoUpdate=false;
       visual.add(mesh);
     }
     this.enemyTemplates.set(kind, visual);
@@ -506,7 +510,8 @@ export class Game {
 
   groundHeight(x, z) { return this.camp?.active || this.sideAreas?.active ? 0 : this.world?.height(x, z) || 0; }
   resolvePosition(position, radius) { return this.sideAreas?.active ? this.sideAreas.resolve(position, radius) : this.world?.resolve(position, radius); }
-  interact() { return this.camp?.active ? this.camp.interact() : this.sideAreas?.active ? this.sideAreas.interact() : this.sideAreas?.interact() || this.exploration?.interact(); }
+  interactionTarget(){return interactionTarget(this);}
+  interact(){const target=this.interactionTarget();if(!target)return false;return target.kind==='camp'?this.camp.use(target.id):target.kind==='npc'?this.exploration.interact():this.sideAreas.interact();}
 
   fitGroundMesh(mesh, offset = .14) {
     if (!this.world) return;
@@ -613,8 +618,9 @@ export class Game {
   }
   triggerControl(action){if(action==='light'&&this._state.phase==='camp'&&this.camp.practice)return this.camp.counter();if(action==='dash')return this.dash();if(action==='parry'){this.actions.cancel();return this.parry.press();}if(action==='interact')return this.interact();if(['light','heavy','skill0','skill1','skill2','ultimate'].includes(action))return this.actions.press(action);return this.callbacks.onControlAction?.(action)||false;}
   setBindings(bindings){this.bindings=normalizeBindings(bindings);this.onBlur();return this.bindings;}
-  aimFromView(){const mode=this.view.effectiveMode(),pitch=this.view.pitch[mode]||.03,distance=clamp((mode==='first'?2.105:1.2)*this.player.scale.y/Math.max(.03,Math.tan(pitch)),2,18),yaw=this.view.yaw,side=mode==='third'?(this.camera.aspect<.9?.55:1.15):0;this.actions.setAim(new THREE.Vector3(Math.sin(yaw)*distance-Math.cos(yaw)*side,0,Math.cos(yaw)*distance+Math.sin(yaw)*side),distance);}
-  aimPointer(event){
+  aimFromView(yaw=this.player.rotation.y){const mode=this.view.effectiveMode(),pitch=this.view.pitch[mode]||.03,height=(mode==='first'?2.105:2.35)*this.player.scale.y,distance=clamp(height/Math.max(.03,Math.tan(pitch)),2,18);this.actions.setAim(new THREE.Vector3(Math.sin(yaw),0,Math.cos(yaw)),distance);}
+
+  aimPointer(event){if(this.view.mode!=='overhead'){if(!this.actions.current)this.aimFromView();return;}
     if(this.actions.current||event.pointerType==='touch')return;
     if(document.pointerLockElement===this.renderer.domElement){this.aimFromView();return;}
     const rect=this.renderer.domElement.getBoundingClientRect();this.pointerNdc.set((event.clientX-rect.left)/rect.width*2-1,-(event.clientY-rect.top)/rect.height*2+1);this.raycaster.setFromCamera(this.pointerNdc,this.camera);this.aimPlane.constant=-this.player.position.y;
@@ -627,7 +633,7 @@ export class Game {
     let x = (this.keys.has(this.bindings.right) || (this.keys.has('arrowright') && !Object.values(this.bindings).includes('arrowright')) ? 1 : 0) - (this.keys.has(this.bindings.left) || (this.keys.has('arrowleft') && !Object.values(this.bindings).includes('arrowleft')) ? 1 : 0) + this.touchMove.x;
     let y = (this.keys.has(this.bindings.back) || (this.keys.has('arrowdown') && !Object.values(this.bindings).includes('arrowdown')) ? 1 : 0) - (this.keys.has(this.bindings.forward) || (this.keys.has('arrowup') && !Object.values(this.bindings).includes('arrowup')) ? 1 : 0) + this.touchMove.y;
     const length = Math.hypot(x, y); if (length > 1) { x /= length; y /= length; }
-    if(this.view?.mode!=='overhead')return viewMovement(x,y,this.view.yaw);
+    if(this.view?.mode!=='overhead')return viewMovement(x,y,this.player.rotation.y);
     return new THREE.Vector3((x + y) * Math.SQRT1_2, 0, (y - x) * Math.SQRT1_2);
   }
   dash() {
@@ -954,7 +960,7 @@ export class Game {
     this.resolvePosition(this.player.position, .65);
     this.playerVisual.visible = true;
 
-    if(this.view.canLook()&&this.view.mode!=='overhead'&&document.pointerLockElement===this.renderer.domElement&&!this.actions.current)this.aimFromView();
+    if(this.view.canLook()&&this.view.mode!=='overhead'&&!this.actions.current)this.aimFromView();
     else if (moving&&!this.actions.current&&!this.actions.hasAim) this.player.rotation.y = this.lerpAngle(this.player.rotation.y, Math.atan2(direction.x, direction.z), dt * 13);
     if (!inRoom) this.spawnTimer -= dt;
     if (!inRoom && !this.bossSpawned && s.stageTime >= BOSS_SPAWN_TIME) this.spawnBoss();

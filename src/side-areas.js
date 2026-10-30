@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import {keyLabel} from "./control-bindings.js";
 import { MutationSystem } from "./mutations.js";
 import { MagicSystem } from "./magic.js";
 import { BossSystem } from "./bosses.js";
@@ -84,7 +85,7 @@ export class SideAreaSystem {
             Math.max(0, Math.floor(g._state.stage / 2) - 1) % options.length
           ];
     this.portal = { group, type, used: false };
-    g.callbacks.onLoot?.("희미한 균열 발견 · 근처에서 C / 비밀 입구");
+    g.callbacks.onLoot?.(`희미한 균열 발견 · 근처에서 ${keyLabel(g.bindings.interact)} / 비밀 입구`);
     return true;
   }
   offers() {
@@ -128,7 +129,7 @@ export class SideAreaSystem {
         if (this.active.type === "ancient") {
           g.story.find("royalOath");
           this.active.claimed = true;
-          g.callbacks.onLoot?.("왕의 맹세를 읽었습니다 · 입구에서 C로 복귀");
+          g.callbacks.onLoot?.(`왕의 맹세를 읽었습니다 · 입구에서 ${keyLabel(g.bindings.interact)}로 복귀`);
           return true;
         }
         if (
@@ -345,7 +346,7 @@ export class SideAreaSystem {
       this.active.complete = true;
       if (this.active.type === "dungeon") this.game.story.find("buriedTruth");
       this.game.callbacks.onLoot?.(
-        "비밀 공간 시련 완료 · 중앙 제단에서 C로 보상",
+        `비밀 공간 시련 완료 · 중앙 제단에서 ${keyLabel(this.game.bindings.interact)}로 보상`,
       );
     }
   }

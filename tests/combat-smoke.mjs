@@ -38,11 +38,14 @@ try {
     game.updateCamera(2);
     game.camera.updateMatrixWorld();
     const player = game.player.position;
-    const projected = player.clone().project(game.camera);
-    return { radius: Math.hypot(player.x, player.z), projected: [projected.x, projected.y], debug: game.getDebugState() };
+    // The follow camera now frames the upper body while looking along the character.
+    const projected = player.clone().add(player.clone().set(0, 2.35 * game.player.scale.y, 0)).project(game.camera);
+    const feet = player.clone().project(game.camera);
+    return { radius: Math.hypot(player.x, player.z), projected: [projected.x, projected.y], feet: [feet.x, feet.y], debug: game.getDebugState() };
   });
   assert.ok(traversal.radius > 31 && traversal.radius <= ARENA_RADIUS, 'the player can traverse beyond the old map boundary');
-  assert.ok(Math.abs(traversal.projected[0]) < 0.2 && Math.abs(traversal.projected[1]) < 0.3, 'camera follows player on the enlarged map');
+  assert.ok(Math.abs(traversal.projected[0]) < 0.2 && Math.abs(traversal.projected[1]) < 0.3, 'camera follows the upper body on the enlarged map');
+  assert.ok(Math.abs(traversal.feet[0]) < 1 && Math.abs(traversal.feet[1]) < 1, 'the whole character remains in frame');
   console.log('PASS enlarged terrain arena: radius90, old boundary traversable, camera follows');
 
   await freshRun();

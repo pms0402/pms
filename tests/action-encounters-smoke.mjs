@@ -288,7 +288,7 @@ try {
   await p.evaluate(() => {
     const g = window.encounterFixture();
     g.setViewMode("third");
-    g.view.yaw = 0;
+    g.view.yaw=0;g.player.rotation.y=0;g.actions.hasAim=false;
     g.view.pitch.third = 0.6;
     g.aimFromView();
     window.closeAim = g.actions.aimDistance;
@@ -306,6 +306,7 @@ try {
   await p.waitForFunction(
     () => document.pointerLockElement === window.__game.renderer.domElement,
   );
+  await p.evaluate(()=>{const g=window.__game;if(g.actions.current)g.actions.update(g.actions.current.duration+.01);});
   const yaw = await p.evaluate(() => window.__game.view.yaw);
   await p.mouse.move(650, 450);
   assert.notEqual(await p.evaluate(() => window.__game.view.yaw), yaw);
@@ -329,7 +330,7 @@ try {
     g.stats.spells = { fireball: 3, frost: 2, lightning: 2 };
     g.actions.syncSlots();
     g.setViewMode("third");
-    g.view.yaw = 0.3;
+    g.view.yaw=.3;g.player.rotation.y=.3;g.actions.hasAim=false;
     g.view.pitch.third = 0.35;
     for (let i = 0; i < 7; i++)
       g.spawnEnemy(Math.sin(i) * 5, Math.cos(i) * 5, [0, 1, 2, 3, 5, 7, 8][i], {
