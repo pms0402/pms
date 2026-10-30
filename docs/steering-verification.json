@@ -1,0 +1,73 @@
+{
+  "version": "v0.19.3",
+  "baseline": "31442d1f0e8f8068c217e9b7c402e012358c0350",
+  "unitTests": {
+    "passed": 216,
+    "failed": 0
+  },
+  "browserSuites": [
+    {
+      "test": "follow-interaction-smoke.mjs",
+      "exit": 0,
+      "seconds": 44.3
+    },
+    {
+      "test": "view-smoke.mjs",
+      "exit": 0,
+      "seconds": 45.4
+    },
+    {
+      "test": "action-encounters-smoke.mjs",
+      "exit": 0,
+      "seconds": 14.3
+    },
+    {
+      "test": "action-smoke.mjs",
+      "exit": 0,
+      "seconds": 37.0
+    },
+    {
+      "test": "controls-smoke.mjs",
+      "exit": 0,
+      "seconds": 21.7
+    },
+    {
+      "test": "world-expansion-smoke.mjs",
+      "exit": 0,
+      "seconds": 71.9
+    },
+    {
+      "test": "deploy-smoke.mjs",
+      "exit": 0,
+      "seconds": 26.0
+    },
+    {
+      "test": "combat-smoke.mjs",
+      "exit": 0,
+      "seconds": 117.1
+    },
+    {
+      "test": "standalone-smoke.mjs",
+      "exit": 0,
+      "seconds": 32.0
+    }
+  ],
+  "behaviour": [
+    "Continuous A/D and analog horizontal steering, rather than a 90-degree target heading.",
+    "Maximum angular speed 100 degrees/second times input; exact exponential integration with 0.075-second time constant for acceleration/deceleration.",
+    "Short/long/half-strength input gives proportional rotation; 30/60/120Hz comparisons match after release.",
+    "Movement follows the current heading along a curve; W/S remain forward/backward. First/third camera optical heading matches the character.",
+    "Attack and dash commitments retain their direction; overhead movement and stored progression remain unchanged."
+  ],
+  "builds": [
+    "production",
+    "self-contained HTML"
+  ],
+  "bundle": {
+    "path": "dist/assets/index-Bb1MPkxT.js",
+    "sha256": "336cacc499bf9a8870fc5005037d272cee182197a39df5dc7c62baa29c990e22"
+  },
+  "limitations": [
+    "Chromium/SwiftShader with emulated mobile touch; physical Safari performance unmeasured."
+  ]
+}

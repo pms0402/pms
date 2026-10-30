@@ -32,7 +32,7 @@ try {
   const traversal = await page.evaluate(() => {
     const game = window.__game;
     game.spawnTimer = 1e6;
-    game.setMoveInput(1, 0);
+    game.setMoveInput(0, -1);
     game.stepForTest(6);
     game.setMoveInput(0, 0);
     game.updateCamera(2);

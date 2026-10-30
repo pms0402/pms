@@ -19,16 +19,21 @@ export function viewMovement(x, y, yaw, out = new THREE.Vector3()) {
     Math.sin(yaw) * x - Math.cos(yaw) * y,
   );
 }
-// Keep a held movement gesture in world space while the follow camera turns.
-// Mouse look deliberately rotates this frame; returning to neutral releases it.
-export class MovementFrame {
+// Integrate a continuous turn rate rather than targeting cardinal headings.
+// Exact exponential integration keeps acceleration consistent across frame rates.
+export class MovementSteering {
   constructor() { this.reset(); }
-  reset() { this.yaw = null; }
-  turn(delta) { if (this.yaw !== null) this.yaw += delta; }
-  direction(x, y, facing, out = new THREE.Vector3()) {
-    if (x*x+y*y <= .01) this.reset();
-    else if (this.yaw === null) this.yaw = facing;
-    return viewMovement(x, y, this.yaw ?? facing, out);
+  reset() { this.speed = 0; }
+  step(input, dt) {
+    if (!Number.isFinite(dt) || dt <= 0) return 0;
+    const target = -Math.max(-1,Math.min(1,Number(input)||0))*Math.PI*100/180;
+    const decay = Math.exp(-dt/.075), previous = this.speed;
+    this.speed = target+(previous-target)*decay;
+    return target*dt+(previous-target)*.075*(1-decay);
+  }
+  direction(x,y,facing,out=new THREE.Vector3()) {
+    const throttle=Math.hypot(x,y)*(y>0?-1:1);
+    return out.set(Math.sin(facing),0,Math.cos(facing)).multiplyScalar(throttle);
   }
 }
 const clamp = (x, min, max) => Math.max(min, Math.min(max, x));
@@ -46,7 +51,7 @@ export class ViewController {
   constructor(game) {
     this.game = game;
     this.mode = "overhead";
-    this.movement = new MovementFrame();
+    this.movement = new MovementSteering();
     this.yaw = Math.PI * 1.25;
     this.pitch = { third: 0.24, first: 0.04 };
     this.distance = 9.2;
@@ -128,7 +133,6 @@ export class ViewController {
     const scale = touch ? 0.005 : 0.0028;
     const actions=this.game.actions,base=actions?.hasAim?Math.atan2(actions.aim.x,actions.aim.z):this.game.player.rotation.y;
     const requestedYaw=THREE.MathUtils.euclideanModulo(base-dx*scale,Math.PI*2);
-    this.movement.turn(-dx*scale);
     const mode = this.effectiveMode();
     this.pitch[mode] = clamp(
       this.pitch[mode] + dy * scale,

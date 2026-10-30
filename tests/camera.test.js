@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import * as THREE from "three";
 import { cameraArmFraction, CAMERA_SOLIDS } from "../src/camera-collision.js";
-import { viewMovement,MovementFrame } from "../src/view.js";
+import { viewMovement,MovementSteering } from "../src/view.js";
 
 test("view-relative movement keeps direction, analog magnitude and diagonal speed", () => {
   for (const yaw of [0, 0.7, Math.PI, 4.2]) {
@@ -59,16 +59,21 @@ test("camera avoids terrain, room boundaries and zero-length segments without in
   assert.ok(t > 0.5 && t < 0.6);
 });
 
-test("held directional input stays straight as character and camera turn, then rebases after release",()=>{
- const frame=new MovementFrame(),right=frame.direction(1,0,0);
- for(let i=1;i<=60;i++)assert.ok(frame.direction(1,0,-Math.PI/2*i/60).distanceTo(right)<1e-10);
- frame.direction(0,0,-Math.PI/2);
- assert.ok(frame.direction(0,-1,-Math.PI/2).distanceTo(right)<1e-10);
+test("turn amount scales with duration and analog input, without cardinal snapping",()=>{
+ const run=(input,seconds,hz)=>{const s=new MovementSteering();let yaw=0;for(let i=0;i<Math.round(seconds*hz);i++)yaw+=s.step(input,1/hz);for(let i=0;i<2*hz;i++)yaw+=s.step(0,1/hz);return yaw;};
+ const short=run(1,.1,60),long=run(1,.4,60),half=run(.5,.4,60);
+ assert.ok(Math.abs(short+Math.PI/18)<1e-6);assert.ok(Math.abs(long/short-4)<1e-6);assert.ok(Math.abs(half/long-.5)<1e-9);
+ assert.ok(Math.abs(run(1,1.5,60))>Math.PI/2);
+ for(const hz of [30,120])assert.ok(Math.abs(run(1,.4,hz)-long)<1e-6);
 });
-test("mouse turning rotates held movement once and analog steering keeps the original reference",()=>{
- const frame=new MovementFrame();frame.direction(0,-1,0);frame.turn(Math.PI/2);
- assert.ok(frame.direction(0,-1,Math.PI/2).x>.99999);
- const analog=frame.direction(.3,-.4,-1);assert.ok(Math.abs(analog.length()-.5)<1e-10);
- assert.ok(analog.distanceTo(viewMovement(.3,-.4,Math.PI/2))<1e-10);
- frame.reset();assert.ok(frame.direction(0,-1,0).z>.99999);
+test("turn acceleration and release remain smooth and restart clears residual steering",()=>{
+ const s=new MovementSteering(),first=Math.abs(s.step(1,1/60)),next=Math.abs(s.step(1,1/60));
+ assert.ok(first<next&&next<Math.PI*100/180/60);const speed=Math.abs(s.speed);s.step(0,1/60);assert.ok(Math.abs(s.speed)>speed*.5&&Math.abs(s.speed)<speed);
+ s.reset();assert.equal(s.step(0,1/60),0);assert.equal(s.step(1,0),0);
+});
+test("movement follows continuous facing with proportional analog speed and reverse input",()=>{
+ const s=new MovementSteering();
+ for(const yaw of [0,.13,.71,2.9])assert.ok(s.direction(1,0,yaw).distanceTo(new THREE.Vector3(Math.sin(yaw),0,Math.cos(yaw)))<1e-10);
+ assert.ok(Math.abs(s.direction(.3,-.4,.2).length()-.5)<1e-10);
+ assert.equal(s.direction(0,1,0).z,-1);assert.equal(s.direction(0,0,0).length(),0);
 });
