@@ -1,0 +1,39 @@
+{
+  "before": {
+    "calls": 774,
+    "triangles": 401562
+  },
+  "after": {
+    "calls": 191,
+    "triangles": 401562
+  },
+  "meanError": 0.0007135416666666667,
+  "changedFraction": 6.696428571428572e-05,
+  "sourceParts": 657,
+  "active": {
+    "enabled": true,
+    "batches": 74,
+    "activeBatches": 74,
+    "instances": 657
+  },
+  "reset": {
+    "enabled": true,
+    "batches": 74,
+    "activeBatches": 0,
+    "instances": 0
+  },
+  "reused": true,
+  "unchanged": true,
+  "discardedGeometryFreed": true,
+  "materials": {
+    "environment": true,
+    "terrain": true,
+    "normal": true,
+    "cloth": true,
+    "shadow": true
+  },
+  "shadows": true,
+  "pixelRatio": 1,
+  "textures": 18,
+  "geometries": 181
+}

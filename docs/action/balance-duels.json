@@ -1,0 +1,159 @@
+{
+  "method": "Chromium WebGL; fixed selected card builds, 0/5/12 sword/magic/health permanent ranks on floors 1/5/10; real cooldowns, damage, AI, parry and simulation; one encounter, no invulnerability, health inflation or enemy-HP reduction; scripted aim/movement inputs. Excludes random rewards, attrition across a full run and human ability.",
+  "results": [
+    {
+      "floor": 1,
+      "type": "ordinary",
+      "build": {
+        "damage": 18,
+        "spellDamage": 18,
+        "hp": 100
+      },
+      "enemyHp": 50,
+      "enemyRemaining": 0,
+      "hp": 100,
+      "seconds": 0.56,
+      "commands": 1,
+      "parries": 0,
+      "maxPhase": 1,
+      "result": "clear"
+    },
+    {
+      "floor": 1,
+      "type": "elite",
+      "build": {
+        "damage": 18,
+        "spellDamage": 18,
+        "hp": 100
+      },
+      "enemyHp": 140,
+      "enemyRemaining": 0,
+      "hp": 100,
+      "seconds": 1.16,
+      "commands": 2,
+      "parries": 0,
+      "maxPhase": 1,
+      "result": "clear"
+    },
+    {
+      "floor": 1,
+      "type": "boss",
+      "build": {
+        "damage": 18,
+        "spellDamage": 18,
+        "hp": 100
+      },
+      "enemyHp": 1750,
+      "enemyRemaining": 157.32400000000013,
+      "hp": 0,
+      "seconds": 18.26,
+      "commands": 21,
+      "parries": 0,
+      "maxPhase": 3,
+      "result": "over"
+    },
+    {
+      "floor": 5,
+      "type": "ordinary",
+      "build": {
+        "damage": 78.93486102852405,
+        "spellDamage": 65.77905085710339,
+        "hp": 281.67920556875
+      },
+      "enemyHp": 417.6049999999999,
+      "enemyRemaining": 0,
+      "hp": 281.67920556875,
+      "seconds": 0.56,
+      "commands": 1,
+      "parries": 0,
+      "maxPhase": 1,
+      "result": "clear"
+    },
+    {
+      "floor": 5,
+      "type": "elite",
+      "build": {
+        "damage": 78.93486102852405,
+        "spellDamage": 65.77905085710339,
+        "hp": 281.67920556875
+      },
+      "enemyHp": 1169.2939999999996,
+      "enemyRemaining": 0,
+      "hp": 281.67920556875,
+      "seconds": 1.32,
+      "commands": 2,
+      "parries": 0,
+      "maxPhase": 1,
+      "result": "clear"
+    },
+    {
+      "floor": 5,
+      "type": "boss",
+      "build": {
+        "damage": 78.93486102852405,
+        "spellDamage": 65.77905085710339,
+        "hp": 281.67920556875
+      },
+      "enemyHp": 14616.174999999997,
+      "enemyRemaining": 0,
+      "hp": 37.06687778749988,
+      "seconds": 36.98,
+      "commands": 42,
+      "parries": 0,
+      "maxPhase": 3,
+      "result": "clear"
+    },
+    {
+      "floor": 10,
+      "type": "ordinary",
+      "build": {
+        "damage": 625.2644392837693,
+        "spellDamage": 625.2644392837693,
+        "hp": 960.0524156830899
+      },
+      "enemyHp": 5929.393824849998,
+      "enemyRemaining": 0,
+      "hp": 960.0524156830899,
+      "seconds": 0.56,
+      "commands": 1,
+      "parries": 0,
+      "maxPhase": 1,
+      "result": "clear"
+    },
+    {
+      "floor": 10,
+      "type": "elite",
+      "build": {
+        "damage": 625.2644392837693,
+        "spellDamage": 625.2644392837693,
+        "hp": 960.0524156830899
+      },
+      "enemyHp": 16602.302709579995,
+      "enemyRemaining": 0,
+      "hp": 960.0524156830899,
+      "seconds": 1.02,
+      "commands": 2,
+      "parries": 0,
+      "maxPhase": 1,
+      "result": "clear"
+    },
+    {
+      "floor": 10,
+      "type": "boss",
+      "build": {
+        "damage": 625.2644392837693,
+        "spellDamage": 625.2644392837693,
+        "hp": 960.0524156830899
+      },
+      "enemyHp": 207528.78386974992,
+      "enemyRemaining": 38457.403022273065,
+      "hp": 0,
+      "seconds": 26.7,
+      "commands": 29,
+      "parries": 0,
+      "maxPhase": 3,
+      "result": "over"
+    }
+  ],
+  "errors": []
+}

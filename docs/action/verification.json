@@ -1,0 +1,526 @@
+{
+  "unit": {
+    "passed": 206,
+    "failed": 0
+  },
+  "browser": {
+    "passed": 30,
+    "failed": 0,
+    "suites": [
+      {
+        "test": "action-encounters-smoke.mjs",
+        "exit": 0,
+        "seconds": 40.5,
+        "stage": "pointer-final"
+      },
+      {
+        "test": "action-smoke.mjs",
+        "exit": 0,
+        "seconds": 73.6,
+        "stage": "pointer-final"
+      },
+      {
+        "test": "adventure-smoke.mjs",
+        "exit": 0,
+        "seconds": 145.5,
+        "stage": "adventure-final"
+      },
+      {
+        "test": "archive-smoke.mjs",
+        "exit": 0,
+        "seconds": 33.8,
+        "stage": "regression-final"
+      },
+      {
+        "test": "articulation-smoke.mjs",
+        "exit": 0,
+        "seconds": 106.2,
+        "stage": "retry"
+      },
+      {
+        "test": "audio-smoke.mjs",
+        "exit": 0,
+        "seconds": 55.7,
+        "stage": "regression-final"
+      },
+      {
+        "test": "browser-smoke.mjs",
+        "exit": 0,
+        "seconds": 195.2,
+        "stage": "retry"
+      },
+      {
+        "test": "builds-smoke.mjs",
+        "exit": 0,
+        "seconds": 359.3,
+        "stage": "retry"
+      },
+      {
+        "test": "characters-smoke.mjs",
+        "exit": 0,
+        "seconds": 57.7,
+        "stage": "regression-final"
+      },
+      {
+        "test": "combat-smoke.mjs",
+        "exit": 0,
+        "seconds": 235.5,
+        "stage": "retry-last"
+      },
+      {
+        "test": "controls-smoke.mjs",
+        "exit": 0,
+        "seconds": 49.9,
+        "stage": "pointer-final"
+      },
+      {
+        "test": "deploy-smoke.mjs",
+        "exit": 0,
+        "seconds": 40.5,
+        "stage": "pointer-final"
+      },
+      {
+        "test": "economy-scale-smoke.mjs",
+        "exit": 0,
+        "seconds": 69.3,
+        "stage": "regression-final"
+      },
+      {
+        "test": "encounter-smoke.mjs",
+        "exit": 0,
+        "seconds": 79.6,
+        "stage": "retry"
+      },
+      {
+        "test": "endgame-smoke.mjs",
+        "exit": 0,
+        "seconds": 229.1,
+        "stage": "regression-final"
+      },
+      {
+        "test": "expansion-smoke.mjs",
+        "exit": 0,
+        "seconds": 102.8,
+        "stage": "retry"
+      },
+      {
+        "test": "frost-smoke.mjs",
+        "exit": 0,
+        "seconds": 30.7,
+        "stage": "regression-final"
+      },
+      {
+        "test": "growth-smoke.mjs",
+        "exit": 0,
+        "seconds": 256.7,
+        "stage": "regression-final"
+      },
+      {
+        "test": "manual-growth-smoke.mjs",
+        "exit": 0,
+        "seconds": 172.2,
+        "stage": "regression-final"
+      },
+      {
+        "test": "motion-smoke.mjs",
+        "exit": 0,
+        "seconds": 46.3,
+        "stage": "regression-final"
+      },
+      {
+        "test": "parry-smoke.mjs",
+        "exit": 0,
+        "seconds": 259.2,
+        "stage": "retry-last"
+      },
+      {
+        "test": "permanent-smoke.mjs",
+        "exit": 0,
+        "seconds": 217.2,
+        "stage": "regression-final"
+      },
+      {
+        "test": "presentation-smoke.mjs",
+        "exit": 0,
+        "seconds": 86.5,
+        "stage": "regression-final"
+      },
+      {
+        "test": "quality-smoke.mjs",
+        "exit": 0,
+        "seconds": 85.0,
+        "stage": "regression-final"
+      },
+      {
+        "test": "resources-smoke.mjs",
+        "exit": 0,
+        "seconds": 65.8,
+        "stage": "regression-final"
+      },
+      {
+        "test": "sanctum-smoke.mjs",
+        "exit": 0,
+        "seconds": 46.8,
+        "stage": "regression-final"
+      },
+      {
+        "test": "standalone-smoke.mjs",
+        "exit": 0,
+        "seconds": 74.9,
+        "stage": "pointer-final"
+      },
+      {
+        "test": "view-smoke.mjs",
+        "exit": 0,
+        "seconds": 71.0,
+        "stage": "pointer-final"
+      },
+      {
+        "test": "world-expansion-smoke.mjs",
+        "exit": 0,
+        "seconds": 127.8,
+        "stage": "regression-final"
+      },
+      {
+        "test": "world-smoke.mjs",
+        "exit": 0,
+        "seconds": 44.8,
+        "stage": "regression-final"
+      }
+    ]
+  },
+  "build": {
+    "production": true,
+    "standalone": true,
+    "bundle": "index-PnWLRhCb.js",
+    "sha256": "36100a1113fec13b4ad306238c3e73ebfb5eb1206785cf3f545a323ff45140d2"
+  },
+  "archiveSha256": "e8867949d23b1319d9f111432b4ce02f6982fca30ea40d564bc76b1d31b019aa",
+  "method": "Chromium/SwiftShader; full regression candidate followed by targeted reruns after input, fixture and navigation-timeout fixes. Final pointer/input, view, controls, standalone, deployment and adventure checks use the final bundle. Mechanical assertions that used auto attacks were migrated to explicit aimed action commands and actual contact markers. Some domain-flow fixtures use a half-size buffer; quality, pixel, crowd, native input and viewport checks keep their configured resolution. No claim of physical-device FPS or complete human clear-rate balance.",
+  "attempts": [
+    {
+      "test": "action-encounters-smoke.mjs",
+      "exit": 0,
+      "seconds": 40.9,
+      "stage": "regression-final"
+    },
+    {
+      "test": "archive-smoke.mjs",
+      "exit": 0,
+      "seconds": 33.8,
+      "stage": "regression-final"
+    },
+    {
+      "test": "action-smoke.mjs",
+      "exit": 0,
+      "seconds": 97.3,
+      "stage": "regression-final"
+    },
+    {
+      "test": "articulation-smoke.mjs",
+      "exit": 1,
+      "seconds": 40.8,
+      "stage": "regression-final"
+    },
+    {
+      "test": "audio-smoke.mjs",
+      "exit": 0,
+      "seconds": 55.7,
+      "stage": "regression-final"
+    },
+    {
+      "test": "browser-smoke.mjs",
+      "exit": 1,
+      "seconds": 156.4,
+      "stage": "regression-final"
+    },
+    {
+      "test": "adventure-smoke.mjs",
+      "exit": 124,
+      "seconds": 300.0,
+      "stage": "regression-final"
+    },
+    {
+      "test": "characters-smoke.mjs",
+      "exit": 0,
+      "seconds": 57.7,
+      "stage": "regression-final"
+    },
+    {
+      "test": "controls-smoke.mjs",
+      "exit": 0,
+      "seconds": 57.9,
+      "stage": "regression-final"
+    },
+    {
+      "test": "combat-smoke.mjs",
+      "exit": 1,
+      "seconds": 119.1,
+      "stage": "regression-final"
+    },
+    {
+      "test": "builds-smoke.mjs",
+      "exit": 124,
+      "seconds": 300.1,
+      "stage": "regression-final"
+    },
+    {
+      "test": "deploy-smoke.mjs",
+      "exit": 0,
+      "seconds": 67.2,
+      "stage": "regression-final"
+    },
+    {
+      "test": "encounter-smoke.mjs",
+      "exit": 1,
+      "seconds": 32.2,
+      "stage": "regression-final"
+    },
+    {
+      "test": "economy-scale-smoke.mjs",
+      "exit": 0,
+      "seconds": 69.3,
+      "stage": "regression-final"
+    },
+    {
+      "test": "frost-smoke.mjs",
+      "exit": 0,
+      "seconds": 30.7,
+      "stage": "regression-final"
+    },
+    {
+      "test": "expansion-smoke.mjs",
+      "exit": 1,
+      "seconds": 91.1,
+      "stage": "regression-final"
+    },
+    {
+      "test": "endgame-smoke.mjs",
+      "exit": 0,
+      "seconds": 229.1,
+      "stage": "regression-final"
+    },
+    {
+      "test": "motion-smoke.mjs",
+      "exit": 0,
+      "seconds": 46.3,
+      "stage": "regression-final"
+    },
+    {
+      "test": "manual-growth-smoke.mjs",
+      "exit": 0,
+      "seconds": 172.2,
+      "stage": "regression-final"
+    },
+    {
+      "test": "parry-smoke.mjs",
+      "exit": 1,
+      "seconds": 32.4,
+      "stage": "regression-final"
+    },
+    {
+      "test": "growth-smoke.mjs",
+      "exit": 0,
+      "seconds": 256.7,
+      "stage": "regression-final"
+    },
+    {
+      "test": "presentation-smoke.mjs",
+      "exit": 0,
+      "seconds": 86.5,
+      "stage": "regression-final"
+    },
+    {
+      "test": "quality-smoke.mjs",
+      "exit": 0,
+      "seconds": 85.0,
+      "stage": "regression-final"
+    },
+    {
+      "test": "sanctum-smoke.mjs",
+      "exit": 0,
+      "seconds": 46.8,
+      "stage": "regression-final"
+    },
+    {
+      "test": "resources-smoke.mjs",
+      "exit": 0,
+      "seconds": 65.8,
+      "stage": "regression-final"
+    },
+    {
+      "test": "permanent-smoke.mjs",
+      "exit": 0,
+      "seconds": 217.2,
+      "stage": "regression-final"
+    },
+    {
+      "test": "standalone-smoke.mjs",
+      "exit": 0,
+      "seconds": 103.1,
+      "stage": "regression-final"
+    },
+    {
+      "test": "view-smoke.mjs",
+      "exit": 0,
+      "seconds": 119.5,
+      "stage": "regression-final"
+    },
+    {
+      "test": "world-smoke.mjs",
+      "exit": 0,
+      "seconds": 44.8,
+      "stage": "regression-final"
+    },
+    {
+      "test": "world-expansion-smoke.mjs",
+      "exit": 0,
+      "seconds": 127.8,
+      "stage": "regression-final"
+    },
+    {
+      "test": "action-encounters-smoke.mjs",
+      "exit": 0,
+      "seconds": 21.9,
+      "stage": "retry"
+    },
+    {
+      "test": "action-smoke.mjs",
+      "exit": 0,
+      "seconds": 68.4,
+      "stage": "retry"
+    },
+    {
+      "test": "articulation-smoke.mjs",
+      "exit": 0,
+      "seconds": 106.2,
+      "stage": "retry"
+    },
+    {
+      "test": "browser-smoke.mjs",
+      "exit": 0,
+      "seconds": 195.2,
+      "stage": "retry"
+    },
+    {
+      "test": "combat-smoke.mjs",
+      "exit": 1,
+      "seconds": 176.4,
+      "stage": "retry"
+    },
+    {
+      "test": "encounter-smoke.mjs",
+      "exit": 0,
+      "seconds": 79.6,
+      "stage": "retry"
+    },
+    {
+      "test": "parry-smoke.mjs",
+      "exit": 1,
+      "seconds": 19.1,
+      "stage": "retry"
+    },
+    {
+      "test": "expansion-smoke.mjs",
+      "exit": 0,
+      "seconds": 102.8,
+      "stage": "retry"
+    },
+    {
+      "test": "adventure-smoke.mjs",
+      "exit": 1,
+      "seconds": 187.7,
+      "stage": "retry"
+    },
+    {
+      "test": "controls-smoke.mjs",
+      "exit": 0,
+      "seconds": 64.2,
+      "stage": "retry"
+    },
+    {
+      "test": "view-smoke.mjs",
+      "exit": 0,
+      "seconds": 128.2,
+      "stage": "retry"
+    },
+    {
+      "test": "builds-smoke.mjs",
+      "exit": 0,
+      "seconds": 359.3,
+      "stage": "retry"
+    },
+    {
+      "test": "deploy-smoke.mjs",
+      "exit": 0,
+      "seconds": 64.2,
+      "stage": "retry"
+    },
+    {
+      "test": "standalone-smoke.mjs",
+      "exit": 0,
+      "seconds": 115.8,
+      "stage": "retry"
+    },
+    {
+      "test": "parry-smoke.mjs",
+      "exit": 0,
+      "seconds": 259.2,
+      "stage": "retry-last"
+    },
+    {
+      "test": "combat-smoke.mjs",
+      "exit": 0,
+      "seconds": 235.5,
+      "stage": "retry-last"
+    },
+    {
+      "test": "action-encounters-smoke.mjs",
+      "exit": 0,
+      "seconds": 40.5,
+      "stage": "pointer-final"
+    },
+    {
+      "test": "action-smoke.mjs",
+      "exit": 0,
+      "seconds": 73.6,
+      "stage": "pointer-final"
+    },
+    {
+      "test": "controls-smoke.mjs",
+      "exit": 0,
+      "seconds": 49.9,
+      "stage": "pointer-final"
+    },
+    {
+      "test": "view-smoke.mjs",
+      "exit": 0,
+      "seconds": 71.0,
+      "stage": "pointer-final"
+    },
+    {
+      "test": "standalone-smoke.mjs",
+      "exit": 0,
+      "seconds": 74.9,
+      "stage": "pointer-final"
+    },
+    {
+      "test": "deploy-smoke.mjs",
+      "exit": 0,
+      "seconds": 40.5,
+      "stage": "pointer-final"
+    },
+    {
+      "test": "adventure-smoke.mjs",
+      "exit": 1,
+      "seconds": 121.3,
+      "stage": "pointer-final"
+    },
+    {
+      "test": "adventure-smoke.mjs",
+      "exit": 0,
+      "seconds": 145.5,
+      "stage": "adventure-final"
+    }
+  ]
+}

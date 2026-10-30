@@ -1,0 +1,151 @@
+{
+  "cycles": 16,
+  "samples": [
+    {
+      "heap": 29483660,
+      "geometries": 155,
+      "textures": 18,
+      "batches": 37,
+      "lodSources": 37,
+      "owned": 305,
+      "cpuParts": 0
+    },
+    {
+      "heap": 29569540,
+      "geometries": 157,
+      "textures": 18,
+      "batches": 37,
+      "lodSources": 37,
+      "owned": 305,
+      "cpuParts": 0
+    },
+    {
+      "heap": 29633652,
+      "geometries": 159,
+      "textures": 18,
+      "batches": 37,
+      "lodSources": 37,
+      "owned": 305,
+      "cpuParts": 0
+    },
+    {
+      "heap": 29799164,
+      "geometries": 162,
+      "textures": 18,
+      "batches": 37,
+      "lodSources": 37,
+      "owned": 305,
+      "cpuParts": 0
+    },
+    {
+      "heap": 29843680,
+      "geometries": 163,
+      "textures": 18,
+      "batches": 37,
+      "lodSources": 37,
+      "owned": 305,
+      "cpuParts": 0
+    },
+    {
+      "heap": 29887904,
+      "geometries": 163,
+      "textures": 18,
+      "batches": 37,
+      "lodSources": 37,
+      "owned": 305,
+      "cpuParts": 0
+    },
+    {
+      "heap": 29911744,
+      "geometries": 163,
+      "textures": 18,
+      "batches": 37,
+      "lodSources": 37,
+      "owned": 305,
+      "cpuParts": 0
+    },
+    {
+      "heap": 29910520,
+      "geometries": 163,
+      "textures": 18,
+      "batches": 37,
+      "lodSources": 37,
+      "owned": 305,
+      "cpuParts": 0
+    },
+    {
+      "heap": 29919688,
+      "geometries": 163,
+      "textures": 18,
+      "batches": 37,
+      "lodSources": 37,
+      "owned": 305,
+      "cpuParts": 0
+    },
+    {
+      "heap": 29931816,
+      "geometries": 163,
+      "textures": 18,
+      "batches": 37,
+      "lodSources": 37,
+      "owned": 305,
+      "cpuParts": 0
+    },
+    {
+      "heap": 30011384,
+      "geometries": 163,
+      "textures": 18,
+      "batches": 37,
+      "lodSources": 37,
+      "owned": 305,
+      "cpuParts": 0
+    },
+    {
+      "heap": 30024424,
+      "geometries": 163,
+      "textures": 18,
+      "batches": 37,
+      "lodSources": 37,
+      "owned": 305,
+      "cpuParts": 0
+    },
+    {
+      "heap": 30025104,
+      "geometries": 163,
+      "textures": 18,
+      "batches": 37,
+      "lodSources": 37,
+      "owned": 305,
+      "cpuParts": 0
+    },
+    {
+      "heap": 30059472,
+      "geometries": 163,
+      "textures": 18,
+      "batches": 37,
+      "lodSources": 37,
+      "owned": 305,
+      "cpuParts": 0
+    },
+    {
+      "heap": 30141480,
+      "geometries": 163,
+      "textures": 18,
+      "batches": 37,
+      "lodSources": 37,
+      "owned": 305,
+      "cpuParts": 0
+    },
+    {
+      "heap": 30135268,
+      "geometries": 163,
+      "textures": 18,
+      "batches": 37,
+      "lodSources": 37,
+      "owned": 305,
+      "cpuParts": 0
+    }
+  ],
+  "errors": [],
+  "method": "Chromium/SwiftShader, rotate all five regions, spawn 24 mixed species including bosses and all forced mutation marker types, render then restart and force test-only GC each cycle; verify retained resource plateau after 8 warmup cycles"
+}
