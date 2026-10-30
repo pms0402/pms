@@ -38,7 +38,9 @@
     "test:audio": "node tests/audio-smoke.mjs",
     "test:presentation": "node tests/presentation-smoke.mjs",
     "benchmark:quality": "node scripts/quality-benchmark.mjs",
-    "test:resources": "node tests/resources-smoke.mjs"
+    "test:resources": "node tests/resources-smoke.mjs",
+    "test:actions": "node tests/action-smoke.mjs",
+    "test:action-encounters": "node tests/action-encounters-smoke.mjs"
   },
   "dependencies": {
     "@fontsource-variable/noto-sans-kr": "5.2.10",

@@ -5,7 +5,7 @@ const errors=[];
 try{
  const page=await browser.newPage({viewport:{width:1440,height:1000}});page.on('pageerror',e=>errors.push(e.message));await page.goto(process.env.BASE_URL||'http://127.0.0.1:5174');await page.waitForFunction(()=>window.__game?.frames>1);await page.locator('#start-button').click();
  const result=await page.evaluate(()=>{
-  const g=window.__game;cancelAnimationFrame(g.raf);g.spawnTimer=g.attackTimer=g.nextChestTime=g.nextEliteTime=g.nextGoldenTime=g.nextAltarTime=1e6;g.stats.spells={};g.invulnerable=1e6;g._state.xpNeeded=1e9;g.stats.critChance=0;
+  const g=window.__game;cancelAnimationFrame(g.raf);g.spawnTimer=g.attackTimer=g.nextChestTime=g.nextEliteTime=g.nextGoldenTime=g.nextAltarTime=1e6;g.stats.spells={};g.actions.syncSlots();g.invulnerable=1e6;g._state.xpNeeded=1e9;g.stats.critChance=0;
   for(let i=0;i<160;i++){const a=i*2.399,r=4+i%12,e=g.spawnEnemy(Math.cos(a)*r,Math.sin(a)*r,[0,1,2,3,5,6,7,8,9][i%9]);e.speed=0;e.hp=e.maxHp=1e6;}
   g.renderer.setSize(800,560,false);g.camera.aspect=800/560;g.camera.updateProjectionMatrix();g.camera.position.set(20,26,25);g.camera.lookAt(0,.5,0);g.world.updateOcclusion(g.player.position,g.camera.position,100);
   const stats=JSON.stringify(g.stats),hp=g.state.hp,gold=g.state.gold,gl=g.renderer.getContext();
@@ -15,7 +15,7 @@ try{
   const pixels=before.data.length/4,meanError=total/(pixels*3),changedFraction=changed/pixels;
   const cached=g.enemyRenderer.batches.size,sourceParts=g.enemies.reduce((n,e)=>n+e.visual.children.filter(m=>!m.material.transparent).length,0),active=g.enemyRenderer.getDebugState();
   const materials={environment:!!g.scene.environment,terrain:!!g.world.ground.material.map,normal:!!g.world.ground.material.normalMap,cloth:!!g.cape.material.map,shadow:!!g.playerShadow.material.map};
-  const originalPool=g.effectPool,ownedBefore=g.ownedGeometries.size;g.effectPool=Array.from({length:150},()=>({type:'reserved'}));
+  g.slash(g.player.position.clone().set(0,0,1));g.releaseEffect(g.effects.pop());const originalPool=g.effectPool,ownedBefore=g.ownedGeometries.size;g.effectPool=Array.from({length:150},()=>({type:'reserved'}));
   for(let i=0;i<40;i++){g.slash(g.player.position.clone().set(0,0,1));const effect=g.effects.pop();g.releaseEffect(effect);}
   const discardedGeometryFreed=g.ownedGeometries.size===ownedBefore;g.effectPool=originalPool;
   const unchanged=JSON.stringify(g.stats)===stats&&g.state.hp===hp&&g.state.gold===gold;

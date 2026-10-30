@@ -1,3 +1,4 @@
+import {manualPage} from './manual-fixtures.mjs';
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 import { normalizeProgress } from '../src/progression.js';
@@ -24,18 +25,18 @@ async function noPageScroll() {
 try {
   const context = await browser.newContext({ viewport: { width: 1180, height: 820 } });
   await context.addInitScript(progress => localStorage.setItem('voidrun.progression', JSON.stringify(progress)), saved);
-  page = await context.newPage();
+  page = await manualPage(context,);
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', message => { if (/GL_INVALID|Shader Error|VALIDATE_STATUS|THREE.WebGLProgram:/.test(message.text())) gpuErrors.push(message.text()); });
   await page.goto(origin);
   await page.waitForFunction(() => window.__game?.artReady);
   await page.locator('#start-button').click();
   await page.evaluate(() => {
-    const g = window.__game; cancelAnimationFrame(g.raf);
+    const g = window.__game; cancelAnimationFrame(g.raf);g.renderer.setPixelRatio(.5);
     window.expansionFixture = () => {
-      g.start(); cancelAnimationFrame(g.raf);
+      g.start(); cancelAnimationFrame(g.raf);g.renderer.setPixelRatio(.5);
       g.spawnTimer = g.attackTimer = g.nextChestTime = g.nextEliteTime = g.nextGoldenTime = g.nextAltarTime = 1e6;
-      g.stats.spells = {}; g.stats.critChance = 0; g.stats.armor = 0; g.stats.regen = 0;
+      g.stats.spells = {};g.actions.syncSlots(); g.stats.critChance = 0; g.stats.armor = 0; g.stats.regen = 0;
       g._state.xpNeeded = 1e9; g.invulnerable = 0;
       return g;
     };
@@ -110,7 +111,7 @@ try {
   const vampire = await page.evaluate(() => {
     const g = window.__game, e = g.spawnEnemy(.6, 0, 0, { mutations: ['vampire'] });
     e.hp = e.maxHp / 2; const before = e.hp, player = g.state.hp;
-    g.updateEnemies(1 / 60); const healed = e.hp - before, dealt = player - g.state.hp;
+    window.testEnemyStrike(g,e); const healed = e.hp - before, dealt = player - g.state.hp;
     g.updateEnemies(1 / 60);
     return { healed, dealt, secondHp: e.hp, firstHp: before + healed, cap: e.maxHp * .08 };
   });
@@ -174,11 +175,11 @@ try {
     const avoided = g.state.hp; g.stepForTest(1.8); results.avoided = g.state.hp === avoided;
     window.expansionFixture(); g.regionId = 'tundra'; g.regionSystem.setRegion('tundra');
     const frost = g.spawnEnemy(.6, 0, 1, { mutations: [] }); frost.speed = 0;
-    g.updateEnemies(1 / 60); results.slow = g.regionSystem.movementMultiplier();
+    window.testEnemyStrike(g,frost); results.slow = g.regionSystem.movementMultiplier();
     g.removeEnemyWithoutReward(frost); g.stepForTest(1.1); results.recovered = g.regionSystem.movementMultiplier();
     window.expansionFixture(); g.regionId = 'forest'; g.regionSystem.setRegion('forest'); g.regionSystem.hazardTimer = 1e6;
     const poison = g.spawnEnemy(.6, 0, 3, { mutations: [] }); poison.speed = 0;
-    g.updateEnemies(1 / 60); g.removeEnemyWithoutReward(poison);
+    poison.aim.copy(g.player.position).sub(poison.group.position).normalize();poison.windup=.01;g.updateEnemies(.02);g.updateEnemyProjectiles(.01); g.removeEnemyWithoutReward(poison);
     const poisoned = g.state.hp; g.stepForTest(1.1); results.poison = g.state.hp < poisoned;
     window.expansionFixture(); g.regionId = 'void'; g.regionSystem.setRegion('void'); g.regionSystem.blinkTimer = 1e6;
     const blink = g.spawnEnemy(12, 0, 3, { mutations: [] }); blink.speed = 0;
@@ -201,7 +202,7 @@ try {
     g.magic.cooldowns.fireball = 1e6;
     const e = g.spawnEnemy(0, 2, 0, { mutations: [] }); e.hp = e.maxHp = 1e6; e.speed = 0;
     const random = Math.random;
-    try { Math.random = () => 0; g.attack(); g.attack(); } finally { Math.random = random; }
+    try { Math.random = () => 0; window.testStrike(g); window.testStrike(g); } finally { Math.random = random; }
     const initial = e.hp, zones = g.magic.zones.filter(zone => zone.type === 'firestorm').length;
     g.stepForTest(.65);
     return { zones, damaged: e.hp < initial, triggers: g.magic.getDebugState().comboTriggers.firestorm, recorded: g.runReport.damageBySource.combo };
@@ -240,7 +241,7 @@ try {
   const voidBurst = await page.evaluate(() => {
     const g = window.__game; g.stats.spells = { orbit: 5 }; g.stats.evolutions.orbit = true; g.stats.relics = ['arcanePrism']; g.invulnerable = 1e6;
     const e = g.spawnEnemy(1, 0, 0, { mutations: [] }); e.hp = e.maxHp = 1e6; e.speed = 0;
-    g.stepForTest(5.2); const before = g.magic.getDebugState().comboTriggers.voidBurst;
+    window.testCast(g,'orbit');g.stepForTest(5.85); const before = g.magic.getDebugState().comboTriggers.voidBurst;
     for (let i = 0; i < 30; i++) g.hitEnemy(e, 1, undefined, 'combo');
     return { before, after: g.magic.getDebugState().comboTriggers.voidBurst, orbitDamage: g.runReport.damageBySource.orbit, comboDamage: g.runReport.damageBySource.combo };
   });

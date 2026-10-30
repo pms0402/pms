@@ -184,7 +184,7 @@ try {
           g.hitEnemy(e, 1, undefined, "magic", "fireball");
         }
         const charged = g.classes.magicHits;
-        g.classes.update(0.1);
+        g.classes.command(g.player.position.clone().set(0,0,1));g.classes.update(0.1);
         out[id] = {
           charged,
           pet: g.analytics.damage.pet,

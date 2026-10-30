@@ -1,3 +1,4 @@
+import {manualPage} from './manual-fixtures.mjs';
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
 const browser = await chromium.launch({
@@ -12,7 +13,7 @@ const errors = [],
   gl = [];
 const near = (a, b) => assert.ok(Math.abs(a - b) < 1e-5, `${a} ≈ ${b}`);
 try {
-  const p = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+  const p = await manualPage(browser,{ viewport: { width: 1280, height: 900 } });
   p.on("pageerror", (e) => errors.push(e.message));
   p.on("console", (m) => {
     if (/GL_INVALID|Shader Error|THREE.WebGLProgram:/.test(m.text()))
@@ -39,7 +40,7 @@ try {
         g.nextGoldenTime =
         g.nextAltarTime =
           1e6;
-      g.stats.spells = {};
+      g.stats.spells = {};g.actions.syncSlots();
       g.stats.critChance = 0;
       g._state.xpNeeded = 1e9;
       g.invulnerable = 0;
@@ -60,7 +61,7 @@ try {
   assert.equal(input.attempts, 1);
   const koreanKeys=await p.evaluate(()=>{
     const samples=[];
-    for(const [key,code] of [['ㄹ','KeyF'],['Process','KeyF'],['ㅎ','KeyG']]){
+    for(const [key,code] of [['ㄹ','KeyF'],['Process','KeyF']]){
       const g=window.fixture();
       const send=(type,extra={})=>window.dispatchEvent(new KeyboardEvent(type,{key,code,isComposing:true,keyCode:229,bubbles:true,cancelable:true,...extra}));
       send('keydown');send('keydown',{repeat:true});send('keyup');
@@ -78,12 +79,12 @@ try {
   });
   assert.ok(koreanKeys.samples.every(s=>s.active>0&&s.attempts===1&&s.released));
   assert.equal(koreanKeys.typing,0);assert.equal(koreanKeys.shortcut,0);assert.ok(koreanKeys.moving&&koreanKeys.released);
-  await p.keyboard.press("Shift+F");
+  await p.keyboard.press("F10");
   assert.equal(
     await p.evaluate(() => document.body.classList.contains("theater-mode")),
     true,
   );
-  await p.keyboard.press("Shift+F");
+  await p.keyboard.press("F10");
   const defend = await p.evaluate(() => {
     const g = window.fixture(),
       a = g.spawnEnemy(0, 2, 5, { noMutations: true }),
@@ -151,7 +152,7 @@ try {
   assert.ok(stop.advanced > 0 && stop.moved > 0);
   near(stop.remaining, 0);
   console.log(
-    "PASS physical F/G including Korean IME/Process and repeat/typing guards, Shift+F fullscreen, perfect nullification, 4m crowd interrupt/elite resistance and real-time nonblocking hit-stop with pause/resume",
+    "PASS physical F including Korean IME/Process and repeat/typing guards, F10 fullscreen, perfect nullification, 4m crowd interrupt/elite resistance and real-time nonblocking hit-stop with pause/resume",
   );
   const failures = await p.evaluate(() => {
     const samples = [];
@@ -182,22 +183,22 @@ try {
   const counters = await p.evaluate(() => {
     const g = window.fixture();
     g.parry.counterTime = 2;
-    const noTarget = g.attack(),
-      still = g.parry.counterTime;
+    const noTarget = window.testStrike(g),
+      still = g.parry.counterTime;g.parry.counterTime=2;
     const locations = [
         [0, 2],
         [1.5, 2.5],
         [0, -2],
-        [0, 3.6],
+        [0, 4.1],
       ],
       targets = locations.map(([x, z]) =>
         g.spawnEnemy(x, z, 0, { noMutations: true }),
       );
     for (const e of targets) e.hp = e.maxHp = 10000;
-    g.attack();
+    window.testStrike(g);
     const damage = targets.map((e) => 10000 - e.hp),
-      record = g.analytics.damage.counter;
-    g.attack();
+      record = g.analytics.damage.counter, counterAnim=Number(g.actions.current?.counter);
+    window.testStrike(g);
     return {
       noTarget,
       still,
@@ -205,18 +206,18 @@ try {
       record,
       consumed: g.parry.counterTime,
       normal: 10000 - targets[0].hp - damage[0],
-      counterAnim: g.counterAnim,
+      counterAnim,
     };
   });
-  assert.equal(counters.noTarget, false);
-  assert.equal(counters.still, 2);
-  near(counters.damage[0], 56.25);
-  near(counters.damage[1], 56.25);
+  assert.equal(counters.noTarget, true);
+  assert.equal(counters.still, 0);
+  near(counters.damage[0], 99);
+  near(counters.damage[1], 99);
   near(counters.damage[2], 0);
   near(counters.damage[3], 0);
-  near(counters.record, 112.5);
+  near(counters.record, 198);
   assert.equal(counters.consumed, 0);
-  near(counters.normal, 22.5);
+  near(counters.normal, 39.6);
   assert.ok(counters.counterAnim > 0);
   const cap = await p.evaluate(() => {
     const g = window.fixture();
@@ -230,24 +231,24 @@ try {
       );
       e.hp = e.maxHp = 10000;
     }
-    g.attack();
+    window.testStrike(g);
     return {
       hit: g.enemies.filter((e) => e.hp < 10000).length,
       actual: g.analytics.damage.counter,
     };
   });
   assert.equal(cap.hit, 24);
-  near(cap.actual, 24 * 56.25);
+  near(cap.actual, 24 * 99);
   const bossCounter = await p.evaluate(() => {
     const g = window.fixture(),
       b = g.spawnBoss();
     b.group.position.set(0, 0, 2);
     b.hp = b.maxHp = 10000;
     g.parry.counterTime = 2;
-    g.attack();
+    window.testStrike(g);
     return 10000 - b.hp;
   });
-  near(bossCounter, 67.5);
+  near(bossCounter, 118.8);
   const modifiers = await p.evaluate(() => {
     const g = window.fixture();
     g.stats.characterId = "assassin";
@@ -264,17 +265,17 @@ try {
     g.equipment.equip("counter-gear");
     const e = g.spawnEnemy(0, 2, 0, { noMutations: true });
     e.hp = e.maxHp = 10000;
-    g.dash();
+    g.dash();g.dashTime=0;
     g.parry.counterTime = 2;
-    g.attack();
+    window.testStrike(g);
     const first = 10000 - e.hp;
-    g.attack();
+    window.testStrike(g);
     return { first, second: 10000 - e.hp - first };
   });
-  near(modifiers.first, 18 * 1.2 * 1.25 * 1.35 * 2.5 * 1.25 * 1.2);
-  near(modifiers.second, 18 * 1.2 * 1.25 * 1.35);
+  near(modifiers.first, 18 * 2.2 * 1.2 * 1.35 * 2.5 * 1.25 * 1.2);
+  near(modifiers.second, 18 * 2.2 * 1.2 * 1.35);
   console.log(
-    "PASS miss preserves counter; one automatic 180° 250% strike, exact sector/range, 24-target cap, boss bonus and separate non-overlapping counter statistics",
+    "PASS a missed manual counter consumes only its charge; one manual 180° 250% strike, exact sector/range, 24-target cap, boss bonus and separate non-overlapping counter statistics",
   );
   const bossRows = await p.evaluate(() => {
     const rows = [];
@@ -300,7 +301,8 @@ try {
         b.actionTimer = 0.6;
       }
       g.parry.press();
-      g.updateBoss(b, 0.01);
+      if(stage===1)g.updateBoss(b,.01);
+      else {g.shootEnemyProjectile(b,g.player.position.clone().set(0,0,-1),{speed:10,damage:10});g.updateEnemyProjectiles(.1);} // Own projectile impact, never passive body contact.
       const initial = b.parryStun,
         hp = g._state.hp,
         stuns = g.analytics.parryBossStuns,
@@ -555,7 +557,7 @@ try {
     g.start();
     cancelAnimationFrame(g.raf);
     g.stats.critChance = 0;
-    g.stats.spells = {};
+    g.stats.spells = {};g.actions.syncSlots();
     g.invulnerable = 0;
     g.player.rotation.y = 0;
     const b = g.spawnBoss();
@@ -565,7 +567,7 @@ try {
     b.actionTimer = 0.6;
     g.parry.press();
     g.updateBoss(b, 0.01);
-    g.attack();
+    window.testStrike(g);
     g.endRun();
     return JSON.parse(localStorage.getItem("voidrun.history"))[0].analytics;
   });
@@ -601,9 +603,9 @@ try {
   );
   await phone.locator("#start-button").click();
   await phone.evaluate(() => cancelAnimationFrame(window.__game.raf));
-  await phone.locator("#guard-button").tap();
+  await phone.locator("#mobile-parry").tap();
   assert.ok(await phone.evaluate(() => window.__game.parry.active > 0));
-  const rect = await phone.locator("#guard-button").boundingBox();
+  const rect = await phone.locator("#mobile-parry").boundingBox();
   assert.ok(rect.height >= 44 && rect.x >= 0 && rect.x + rect.width <= 390);
   for (const viewport of [
     { width: 390, height: 844 },

@@ -1,3 +1,4 @@
+import {manualPage} from './manual-fixtures.mjs';
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 import { RELICS } from '../src/content.js';
@@ -24,15 +25,16 @@ async function load({ seed, viewport = { width: 1440, height: 1000 }, mobile = f
       localStorage.setItem('voidrun.growth.seed', '1');
     }
   }, seed);
-  page = await context.newPage();
+  page = await manualPage(context);
   page.on('pageerror', error => errors.push(error.message));
   await page.goto(origin);
   await page.waitForFunction(() => window.__game?.frames > 1);
+  await page.evaluate(() => cancelAnimationFrame(window.__game.raf)); // Domain fixtures advance time explicitly; keep menu rendering out of UI waits.
   assert.equal(await page.locator('#canvas-error').isVisible(), false);
 }
 async function freeze() {
   await page.evaluate(() => {
-    const game = window.__game; cancelAnimationFrame(game.raf);
+    const game = window.__game; cancelAnimationFrame(game.raf);game.renderer.setPixelRatio(.5);
     game.spawnTimer = game.attackTimer = game.nextChestTime = game.nextEliteTime = game.nextGoldenTime = game.nextAltarTime = 1e6;
     game._state.xpNeeded = 1e9;
   });
@@ -70,20 +72,20 @@ try {
   await load(); await start();
   const income = await page.evaluate(() => {
     const game = window.__game;
-    game.stats.critChance = 0; game.stats.spells = { fireball: 0, frost: 0, lightning: 0, orbit: 0 };
+    game.stats.critChance = 0; game.stats.spells = { fireball: 0, frost: 0, lightning: 0, orbit: 0 };game.actions.syncSlots();
     const enemy = game.spawnEnemy(.1, 0, 0, { mutations: [] });
     game.hitEnemy(enemy, enemy.hp + 1);
     const baseGold = game.pickups.find(pickup => pickup.type === 'gold').value;
-    game.dropPickup(game.player.position, 'gold', 495);
+    game.dropPickup(game.player.position, 'gold', 487.5);
     game.stepForTest(.2);
     return { baseGold, gold: game.state.gold };
   });
-  assert.equal(income.baseGold, 5, 'an ordinary actual stage-one kill now pays five gold');
+  assert.equal(income.baseGold, 12.5, 'an ordinary actual stage-one kill now pays 12.5 gold');
   assert.equal(income.gold, 500);
   await page.evaluate(() => {
     const game = window.__game;
     game._state.hp = 1; game.invulnerable = 0;
-    game.spawnEnemy(.1, 0, 0, { mutations: [] }); game.stepForTest(.02);
+    const e=game.spawnEnemy(.1, 0, 0, { mutations: [] });window.testEnemyStrike(game,e);
   });
   assert.equal(await page.evaluate(() => window.__game.state.phase), 'over');
   let saved = await page.evaluate(() => JSON.parse(localStorage.getItem('voidrun.progression')));
@@ -99,6 +101,7 @@ try {
   }
   assert.ok(spent < 100, 'four sword upgrades and one magic upgrade use less than one fifth of this run');
   await page.reload(); await page.waitForFunction(() => window.__game?.frames > 1);
+  await page.evaluate(() => cancelAnimationFrame(window.__game.raf)); // Domain fixtures advance time explicitly; keep menu rendering out of UI waits.
   await start();
   const upgraded = await page.evaluate(() => window.__game.state);
   near(upgraded.damage, 18 * 1.12 ** 4, 'four sword purchases compound to a noticeable 57% gain');
@@ -110,7 +113,7 @@ try {
   await load(); await start();
   const growth = await page.evaluate(floors => {
     const game = window.__game, stages = [];
-    game.stats.spells = { fireball: 0, frost: 0, lightning: 0, orbit: 0 };
+    game.stats.spells = { fireball: 0, frost: 0, lightning: 0, orbit: 0 };game.actions.syncSlots();
     game.stats.critChance = 0; game._state.hp = 63;
     for (let index = 0; index < floors - 1; index++) {
       const sample = game.spawnEnemy(20, 0, 0, { mutations: [] });

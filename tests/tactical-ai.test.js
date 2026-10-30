@@ -1,7 +1,127 @@
-import test from 'node:test';import assert from 'node:assert/strict';import * as THREE from 'three';import{TacticalAI,encounterBudget,chooseBossAction}from'../src/tactical-ai.js';
-function fixture(){const hits=[],g={player:new THREE.Group(),enemies:[],_state:{stage:1,elapsed:0},mode:'normal',sideAreas:{active:false},actions:{exposed:()=>false},parry:{active:0},stageStats:()=>({enemyDamage:11}),resolvePosition:p=>{p.x=Math.max(-90,Math.min(90,p.x));p.z=Math.max(-90,Math.min(90,p.z));},createMeleeTelegraph:e=>e.telegraph={position:new THREE.Vector3()},fitGroundMesh(){},clearTelegraph:e=>e.telegraph=null,takeDamage:(...args)=>hits.push(args)};Object.defineProperty(g,'keys',{get(){throw Error('AI must not inspect player input');}});const ai=new TacticalAI(g);const add=(z=2)=>{const group=new THREE.Group();group.position.z=z;const e={group,hp:100,kind:0,spawnSerial:g.enemies.length+1,size:1,seed:.3,speed:0,aim:new THREE.Vector3(),stagger:new THREE.Vector3(),hitTime:0,slowTime:0,baseDamageMultiplier:1,damageMultiplier:1,action:'chase',name:'test',tactics:{phase:'circle',timer:0,angle:0}};g.enemies.push(e);return e;};const tick=dt=>{g._state.elapsed+=dt;ai.beginFrame();for(const e of g.enemies)ai.melee(e,dt);};return{g,ai,hits,add,tick};}
-test('melee announces a fixed cone, misses a dodge, and has a real recovery interval',()=>{const f=fixture(),e=f.add();f.tick(.01);assert.equal(e.action,'melee-warning');assert.equal(f.hits.length,0);f.g.player.position.x=5;for(let i=0;i<70;i++)f.tick(.01);assert.equal(f.hits.length,0);assert.equal(e.action,'melee-recovery');assert.ok(e.tactics.timer>.7);});
-test('standing in the announced attack is hit once and normal pressure admits only two attackers',()=>{const f=fixture();for(let i=0;i<12;i++)f.add();f.tick(.01);assert.equal(f.g.enemies.filter(e=>e.action==='melee-warning').length,2);for(let i=0;i<68;i++)f.tick(.01);assert.equal(f.hits.length,2);assert.ok(f.hits.every(h=>h[0]===11));});
-test('recovery cannot be reset into permanent light-hit lock and elite dash reactions observe movement only',()=>{const f=fixture(),e=f.add();e.elite=true;f.tick(.01);e.hitTime=.16;f.tick(.01);assert.equal(e.action,'melee-recovery');const limit=e.tactics.nextInterrupt;assert.ok(limit>=2);e.tactics.phase='circle';e.tactics.timer=0;e.hitTime=0;f.tick(.01);assert.equal(e.action,'melee-warning');e.hitTime=.16;f.tick(.01);assert.equal(e.action,'melee-warning');});
-test('ambient encounters remain sparse while high-risk and abyss pressure is bounded at 25',()=>{for(let floor=1;floor<=10;floor++)for(const time of [0,30,60,120])assert.ok(encounterBudget(floor,time)>=5&&encounterBudget(floor,time)<=15);assert.ok(encounterBudget(1000,120,'abyss',4)<=25);assert.equal(encounterBudget(1000,120,'abyss',4),25);});
-test('bosses select near/far patterns and avoid repeating the same warning indefinitely',()=>{for(const id of ['artillery','plague','brood','storm','reaper']){const close=chooseBossAction(id,3),far=chooseBossAction(id,20);assert.notEqual(close,far);assert.notEqual(chooseBossAction(id,3,close),close);assert.match(far,/-warning$/);}});
+import test from "node:test";
+import assert from "node:assert/strict";
+import * as THREE from "three";
+import {
+  TacticalAI,
+  encounterBudget,
+  chooseBossAction,
+} from "../src/tactical-ai.js";
+function fixture() {
+  const hits = [],
+    g = {
+      player: new THREE.Group(),
+      enemies: [],
+      _state: { stage: 1, elapsed: 0 },
+      mode: "normal",
+      sideAreas: { active: false },
+      actions: { exposed: () => false },
+      parry: { active: 0 },
+      stageStats: () => ({ enemyDamage: 11 }),
+      resolvePosition: (p) => {
+        p.x = Math.max(-90, Math.min(90, p.x));
+        p.z = Math.max(-90, Math.min(90, p.z));
+      },
+      createMeleeTelegraph: (e) =>
+        (e.telegraph = { position: new THREE.Vector3() }),
+      fitGroundMesh() {},
+      clearTelegraph: (e) => (e.telegraph = null),
+      takeDamage: (...args) => hits.push(args),
+    };
+  Object.defineProperty(g, "keys", {
+    get() {
+      throw Error("AI must not inspect player input");
+    },
+  });
+  const ai = new TacticalAI(g);
+  const add = (z = 2) => {
+    const group = new THREE.Group();
+    group.position.z = z;
+    const e = {
+      group,
+      hp: 100,
+      kind: 0,
+      spawnSerial: g.enemies.length + 1,
+      size: 1,
+      seed: 0.3,
+      speed: 0,
+      aim: new THREE.Vector3(),
+      stagger: new THREE.Vector3(),
+      hitTime: 0,
+      slowTime: 0,
+      baseDamageMultiplier: 1,
+      damageMultiplier: 1,
+      action: "chase",
+      name: "test",
+      tactics: { phase: "circle", timer: 0, angle: 0 },
+    };
+    g.enemies.push(e);
+    return e;
+  };
+  const tick = (dt) => {
+    g._state.elapsed += dt;
+    ai.beginFrame();
+    for (const e of g.enemies) ai.melee(e, dt);
+  };
+  return { g, ai, hits, add, tick };
+}
+test("melee announces a fixed cone, misses a dodge, and has a real recovery interval", () => {
+  const f = fixture(),
+    e = f.add();
+  f.tick(0.01);
+  assert.equal(e.action, "melee-warning");
+  assert.equal(f.hits.length, 0);
+  f.g.player.position.x = 5;
+  for (let i = 0; i < 70; i++) f.tick(0.01);
+  assert.equal(f.hits.length, 0);
+  assert.equal(e.action, "melee-recovery");
+  assert.ok(e.tactics.timer > 0.7);
+});
+test("standing in the announced attack is hit once and normal pressure admits only two attackers", () => {
+  const f = fixture();
+  for (let i = 0; i < 12; i++) f.add();
+  f.tick(0.01);
+  assert.equal(
+    f.g.enemies.filter((e) => e.action === "melee-warning").length,
+    2,
+  );
+  for (let i = 0; i < 68; i++) f.tick(0.01);
+  assert.equal(f.hits.length, 2);
+  assert.ok(f.hits.every((h) => h[0] === 11));
+});
+test("recovery cannot be reset into permanent light-hit lock and elite dash reactions observe movement only", () => {
+  const f = fixture(),
+    e = f.add();
+  e.elite = true;
+  f.tick(0.01);
+  e.hitTime = 0.16;
+  f.tick(0.01);
+  assert.equal(e.action, "melee-recovery");
+  const limit = e.tactics.nextInterrupt;
+  assert.ok(limit >= 2);
+  e.tactics.phase = "circle";
+  e.tactics.timer = 0;
+  e.hitTime = 0;
+  f.tick(0.01);
+  assert.equal(e.action, "melee-warning");
+  e.hitTime = 0.16;
+  f.tick(0.01);
+  assert.equal(e.action, "melee-warning");
+});
+test("ambient encounters remain sparse while high-risk and abyss pressure is bounded at 25", () => {
+  for (let floor = 1; floor <= 10; floor++)
+    for (const time of [0, 30, 60, 120])
+      assert.ok(
+        encounterBudget(floor, time) >= 5 && encounterBudget(floor, time) <= 15,
+      );
+  assert.ok(encounterBudget(1000, 120, "abyss", 4) <= 25);
+  assert.equal(encounterBudget(1000, 120, "abyss", 4), 25);
+});
+test("bosses select near/far patterns and avoid repeating the same warning indefinitely", () => {
+  for (const id of ["artillery", "plague", "brood", "storm", "reaper"]) {
+    const close = chooseBossAction(id, 3),
+      far = chooseBossAction(id, 20);
+    assert.notEqual(close, far);
+    assert.notEqual(chooseBossAction(id, 3, close), close);
+    assert.match(far, /-warning$/);
+  }
+});

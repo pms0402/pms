@@ -1,3 +1,4 @@
+import {manualPage} from './manual-fixtures.mjs';
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
 const browser = await chromium.launch({
@@ -10,7 +11,7 @@ const browser = await chromium.launch({
 });
 const errors = [];
 try {
-  const p = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+  const p = await manualPage(browser,{ viewport: { width: 1280, height: 900 } });
   p.on("pageerror", (e) => errors.push(e.message));
   p.on("console", (m) => {
     if (/Shader Error|GL_INVALID|THREE.WebGLProgram/.test(m.text()))
@@ -30,7 +31,7 @@ try {
       g.nextGoldenTime =
       g.nextAltarTime =
         1e6;
-    g.stats.spells = {};
+    g.stats.spells = {};g.actions.syncSlots();
     g.stats.critChance = 0;
     g.invulnerable = 0;
     g._state.xpNeeded = 1e9;
@@ -38,16 +39,13 @@ try {
       e = g.spawnEnemy(0, 2, 0, { noMutations: true });
     e.speed = 0;
     e.hp = e.maxHp = 1e9;
-    g.attackTimer = 0.1;
-    g.advanceSimulation(1 / 60);
-    const ready = g.swordReady > 0;
-    const before = e.hp;
-    g.attack();
-    const contact = 1 - g.attackAnim / g.attackAnimTotal,
-      hit = e.hp < before;
+    g.actions.setAim(g.player.position.clone().set(0,0,1));g.attack();g.advanceSimulation(.05);
+    const ready=g.actions.current?.elapsed<g.actions.current?.duration*.42,before=e.hp;
+    for(let i=0;i<4;i++)g.advanceSimulation(.05);
+    const contact=1-g.attackAnim/g.attackAnimTotal,hit=e.hp<before;
     e.hp = 1;
     const kills = g.state.kills;
-    g.hitEnemy(e, 1000, e.group.position.clone().set(0, 0, 1), false, "sword");
+    g.hitEnemy(e, 1000, e.group.position.clone().set(0, 0, 1), "sword");
     const death = {
       removed: !g.enemies.includes(e),
       reward: g.state.kills === kills + 1,
@@ -115,7 +113,7 @@ try {
     };
   });
   assert.ok(
-    result.ready && result.hit && Math.abs(result.contact - 0.42) < 1e-8,
+    result.ready && result.hit && result.contact>=.42&&result.contact<.6,
   );
   assert.ok(
     result.death.removed &&
@@ -138,7 +136,7 @@ try {
     ["low", "medium", "high"],
   );
   assert.ok(result.hitReaction && result.unchanged && result.reset);
-  const mobile = await browser.newPage({
+  const mobile = await manualPage(browser,{
     viewport: { width: 390, height: 844 },
     isMobile: true,
     hasTouch: true,
@@ -152,7 +150,7 @@ try {
     cancelAnimationFrame(g.raf);
     g.spawnBoss();
     g.emit();
-    const b = document.querySelector("#guard-button").getBoundingClientRect();
+    const b = document.querySelector("#mobile-parry").getBoundingClientRect();
     return {
       width: innerWidth,
       height: innerHeight,

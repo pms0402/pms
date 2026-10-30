@@ -1,3 +1,4 @@
+import {manualPage} from './manual-fixtures.mjs';
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 import { RELICS } from '../src/content.js';
@@ -18,10 +19,11 @@ let context, page;
 async function load(viewport = { width: 1440, height: 1000 }) {
   await context?.close();
   context = await browser.newContext({ viewport, hasTouch: viewport.width < 1200, isMobile: viewport.width < 1000 });
-  page = await context.newPage();
+  page = await manualPage(context);
   page.on('pageerror', error => errors.push(error.message));
   await page.goto(origin);
   await page.waitForFunction(() => window.__game?.frames > 1);
+  await page.evaluate(() => cancelAnimationFrame(window.__game.raf)); // Domain fixtures advance time explicitly; keep menu rendering out of UI waits.
   assert.equal(await page.locator('#canvas-error').isVisible(), false);
   await page.locator('#start-button').click();
   await page.evaluate(() => cancelAnimationFrame(window.__game.raf));
@@ -30,11 +32,11 @@ async function load(viewport = { width: 1440, height: 1000 }) {
 
 async function fixture() {
   await page.evaluate(() => {
-    const game = window.__game; game.start(); cancelAnimationFrame(game.raf);
+    const game = window.__game; game.start(); cancelAnimationFrame(game.raf);game.renderer.setPixelRatio(.5);
     game.spawnTimer = game.attackTimer = game.nextChestTime = game.nextEliteTime = game.nextGoldenTime = game.nextAltarTime = 1e6;
     game.stats.critChance = 0; game.stats.regen = 0; game.stats.lifeOnKill = 0;
-    game.stats.spells = { fireball: 0, frost: 0, lightning: 0, orbit: 0 };
-    game._state.hp = 61; game.emit();
+    game.stats.spells = { fireball: 0, frost: 0, lightning: 0, orbit: 0 };game.actions.syncSlots();
+    game._state.hp = 61; game.actions.syncSlots();game.emit();
   });
 }
 
@@ -226,7 +228,7 @@ try {
   await load();
   await page.evaluate(() => {
     const game = window.__game; game.dropPickup(game.player.position, 'gold', 12); game.stepForTest(.2);
-    game._state.hp = 1; game.invulnerable = 0; game.spawnEnemy(.1, 0, 0); game.stepForTest(.02);
+    game._state.hp = 1; game.invulnerable = 0; const e=game.spawnEnemy(.1,0,0,{mutations:[]});window.testEnemyStrike(game,e);
   });
   assert.equal(await page.evaluate(() => window.__game.state.phase), 'over');
   assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('voidrun.progression')).bank), 12);

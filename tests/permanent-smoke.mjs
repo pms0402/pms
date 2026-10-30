@@ -1,3 +1,4 @@
+import {manualPage} from './manual-fixtures.mjs';
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 import { MAX_STAGES } from '../src/balance.js';
@@ -12,7 +13,7 @@ const browser = await chromium.launch({
 const origin = process.env.BASE_URL || 'http://127.0.0.1:5173';
 const errors = [];
 const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
-let page = await context.newPage();
+let page = await manualPage(context);
 page.on('pageerror', error => errors.push(error.message));
 const progress = () => page.evaluate(() => JSON.parse(localStorage.getItem('voidrun.progression')));
 const phase = () => page.evaluate(() => window.__game.state.phase);
@@ -21,12 +22,13 @@ const near = (actual, expected, message) => assert.ok(Math.abs(actual - expected
 async function load() {
   await page.goto(origin);
   await page.waitForFunction(() => window.__game?.getDebugState().frames > 1);
+  await page.evaluate(() => cancelAnimationFrame(window.__game.raf)); // Domain fixtures advance time explicitly; keep menu rendering out of UI waits.
   assert.equal(await page.locator('#canvas-error').isVisible(), false);
 }
 async function stopClock() {
   await page.evaluate(() => {
     const game = window.__game;
-    cancelAnimationFrame(game.raf);
+    cancelAnimationFrame(game.raf);game.renderer.setPixelRatio(.5);
     game.spawnTimer = 1e6;
     game.attackTimer = 1e6;
   });
@@ -46,8 +48,7 @@ async function contactDeath() {
     game.invulnerable = 0;
     game.attackTimer = 1e6;
     game.magic.cooldowns.fireball = 10;
-    game.spawnEnemy(game.player.position.x + .1, game.player.position.z, 2);
-    game.stepForTest(.02);
+    const e=game.spawnEnemy(game.player.position.x+.1,game.player.position.z,2,{mutations:[]});window.testEnemyStrike(game,e);
   });
   assert.equal(await phase(), 'over');
   assert.equal(await page.locator('.modal-result').isVisible(), true);
@@ -88,6 +89,7 @@ try {
   assert.equal(await page.locator('[data-permanent-buy="power"]').isDisabled(), false, 'another affordable upgrade stays available after several purchases');
   await page.reload();
   await page.waitForFunction(() => window.__game?.getDebugState().frames > 1);
+  await page.evaluate(() => cancelAnimationFrame(window.__game.raf)); // Domain fixtures advance time explicitly; keep menu rendering out of UI waits.
   saved = await progress();
   assert.equal(saved.bank, 53, 'reload neither resets funds nor deposits the same run again');
   assert.equal(saved.upgrades.power, 1);
@@ -131,7 +133,7 @@ try {
   const bankBeforeVictory = (await progress()).bank;
   const victory = await page.evaluate(finalStage => {
     const game = window.__game;
-    game.stats.spells = { fireball: 0, frost: 0, lightning: 0, orbit: 0 };
+    game.stats.spells = { fireball: 0, frost: 0, lightning: 0, orbit: 0 };game.actions.syncSlots();
     game._state.stage = finalStage;
     game._state.stageTime = game.state.stageDuration;
     const boss = game.spawnBoss();
@@ -181,6 +183,7 @@ try {
   assert.equal(saved.importedHistory, true);
   await page.reload();
   await page.waitForFunction(() => window.__game?.getDebugState().frames > 1);
+  await page.evaluate(() => cancelAnimationFrame(window.__game.raf)); // Domain fixtures advance time explicitly; keep menu rendering out of UI waits.
   assert.equal((await progress()).bank, 100, 'legacy history is migrated exactly once');
   await page.evaluate(() => {
     const saved = JSON.parse(localStorage.getItem('voidrun.progression'));
@@ -190,6 +193,7 @@ try {
   });
   await page.reload();
   await page.waitForFunction(() => window.__game?.getDebugState().frames > 1);
+  await page.evaluate(() => cancelAnimationFrame(window.__game.raf)); // Domain fixtures advance time explicitly; keep menu rendering out of UI waits.
   await page.locator('[data-nav="permanent"]').first().click();
   assert.equal(await page.locator('[data-permanent-buy="power"]').isDisabled(), true, 'maximum-level upgrades remain unpurchasable');
   await page.locator('#modal-close').click();

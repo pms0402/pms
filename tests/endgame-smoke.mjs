@@ -1,3 +1,4 @@
+import {manualPage} from './manual-fixtures.mjs';
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
 import { rollEquipment } from "../src/equipment.js";
@@ -13,7 +14,7 @@ const errors = [],
   gpu = [];
 const near = (a, b) => assert.ok(Math.abs(a - b) < 1e-5, `${a} ~= ${b}`);
 try {
-  const page = await browser.newPage({
+  const page = await manualPage(browser,{
     viewport: { width: 1180, height: 820 },
   });
   page.on("pageerror", (e) => errors.push(e.message));
@@ -26,12 +27,12 @@ try {
   await page.locator("#start-button").click();
   await page.evaluate(() => {
     const g = window.__game;
-    cancelAnimationFrame(g.raf);
+    cancelAnimationFrame(g.raf);g.renderer.setPixelRatio(.5);
     window.fixture = () => {
       document.querySelector("#modal-backdrop").classList.add("hidden");
       g.mode = "normal";
       g.start();
-      cancelAnimationFrame(g.raf);
+      cancelAnimationFrame(g.raf);g.renderer.setPixelRatio(.5);
       g.spawnTimer =
         g.attackTimer =
         g.nextChestTime =
@@ -39,7 +40,7 @@ try {
         g.nextGoldenTime =
         g.nextAltarTime =
           1e6;
-      g.stats.spells = {};
+      g.stats.spells = {};g.actions.syncSlots();
       g.stats.critChance = 0;
       g._state.xpNeeded = 1e9;
       g.invulnerable = 0;
@@ -109,7 +110,7 @@ try {
     const a = g.spawnEnemy(0, 2, 0, { mutations: [] }),
       b = g.spawnEnemy(0.3, 2.1, 0, { mutations: [] });
     a.hp = b.hp = 1000;
-    g.attack();
+    window.testStrike(g);
     const damage = [1000 - a.hp, 1000 - b.hp];
     g.parry.cooldown = 0;
     g.parry.press();
@@ -128,8 +129,8 @@ try {
   });
   assert.equal(defense.perfect.hp, 100);
   assert.ok(defense.perfect.counter > 0);
-  near(defense.damage[0], 56.25);
-  near(defense.damage[1], 56.25);
+  near(defense.damage[0], 99);
+  near(defense.damage[1], 99);
   near(defense.guarded, 3.5);
   near(defense.unblockable, 10);
   console.log(
@@ -315,7 +316,7 @@ try {
   await page.locator("#start-button").click();
   await page.evaluate(() => {
     const g = window.__game;
-    cancelAnimationFrame(g.raf);
+    cancelAnimationFrame(g.raf);g.renderer.setPixelRatio(.5);
     g.spawnTimer =
       g.attackTimer =
       g.nextChestTime =
@@ -323,7 +324,7 @@ try {
       g.nextGoldenTime =
       g.nextAltarTime =
         1e6;
-    g.stats.spells = {};
+    g.stats.spells = {};g.actions.syncSlots();
     g.invulnerable = 1e6;
     g._state.xpNeeded = 1e9;
   });

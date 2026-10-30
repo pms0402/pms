@@ -1,3 +1,4 @@
+import {manualPage} from './manual-fixtures.mjs';
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 import { ARENA_RADIUS, BOSS_SPAWN_TIME, STAGE_DURATION, MAX_STAGES } from '../src/balance.js';
@@ -13,14 +14,13 @@ const origin = process.env.BASE_URL || 'http://127.0.0.1:5173';
 const errors = [];
 let page;
 async function freshRun() {
-  await page?.close();
-  page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
-  page.on('pageerror', error => errors.push(error.message));
-  await page.goto(origin);
+  if(!page){page=await manualPage(browser,{viewport:{width:1440,height:1000}});page.on('pageerror',error=>errors.push(error.message));await page.goto(origin);}
+  else {await page.evaluate(()=>localStorage.clear());await page.reload();} // Fresh app state, shared browser shader cache.
   await page.waitForFunction(() => window.__game?.getDebugState().frames > 1);
+  await page.evaluate(() => cancelAnimationFrame(window.__game.raf)); // Domain fixtures advance time explicitly; keep menu rendering out of UI waits.
   assert.equal(await page.locator('#canvas-error').isVisible(), false);
   await page.locator('#start-button').click();
-  await page.evaluate(() => { const g = window.__game; cancelAnimationFrame(g.raf); const spawn = g.spawnEnemy.bind(g); /* Isolate baseline movement/collision; mutations have their own integration suite. */ g.spawnEnemy = (x,z,kind,options={}) => spawn(x,z,kind,{mutations:[],...options}); });
+  await page.evaluate(() => { const g = window.__game; cancelAnimationFrame(g.raf);g.renderer.setPixelRatio(.5); const spawn = g.spawnEnemy.bind(g); /* Isolate baseline movement/collision; mutations have their own integration suite. */ g.spawnEnemy = (x,z,kind,options={}) => spawn(x,z,kind,{mutations:[],...options}); });
   assert.equal(await page.evaluate(() => window.__game.state.phase), 'playing');
 }
 
@@ -55,9 +55,10 @@ try {
       const enemy = game.spawnEnemy(2 + i * .05, (i - 3) * .1, 0);
       enemy.speed = 0;
     }
-    game.stepForTest(8);
+    for(let i=0;i<3&&game.state.phase==='playing';i++){window.testStrike(game,{x:1,z:0});game.stepForTest(.65);}
+    if(game.state.phase==='playing')game.stepForTest(2);
   });
-  assert.equal(await page.evaluate(() => window.__game.state.phase), 'upgrade', 'actual automatic combat and collected XP lead to level up');
+  assert.equal(await page.evaluate(() => window.__game.state.phase), 'upgrade', 'actual manually requested combat and collected XP lead to level up');
   assert.equal(await page.locator('[data-upgrade]').count(), 3);
   const spellChoice = page.locator('[data-upgrade^="spell_"]').first();
   assert.ok(await spellChoice.count(), 'every uncapped level-up includes a spell choice');
@@ -80,7 +81,9 @@ try {
       game.spawnTimer = 1e6; game.attackTimer = 1e6; game.nextAltarTime = 1e6;
       const points = id === 'fireball' ? [[9, 0], [10, 1]] : id === 'lightning' ? [[7, 0], [11, 0], [15, 0]] : [[id === 'frost' ? 4 : 3.5, 0]];
       const targets = points.map(([x, z]) => { const enemy = game.spawnEnemy(x, z, 2); enemy.speed = 0; return enemy; });
+      for(const e of targets)e.hp=e.maxHp=10000;
       const before = targets.map(enemy => enemy.hp);
+      window.testCast(game,id);
       for (let step = 0; step < 55; step++) game.magic.update(1 / 60);
       let slowMovement = null;
       if (id === 'frost') {
@@ -88,17 +91,17 @@ try {
         const position = enemy.group.position.clone(); game.updateEnemies(.1);
         slowMovement = enemy.group.position.distanceTo(position);
       }
-      return { before, after: targets.map(enemy => enemy.hp), slowTime: targets[0].slowTime, slowMovement, debug: game.magic.getDebugState() };
+      return { before, after: targets.map(enemy => enemy.hp), slowTime: targets[0].slowTime, slowMovement, debug: game.magic.getDebugState(), fieldBound:game.magic.orbs.every(o=>o.parent===o.userData.field&&o.userData.field.parent===game.scene) };
     }, id);
     assert.ok(result.debug.spellsCast[id] >= 1, `${id} actually casts`);
     assert.ok(result.after.every((hp, index) => hp < result.before[index]), `${id} damages every intended target`);
     if (id === 'fireball') assert.ok(result.debug.hits >= 2, 'fireball explosion damages a nearby second enemy');
     if (id === 'frost') {
       assert.ok(result.slowTime > 1, 'frost applies a lasting slow');
-      assert.ok(result.slowMovement > .23 && result.slowMovement < .25, 'enemy movement consumes the 40% frost slow');
+      assert.ok(result.slowMovement <= .21, 'the short initial freeze and 50% slow constrain movement');
     }
     if (id === 'lightning') assert.ok(result.debug.hits >= 3, 'lightning chains across three separated enemies');
-    if (id === 'orbit') assert.equal(result.debug.activeOrbit, 2, 'base orbit owns two moving runes');
+    if (id === 'orbit') assert.ok(result.debug.zones === 1 && result.debug.activeOrbit === 3 && result.fieldBound, 'runes belong to the manually installed field, with no body orbit');
   }
   console.log('PASS four distinct spells: fireball splash, frost slow/movement, chained lightning and damaging orbit');
 
@@ -132,7 +135,7 @@ try {
   const damageBeforeBuild = await page.evaluate(() => window.__game.state.damage);
   await page.locator('#run-build-button').click();
   assert.equal(await page.evaluate(() => window.__game.state.phase), 'paused');
-  assert.ok(await page.locator('.modal-build').isVisible());
+  assert.ok(await page.locator('.skill-equip-row').first().isVisible());
   assert.equal(await page.locator('[data-buy]').count(), 0, 'the run build view cannot spend money');
   await page.locator('#modal-close').click();
   assert.equal(await page.evaluate(() => window.__game.state.phase), 'playing');
@@ -157,9 +160,10 @@ try {
   await freshRun();
   const bossGate = await page.evaluate(({ spawnTime, duration }) => {
     const game = window.__game;
-    game.stats.spells = { fireball: 0, frost: 0, lightning: 0, orbit: 0 };
+    game.stats.spells = { fireball: 0, frost: 0, lightning: 0, orbit: 0 };game.actions.syncSlots();
     game.spawnTimer = 1e6; game.attackTimer = 1e6; game.nextAltarTime = 1e6;
     game._state.hp = 37; game._state.xpNeeded = 1e9;
+    game.actions.syncSlots();
     const unchangedStats = JSON.stringify(game.stats);
     game._state.stageTime = spawnTime - .01;
     game.tick(.02);
@@ -207,7 +211,7 @@ try {
     game.updateBoss(boss, .7);
     const pulseDamage = game.state.hp < initial;
     const beforeDash = game.state.hp;
-    game.invulnerable = 0; boss.mode = 'pulse-warning'; boss.actionTimer = .01;
+    game.invulnerable = 0; boss.mode = 'pulse-warning';boss.recoveryTime=0; boss.actionTimer = .01;
     game.createBossTelegraph(boss, 'pulse');
     const dashed = game.dash();
     game.updateBoss(boss, .02);
@@ -228,7 +232,7 @@ try {
   await freshRun();
   const ranged = await page.evaluate(() => {
     const game = window.__game;
-    game.stats.spells = { fireball: 0, frost: 0, lightning: 0, orbit: 0 };
+    game.stats.spells = { fireball: 0, frost: 0, lightning: 0, orbit: 0 };game.actions.syncSlots();
     game._state.stage = 3;
     const enemy = game.spawnEnemy(12, 0, 3); enemy.shootTimer = 0;
     game.updateEnemies(.01);
@@ -274,7 +278,7 @@ try {
   await freshRun();
   const finalGate = await page.evaluate(({ duration, finalStage }) => {
     const game = window.__game;
-    game.stats.spells = { fireball: 0, frost: 0, lightning: 0, orbit: 0 };
+    game.stats.spells = { fireball: 0, frost: 0, lightning: 0, orbit: 0 };game.actions.syncSlots();
     game.spawnTimer = 1e6; game.attackTimer = 1e6; game.nextAltarTime = 1e6;
     game._state.stage = finalStage; game._state.stageTime = duration - .01;
     const boss = game.spawnBoss();

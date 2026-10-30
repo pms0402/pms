@@ -1,3 +1,4 @@
+import {manualPage} from './manual-fixtures.mjs';
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
 const browser = await chromium.launch({
@@ -10,7 +11,7 @@ const browser = await chromium.launch({
 });
 const errors = [];
 try {
-  const page = await browser.newPage({
+  const page = await manualPage(browser,{
     viewport: { width: 1280, height: 900 },
   });
   page.on("pageerror", (e) => errors.push(e.message));
@@ -33,7 +34,7 @@ try {
         g.nextGoldenTime =
         g.nextAltarTime =
           1e6;
-      g.stats.spells = {};
+      g.stats.spells = {};g.actions.syncSlots();
       g.invulnerable = 1e6;
       g._state.xpNeeded = 1e9;
       g.stats.critChance = 0;
@@ -75,8 +76,9 @@ try {
     melee.group.position.z += 0.8;
     melee.visualAttackCooldown = 0;
     g.spatialDirty = true;
-    g.updateEnemies(1 / 60);
-    const contact = melee.visualAttack > 0;
+    melee.tactics={phase:'circle',timer:0,angle:0};g.updateEnemies(1/60);
+    const warned=melee.action==='melee-warning';for(let i=0;i<70&&!melee.visualAttack;i++)g.updateEnemies(.01);
+    const contact = warned && melee.visualAttack > 0;
     advance(6);
     const strike = Math.abs(melee.motion.pose[2]);
     const caster = models[3];
@@ -157,14 +159,11 @@ try {
     e.hp = e.maxHp = 1e7;
     const stats = JSON.stringify(g.stats),
       hp = e.hp;
-    g.attackTimer=.15;
-    const yaws=[];
-    for(let i=0;i<10;i++){g.advanceSimulation(1/120);yaws.push(g.rightShoulder.rotation.y);}
-    const anticipation=e.hp===hp&&g.swordReady>0;
-    g.attackTimer=1e6;
-    g.attack();
-    const immediate = e.hp < hp,
-      after = e.hp;
+    g.actions.setAim(g.player.position.clone().set(0,0,1));g.attack();
+    const yaws=[];for(let i=0;i<10;i++){g.advanceSimulation(1/120);yaws.push(g.rightShoulder.rotation.y);}
+    const anticipation=e.hp===hp&&g.actions.current?.elapsed<g.actions.current?.duration*.42;
+    g.advanceSimulation(.05);g.advanceSimulation(.05);g.advanceSimulation(.05);
+    const immediate=e.hp<hp,after=e.hp;
     let peak = 0,
       aligned = true;
     for (let i = 0; i < 22; i++) {
@@ -197,15 +196,15 @@ try {
     e.group.position.set(0, 0, 2);
     e.stagger.set(0, 0, 0);
     g.spatialDirty = true;
-    g.attackAnim = 0;
-    g.attack();
+    g.actions.cancel();g.attackAnim = 0;
+    window.testStrike(g);
     for (let i = 0; i < 13; i++) g.advanceSimulation(1 / 120);
     const twin = g.swordTrail.paths[1].length;
     g.parry.counterTime = 2;
     e.group.position.set(0, 0, 2);
     e.stagger.set(0, 0, 0);
     g.spatialDirty = true;
-    g.attack();
+    window.testStrike(g);
     for (let i = 0; i < 16; i++) g.advanceSimulation(1 / 120);
     const counter = g.swordTrail.paths[0].some((p) => p.counter);
     g.renderer.render(g.scene, g.camera);

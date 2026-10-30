@@ -1,3 +1,4 @@
+import {manualPage} from './manual-fixtures.mjs';
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 import { getUpgradeChoices } from '../src/balance.js';
@@ -13,20 +14,18 @@ const browser = await chromium.launch({
 });
 const errors = [];
 const near = (actual, expected, message) => assert.ok(Math.abs(actual - expected) < 1e-6, `${message}: ${actual} ≈ ${expected}`);
-let context, page;
+let context, page, lastViewport;
 
 async function fresh(viewport = { width: 1440, height: 1000 }) {
-  await context?.close();
-  context = await browser.newContext({ viewport, hasTouch: viewport.width < 1200, isMobile: viewport.width < 1000 });
-  page = await context.newPage();
-  page.on('pageerror', error => errors.push(error.message));
-  await page.goto(origin);
+  if(!page||lastViewport!==JSON.stringify(viewport)){await context?.close();context=await browser.newContext({viewport,hasTouch:viewport.width<1200,isMobile:viewport.width<1000});page=await manualPage(context);page.on('pageerror',error=>errors.push(error.message));await page.goto(origin);lastViewport=JSON.stringify(viewport);}
+  else {await page.evaluate(()=>localStorage.clear());await page.reload();} // Isolate saved/app state while retaining the shader cache.
   await page.waitForFunction(() => window.__game?.frames > 1);
+  await page.evaluate(() => cancelAnimationFrame(window.__game.raf)); // Domain fixtures advance time explicitly; keep menu rendering out of UI waits.
   await page.locator('#start-button').click();
   await page.evaluate(() => {
-    const game = window.__game; cancelAnimationFrame(game.raf);
+    const game = window.__game; cancelAnimationFrame(game.raf);game.renderer.setPixelRatio(.5);
     game.spawnTimer = game.attackTimer = game.nextChestTime = game.nextEliteTime = game.nextGoldenTime = game.nextAltarTime = 1e6;
-    game.stats.spells = { fireball: 0, frost: 0, lightning: 0, orbit: 0 };
+    game.stats.spells = { fireball: 0, frost: 0, lightning: 0, orbit: 0 };game.actions.syncSlots();
     game.stats.critChance = 0; game._state.xpNeeded = 1e9;
   });
 }
@@ -74,9 +73,9 @@ try {
   await fresh();
   const collision = await page.evaluate(() => {
     const game = window.__game;
-    const points = [[0, 2.3], [0, 2.81], [0, -2.4], [Math.sin(80 * Math.PI / 180) * 2.4, Math.cos(80 * Math.PI / 180) * 2.4]];
+    const points = [[0, 2.3], [0, 3.3], [0, -2.4], [Math.sin(80 * Math.PI / 180) * 2.4, Math.cos(80 * Math.PI / 180) * 2.4]];
     const targets = points.map(([x, z]) => { const enemy = game.spawnEnemy(x, z, 0); enemy.hp = enemy.maxHp = 1000; enemy.speed = 0; return enemy; });
-    game.attack();
+    window.testStrike(game);
     const slash = game.effects.find(effect => effect.type === 'slash');
     if (!slash) throw new Error('A landed sword swing must render its sweep');
     const visual = { radius: slash.mesh.geometry.parameters.outerRadius * slash.mesh.scale.x, arc: slash.mesh.geometry.parameters.thetaLength, scale: slash.mesh.scale.x };
@@ -113,8 +112,8 @@ try {
   await earnChoice('blade_range');
   const upgraded = await page.evaluate(() => {
     const game = window.__game;
-    const enemy = game.spawnEnemy(0, 3, 0); enemy.hp = enemy.maxHp = 1000; enemy.speed = 0;
-    game.attack();
+    const enemy = game.spawnEnemy(0, 3.2, 0); enemy.hp = enemy.maxHp = 1000; enemy.speed = 0;
+    window.testStrike(game);
     return { range: game.state.sword.range, hp: enemy.hp, damage: game.stats.damage, spellDamage: game.stats.spellDamage, rank: game.stats.passiveLevels.blade_range };
   });
   near(upgraded.range, beforeRange * 1.12, 'only selected range upgrade increases reach');
@@ -133,8 +132,8 @@ try {
     const primary = game.spawnEnemy(0, 2.65, 0), splash = game.spawnEnemy(0, 4.2, 0), far = game.spawnEnemy(0, 7, 0);
     for (const enemy of [primary, splash, far]) { enemy.hp = enemy.maxHp = 1000; enemy.speed = 0; }
     primary.slowTime = 2;
-    game.attack(); const first = splash.hp;
-    game.attack();
+    window.testStrike(game); const first = splash.hp;
+    window.testStrike(game);
     return { first, second: splash.hp, far: far.hp, report: game.state.runReport };
   });
   assert.ok(shatter.first < 1000, 'a slowed sword target shatters into a nearby enemy outside sword reach');
@@ -148,8 +147,8 @@ try {
     const primary = game.spawnEnemy(0, 2.65, 0), side = game.spawnEnemy(2, 2.65, 0);
     for (const enemy of [primary, side]) { enemy.hp = enemy.maxHp = 1000; enemy.speed = 0; }
     game.magic.explode(primary.group.position.clone(), .1, 1, false);
-    const marked = primary.burnTime; game.attack(); const after = side.hp;
-    game.attack();
+    const marked = primary.burnTime; window.testStrike(game); const after = side.hp;
+    window.testStrike(game);
     const triggers = game.state.runReport.synergyTriggers.flamewave;
     game.removeEnemyWithoutReward(primary);
     const recycled = game.spawnEnemy(0, 20, 0);
@@ -162,7 +161,7 @@ try {
   const current = await page.evaluate(() => {
     const game = window.__game; game.stats.spells.lightning = game.stats.spells.orbit = 1;
     const target = game.spawnEnemy(4, 0, 0); target.hp = target.maxHp = 1000; target.speed = 0;
-    game.magic.syncOrbit(); game.magic.updateOrbit(.01);
+    window.testCast(game,'orbit');game.magic.updateOrbit(.01);game.magic.updateZones(.01);
     const first = game.magic.updateBuildSynergy(), hp = target.hp;
     const second = game.magic.updateBuildSynergy();
     return { first, second, hp, after: target.hp, triggers: game.state.runReport.synergyTriggers.runelight, relicBonus: game.stats.runeSynergyBonus || 0 };
@@ -273,7 +272,7 @@ try {
   await fresh();
   await page.evaluate(() => {
     const game = window.__game, enemy = game.spawnEnemy(0, 2, 0); enemy.hp = enemy.maxHp = 10;
-    game.attack(); game.invulnerable = 0; game.takeDamage(200, game.player.position); game.tick(.01);
+    window.testStrike(game); game.invulnerable = 0; game.takeDamage(200, game.player.position); game.tick(.01);
   });
   const report = await page.evaluate(() => window.__game.state.runReport);
   assert.ok(report.damageBySource.sword > 0 && report.damageBySource.sword <= 10, 'damage report counts effective damage without overkill');

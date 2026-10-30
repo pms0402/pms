@@ -1,3 +1,4 @@
+import {manualPage} from './manual-fixtures.mjs';
 import assert from "node:assert/strict";
 import { chromium } from "playwright";
 const b = await chromium.launch({
@@ -10,7 +11,7 @@ const b = await chromium.launch({
 });
 const errors = [];
 try {
-  const p = await b.newPage({ viewport: { width: 1280, height: 900 } });
+  const p = await manualPage(b,{ viewport: { width: 1280, height: 900 } });
   p.on("pageerror", (e) => errors.push(e.message));
   p.on("console", (m) => {
     if (/GL_INVALID|Shader Error/.test(m.text())) errors.push(m.text());
@@ -29,7 +30,7 @@ try {
       g.nextGoldenTime =
       g.nextAltarTime =
         1e6;
-    g.stats.spells = {};
+    g.stats.spells = {};g.actions.syncSlots();
     g.invulnerable = 1e6;
     g._state.xpNeeded = 1e9;
   });
@@ -73,7 +74,7 @@ try {
     e.hp = e.maxHp = 1e6;
     e.speed = 0;
     const before = e.hp;
-    g.attack();
+    window.testStrike(g);
     for (let i = 0; i < 10; i++) g.advanceSimulation(1 / 60);
     const facing = g.player.rotation.y,
       counterPose = g.swordTrail.paths[0].length;
@@ -139,9 +140,9 @@ try {
     distance: window.__game.view.distance,
   }));
   await p.mouse.move(x, y);
-  await p.mouse.down({ button: "right" });
+  await p.mouse.down({ button: "middle" });
   await p.mouse.move(x + 90, y + 12, { steps: 5 });
-  await p.mouse.up({ button: "right" });
+  await p.mouse.up({ button: "middle" });
   await p.mouse.wheel(0, 250);
   assert.ok(
     await p.evaluate(
@@ -156,7 +157,7 @@ try {
     await p.evaluate(() => document.activeElement.id),
     "game-canvas",
   );
-  await p.keyboard.press("Space");
+  await p.keyboard.press("Shift");
   assert.ok(await p.evaluate(() => window.__game.dashTime > 0));
   await p.locator("#settings").focus();
   await p.mouse.click(x, y);
@@ -251,12 +252,13 @@ try {
   console.log(
     "PASS V and Korean physical V, settings mode selection, saved preference, menu hero preview and pause mouse release",
   );
+  await p.close();
   const context = await b.newContext({
     viewport: { width: 390, height: 844 },
     hasTouch: true,
     isMobile: true,
   });
-  const mobile = await context.newPage();
+  const mobile = await manualPage(context,);
   mobile.on("pageerror", (e) => errors.push(e.message));
   await mobile.goto(process.env.BASE_URL || "http://127.0.0.1:5181");
   await mobile.waitForFunction(() => window.__game?.artReady);

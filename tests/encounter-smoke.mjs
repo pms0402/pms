@@ -38,7 +38,7 @@ async function fixture(stage = 1) {
     }
     game._state.stage = stage; game._state.xpNeeded = 1e9;
     game.spawnTimer = game.attackTimer = game.nextChestTime = game.nextEliteTime = game.nextGoldenTime = game.nextAltarTime = 1e6;
-    game.stats.spells = { fireball: 0, frost: 0, lightning: 0, orbit: 0 };
+    game.stats.spells = { fireball: 0, frost: 0, lightning: 0, orbit: 0 };game.actions.syncSlots();
     game.stats.critChance = 0; game.stats.regen = 0;
     game.emit();
   }, stage);
@@ -109,7 +109,7 @@ try {
   assert.equal(splitter.children.length, 2);
   assert.ok(splitter.children.every(child => child.kind === 1 && child.minion && child.hp < splitter.parentHp));
   assert.equal(splitter.recursivelySplit, 0); assert.equal(splitter.crowdedCount, 160); assert.equal(splitter.crowdedChildren, 1);
-  near(splitter.xpAfterChildren, 3.5 * getXpDropMultiplier(6), 'later-floor XP applies to real parent and reduced minion drops');
+  near(splitter.xpAfterChildren, 3.5 * 3 * getXpDropMultiplier(6), 'later-floor XP applies to real parent and reduced minion drops');
   console.log('PASS splitter: actual death creates two weaker children, no recursive splitting, crowd cap respected');
 
   await fixture();
@@ -157,7 +157,7 @@ try {
   for (const [stage, type] of [[1, 'warden'], [2, 'artillery'], [3, 'plague'], [4, 'brood'], [5, 'storm'], [6, 'reaper']]) {
     await fixture(stage);
     patterns[type] = await page.evaluate(() => {
-      const game = window.__game, boss = game.spawnBoss(); boss.group.position.set(18, 0, 0); boss.actionTimer = 0;
+      const game = window.__game, boss = game.spawnBoss(); boss.group.position.set(boss.archetype==='plague'?6:18,0,0);boss.recoveryTime=0;boss.actionTimer=0;
       game.updateBoss(boss, .01);
       const warning = { archetype: boss.archetype, mode: boss.mode, zones: game.bossSystem.zones.length, telegraph: !!boss.telegraph?.parent, position: boss.group.position.toArray(), target: boss.blinkTarget?.toArray(), aim: boss.aimDirection?.toArray(), hp: game.state.hp };
       if (boss.archetype === 'plague') {
@@ -177,7 +177,7 @@ try {
       }
       const result = { warning, after: { mode: boss.mode, position: boss.group.position.toArray(), bolts: game.enemyProjectiles.length, minions: game.enemies.filter(enemy => enemy.minion).length, zones: game.bossSystem.zones.length, casts: game.bossSystem.getDebugState().actions }, velocities: game.enemyProjectiles.map(shot => shot.velocity.toArray()) };
       if (boss.archetype === 'storm') {
-        boss.mode = 'chase'; boss.actionTimer = 0; game.updateBoss(boss, .01);
+        boss.mode = 'chase';boss.recoveryTime=0;boss.actionTimer=0;game.updateBoss(boss,.01);
         result.secondWarning = boss.mode;
         result.secondRadius = Math.max(...game.bossSystem.zones.map(zone => zone.radius));
       }
@@ -209,7 +209,7 @@ try {
     const warning = game.bossSystem.zones[0].warning;
     game.pause(); game.stepForTest(2);
     const pausedWarning = game.bossSystem.zones[0].warning;
-    game.start(); game.spawnTimer = game.attackTimer = game.nextAltarTime = 1e6; game.stats.spells = { fireball: 0, frost: 0, lightning: 0, orbit: 0 };
+    game.start(); game.spawnTimer = game.attackTimer = game.nextAltarTime = 1e6; game.stats.spells = { fireball: 0, frost: 0, lightning: 0, orbit: 0 };game.actions.syncSlots();
     const hp = game.state.hp; game.stepForTest(.5);
     return { warning, pausedWarning, debug: game.bossSystem.getDebugState(), hp, afterHp: game.state.hp };
   });
@@ -221,7 +221,7 @@ try {
   const stress = await page.evaluate(() => {
     const game = window.__game, boss = game.spawnBoss();
     while (game.enemies.length < 160) game.spawnEnemy(20, 20, 0);
-    for (let index = 0; index < 15; index++) { boss.mode = 'chase'; boss.actionTimer = 0; game.updateBoss(boss, .01); game.updateBoss(boss, 1.2); }
+    for (let index = 0; index < 15; index++) { boss.mode = 'chase';boss.recoveryTime=0;boss.actionTimer=0;game.updateBoss(boss,.01); game.updateBoss(boss, 1.2); }
     const summons = game.bossSystem.summoned;
     for (let index = 0; index < 50; index++) {
       game.bossSystem.zone(game.player.position, 2, 1, 2, 1);

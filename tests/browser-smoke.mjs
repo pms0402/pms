@@ -1,3 +1,4 @@
+import {manualPage} from './manual-fixtures.mjs';
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 
@@ -10,7 +11,7 @@ const browser = await chromium.launch({
 const baseURL = process.env.BASE_URL || 'http://localhost:5173';
 const errors = [];
 const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
-const page = await context.newPage();
+const page = await manualPage(context);
 page.on('pageerror', (error) => errors.push(error.message));
 const phase = () => page.evaluate(() => window.__game.state.phase);
 const modalVisible = () => page.locator('#modal-backdrop').isVisible();
@@ -76,8 +77,8 @@ try {
     // Stay clear of an attack boundary so a random critical hit cannot remove the fixture first.
     if (game.attackTimer < 0.05) game.stepForTest(0.1);
     game._state.hp = 1;
-    game.spawnEnemy(game.player.position.x + 0.1, game.player.position.z, 2);
-    game.stepForTest(0.02);
+    const e=game.spawnEnemy(game.player.position.x + 0.1, game.player.position.z, 2);
+    window.testEnemyStrike(game,e);
   });
   assert.equal(await phase(), 'over');
   assert.equal(await page.locator('.modal-result').isVisible(), true);

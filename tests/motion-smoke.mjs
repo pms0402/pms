@@ -1,10 +1,11 @@
+import {manualPage} from './manual-fixtures.mjs';
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 
 const browser = await chromium.launch({ executablePath: '/usr/bin/chromium', headless: true, args: ['--no-sandbox', '--enable-unsafe-swiftshader', '--use-angle=swiftshader'] });
 const errors = [];
 try {
-  const page = await browser.newPage({ viewport: { width: 1180, height: 820 } });
+  const page = await manualPage(browser,{ viewport: { width: 1180, height: 820 } });
   page.on('pageerror', error => errors.push(error.message));
   await page.goto(process.env.BASE_URL || 'http://127.0.0.1:5174');
   await page.waitForFunction(() => window.__game?.frames > 1);
@@ -14,7 +15,7 @@ try {
     const angle = (a, b) => ((b - a + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
     const setup = () => {
       g.start(); g.spawnTimer = g.attackTimer = g.nextChestTime = g.nextEliteTime = g.nextGoldenTime = g.nextAltarTime = 1e6;
-      g.stats.spells = {}; g.stats.critChance = 0; g.invulnerable = 1e6; g._state.xpNeeded = 1e9; g.setPlaybackSpeed(1);
+      g.stats.spells = {};g.actions.syncSlots(); g.stats.critChance = 0; g.invulnerable = 1e6; g._state.xpNeeded = 1e9; g.setPlaybackSpeed(1);
     };
     const advance = (seconds, hz = 60) => { for (let i = 0; i < Math.round(seconds * hz); i++) g.advanceSimulation(1 / hz); };
     const pose = () => [g.legLeft.rotation.x, g.legRight.rotation.x, g.kneeLeft.rotation.x, g.kneeRight.rotation.x, g.rightShoulder.rotation.x];
@@ -33,12 +34,12 @@ try {
     const combatFacingUnchanged = g.player.rotation.y === logicalFacing;
     const enemy = g.spawnEnemy(g.player.position.x, g.player.position.z + 2, 0); enemy.speed = 0; enemy.hp = enemy.maxHp = 1e6;
     const stats = JSON.stringify(g.stats), hpBefore = enemy.hp;
-    g.attack(); const immediateHit = enemy.hp < hpBefore, hpAfter = enemy.hp;
+    window.testStrike(g); const immediateHit = enemy.hp < hpBefore, hpAfter = enemy.hp;
     const duration = g.attackAnimTotal; advance(.4);
     const noExtraHits = enemy.hp === hpAfter, sameStats = JSON.stringify(g.stats) === stats;
     g.stats.swordEvolution = 'twinblade'; g.applyLoadoutAppearance();
     enemy.group.position.set(g.player.position.x, g.player.position.y, g.player.position.z + 2); enemy.stagger.set(0, 0, 0); g.spatialDirty = true;
-    const twinAttack = g.attack(); advance(.1);
+    const twinAttack = window.testStrike(g); advance(.1);
     const twinYaw = g.leftShoulder.rotation.y;
     advance(.7); const recoveredTwinYaw = g.leftShoulder.rotation.y;
     g.dash(); advance(1 / 60); const dashLean = g.playerVisual.rotation.x; advance(.8); const restLean = g.playerVisual.rotation.x;
@@ -67,7 +68,7 @@ try {
   assert.ok(result.stopStep < .13 && result.releaseStride > .6, 'release blends out rather than snapping legs to idle');
   assert.ok(result.settled.stride < .001 && Math.abs(result.settled.leg) < .003);
   assert.ok(result.turnStep > 0 && result.turnStep < .5 && result.combatFacingUnchanged);
-  assert.ok(result.immediateHit && result.noExtraHits && result.sameStats && result.duration === .3);
+  assert.ok(result.immediateHit && result.noExtraHits && result.sameStats && result.duration === .54);
   assert.ok(result.twinAttack && Math.abs(result.twinYaw) > .05 && Math.abs(result.recoveredTwinYaw) < .001, JSON.stringify({twinAttack:result.twinAttack,yaw:result.twinYaw,recovered:result.recoveredTwinYaw}));
   assert.ok(result.dashLean > .01 && result.dashLean < .15 && Math.abs(result.restLean) < .003);
   assert.ok(result.finiteCrowd && result.cleanPool && result.batch.instances > 500 && result.calls < 300);
