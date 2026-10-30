@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { swordPoseProgress } from './action-combat.js';
 const CORNERS = [
   [0, false],
   [0, true],
@@ -58,7 +59,7 @@ export class SwordTrail {
       counter = manual?g.actions.current.counter:g.counterAnim > 0,
       total = manual?g.attackAnimTotal:counter ? 0.38 : g.attackAnimTotal || 0.3,
       remaining = manual?g.attackAnim:counter ? g.counterAnim : g.attackAnim,
-      progress = 1 - remaining / total;
+      progress = manual?swordPoseProgress(g.actions.current):1 - remaining / total;
     if (
       remaining <= 0 ||
       progress < 0.18 ||

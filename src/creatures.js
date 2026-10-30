@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { monsterJoint } from './monster-motion.js';
 import { damp, angleDelta, createActorMotion, advanceActorMotion, swordSwing } from './motion.js';
+import { swordPoseProgress } from './action-combat.js';
 const UP=new THREE.Vector3(0,1,0);
 function tools(game,parent,kind) {
  const {geo,mats}=game;
@@ -100,7 +101,7 @@ export function animatePlayerModel(game,time,moving,dt) {
  advanceActorMotion(state,game.player,dt,game.stats.speed,moving&&!dashing);
  const manualAction=game.actions?.current?.type==='sword'?game.actions.current:null;const counter=manualAction?manualAction.counter:game.counterAnim>0;
  const stride=state.stride,gait=Math.sin(state.phase)*stride,attack=game.attackAnim>0||counter,first=game.view?.firstPerson(),pitch=first?game.view.pitch.first:0;
- const t=manualAction?manualAction.elapsed/manualAction.duration:counter?1-game.counterAnim/.38:attack?1-game.attackAnim/(game.attackAnimTotal||.3):0;
+ const t=manualAction?swordPoseProgress(manualAction):counter?1-game.counterAnim/.38:attack?1-game.attackAnim/(game.attackAnimTotal||.3):0;
  const ready=game.swordReady||0,heavy=game.actions?.current?.heavy||game.stats.weaponId==='greatsword'||game.stats.swordEvolution==='broadsword',cast=Math.sin(Math.max(0,game.playerCastTime||0)/.3*Math.PI),swing=attack?Math.sin(Math.PI*t)**2:ready*.22,side=counter?1:attack?(game.swingSide||1):-(game.swingSide||-1),yaw=(attack?swordSwing(t):-.72*ready)*side*(counter?1.3:heavy?1.12:1);
  // Faster weapons retain their full stroke rather than losing it to a slow filter.
  const armRate=attack?Math.max(24,5/(game.attackAnimTotal||.3)):18;
@@ -111,7 +112,9 @@ export function animatePlayerModel(game,time,moving,dt) {
  joint(game.kneeRight,'x',.08+Math.max(0,Math.sin(state.phase))**2*.5*stride);
  joint(game.footLeft,'x',-(game.legLeft.rotation.x+game.kneeLeft.rotation.x)*.65);
  joint(game.footRight,'x',-(game.legRight.rotation.x+game.kneeRight.rotation.x)*.65);
- joint(game.rightShoulder,'y',game.parry?.active>0?-.3:yaw,armRate);joint(game.rightShoulder,'x',game.parry?.active>0?-1.1:first?-.45-swing*.45+pitch*.65:gait*.25-swing*1.05,armRate);
+ const cut=manualAction?.finisher?-.24:manualAction?.comboIndex%2?.18:0;
+ joint(game.rightShoulder,'z',cut*swing,armRate);
+ joint(game.rightShoulder,'y',game.parry?.active>0?-.3:yaw,armRate);joint(game.rightShoulder,'x',game.parry?.active>0?-1.1:first?-.45-swing*.45+pitch*.65:gait*.25-swing*(manualAction?.finisher?1.3:1.05),armRate);
  const twin=game.stats.swordEvolution==='twinblade'||game.stats.weaponId==='tempest';
  joint(game.leftShoulder,'z',heavy?swing*.95:0,armRate);
  joint(game.leftShoulder,'x',(first?-.45+(twin?-swing*.45:0)+pitch*.65:-gait*.25+(twin?swing*.4:-swing*.16))-(twin?0:cast*.8),armRate);joint(game.leftShoulder,'y',twin?-yaw:0,armRate);

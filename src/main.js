@@ -112,7 +112,7 @@ $('#app').innerHTML = `
           <button class="primary-button start-button" id="start-button"><span>${icon('play')} 런 시작하기</span>${icon('arrow')}</button>
           <button class="secondary-button camp-entry" id="enter-camp">3D 야영지 · 시설과 기록관</button><div class="mode-actions"><button class="secondary-button" id="mode-button">일반 모드 · 1–10층</button><button class="secondary-button" id="abyss-records-button">심연 기록 · 업적</button></div><div class="start-footnote"><span class="live-dot"></span> 설치 없이 바로 플레이 <span>·</span> ${STAGE_DURATION / 60}분 × ${MAX_STAGES}층 · 층마다 다른 수호자</div>
         </div>
-        <div class="camp-navigation hidden" id="camp-navigation"><strong id="camp-nearby"></strong><div>${CAMP_FACILITIES.map(f=>`<button data-camp-facility="${f.id}">${f.name}</button>`).join('')}<button id="leave-camp">메뉴</button></div><small>WASD / 드래그 이동 · 근처에서 R · 버튼으로 빠른 이용</small></div><div class="side-area-status hidden" id="side-area-status"></div><div class="passive-status"><span id="job-passive" class="hidden"></span><button id="set-passive" class="hidden" title="세트 효과 설명"></button></div>
+        <div class="camp-navigation hidden" id="camp-navigation"><strong id="camp-nearby"></strong><div>${CAMP_FACILITIES.map(f=>`<button data-camp-facility="${f.id}">${f.name}</button>`).join('')}<button id="leave-camp">메뉴</button></div><small>WASD / 드래그 이동 · 근처에서 C · 버튼으로 빠른 이용</small></div><div class="side-area-status hidden" id="side-area-status"></div><div class="passive-status"><span id="job-passive" class="hidden"></span><button id="set-passive" class="hidden" title="세트 효과 설명"></button></div>
         <div class="scene-coordinate">SECTOR_001 <span>35° 41′ N / 139° 41′ E</span></div>
         <div class="combo-display hidden" id="combo-display"><strong id="combo-value"></strong><span>CHAIN KILLS</span></div>
         <div class="parry-callout hidden" id="parry-callout" role="status" aria-live="polite"><strong>PERFECT PARRY</strong><small>2초 안 직접 공격 · 광역 반격</small></div>
@@ -123,7 +123,7 @@ $('#app').innerHTML = `
           <div class="dash-indicator hidden" id="dash-indicator"><kbd>SHIFT</kbd><div><strong id="dash-status">대시 준비</strong><div class="dash-track"><div id="dash-fill"></div></div></div>${icon('bolt')}</div>
           <div class="scene-tag" id="scene-tag"><span class="live-dot"></span> REAL-TIME 3D</div>
         </div>
-        <div class="expedition-actions hidden" id="expedition-actions"><button id="guard-button">패링 · F</button><button id="equipment-button">장비 · TAB</button><button id="interact-npc" class="hidden">교류 · C</button><span id="abyss-rule" class="hidden"></span></div><div class="growth-toolbar hidden" id="growth-toolbar"><div class="spell-loadout" id="spell-loadout" aria-label="보유 마법">${[0,1,2,3].map(index=>`<button class="spell-slot locked" data-action-slot="${index}" aria-label="수동 스킬 ${index+1}"><kbd>${['Q','E','R','X'][index]}</kbd><span class="spell-slot-icon">${icon('bolt')}</span><span class="spell-slot-rank">—</span><span class="spell-cooldown"></span></button>`).join('')}</div><div id="synergy-status" class="synergy-status hidden" aria-label="발동 중인 조합"></div><button id="run-build-button" class="shop-button">${icon('book')} 이번 런 빌드 <span id="reward-pending" class="reward-pending hidden" title="다음 레벨업의 선택 보상"></span><kbd>B</kbd></button></div>
+        <div class="expedition-actions hidden" id="expedition-actions"><button id="guard-button">패링 · F</button><button id="equipment-button">장비 · TAB</button><button id="interact-npc" class="hidden">교류 · C</button><span id="abyss-rule" class="hidden"></span></div><div class="growth-toolbar hidden" id="growth-toolbar"><div class="spell-loadout" id="spell-loadout" aria-label="보유 마법">${[0,1,2,3].map(index=>`<button class="spell-slot locked" data-action-slot="${index}" aria-label="수동 스킬 ${index+1}"><kbd>${['Q','E','R','X'][index]}</kbd><span class="spell-slot-icon">${icon('bolt')}</span><span class="spell-slot-rank">—</span><span class="spell-cooldown"></span></button>`).join('')}</div><div id="synergy-status" class="synergy-status hidden" aria-label="발동 중인 조합"></div><button id="run-build-button" class="shop-button">${icon('book')} 배치 · 빌드 <span id="reward-pending" class="reward-pending hidden" title="다음 레벨업의 선택 보상"></span><kbd>B</kbd></button></div>
         <div class="manual-combat-readout"><span id="manual-combo">좌클릭 · 일반 공격</span><span id="manual-heavy">우클릭 · 강공격</span></div><div class="mobile-actions" id="mobile-actions"><button id="mobile-light" aria-label="일반 공격">공격</button><button id="mobile-heavy" aria-label="강공격 차징">강공격</button><button id="mobile-parry" aria-label="패링">패링</button></div><div id="virtual-stick" class="virtual-stick hidden" aria-hidden="true"><i></i></div><div id="hit-direction" aria-hidden="true"></div><div id="view-reticle" class="hidden" aria-hidden="true"></div><div id="view-hint" class="hidden"><span class="desktop-look"></span><span class="mobile-look">왼쪽 이동 · 오른쪽 드래그 시점</span></div><div class="touch-controls hidden" id="touch-controls"><div class="dpad"><button data-move="0,-1" aria-label="위로 이동">↑</button><button data-move="-1,0" aria-label="왼쪽 이동">←</button><button data-move="0,1" aria-label="아래로 이동">↓</button><button data-move="1,0" aria-label="오른쪽 이동">→</button></div><button id="touch-dash" aria-label="대시">${icon('bolt')}</button></div>
         <div class="canvas-error hidden" id="canvas-error"><h2>3D 화면을 시작할 수 없어요</h2><p>브라우저의 하드웨어 가속을 켠 뒤 새로고침해 주세요.</p><button class="primary-button" id="reload">새로고침 ${icon('refresh')}</button></div>
       </div>
@@ -220,7 +220,7 @@ function update(state) {
   $('#stage-progress').style.width = `${state.stageTime / STAGE_DURATION * 100}%`;
   const risk = state.phase === 'menu' ? getRiskStats(prefs.risk) : state.risk || getRiskStats(prefs.risk);
   const goldBonus = (risk.goldMultiplier || 1) * (state.playerStats?.goldMultiplier || 1);
-  hud('#reward-multiplier', `${formatGold((state.stageStats || getStageStats(state.stage)).coinValue)} G · ×${decimal(goldBonus, 2)}`);
+  hud('#reward-multiplier', `${decimal((state.stageStats || getStageStats(state.stage)).coinValue * 2.5,1)} G · ×${decimal(goldBonus, 2)}`);
   $('#reward-multiplier').title = `기본 처치 골드 × 계약 × 유물·영구 강화 × 제단·경로·지역. 현재 총 보상 배율 ×${decimal(goldBonus, 2)}`;
   const enemyStats = state.stageStats || getStageStats(state.stage), baseEnemyStats = getStageStats(1);
   hud('#enemy-multiplier', `×${decimal(enemyStats.enemyHealth / baseEnemyStats.enemyHealth * (risk.enemyHealth || 1))} / ×${decimal(enemyStats.enemyDamage / baseEnemyStats.enemyDamage * (risk.enemyDamage || 1))}`);
@@ -311,7 +311,7 @@ function handleControlAction(action){
 let returnFocus;
 function openModal(name, content, { pause = true, closeable = true } = {}) {
   if (isChoiceDialog() && name !== dialogName && name !== 'result' && !(choiceDialogs.has(name) && game?._state.phase === name)) return false;
-  returnFocus = document.activeElement;
+  game?.actions.clearInput();if(['inventory','skills','permanent'].includes(name))game?.actions.cancel();returnFocus = document.activeElement;
   game?.view.release();
   if (game?.camp.active) { game.camp.suspended = true; game.keys.clear(); game.touchMove = {x:0,y:0}; }
   if (pause && latest?.phase === 'playing') { pausedForDialog = true; game.pause(); }
@@ -659,7 +659,7 @@ function showResult() {
 }
 try {
   game = new Game($('#game-canvas'), {
-    onUpdate: update,isUIBlocked:()=>!!dialogName,onControlAction:handleControlAction,onSkillSwap:()=>actionUi?.replacement(),onJoystick:data=>actionUi?.joystick(data),onSkillReady:id=>{const b=document.querySelector(`[data-spell="${id}"]`);if(b){b.classList.add('just-ready');setTimeout(()=>b.classList.remove('just-ready'),600);}},
+    onRunStart:()=>forceCloseModal(),onUpdate: update,isUIBlocked:()=>!!dialogName,onControlAction:handleControlAction,onSkillSwap:()=>actionUi?.replacement(),onJoystick:data=>actionUi?.joystick(data),onSkillReady:id=>{const b=document.querySelector(`[data-spell="${id}"]`);if(b){b.classList.add('just-ready');setTimeout(()=>b.classList.remove('just-ready'),600);}},
     onPlayerImpact: ({source})=>{const angle=source?Math.atan2(-(source.x-game.player.position.x)*Math.cos(game.view.yaw)+(source.z-game.player.position.z)*Math.sin(game.view.yaw),(source.x-game.player.position.x)*Math.sin(game.view.yaw)+(source.z-game.player.position.z)*Math.cos(game.view.yaw)):0;const el=$('#hit-direction');el.style.setProperty('--hit-angle',`${angle*180/Math.PI}deg`);el.classList.add('active');clearTimeout(impactTimeout);impactTimeout=setTimeout(()=>el.classList.remove('active'),250);},
     onViewChange: view => {prefs.viewMode=view.mode;store('voidrun.preferences',prefs);syncView(view);},
     onLevelUp,
@@ -696,7 +696,7 @@ try {
     onGameOver: state => finish(state, false),
     onWin: state => finish(state, true),
   });
-  window.__game = game;actionUi=createActionUi({game,openModal,forceCloseModal,notify:showToast,prefs,save:()=>store('voidrun.preferences',prefs),icon});actionUi.bind();$('#mobile-actions').appendChild($('#touch-dash'));game.setBindings(prefs.bindings);game.actions.hasAim=false;
+  window.__game = game;actionUi=createActionUi({game,openModal,forceCloseModal,notify:showToast,prefs,save:()=>store('voidrun.preferences',prefs),icon,showBuild});actionUi.bind();$('#mobile-actions').appendChild($('#touch-dash'));game.setBindings(prefs.bindings);game.actions.hasAim=false;
   game.abyssUnlocked = endgame.unlocked;
   expansionUI = createExpansionUi({game, openModal, forceClose: forceCloseModal, closeModal, notify: showToast, readEndgame: () => endgame});
   chronicleUI = createChronicleUi({game, openModal, forceClose:forceCloseModal, closeModal, notify:showToast, showGuide, showBuild, showLoadout:()=>{campTab='loadout';showPermanentUpgrades();}, showTree:()=>{campTab='tree';showPermanentUpgrades();}, startRun, readHistory:()=>history, setRisk:id=>{prefs.risk=id;store('voidrun.preferences',prefs);game.setRiskPact(id);syncRisk();}});
@@ -744,7 +744,7 @@ function syncView(view=game?.view.getState()){
   $('#view-hint').classList.toggle('hidden',!active||view.mode==='overhead');
   $('#view-reticle').classList.toggle('hidden',!active||view.mode!=='first');
   document.body.dataset.view=game?.view.effectiveMode()||view.mode;
-  $('#view-hint .desktop-look').textContent=view.locked?'마우스 시점 · ESC 잠금 해제':view.mode==='first'?'클릭하여 마우스 잠금 · 드래그도 가능':'드래그로 둘러보기 · 휠로 거리 조절';
+  $('#view-hint .desktop-look').textContent=view.locked?'마우스 조준 · ESC 일시정지':'클릭으로 시점 잠금 · 가운데 버튼 드래그';
   document.querySelectorAll('[data-view-mode]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.viewMode===view.mode)));
 }
 $('#camera-mode').addEventListener('click',event=>{event.preventDefault();game?.view.cycle();$('#game-canvas').focus({preventScroll:true});});
@@ -754,7 +754,7 @@ $('#game-speed').addEventListener('click', () => {
   prefs.speed = (game.state.playbackSpeed || 1) % 3 + 1;
   game.setPlaybackSpeed(prefs.speed); store('voidrun.preferences', prefs);
 });
-$('#run-build-button').addEventListener('click', showBuild);
+$('#run-build-button').addEventListener('click',()=>actionUi.loadout());
 $('#build-info').addEventListener('click', showBuild);
 $('#region-info').addEventListener('click', showBuild);
 $('#synergy-status').addEventListener('click', event => { if (event.target.closest('[data-open-build]')) showBuild(); });

@@ -47,7 +47,7 @@ export class ViewController {
     this.canvas = game.renderer.domElement;
     this.onMouseMove = (e) => {
       if (document.pointerLockElement === this.canvas && this.canLook())
-        {this.rotate(e.movementX, e.movementY);this.game.actions?.setAim(new THREE.Vector3(Math.sin(this.yaw),0,Math.cos(this.yaw)));}
+        {this.rotate(e.movementX, e.movementY);this.game.aimFromView?.();}
     };
     this.onLockChange = () => {
       const locked=document.pointerLockElement===this.canvas;if(!locked&&this.wasLocked&&!this.releasing&&this.game._state.phase==='playing'){this.game.unlockPauseAt=performance.now();this.game.callbacks.onControlAction?.('pause');}this.wasLocked=locked;this.releasing=false;
@@ -98,6 +98,7 @@ export class ViewController {
     this.snap = true;
     this.game.swordTrail?.reset();
     this.update(0);
+    if(mode!=='overhead')this.game.aimFromView?.();
     this.game.callbacks.onViewChange?.(this.getState());
     return true;
   }
@@ -119,6 +120,7 @@ export class ViewController {
       mode === "first" ? -1.2 : -0.1,
       1.15,
     );
+    this.game.aimFromView?.();
   }
   pointerDown(e) {
     if (this.mode === "overhead" || !this.canLook()) return false;

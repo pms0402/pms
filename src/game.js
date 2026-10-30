@@ -10,7 +10,7 @@ import { CURSES, ROUTES, getRunModifiers, getCurseChoices } from './run-events.j
 import { getActiveSynergies } from './synergies.js';
 import { createTerrainWorld } from './world.js';
 import { buildMonster, createPlayerModel, animatePlayerModel, animateEnemyModel } from './creatures.js';
-import { createActorMotion, beginSwordStroke } from './motion.js';
+import { createActorMotion } from './motion.js';
 import { tagMotionGeometry } from './monster-motion.js';
 import { EnemyRenderer } from './enemy-renderer.js';
 import { createPresentationAssets } from './presentation.js';
@@ -610,7 +610,7 @@ export class Game {
     this.onPointerCancel=event=>{this.actions.clearInput();this.view.pointerUp(event);if(this.touchStart?.id===event.pointerId){this.touchStart=null;this.setMove(0,0);this.callbacks.onJoystick?.(null);}};
     const canvas=this.renderer.domElement;canvas.addEventListener('pointerdown',this.onPointerDown);canvas.addEventListener('pointermove',this.onPointerMove);canvas.addEventListener('pointerup',this.onPointerUp);canvas.addEventListener('pointercancel',this.onPointerCancel);canvas.addEventListener('lostpointercapture',this.onPointerCancel);
   }
-  triggerControl(action){if(action==='dash')return this.dash();if(action==='parry'){this.actions.cancel();return this.parry.press();}if(action==='interact')return this.interact();if(['light','heavy','skill0','skill1','skill2','ultimate'].includes(action))return this.actions.press(action);return this.callbacks.onControlAction?.(action)||false;}
+  triggerControl(action){if(action==='light'&&this._state.phase==='camp'&&this.camp.practice)return this.camp.counter();if(action==='dash')return this.dash();if(action==='parry'){this.actions.cancel();return this.parry.press();}if(action==='interact')return this.interact();if(['light','heavy','skill0','skill1','skill2','ultimate'].includes(action))return this.actions.press(action);return this.callbacks.onControlAction?.(action)||false;}
   setBindings(bindings){this.bindings=normalizeBindings(bindings);this.onBlur();return this.bindings;}
   aimFromView(){const mode=this.view.effectiveMode(),pitch=this.view.pitch[mode]||.03,distance=clamp((mode==='first'?2.105:1.2)*this.player.scale.y/Math.max(.03,Math.tan(pitch)),2,18),yaw=this.view.yaw,side=mode==='third'?(this.camera.aspect<.9?.55:1.15):0;this.actions.setAim(new THREE.Vector3(Math.sin(yaw)*distance-Math.cos(yaw)*side,0,Math.cos(yaw)*distance+Math.sin(yaw)*side),distance);}
   aimPointer(event){
@@ -623,8 +623,8 @@ export class Game {
   setMove(x, y) { this.touchMove = { x: clamp(x, -1, 1), y: clamp(y, -1, 1) }; }
   setMoveInput(x, y) { this.setMove(x, y); }
   inputDirection() {
-    let x = (this.keys.has(this.bindings.right) || this.keys.has('arrowright') ? 1 : 0) - (this.keys.has(this.bindings.left) || this.keys.has('arrowleft') ? 1 : 0) + this.touchMove.x;
-    let y = (this.keys.has(this.bindings.back) || this.keys.has('arrowdown') ? 1 : 0) - (this.keys.has(this.bindings.forward) || this.keys.has('arrowup') ? 1 : 0) + this.touchMove.y;
+    let x = (this.keys.has(this.bindings.right) || (this.keys.has('arrowright') && !Object.values(this.bindings).includes('arrowright')) ? 1 : 0) - (this.keys.has(this.bindings.left) || (this.keys.has('arrowleft') && !Object.values(this.bindings).includes('arrowleft')) ? 1 : 0) + this.touchMove.x;
+    let y = (this.keys.has(this.bindings.back) || (this.keys.has('arrowdown') && !Object.values(this.bindings).includes('arrowdown')) ? 1 : 0) - (this.keys.has(this.bindings.forward) || (this.keys.has('arrowup') && !Object.values(this.bindings).includes('arrowup')) ? 1 : 0) + this.touchMove.y;
     const length = Math.hypot(x, y); if (length > 1) { x /= length; y /= length; }
     if(this.view?.mode!=='overhead')return viewMovement(x,y,this.view.yaw);
     return new THREE.Vector3((x + y) * Math.SQRT1_2, 0, (y - x) * Math.SQRT1_2);
@@ -636,6 +636,7 @@ export class Game {
     if (direction.lengthSq() > 0.01) this.dashDirection.copy(direction).normalize();
     else this.dashDirection.set(Math.sin(this.player.rotation.y), 0, Math.cos(this.player.rotation.y));
     this.equipmentDashUntil = this._state.elapsed + 3;
+    this.manualDashUntil = this._state.elapsed + .7;
     this.dashTime = 0.2; this.dashCooldown = 2.4; this.invulnerable = 0.28;
     if (this.stats.dashShockwave) {
       this.puff(this.player.position, '#a4e8ff', 3, 0.35);
@@ -645,6 +646,7 @@ export class Game {
   }
 
   start() {
+    this.callbacks.onRunStart?.();
     this.camp?.leave(); this.clearDynamic(); this.runRisk = this.selectedRisk; this.stats = this.freshStats(); this._state = this.freshState('playing');
     this._state.weaponName = { voidblade: '공허의 검', tempest: '질풍의 검', greatsword: '파쇄 대검' }[this.stats.weaponId];
     this.applyLoadoutAppearance();
@@ -1413,7 +1415,7 @@ export class Game {
     this.defeats.capture(enemy,direction);
     this.releaseEnemy(enemy);
     if (enemy.kind === 7 && !enemy.minion && !enemy.splitChild) {
-      const limit = Math.min(160, this.stageStats().maxEnemies);
+      const limit = 160; // Split events may exceed the ambient pressure budget, never the hard cap.
       for (const side of [-1, 1]) if (this.enemies.length < limit) this.spawnEnemy(position.x + side * .7, position.z, 1, { minion: true, splitChild: true });
       this.puff(position, '#81e4c5', 1, .3);
     }

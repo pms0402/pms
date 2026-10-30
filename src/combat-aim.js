@@ -1,8 +1,114 @@
-import * as THREE from 'three';
-import {getSwordProfile} from './sword.js';
-/** One fixed line buffer: visual range is the same sector/target used by actions. */
-export class CombatAim{
- constructor(game){this.game=game;this.geometry=new THREE.BufferGeometry();this.points=new Float32Array(360);this.geometry.setAttribute('position',new THREE.BufferAttribute(this.points,3).setUsage(THREE.DynamicDrawUsage));this.material=new THREE.LineBasicMaterial({color:'#b9d1df',transparent:true,opacity:.25,depthWrite:false});this.mesh=new THREE.LineSegments(this.geometry,this.material);this.mesh.frustumCulled=false;this.mesh.renderOrder=3;game.scene.add(this.mesh);}
- update(){const g=this.game,a=g.actions.current;this.mesh.visible=g._state.phase==='playing';if(!this.mesh.visible)return;const skill=a?.type==='skill',origin=skill?(a.id==='frost'?g.player.position:a.target):g.player.position,p=skill?{range:g.magic.radius(a.id),arc:Math.PI*2}:a?.profile||getSwordProfile(g.stats),yaw=skill?0:Math.atan2((a?.direction||g.actions.direction()).x,(a?.direction||g.actions.direction()).z);let at=0;const put=(angle,r)=>{const x=origin.x+Math.sin(angle)*r,z=origin.z+Math.cos(angle)*r;this.points[at++]=x;this.points[at++]=g.groundHeight(x,z)+.12;this.points[at++]=z;};const n=44;for(let i=0;i<n;i++){put(yaw-p.arc/2+p.arc*i/n,p.range);put(yaw-p.arc/2+p.arc*(i+1)/n,p.range);}if(!skill){put(yaw-p.arc/2,p.range);put(yaw-p.arc/2,.2);put(yaw+p.arc/2,.2);put(yaw+p.arc/2,p.range);}this.geometry.setDrawRange(0,at/3);this.geometry.attributes.position.needsUpdate=true;this.material.color.set(g.actions.charging?'#efc276':skill?'#c69fe6':'#b9d1df');}
- dispose(){this.mesh.removeFromParent();this.geometry.dispose();this.material.dispose();}
+import * as THREE from "three";
+import { swordAction } from "./action-combat.js";
+/** A fixed line buffer follows the same action snapshot and radii as collision. */
+export class CombatAim {
+  constructor(game) {
+    this.game = game;
+    this.geometry = new THREE.BufferGeometry();
+    this.points = new Float32Array(360);
+    this.geometry.setAttribute(
+      "position",
+      new THREE.BufferAttribute(this.points, 3).setUsage(
+        THREE.DynamicDrawUsage,
+      ),
+    );
+    this.material = new THREE.LineBasicMaterial({
+      color: "#b9d1df",
+      transparent: true,
+      opacity: 0.25,
+      depthWrite: false,
+    });
+    this.mesh = new THREE.LineSegments(this.geometry, this.material);
+    this.mesh.frustumCulled = false;
+    this.mesh.renderOrder = 3;
+    game.scene.add(this.mesh);
+  }
+  update() {
+    const g = this.game,
+      a = g.actions.current;
+    this.mesh.visible = g._state.phase === "playing";
+    if (!this.mesh.visible) return;
+    const dir = a?.direction || g.actions.direction(),
+      yaw = Math.atan2(dir.x, dir.z);
+    let at = 0;
+    const point = (x, z) => {
+      this.points[at++] = x;
+      this.points[at++] = g.groundHeight(x, z) + 0.12;
+      this.points[at++] = z;
+    };
+    const line = (x, z, u, v) => {
+      point(x, z);
+      point(u, v);
+    };
+    const sector = (origin, range, arc) => {
+      const put = (angle) =>
+        point(
+          origin.x + Math.sin(angle) * range,
+          origin.z + Math.cos(angle) * range,
+        );
+      for (let i = 0; i < 44; i++) {
+        put(yaw - arc / 2 + (arc * i) / 44);
+        put(yaw - arc / 2 + (arc * (i + 1)) / 44);
+      }
+      if (arc < Math.PI * 2) {
+        put(yaw - arc / 2);
+        point(origin.x, origin.z);
+        point(origin.x, origin.z);
+        put(yaw + arc / 2);
+      }
+    };
+    const corridor = (range, width) => {
+      const p = g.player.position,
+        end = p.clone().addScaledVector(dir, range),
+        x = dir.z * width,
+        z = -dir.x * width;
+      line(p.x + x, p.z + z, end.x + x, end.z + z);
+      line(end.x + x, end.z + z, end.x - x, end.z - z);
+      line(end.x - x, end.z - z, p.x - x, p.z - z);
+    };
+    if (a?.type === "skill") {
+      if (a.id === "lightning") corridor(22, 2.2);
+      else {
+        sector(
+          a.id === "frost" ? g.player.position : a.target,
+          g.magic.radius(a.id),
+          Math.PI * 2,
+        );
+        if (a.id === "fireball")
+          line(
+            g.player.position.x,
+            g.player.position.z,
+            a.target.x,
+            a.target.z,
+          );
+      }
+    } else {
+      const profile =
+        a ||
+        swordAction(
+          g.stats,
+          g.combatStats,
+          g.actions.charging ? "heavy" : "light",
+          g.actions.combo,
+        );
+      if (profile.style === "wave" && !profile.counter)
+        corridor(profile.profile.range, profile.heavy ? 1.8 : 0.75);
+      else
+        sector(g.player.position, profile.profile.range, profile.profile.arc);
+    }
+    this.geometry.setDrawRange(0, at / 3);
+    this.geometry.attributes.position.needsUpdate = true;
+    this.material.color.set(
+      g.actions.charging
+        ? "#efc276"
+        : a?.type === "skill"
+          ? "#c69fe6"
+          : "#b9d1df",
+    );
+  }
+  dispose() {
+    this.mesh.removeFromParent();
+    this.geometry.dispose();
+    this.material.dispose();
+  }
 }

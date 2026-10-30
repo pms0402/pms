@@ -174,7 +174,7 @@ export class CampSystem {
     this.game.player.position.set(f.x, 0, f.z + 3);
     this.game.player.rotation.y = Math.PI;
     this.game.callbacks.onLoot?.(
-      "훈련 · 푸른 구체가 켜진 뒤 F / G. 체력과 런 통계는 변하지 않습니다.",
+      "훈련 · 푸른 구체가 켜진 뒤 F. 체력과 런 통계는 변하지 않습니다.",
     );
     return true;
   }
@@ -206,6 +206,7 @@ export class CampSystem {
     for (const f of CAMP_FACILITIES)
       this.markers.get(f.id).position.y =
         3.8 + Math.sin(this.time * 2 + f.x) * 0.12;
+    g.attackAnim=Math.max(0,g.attackAnim-dt);g.counterAnim=Math.max(0,g.counterAnim-dt);
     g.parry.update(dt);
     if (this.practice) {
       this.practiceTimer -= dt;
@@ -216,9 +217,9 @@ export class CampSystem {
         const blocked = g.parry.defend(new THREE.Vector3(f.x, 0, f.z));
         g.callbacks.onLoot?.(
           blocked === 0
-            ? "패링 연습 성공 · F / G로 반격"
+            ? "패링 연습 성공 · F로 반격"
             : blocked < 1
-              ? "기본 방어 성공 · 더 늦게 F / G를 눌러 보세요"
+              ? "기본 방어 성공 · 더 늦게 F를 눌러 보세요"
               : "훈련 공격 · 실제 체력 피해 없음",
         );
         this.practiceTimer = 3;

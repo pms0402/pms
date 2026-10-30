@@ -92,9 +92,6 @@ const EVOLUTIONS = {
 };
 
 const PASSIVES = [
-  {id:'spell_area',title:'넓어지는 각인',description:'수동 스킬 범위 ×1.12 · 실제 범위 최대 20m',rarity:'rare',icon:'orbit',weight:3,maxRank:6,branch:'magic'},
-  {id:'skill_multihit',title:'겹쳐지는 술식',description:'화염 투사체 +1 · 번개 대상 +2 · 서리 약한 여진 +1 · 룬 타격 간격 단축',rarity:'epic',icon:'bolt',weight:2,maxRank:3,branch:'magic'},
-  {id:'status_mastery',title:'잔류하는 마력',description:'상태 지속 강화 · 서리 빙결 최대 0.6초 · 화염 지대 유지 증가',rarity:'rare',icon:'snowflake',weight:2,maxRank:4,branch:'magic'},
   { id: 'power', title: '예리한 칼날', description: '검 공격력 ×1.2 · 마법과 별도 성장', rarity: 'rare', icon: 'sword', weight: 4, maxRank: 12, branch: 'sword' },
   { id: 'haste', title: '검술의 호흡', description: '검 모션 가속 능력치 +8% · 실제 모션 가속 최대 1.65배', rarity: 'rare', icon: 'sword', weight: 3, maxRank: 12, branch: 'sword' },
   { id: 'blade_range', title: '뻗어가는 칼끝', description: '검 타격 사거리 ×1.12 · 검 궤적과 실제 타격 범위가 함께 증가', rarity: 'rare', icon: 'sword', weight: 4, maxRank: 8, branch: 'sword' },
@@ -106,6 +103,9 @@ const PASSIVES = [
   { id: 'armor', title: '흑요석 조각', description: '받는 피해 감소 +2%p', rarity: 'rare', icon: 'shield', weight: 3, maxRank: 12 },
   { id: 'regen', title: '숲의 숨결', description: '초당 최대 체력의 0.2% 재생 추가', rarity: 'rare', icon: 'cross', weight: 2, maxRank: 10 },
   { id: 'speed', title: '가벼운 발걸음', description: '이동 속도 +3%', rarity: 'rare', icon: 'move', weight: 2, maxRank: 12 },
+  {id:'spell_area',title:'넓어지는 각인',description:'수동 스킬 범위 ×1.12 · 실제 범위 최대 20m',rarity:'rare',icon:'orbit',weight:3,maxRank:6,branch:'magic'},
+  {id:'skill_multihit',title:'겹쳐지는 술식',description:'화염 투사체 +1 · 번개 대상 +2 · 서리 약한 여진 +1 · 룬 타격 간격 단축',rarity:'epic',icon:'bolt',weight:2,maxRank:3,branch:'magic'},
+  {id:'status_mastery',title:'잔류하는 마력',description:'상태 지속 강화 · 서리 빙결 최대 0.6초 · 화염 지대 유지 증가',rarity:'rare',icon:'snowflake',weight:2,maxRank:4,branch:'magic'},
 ];
 
 const spellRank = (stats, id) => clamp(Math.floor(finite(stats?.spells?.[id], 0)), 0, 5);
