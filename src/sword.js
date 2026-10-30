@@ -6,9 +6,9 @@ export const BASE_SWORD_RANGE = 2.8;
 export const SWORD_EVOLUTION_REQUIREMENT = 3;
 
 export const SWORD_EVOLUTIONS = Object.freeze([
-  { id: 'blade_broadsword', mode: 'broadsword', title: '진화 · 거인의 대검', description: '180° 넓은 베기 · 검 피해 +35% · 공격 속도 -22%.', color: '#ffd18b', arc: radians(180), rangeMultiplier: 1, damageMultiplier: 1.35, attackRateMultiplier: 0.78 },
-  { id: 'blade_twinblade', mode: 'twinblade', title: '진화 · 질풍의 쌍검', description: '공격 속도 +75% · 검 피해 -28% · 사거리 -10% · 100° 연속 베기.', color: '#9cefff', arc: radians(100), rangeMultiplier: 0.9, damageMultiplier: 0.72, attackRateMultiplier: 1.75 },
-  { id: 'blade_wave', mode: 'wave', title: '진화 · 공허의 검기', description: '45° 직선 검기 · 사거리 +80% · 검 피해 +5% · 공격 속도 -15%.', color: '#d9adff', arc: radians(45), rangeMultiplier: 1.8, damageMultiplier: 1.05, attackRateMultiplier: 0.85 },
+  { id: 'blade_broadsword', mode: 'broadsword', title: '진화 · 거인의 대검', description: '180° 넓은 베기 · 검 피해 +35% · 모션 가속 능력치 -22%.', color: '#ffd18b', arc: radians(180), rangeMultiplier: 1, damageMultiplier: 1.35, attackRateMultiplier: 0.78 },
+  { id: 'blade_twinblade', mode: 'twinblade', title: '진화 · 질풍의 쌍검', description: '모션 가속 능력치 +75% · 검 피해 -8% · 사거리 -10% · 100° 연속 베기.', color: '#9cefff', arc: radians(100), rangeMultiplier: 0.9, damageMultiplier: 0.92, attackRateMultiplier: 1.75 },
+  { id: 'blade_wave', mode: 'wave', title: '진화 · 공허의 검기', description: '45° 직선 검기 · 사거리 +80% · 검 피해 +5% · 모션 가속 능력치 -15%.', color: '#d9adff', arc: radians(45), rangeMultiplier: 1.8, damageMultiplier: 1.05, attackRateMultiplier: 0.85 },
 ].map(Object.freeze));
 
 /** Stats, rendering and collision all consume this same measured sector. */

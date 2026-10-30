@@ -46,7 +46,7 @@ export class BossPhases {
     if (phase <= boss.combatPhase) return;
     for (let next = boss.combatPhase + 1; next <= phase; next++)
       this.transitions.push(next);
-    boss.combatPhase = phase;
+    boss.combatPhase = phase;boss.recoveryTime=0;
     boss.phaseCooldown = 2;
     if (boss.hiddenBoss) { boss.hiddenPending = null; boss.hiddenTimer = 1.5; }
     this.game.clearTelegraph?.(boss);

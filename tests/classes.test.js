@@ -58,6 +58,7 @@ test("job passives charge, consume once and keep pets/shields/healing bounded", 
     game._state.elapsed += 0.21;
     c.onMagic(target);
   }
+  c.update(.01);assert.equal(hits.length,0,'a pet never attacks without a manual command');target.group.position.z=2;c.command(new THREE.Vector3(0,0,1));
   c.update(0.01);
   assert.equal(hits[0][1], 20 * 0.45 * 1.8);
   assert.equal(c.magicHits, 0);

@@ -227,7 +227,7 @@ export function createChronicleUi({
     portal(choices) {
       openModal(
         "portal",
-        `<div class="modal-eyebrow">HIDDEN PASSAGE</div><h2 id="modal-title">균열 너머로 향할까요?</h2><p class="modal-description">원래 층의 시간과 적·보스·탄환 상태가 보존됩니다. 방 안의 아래쪽 황금 문에서 R / 복귀. 보상 없이도 언제든 돌아올 수 있습니다.</p><div class="npc-choices">${choices.map((c) => `<button class="npc-choice" data-portal-choice="${c.id}"><strong>${c.title}</strong><p>${c.description}</p></button>`).join("")}</div><p id="portal-feedback" role="status"></p><button class="secondary-button" data-portal-choice="skip">원래 전투 계속</button>`,
+        `<div class="modal-eyebrow">HIDDEN PASSAGE</div><h2 id="modal-title">균열 너머로 향할까요?</h2><p class="modal-description">원래 층의 시간과 적·보스·탄환 상태가 보존됩니다. 방 안의 아래쪽 황금 문에서 C / 복귀. 보상 없이도 언제든 돌아올 수 있습니다.</p><div class="npc-choices">${choices.map((c) => `<button class="npc-choice" data-portal-choice="${c.id}"><strong>${c.title}</strong><p>${c.description}</p></button>`).join("")}</div><p id="portal-feedback" role="status"></p><button class="secondary-button" data-portal-choice="skip">원래 전투 계속</button>`,
         { pause: false, closeable: false },
       );
       document.querySelectorAll("[data-portal-choice]").forEach(
@@ -299,7 +299,7 @@ export function createChronicleUi({
       $("#side-area-status").classList.toggle("hidden", !a);
       if (a)
         $("#side-area-status").textContent =
-          `${a.title} · ${a.claimed ? "보상 확인 완료" : a.complete ? "위쪽 제단에서 R" : "남은 적 " + a.remaining} · 아래쪽 황금 문 R 복귀`;
+          `${a.title} · ${a.claimed ? "보상 확인 완료" : a.complete ? "위쪽 제단에서 C" : "남은 적 " + a.remaining} · 아래쪽 황금 문 R 복귀`;
       const j = s.job,
         sets = s.sets?.sets || [],
         passive = $("#job-passive");

@@ -15,7 +15,7 @@ export const EQUIPMENT_GRADES = Object.freeze([
 export const EQUIPMENT_OPTIONS = Object.freeze([
   { id: "crit", name: "치명타 확률 +4%p" },
   { id: "criticalDamage", name: "치명타 배율 +0.2" },
-  { id: "haste", name: "검 공격 속도 +8%" },
+  { id: "haste", name: "검 모션 가속 +8%" },
   { id: "arcane", name: "마법 공격력 +12%" },
   { id: "guard", name: "피해 감소 +3%p" },
   { id: "vital", name: "최대 체력 +10%" },

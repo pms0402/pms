@@ -5,10 +5,10 @@ const RECEIPT_LIMIT = 200;
 /** Core combat upgrades compound; early prices stay accessible and later ranks track floor income. */
 export const PERMANENT_UPGRADES = [
   { id: 'power', branch: 'sword', requires: [], name: '검술의 뿌리', description: '단계마다 검 공격력 ×1.12 · 마법과 독립 성장', icon: 'sword', maxLevel: 50, baseCost: 12, increment: 12, compound: true, unit: '%' },
-  { id: 'haste', branch: 'sword', requires: [{ id: 'power', level: 1 }], name: '연속 베기', description: '단계마다 검 공격 속도 ×1.025', icon: 'sword', maxLevel: 40, baseCost: 18, increment: 2.5, compound: true, unit: '%' },
+  { id: 'haste', branch: 'sword', requires: [{ id: 'power', level: 1 }], name: '연속 베기', description: '단계마다 검 모션 가속 ×1.025', icon: 'sword', maxLevel: 40, baseCost: 18, increment: 2.5, compound: true, unit: '%' },
   { id: 'bladeReach', branch: 'sword', requires: [{ id: 'power', level: 1 }], name: '검기의 가지', description: '검 타격 범위 +2%', icon: 'target', maxLevel: 20, baseCost: 20, increment: 2, unit: '%' },
   { id: 'arcana', branch: 'magic', requires: [], name: '마력의 뿌리', description: '단계마다 마법 공격력 ×1.12 · 검과 독립 성장', icon: 'orbit', maxLevel: 50, baseCost: 12, increment: 12, compound: true, unit: '%' },
-  { id: 'focus', branch: 'magic', requires: [{ id: 'arcana', level: 1 }], name: '주문의 흐름', description: '단계마다 마법 시전 속도 ×1.025', icon: 'bolt', maxLevel: 40, baseCost: 18, increment: 2.5, compound: true, unit: '%' },
+  { id: 'focus', branch: 'magic', requires: [{ id: 'arcana', level: 1 }], name: '주문의 흐름', description: '단계마다 마법 시전 가속 ×1.025', icon: 'bolt', maxLevel: 40, baseCost: 18, increment: 2.5, compound: true, unit: '%' },
   { id: 'spellArea', branch: 'magic', requires: [{ id: 'arcana', level: 1 }], name: '확산의 가지', description: '마법 효과 범위 +2%', icon: 'orbit', maxLevel: 20, baseCost: 20, increment: 2, unit: '%' },
   { id: 'vitality', branch: 'core', requires: [], name: '생명의 뿌리', description: '단계마다 기본 최대 체력 ×1.10', icon: 'heart', maxLevel: 50, baseCost: 15, increment: 10, compound: true, unit: '%' },
   { id: 'armor', branch: 'core', requires: [], name: '견고한 피부', description: '모든 런의 기본 피해 감소 +0.75%p', icon: 'shield', maxLevel: 40, baseCost: 24, increment: 0.75, unit: '%p' },
@@ -26,8 +26,8 @@ export const CHARACTERS = [
 
 export const WEAPONS = [
   { id: 'voidblade', name: '공허의 검', description: '공격력과 속도가 균형 잡힌 기본 검.', icon: 'sword', cost: 0, damageMultiplier: 1, attackRateMultiplier: 1, swordRangeMultiplier: 1 },
-  { id: 'tempest', name: '질풍검', description: '검 공격 속도 +20% · 범위 +8% · 검 공격력 -18%', icon: 'bolt', cost: 120, damageMultiplier: 0.82, attackRateMultiplier: 1.2, swordRangeMultiplier: 1.08 },
-  { id: 'greatsword', name: '파쇄 대검', description: '검 공격력 +30% · 범위 +20% · 검 공격 속도 -28%', icon: 'sword', cost: 180, damageMultiplier: 1.3, attackRateMultiplier: 0.72, swordRangeMultiplier: 1.2 },
+  { id: 'tempest', name: '질풍검', description: '검 모션 가속 +20% · 범위 +8% · 검 공격력 -18%', icon: 'bolt', cost: 120, damageMultiplier: 0.82, attackRateMultiplier: 1.2, swordRangeMultiplier: 1.08 },
+  { id: 'greatsword', name: '파쇄 대검', description: '검 공격력 +30% · 범위 +20% · 검 모션 가속 -28%', icon: 'sword', cost: 180, damageMultiplier: 1.3, attackRateMultiplier: 0.72, swordRangeMultiplier: 1.2 },
 ];
 
 const unlockCatalog = type => type === 'character' ? CHARACTERS : type === 'weapon' ? WEAPONS : null;

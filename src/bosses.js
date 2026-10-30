@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {chooseBossAction} from './tactical-ai.js';
 import { ARENA_RADIUS, getBossStats } from './balance.js';
 
 const TAU = Math.PI * 2;
@@ -177,15 +178,15 @@ export class BossSystem {
     boss.aimDirection.copy(target).sub(origin).setY(0).normalize();
     if (boss.aimDirection.lengthSq() === 0) boss.aimDirection.set(0, 0, 1);
     boss.actionIndex++; this.actions++;
-    const enraged = boss.hp < boss.maxHp * .5;
+    const enraged = boss.hp < boss.maxHp * .5,pattern=chooseBossAction(boss.archetype,origin.distanceTo(target),boss.lastPattern);boss.lastPattern=pattern;
     switch (boss.archetype) {
       case 'artillery':
-        boss.mode = boss.actionIndex % 2 ? 'barrage-warning' : 'fan-warning'; boss.actionTimer = .95;
+        boss.mode = pattern; boss.actionTimer = .95;
         this.warningLine(boss, .95);
         if (boss.variant > 1 && boss.mode === 'fan-warning') this.zone(target, 3.4, 1.1, .16, this.damage() * .8, 'pulse');
         break;
       case 'plague': {
-        boss.mode = boss.actionIndex % 2 ? 'poison-warning' : 'fan-warning'; boss.actionTimer = 1.15;
+        boss.mode = pattern; boss.actionTimer = 1.15;
         if (boss.mode === 'fan-warning') this.warningLine(boss, 1.15);
         else {
           const offsets = [[0, 0], [3.3, 2.4], [-3.3, -2.4]];
@@ -198,15 +199,16 @@ export class BossSystem {
         break;
       }
       case 'brood':
-        boss.mode = boss.actionIndex % 2 ? 'summon-warning' : 'pulse-warning'; boss.actionTimer = 1.1;
+        boss.mode = pattern; boss.actionTimer = 1.1;
         this.zone(origin, boss.mode === 'pulse-warning' ? 7.2 : 6.2, 1.1, .16, this.damage() * .95, 'pulse'); break;
       case 'storm': {
-        boss.mode = boss.actionIndex % 2 ? 'radial-warning' : 'nova-warning';
+        boss.mode = pattern;
         boss.actionTimer = boss.variant > 1 && boss.mode === 'nova-warning' ? 1.25 : 1.05;
         const radius = boss.mode === 'nova-warning' ? (boss.variant > 1 ? 9.5 : 8.2) : 4.2;
         this.zone(origin, radius, boss.actionTimer, .16, boss.mode === 'nova-warning' ? this.damage() * 1.15 : 0, 'pulse'); break;
       }
       case 'reaper': {
+        if(pattern==='cross-warning'){boss.mode=pattern;boss.actionTimer=.95;for(let i=0;i<4;i++){const a=i*Math.PI/2+boss.actionIndex*.25,d=new THREE.Vector3(Math.sin(a),0,Math.cos(a));this.warningLine({...boss,aimDirection:d},.95);this.schedule(boss,.95,d,{count:3,spread:.1,speed:9.5});}break;}
         boss.mode = 'blink-warning'; boss.actionTimer = 1.05;
         const angle = Math.atan2(origin.x - target.x, origin.z - target.z) + Math.PI / 2;
         boss.blinkTarget.copy(target).add(new THREE.Vector3(Math.sin(angle) * 6.5, 0, Math.cos(angle) * 6.5));
@@ -253,7 +255,7 @@ export class BossSystem {
       boss.mode = 'cross-warning'; boss.actionTimer = .85;
       return;
     }
-    boss.mode = 'chase';
+    boss.mode='recovery';boss.recoveryTime=(boss.combatPhase===3?.8:1.15)+Math.max(0,...this.pendingShots.map(s=>s.delay));
     boss.actionTimer = (boss.archetype === 'plague' ? 3.2 : boss.archetype === 'brood' ? 4.2 : 2.7) * (enraged ? .78 : 1) * (boss.combatPhase === 3 ? .82 : 1);
   }
 
@@ -280,7 +282,7 @@ export class BossSystem {
     const radius = Math.hypot(pos.x, pos.z);
     if (radius > ARENA_RADIUS - 2) pos.multiplyScalar((ARENA_RADIUS - 2) / radius);
     const contactDistance = Math.hypot(target.x - pos.x, target.z - pos.z);
-    if (contactDistance < 2.3) this.game.takeDamage(this.damage(), pos, `${boss.name || getBossStats(this.stage()).name} · 접촉`, boss);
+    if (boss.mode==='charge'&&contactDistance < 2.3) this.game.takeDamage(this.damage(), pos, `${boss.name || getBossStats(this.stage()).name} · 접촉`, boss);
   }
 
   updateEffects(dt) {

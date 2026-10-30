@@ -7,7 +7,7 @@ import { SYNERGIES, getActiveSynergies } from '../src/synergies.js';
 function fixture(stats = {}) {
   const hits = [], triggers = [];
   const game = {
-    scene: new THREE.Scene(), player: { position: new THREE.Vector3() },
+    scene: new THREE.Scene(), player: { position: new THREE.Vector3(),rotation:{y:Math.PI/2} },
     enemies: [], _state: { phase: 'playing' },
     stats: { damage: 100, spellDamage: 100, spellRate: 1.5, spells: {}, passiveLevels: {}, ...stats },
     hitEnemy(enemy, damage, _direction, source, spellId) { hits.push({ enemy, damage, source, spellId }); enemy.hp -= damage; },
@@ -91,7 +91,7 @@ test('fireball marks targets, and the earned sword-wave branch spreads fire with
 test('native lightning-rune discharge works without its relic and remains independent of the relic timer', () => {
   const { game, magic, enemy, hits, triggers } = fixture({ spells: { lightning: 1, orbit: 1 } });
   enemy(3.5);
-  magic.syncOrbit(); magic.updateOrbit(.01); hits.length = 0;
+  magic.castOrbit(new THREE.Vector3()); magic.updateZones(.01); hits.length = 0;
   assert.equal(magic.updateBuildSynergy(), true);
   assert.equal(hits.length, 1); assert.equal(hits[0].damage, 35); assert.equal(hits[0].source, 'combo');
   assert.equal(magic.updateBuildSynergy(), false);
@@ -148,12 +148,12 @@ test('actual spell and lingering impacts identify their spell while preserving m
     if (id === 'fireball') magic.explode(new THREE.Vector3(), 4, 10, true);
     else if (id === 'frost') magic.castFrost();
     else if (id === 'lightning') magic.castLightning();
-    else { magic.syncOrbit(); magic.updateOrbit(.01); }
+    else { magic.castOrbit(new THREE.Vector3()); magic.updateZones(.01); }
     assert.ok(hits.length > 0, `${id} has an actual impact`);
     assert.ok(hits.every(hit => hit.source === 'magic' && hit.spellId === id));
     if (id === 'fireball' || id === 'frost') {
       hits.length = 0;
-      magic.updateZones(id === 'fireball' ? .33 : .5);
+      magic.updateZones(id === 'fireball' ? .35 : .8);
       assert.ok(hits.length > 0);
       assert.ok(hits.every(hit => hit.source === 'magic' && hit.spellId === id));
     }

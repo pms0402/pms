@@ -41,8 +41,7 @@ test("guard success alone creates shockwave feedback and hit-stop; failures and 
   let attacks = 0;
   g.attack = () => attacks++;
   p.press();
-  assert.equal(attacks, 0);
-  assert.equal(g.attackTimer, 0);
+  assert.equal(attacks,1,'second press issues one manual counter request; hit-stop is owned by the action simulation');
   assert.equal(p.consume(), 2.5);
   assert.equal(p.consume(), 1);
   p.reset();

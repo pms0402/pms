@@ -43,6 +43,7 @@ import { CampSystem } from './camp.js';
 import {ActionCombat,weaponStyle} from './action-combat.js';
 import {DEFAULT_BINDINGS,normalizeBindings,controlKey} from './control-bindings.js';
 import {CombatAim} from './combat-aim.js';
+import {TacticalAI,encounterBudget} from './tactical-ai.js';
 
 const TAU = Math.PI * 2;
 const UP = new THREE.Vector3(0, 1, 0);
@@ -143,7 +144,7 @@ export class Game {
     this.setSystem = new SetSystem(this);
     this.classes = new ClassSystem(this);
     this.exploration = new ExplorationSystem(this);
-    this.actions=new ActionCombat(this);this.bindings={...DEFAULT_BINDINGS};this.aimVisual=new CombatAim(this);
+    this.actions=new ActionCombat(this);this.tactics=new TacticalAI(this);this.bindings={...DEFAULT_BINDINGS};this.aimVisual=new CombatAim(this);
     this.magic = new MagicSystem(this);
     this.bossSystem = new BossSystem(this);
     this.bossPhases = new BossPhases(this);
@@ -595,7 +596,7 @@ export class Game {
       if(!['playing','camp'].includes(this._state.phase)||this.camp.suspended||this.callbacks.isUIBlocked?.())return;
       if(event.pointerType!=='touch'){
         this.container.focus?.({preventScroll:true});
-        if(event.button===1){this.view.pointerDown(event);return;}
+        if(event.button===1&&!Object.values(this.bindings).includes('mouse1')){this.view.pointerDown(event);return;}
         this.aimPointer(event);const action=Object.keys(this.bindings).find(id=>this.bindings[id]===controlKey(event));
         if(action){event.preventDefault();this.triggerControl(action);this.renderer.domElement.setPointerCapture?.(event.pointerId);}
         if(this.view.canLook()&&this.view.mode!=='overhead'&&document.pointerLockElement!==this.renderer.domElement){try{this.renderer.domElement.requestPointerLock?.()?.catch?.(()=>{});}catch{}}
@@ -611,9 +612,10 @@ export class Game {
   }
   triggerControl(action){if(action==='dash')return this.dash();if(action==='parry'){this.actions.cancel();return this.parry.press();}if(action==='interact')return this.interact();if(['light','heavy','skill0','skill1','skill2','ultimate'].includes(action))return this.actions.press(action);return this.callbacks.onControlAction?.(action)||false;}
   setBindings(bindings){this.bindings=normalizeBindings(bindings);this.onBlur();return this.bindings;}
+  aimFromView(){const mode=this.view.effectiveMode(),pitch=this.view.pitch[mode]||.03,distance=clamp((mode==='first'?2.105:1.2)*this.player.scale.y/Math.max(.03,Math.tan(pitch)),2,18),yaw=this.view.yaw,side=mode==='third'?(this.camera.aspect<.9?.55:1.15):0;this.actions.setAim(new THREE.Vector3(Math.sin(yaw)*distance-Math.cos(yaw)*side,0,Math.cos(yaw)*distance+Math.sin(yaw)*side),distance);}
   aimPointer(event){
     if(this.actions.current||event.pointerType==='touch')return;
-    if(document.pointerLockElement===this.renderer.domElement){this.actions.setAim(new THREE.Vector3(Math.sin(this.view.yaw),0,Math.cos(this.view.yaw)));return;}
+    if(document.pointerLockElement===this.renderer.domElement){this.aimFromView();return;}
     const rect=this.renderer.domElement.getBoundingClientRect();this.pointerNdc.set((event.clientX-rect.left)/rect.width*2-1,-(event.clientY-rect.top)/rect.height*2+1);this.raycaster.setFromCamera(this.pointerNdc,this.camera);this.aimPlane.constant=-this.player.position.y;
     if(this.raycaster.ray.intersectPlane(this.aimPlane,this.aimPoint)){const direction=this.aimPoint.clone().sub(this.player.position).setY(0);if(direction.length()>.4)this.actions.setAim(direction,direction.length());}
   }
@@ -949,11 +951,11 @@ export class Game {
     this.resolvePosition(this.player.position, .65);
     this.playerVisual.visible = true;
 
-    if(this.view.canLook()&&this.view.mode!=='overhead'&&document.pointerLockElement===this.renderer.domElement&&!this.actions.current)this.actions.setAim(new THREE.Vector3(Math.sin(this.view.yaw),0,Math.cos(this.view.yaw)));
+    if(this.view.canLook()&&this.view.mode!=='overhead'&&document.pointerLockElement===this.renderer.domElement&&!this.actions.current)this.aimFromView();
     else if (moving&&!this.actions.current&&!this.actions.hasAim) this.player.rotation.y = this.lerpAngle(this.player.rotation.y, Math.atan2(direction.x, direction.z), dt * 13);
     if (!inRoom) this.spawnTimer -= dt;
     if (!inRoom && !this.bossSpawned && s.stageTime >= BOSS_SPAWN_TIME) this.spawnBoss();
-    const maxEnemies = Math.min(160,this.stageStats(s.stage).maxEnemies);
+    const maxEnemies = encounterBudget(s.stage,s.stageTime,this.mode,threat.spawnRate);
     if (!inRoom && this.spawnTimer <= 0 && this.enemies.length < maxEnemies) {
       const burst = 1;
       for (let n = 0; n < burst && this.enemies.length < maxEnemies; n++) {
@@ -1081,7 +1083,7 @@ export class Game {
   }
 
   updateEnemies(dt) {
-    const pos = this.player.position;
+    const pos = this.player.position;this.tactics.beginFrame();
     for (let i = this.enemies.length - 1; i >= 0; i--) {
       const e = this.enemies[i]; if (!e || e.hp <= 0) continue;
       if (e.kind !== 4 && e.parryStun > 0) { e.parryStun = Math.max(0,e.parryStun - dt); this.parry.moveControlled(e,dt); continue; }
@@ -1090,6 +1092,7 @@ export class Game {
       this.mutationSystem.updateEnemy(e, dt);
       const frozen = (e.freezeTime || 0) > 0 || e.regionBlinkPending; e.freezeTime = Math.max(0, (e.freezeTime || 0) - dt);
       if (frozen) { e.slowTime = Math.max(0, (e.slowTime || 0) - dt); e.hitTime = Math.max(0, e.hitTime - dt); animateEnemyModel(e, this._state.elapsed, dt); continue; }
+      if(this.tactics.melee(e,dt)){animateEnemyModel(e,this._state.elapsed,dt);continue;}
       const dx = pos.x - e.group.position.x, dz = pos.z - e.group.position.z, distance = Math.hypot(dx, dz);
       if (e.golden) {
         e.escapeTime -= dt;
@@ -1119,7 +1122,7 @@ export class Game {
           movement = 0; e.group.position.addScaledVector(e.aim, e.speed * 4 * slow * dt);
           e.group.rotation.y = Math.atan2(e.aim.x, e.aim.z);
           if (e.actionTimer <= 0) { e.action = 'chase'; e.actionTimer = 3; }
-        } else if (e.actionTimer <= 0 && distance > 2 && distance < 16) {
+        } else if (e.actionTimer <= 0 && distance > 2 && distance < 16 && this.tactics.admit()) {
           e.aim.set(dx, 0, dz).normalize(); e.action = 'charge-warning'; e.actionTimer = .75; movement = 0; e.specialCasts++;
           this.createEnemyTelegraph(e, 'line', Math.max(10, e.speed * 4 * .48 + 1.5), '#ffb66b');
         }
@@ -1131,7 +1134,7 @@ export class Game {
             this.puff(e.group.position, '#c5ef6c', 3.6, .45); this.burst(e.group.position, '#d4f48b', 10);
             this.removeEnemyWithoutReward(e); continue;
           }
-        } else if (distance < 3.8 && e.actionTimer <= 0) {
+        } else if (distance < 3.8 && e.actionTimer <= 0 && this.tactics.admit()) {
           e.action = 'detonate-warning'; e.actionTimer = 1; movement = 0; e.specialCasts++;
           this.createEnemyTelegraph(e, 'circle', 3.6, '#b8e968');
         }
@@ -1145,7 +1148,7 @@ export class Game {
             this.shootEnemyProjectile(e, e.aim, { speed: 17, life: 3, damage: this.stageStats().enemyDamage * 1.15 * e.baseDamageMultiplier });
             e.action = 'chase'; e.shootTimer = 3.8; e.specialCasts++;
           }
-        } else if (e.shootTimer <= 0 && distance < 32 && distance > 3) {
+        } else if (e.shootTimer <= 0 && distance < 32 && distance > 3 && this.tactics.admit()) {
           e.aim.set(dx, 0, dz).normalize(); e.action = 'snipe-warning'; e.actionTimer = 1.2;
           this.createEnemyTelegraph(e, 'line', 30, '#b9dfff');
         }
@@ -1164,7 +1167,7 @@ export class Game {
             }
             this.puff(e.group.position, '#c5e4ff', 1.8, .4); e.action = 'chase'; e.actionTimer = 4; e.specialCasts++; e.visualCast=.35;
           }
-        } else if (e.actionTimer <= 0 && distance < 30) {
+        } else if (e.actionTimer <= 0 && distance < 30 && this.tactics.admit()) {
           e.action = 'heal-warning'; e.actionTimer = .8;
           this.createEnemyTelegraph(e, 'circle', 2, '#b7f2d0');
         }
@@ -1180,7 +1183,7 @@ export class Game {
             this.shootEnemyProjectile(e, e.aim, { count: spread, spread: 0.14 });
             this.removeGroup(e.warning); e.warning = null; e.shootTimer = Math.max(1.6, 3.4 - this._state.stage * 0.18);
           }
-        } else if (e.shootTimer <= 0 && distance < 27) {
+        } else if (e.shootTimer <= 0 && distance < 27 && this.tactics.admit()) {
           e.windup = 0.65; e.aim.set(dx, 0, dz).normalize();
           e.warning = new THREE.Mesh(this.geo.sphere, this.mats.rangedGlow); e.warning.position.set(0, 1.7, 0.4); e.warning.scale.setScalar(0.18); e.group.add(e.warning);
         }

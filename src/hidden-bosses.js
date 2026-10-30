@@ -320,7 +320,7 @@ export class HiddenBossSystem {
         this.zone(g.player.position, 2.5, 1.3, 0.18, d * 0.75, "rift");
     } else if (a.type === "grasp" && phase >= 2)
       g.bossSystem.radial(e, e.hiddenAction * 0.6, 12, 3);
-    e.hiddenTimer = phase === 3 ? 1.6 : phase === 2 ? 2.4 : 3.2;
+    e.recoveryTime=phase===3?.65:1; e.hiddenTimer = phase === 3 ? 1.2 : phase === 2 ? 1.6 : 2.2;
   }
   clear() {
     this.boss = null;

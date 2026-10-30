@@ -14,20 +14,20 @@ test('the balance API no longer exposes an automatic player-growth multiplier', 
 });
 
 test('all ten floors retain affordable enemy pressure without the former exponential wall', () => {
-  assert.equal(getStageStats(1).enemyHealth, 28);
-  assert.equal(getStageStats(1).enemyDamage, 7.5);
+  assert.equal(getStageStats(1).enemyHealth, 50);
+  assert.equal(getStageStats(1).enemyDamage, 11);
   for (let stage = 2; stage <= MAX_STAGES; stage++) {
     const before = getStageStats(stage - 1), current = getStageStats(stage);
     close(current.enemyHealth / before.enemyHealth, ENEMY_HEALTH_GROWTH);
     close(current.enemyDamage / before.enemyDamage, ENEMY_DAMAGE_GROWTH);
     assert.ok(Number.isFinite(current.enemyHealth) && Number.isFinite(current.enemyDamage));
     assert.ok(current.maxEnemies <= 160);
-    if (stage >= 5) assert.equal(current.maxEnemies, 160);
+    if(stage>=5)assert.ok(current.maxEnemies>=11&&current.maxEnemies<=15);
     close(getBossStats(stage).health, current.enemyHealth * 35);
   }
   const last = getStageStats(MAX_STAGES);
-  assert.ok(last.enemyHealth < 3400, 'a normal final-floor enemy no longer assumes a free3.2× player bonus every floor');
-  assert.ok(last.enemyDamage < 120, 'player health can be built through chosen upgrades rather than forced floor scaling');
+  assert.ok(last.enemyHealth < 6000, 'a normal final-floor enemy no longer assumes a free3.2× player bonus every floor');
+  assert.ok(last.enemyDamage < 165, 'player health can be built through chosen upgrades rather than forced floor scaling');
   assert.ok(last.enemyHealth > getStageStats(5).enemyHealth * 10, 'later floors still grow substantially');
 });
 

@@ -33,7 +33,7 @@ test('later floors offer gentler enemy curves and more earned XP without uncappe
     assert.equal(current.coinValue / previous.coinValue, 10);
     assert.ok(Number.isFinite(current.enemyHealth) && Number.isSafeInteger(current.coinValue));
     assert.ok(current.maxEnemies <= 160);
-    if (stage >= 5) assert.equal(current.maxEnemies, 160);
+    if(stage>=5)assert.ok(current.maxEnemies>=11&&current.maxEnemies<=15);
     assert.ok(getSpawnInterval(stage, STAGE_DURATION) >= 0.085);
     const boss = getBossStats(stage);
     nearRatio(boss.health, current.enemyHealth * 35);

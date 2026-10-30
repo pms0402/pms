@@ -23,8 +23,8 @@ test('two-minute stages, late bosses and four times the previous map area', () =
 });
 
 test('monster curves remain independent of player stats with earned gold x10 per floor', () => {
-  assert.equal(getStageStats(1).enemyHealth, 28);
-  assert.equal(getStageStats(1).enemyDamage, 7.5);
+  assert.equal(getStageStats(1).enemyHealth, 50);
+  assert.equal(getStageStats(1).enemyDamage, 11);
   assert.equal(getStageStats(1).coinValue, 5);
   assert.equal(ENEMY_HEALTH_GROWTH, 1.7);
   assert.equal(ENEMY_DAMAGE_GROWTH, 1.35);
@@ -56,8 +56,8 @@ test('every stage has a named boss with substantial health and real rewards', ()
 test('spawns preserve the quiet opening and ramp over the full longer stage', () => {
   assert.equal(getSpawnInterval(1, 0), 2.6);
   assert.equal(getSpawnInterval(1, 12), 2.6);
-  assert.ok(getSpawnInterval(5, STAGE_DURATION) < 0.1);
-  assert.ok(getSpawnInterval(1, 45) > getSpawnInterval(1, 110) * 2);
+  assert.ok(getSpawnInterval(5, STAGE_DURATION) >= .9);
+  assert.ok(getSpawnInterval(1, 45) > getSpawnInterval(1, 110) * 1.2);
   for (let stage = 1; stage <= MAX_STAGES; stage++) {
     let previous = Infinity;
     for (let time = 0; time <= STAGE_DURATION; time++) {
@@ -142,7 +142,7 @@ test('fully completed temporary builds have no invalid additional upgrades', () 
   const stats = fresh();
   for (const spell of SPELLS) { stats.spells[spell.id] = 5; stats.evolutions[spell.id] = true; }
   for (const id of ['power', 'haste', 'spell_power', 'spell_haste', 'vitality', 'magnet', 'critical', 'armor', 'regen', 'speed']) stats.passiveLevels[id] = 12;
-  stats.passiveLevels.blade_range = 8;
+  stats.passiveLevels.blade_range = 8;stats.passiveLevels.spell_area=6;stats.passiveLevels.skill_multihit=3;stats.passiveLevels.status_mastery=4;
   stats.swordEvolution = 'broadsword';
   assert.deepEqual(getUpgradeChoices(stats), []);
   assert.equal(applyUpgrade(stats, 'missing'), false);

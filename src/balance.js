@@ -18,11 +18,11 @@ const stageNumber = stage => clamp(Math.floor(finite(stage, 1)), 1, MAX_STAGES);
 export function getStageStats(stage = 1) {
   const index = stageNumber(stage) - 1;
   return {
-    enemyHealth: 28 * ENEMY_HEALTH_GROWTH ** index,
-    enemyDamage: 7.5 * ENEMY_DAMAGE_GROWTH ** index,
+    enemyHealth: 50 * ENEMY_HEALTH_GROWTH ** index,
+    enemyDamage: 11 * ENEMY_DAMAGE_GROWTH ** index,
     coinValue: 5 * 10 ** index,
     spawnInterval: getSpawnInterval(stage, 0),
-    maxEnemies: Math.min(160, 56 + index * 26),
+    maxEnemies: Math.min(15, 7 + index),
   };
 }
 
@@ -36,8 +36,8 @@ export function getSpawnInterval(stage = 1, stageTime = 0) {
   const index = stageNumber(stage) - 1;
   const elapsed = clamp(finite(stageTime, 0), 0, STAGE_DURATION);
   const ramp = Math.max(0, (elapsed - 12) / (STAGE_DURATION - 12));
-  const openingInterval = 2.6 / (1 + index * 0.8);
-  return Math.max(0.085, openingInterval * (1 - 0.88 * ramp ** 1.35));
+  const openingInterval = 2.6 / (1 + index * .11);
+  return Math.max(.9,openingInterval*(1-.42*ramp));
 }
 
 export function getBossStats(stage = 1) {
@@ -72,31 +72,34 @@ export function formatGold(value = 0) {
 }
 
 export const SPELLS = [
-  { id: 'fireball', name: '화염구', description: '가까운 적을 향해 날아가 폭발하는 화염구.', icon: 'flame', color: '#ff9363', evolutionName: '태양의 격노', maxRank: 5 },
-  { id: 'frost', name: '서리 파동', description: '주변 적에게 피해를 주고 1.4초 동안 40% 둔화. 넉백 없음 · 기본 재사용 6초.', icon: 'snowflake', color: '#87dcff', evolutionName: '영원의 눈보라', maxRank: 5 },
-  { id: 'lightning', name: '연쇄 번개', description: '여러 적 사이를 도약하는 자동 연쇄 번개.', icon: 'bolt', color: '#d4b5ff', evolutionName: '폭풍의 심판', maxRank: 5 },
-  { id: 'orbit', name: '궤도 룬', description: '몸 주위를 회전하며 가까운 적을 타격하는 룬.', icon: 'orbit', color: '#a8ffc3', evolutionName: '공허의 성좌', maxRank: 5 },
+  { id: 'fireball', name: '화염구', description: '직접 조준 · 반경 6m 폭발과 4초 화염 지대. 기본 재사용 12초.', icon: 'flame', color: '#ff9363', evolutionName: '태양의 격노', maxRank: 5 },
+  { id: 'frost', name: '서리 파동', description: '반경 9m 냉기 파동 · 2.2초 둔화와 짧은 일반 적 빙결. 보스 빙결 불가 · 재사용 14초.', icon: 'snowflake', color: '#87dcff', evolutionName: '영원의 눈보라', maxRank: 5 },
+  { id: 'lightning', name: '연쇄 번개', description: '조준 방향의 적을 타격한 뒤 5명 이상 연쇄. 조준을 빗나가면 첫 타격 없음 · 재사용 10초.', icon: 'bolt', color: '#d4b5ff', evolutionName: '폭풍의 심판', maxRank: 5 },
+  { id: 'orbit', name: '공허 룬', description: '조준 위치에 6초간 마법진 설치 · 반경 5.5m 지속 피해와 약한 둔화 · 재사용 18초.', icon: 'orbit', color: '#a8ffc3', evolutionName: '공허의 성좌', maxRank: 5 },
 ];
 
 const SPELL_UPGRADES = {
   fireball: '화염구 피해와 폭발 범위 증가 · 재사용 시간 감소',
-  frost: '서리 피해와 범위 증가 · 재사용 시간 감소 (최소 2.75초) · 넉백 없음',
+  frost: '서리 피해와 범위 증가 · 재사용 최소 10초 · 짧은 빙결은 반복 연장 불가',
   lightning: '번개 피해 증가 · 성장에 따라 추가 적에게 도약',
-  orbit: '룬 피해와 궤도 범위 증가 · 성장에 따라 룬 추가',
+  orbit: '설치 룬 피해와 범위 증가 · 진화하면 종료 시 광역 폭발',
 };
 const EVOLUTIONS = {
-  fireball: '화염구를 3연속 발사하고 폭발의 여진을 남깁니다.',
-  frost: '파동은 1.8초 동안 55% 둔화 · 남은 눈보라는 30% 둔화 · 넉백 없음',
+  fireball: '조준 방향 부채꼴 3발 · 더 큰 폭발과 화염 여진. 추가 발사체 피해는 분산됩니다.',
+  frost: '파동 범위 확대 · 4초 눈보라 · 보스 빙결 면역과 넉백 없음 유지',
   lightning: '가지치는 두 갈래 번개가 더 많은 적을 타격합니다.',
-  orbit: '룬 3개 추가 · 궤도 확대 · 광역 파동 발생',
+  orbit: '설치 마법진 확대 · 룬 3개 추가 · 6초 후 광역 공허 폭발',
 };
 
 const PASSIVES = [
+  {id:'spell_area',title:'넓어지는 각인',description:'수동 스킬 범위 ×1.12 · 실제 범위 최대 20m',rarity:'rare',icon:'orbit',weight:3,maxRank:6,branch:'magic'},
+  {id:'skill_multihit',title:'겹쳐지는 술식',description:'화염 투사체 +1 · 번개 대상 +2 · 서리 약한 여진 +1 · 룬 타격 간격 단축',rarity:'epic',icon:'bolt',weight:2,maxRank:3,branch:'magic'},
+  {id:'status_mastery',title:'잔류하는 마력',description:'상태 지속 강화 · 서리 빙결 최대 0.6초 · 화염 지대 유지 증가',rarity:'rare',icon:'snowflake',weight:2,maxRank:4,branch:'magic'},
   { id: 'power', title: '예리한 칼날', description: '검 공격력 ×1.2 · 마법과 별도 성장', rarity: 'rare', icon: 'sword', weight: 4, maxRank: 12, branch: 'sword' },
-  { id: 'haste', title: '검술의 호흡', description: '검 공격 속도 +8%', rarity: 'rare', icon: 'sword', weight: 3, maxRank: 12, branch: 'sword' },
+  { id: 'haste', title: '검술의 호흡', description: '검 모션 가속 능력치 +8% · 실제 모션 가속 최대 1.65배', rarity: 'rare', icon: 'sword', weight: 3, maxRank: 12, branch: 'sword' },
   { id: 'blade_range', title: '뻗어가는 칼끝', description: '검 타격 사거리 ×1.12 · 검 궤적과 실제 타격 범위가 함께 증가', rarity: 'rare', icon: 'sword', weight: 4, maxRank: 8, branch: 'sword' },
   { id: 'spell_power', title: '마력 응축', description: '모든 마법 공격력 ×1.2 · 검과 별도 성장', rarity: 'epic', icon: 'orbit', weight: 4, maxRank: 12, branch: 'magic' },
-  { id: 'spell_haste', title: '주문 가속', description: '모든 마법 시전 속도 +8%', rarity: 'epic', icon: 'bolt', weight: 3, maxRank: 12, branch: 'magic' },
+  { id: 'spell_haste', title: '주문 가속', description: '시전 가속 능력치 +8% · 준비 단축 최대 1.6배 · 쿨타임 감소 상한 적용', rarity: 'epic', icon: 'bolt', weight: 3, maxRank: 12, branch: 'magic' },
   { id: 'vitality', title: '생명의 씨앗', description: '최대 체력 ×1.15 · 증가한 체력만큼 회복', rarity: 'rare', icon: 'heart', weight: 3, maxRank: 12 },
   { id: 'magnet', title: '작은 탐욕', description: '경험치와 골드 획득 범위 +8%', rarity: 'rare', icon: 'magnet', weight: 2, maxRank: 12 },
   { id: 'critical', title: '집중', description: '치명타 확률 +2%p', rarity: 'rare', icon: 'target', weight: 2, maxRank: 12 },
@@ -193,6 +196,9 @@ export function applyUpgrade(stats, id) {
   const passive = passiveChoices(stats).find(candidate => candidate.id === id);
   if (!passive) return false;
   switch (id) {
+    case 'spell_area': stats.spellAreaMultiplier=finite(stats.spellAreaMultiplier,1)*1.12;break;
+    case 'skill_multihit':stats.skillExtraHits=(stats.skillExtraHits||0)+1;break;
+    case 'status_mastery':stats.statusBonus=(stats.statusBonus||0)+.15;break;
     case 'power': stats.damage = finite(stats.damage, 18) * 1.2; break;
     case 'haste': stats.attackRate = finite(stats.attackRate, 1.5) * 1.08; break;
     case 'blade_range': stats.swordRangeMultiplier = finite(stats.swordRangeMultiplier, 1) * 1.12; break;

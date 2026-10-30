@@ -7,7 +7,7 @@ import { getActiveSynergies } from '../src/synergies.js';
 function fixture(t, stats = {}) {
   const hits = [], notices = [], triggers = [];
   const game = {
-    scene: new THREE.Scene(), player: { position: new THREE.Vector3() }, enemies: [],
+    scene: new THREE.Scene(), player: { position: new THREE.Vector3(),rotation:{y:Math.PI/2} }, enemies: [],
     _state: { phase: 'playing' },
     stats: { damage: 100, spellDamage: 100, spellRate: 1.5, spells: {}, evolutions: {}, relics: [], ...stats },
     callbacks: { onLoot(message) { notices.push(message); } },
@@ -133,9 +133,9 @@ test('thunder judgment has global and per-target recovery with a strict radius a
 test('void burst is fed by real direct orbit hits, limits repeated target counts and cannot recurse from its explosion', t => {
   const { magic, enemy, hits, triggers } = fixture(t, comboBuild.voidBurst);
   const target = enemy(1), outside = enemy(10);
-  magic.syncOrbit();
+  magic.castOrbit(new THREE.Vector3());
   for (let i = 0; i < 8; i++) {
-    magic.time = i * .61; magic.cooldowns.orbit = 0; magic.updateOrbit(.01);
+    magic.time=i*.81;magic.updateZones(i===0?.001:.81);
   }
   const burstHits = hits.filter(hit => hit.source === 'combo');
   assert.equal(burstHits.length, 1); close(burstHits[0].damage, 120);

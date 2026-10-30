@@ -8,7 +8,7 @@ const close = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-9
 function fixture() {
   const hits = [];
   const game = {
-    scene: new THREE.Scene(), player: { position: new THREE.Vector3() },
+    scene: new THREE.Scene(), player: { position: new THREE.Vector3(),rotation:{y:Math.PI/2} },
     _state: { phase: 'playing' }, enemies: [],
     stats: { damage: 18, spellDamage: 18, attackRate: 1.5, spellRate: 1.5, maxHp: 100, speed: 7.5, magnet: 5.5, armor: 0, critChance: .08, regen: 0, spells: { fireball: 1, frost: 0, lightning: 0, orbit: 0 }, evolutions: {}, passiveLevels: {} },
     hitEnemy(enemy, damage, direction, source) { hits.push({ enemy, damage, direction: direction.clone(), source }); enemy.hp -= damage; },
@@ -36,7 +36,7 @@ test('sword speed cannot accelerate magic; independent magic speed does', () => 
   const { game, magic } = fixture();
   const baseline = magic.maxCooldown('fireball');
   applyUpgrade(game.stats, 'haste'); close(magic.maxCooldown('fireball'), baseline);
-  applyUpgrade(game.stats, 'spell_haste'); close(magic.maxCooldown('fireball'), baseline / 1.08);
+  applyUpgrade(game.stats, 'spell_haste'); close(magic.maxCooldown('fireball'), baseline / 1.08**.12);
   close(game.stats.attackRate, 1.5 * 1.08);
   for (let i = 1; i < 12; i++) assert.equal(applyUpgrade(game.stats, 'spell_haste'), true);
   assert.equal(applyUpgrade(game.stats, 'spell_haste'), false);
@@ -76,7 +76,7 @@ test('lightning-rune synergy needs both spells and obeys a four-second discharge
   const { game, magic, enemy, hits } = fixture(); enemy(3.5);
   game.stats.runeSynergyBonus = .12; game.stats.spells.orbit = 1;
   close(magic.damage(), 18);
-  magic.syncOrbit(); magic.updateOrbit(.01); hits.length = 0;
+  magic.castOrbit(new THREE.Vector3()); magic.updateOrbit(.01); hits.length = 0;
   magic.updateRuneSynergy(); assert.equal(hits.length, 0);
   game.stats.spells.lightning = 1;
   close(magic.damage(), 18 * 1.12);

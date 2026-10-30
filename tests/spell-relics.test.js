@@ -8,7 +8,7 @@ const close = (actual, expected) => assert.ok(Math.abs(actual - expected) <= Mat
 function fixture(bonuses = {}, evolvedSpell = null) {
   const hits = [];
   const game = {
-    scene: new THREE.Scene(), player: { position: new THREE.Vector3() },
+    scene: new THREE.Scene(), player: { position: new THREE.Vector3(),rotation:{y:Math.PI/2} },
     enemies: [], _state: { phase: 'playing' },
     stats: {
       damage: 18, spellDamage: 18, spellRate: 1.5, spellAreaMultiplier: 1,
@@ -30,7 +30,7 @@ function actualHit(spell, bonuses = {}) {
   if (spell === 'fireball') { magic.castFireball(); magic.updateProjectiles(.1); }
   else if (spell === 'frost') magic.castFrost();
   else if (spell === 'lightning') magic.castLightning();
-  else { magic.syncOrbit(); magic.updateOrbit(.01); }
+  else { magic.castOrbit(new THREE.Vector3()); magic.updateZones(.01); }
   assert.ok(hits.length > 0, `${spell} must actually hit the target`);
   assert.equal(hits[0].source, 'magic');
   const dealt = hits[0].damage;
@@ -58,10 +58,10 @@ test('evolved fireball embers and frost blizzards inherit the specialist bonus e
       else magic.castFrost();
       const initial = hits[0].damage;
       hits.length = 0;
-      magic.updateZones(spell === 'fireball' ? .33 : .5);
+      magic.updateZones(spell === 'fireball' ? .35 : .8);
       assert.ok(hits.length > 0, `${spell}'s actual lingering zone must hit`);
       const lingering = hits[0].damage;
-      close(lingering, initial * (spell === 'fireball' ? .55 : .25));
+      close(lingering, initial * (spell === 'fireball' ? .45 : .14));
       results.push({ initial, lingering });
       magic.dispose();
     }
@@ -72,8 +72,8 @@ test('evolved fireball embers and frost blizzards inherit the specialist bonus e
 
 test('purchased area and the expansion relic reach enemies beyond the former area cap', () => {
   const { game, magic, enemy, hits } = fixture({ spellAreaMultiplier: 1.4 });
-  const target = enemy(9.5);
-  assert.equal(magic.castFrost(), false, 'base purchased area cannot yet reach this target');
+  const target = enemy(14);
+  assert.equal(magic.castFrost(),true);assert.ok(!hits.some(h=>h.enemy===target),'a manual miss consumes the cast without finding a closer target');
   game.stats.spellAreaMultiplier *= 1.18;
   close(magic.area(), 1.652);
   assert.equal(magic.castFrost(), true);
@@ -88,19 +88,19 @@ test('higher permanent casting speed and the hourglass both apply within the bou
   const baseline = magic.maxCooldown('fireball');
   const permanent = 1.025 ** 40;
   game.stats.spellRate = 1.5 * permanent;
-  close(magic.maxCooldown('fireball'), baseline / permanent);
+  close(magic.maxCooldown('fireball'), baseline / permanent**.12);
   game.stats.spellRate *= 1.2;
-  close(magic.maxCooldown('fireball'), baseline / (permanent * 1.2));
-  assert.ok(magic.maxCooldown('fireball') < baseline / 2.5, 'the old hidden haste cap no longer swallows purchased growth');
+  close(magic.maxCooldown('fireball'), baseline / (permanent*1.2)**.12);
+  assert.ok(magic.maxCooldown('fireball')<baseline&&magic.maxCooldown('fireball')>=8,'legacy upgrades improve casting without restoring automatic rapid fire');
   game.stats.spellRate = 1e9;
-  close(magic.maxCooldown('fireball'), baseline / 12);
+  close(magic.maxCooldown('fireball'), baseline / 1.35);
   magic.dispose();
 });
 
 test('large damage growth stays finite and remains independent of sword damage', () => {
   const spellDamage = 18 * 1.12 ** 50 * 3.2 ** 9;
   const baseline = actualHit('fireball', { spellDamage, damage: 1 });
-  close(baseline, spellDamage * 1.1);
+  close(baseline, spellDamage * 7.2);
   close(actualHit('fireball', { spellDamage, damage: 1e12, fireballBonus: .25 }), baseline * 1.25);
   assert.ok(Number.isFinite(baseline) && baseline > 1e5);
 });

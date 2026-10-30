@@ -36,10 +36,10 @@ function fixture(archetype, stage = 2) {
   const advance = seconds => {
     for (let time = 0; time < seconds - 1e-9; time += .01) {
       game.invulnerable = Math.max(0, game.invulnerable - .01);
-      system.update(boss, .01); system.updateEffects(.01);
+      if(boss.recoveryTime>0){boss.recoveryTime=Math.max(0,boss.recoveryTime-.01);if(!boss.recoveryTime){boss.mode='chase';boss.actionTimer=1.2;}}else system.update(boss,.01);system.updateEffects(.01);
     }
   };
-  const prepare = () => { boss.mode = 'chase'; boss.actionTimer = 0; advance(.01); };
+  const prepare = () => {boss.recoveryTime=0; boss.mode = 'chase'; boss.actionTimer = 0; advance(.01); };
   return { game, boss, system, hits, shots, summons, material, advance, prepare };
 }
 
@@ -48,7 +48,7 @@ test('artillery retreats, warns first and fires three volleys at its locked aim'
   f.boss.group.position.set(5, 0, 0);
   f.advance(.1);
   assert.ok(f.boss.group.position.x > 5, 'ranged guardian opens distance instead of charging');
-  f.prepare();
+  f.boss.group.position.set(16,0,0);f.prepare();
   assert.equal(f.boss.mode, 'barrage-warning');
   assert.ok(f.system.zones.length > 0);
   assert.equal(f.shots.length, 0);
@@ -63,7 +63,7 @@ test('artillery retreats, warns first and fires three volleys at its locked aim'
 });
 
 test('plague pools warn before damage, can be escaped, and freeze with paused play', () => {
-  const f = fixture('plague', 3); f.prepare();
+  const f=fixture('plague',3);f.boss.group.position.set(6,0,0);f.prepare();
   assert.equal(f.boss.mode, 'poison-warning'); assert.equal(f.system.zones.length, 3);
   f.advance(.95); assert.equal(f.hits.length, 0);
   f.game.player.position.set(25, 0, 25);
@@ -115,7 +115,7 @@ test('storm fires slow rings with a usable gap and alternates with a warned nova
 });
 
 test('reaper marks a fixed landing point before blinking and delays the crossfire', () => {
-  const f = fixture('reaper', 6); f.prepare();
+  const f=fixture('reaper',6);f.boss.group.position.set(16,0,0);f.prepare();
   assert.equal(f.boss.mode, 'blink-warning');
   const target = f.boss.blinkTarget.clone(), start = f.boss.group.position.clone();
   assert.ok(target.distanceTo(f.game.player.position) >= 6.49, 'blink does not land directly on the player');
@@ -161,7 +161,7 @@ test('later guardians add warned attacks and different minions instead of only c
   assert.ok(groundBlast && groundBlast.warning >= 1, 'extra artillery ground blast is marked before it hits');
   artillery.system.dispose();
 
-  const plague = fixture('plague', 8); plague.prepare();
+  const plague=fixture('plague',8);plague.boss.group.position.set(6,0,0);plague.prepare();
   assert.equal(plague.system.zones.length, 5, 'later plague covers more ground with separately warned pools');
   plague.advance(1.2); plague.prepare();
   assert.equal(plague.boss.mode, 'fan-warning');
