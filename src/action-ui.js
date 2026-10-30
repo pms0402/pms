@@ -270,8 +270,10 @@ export function createActionUi({
       e.preventDefault();
       game.actions.releaseHeavy();
     });
-    for (const type of ["pointercancel", "lostpointercapture"])
-      heavy.addEventListener(type, () => game.actions.clearInput());
+    heavy.addEventListener("pointercancel", () => game.actions.clearInput());
+    heavy.addEventListener("lostpointercapture", (event) => {
+      if (event.buttons > 0) game.actions.clearInput();
+    });
     $("#mobile-parry").addEventListener("pointerdown", (e) => {
       e.preventDefault();
       game.actions.cancel();
