@@ -7,6 +7,7 @@ import {
   clipAimPoint,
 } from "../src/combat-collision.js";
 import { LockOnSystem } from "../src/lock-on.js";
+import { ActionCombat } from "../src/action-combat.js";
 import {
   normalizeBindings,
   DEFAULT_BINDINGS,
@@ -43,13 +44,7 @@ function fixture() {
     world: { colliders: [] },
     view: { movement: { reset() {} } },
   };
-  g.actions = {
-    current: null,
-    setAim(v) {
-      this.aim = v.clone();
-      if (!this.current) g.player.rotation.y = Math.atan2(v.x, v.z);
-    },
-  };
+  g.actions = new ActionCombat(g);
   g.add = (x, z, boss = false) => {
     const e = {
       hp: 100,
@@ -83,7 +78,7 @@ test("lock selection stays stable through crowds and changes only on explicit sw
   assert.equal(g.lock.target, null);
   g.lock.dispose();
 });
-test("lock keeps strafe/back movement, bounded turning, and attack snapshots while handling occlusion grace", () => {
+test("lock keeps strafe/back movement and bounded live sword turning while handling occlusion grace", () => {
   const g = fixture(),
     e = g.add(10, 0);
   g.lock.set(e);
@@ -93,10 +88,11 @@ test("lock keeps strafe/back movement, bounded turning, and attack snapshots whi
     forward = p(Math.sin(g.player.rotation.y), Math.cos(g.player.rotation.y));
   assert.ok(Math.abs(side.dot(forward)) < 1e-8);
   assert.ok(g.lock.movement(0, 1).dot(forward) < -0.99);
-  g.actions.current = {};
+  g.actions.current = {type:'sword',direction:new THREE.Vector3(0,0,1)};
   const heading = g.player.rotation.y;
   g.lock.update(0.1);
-  assert.equal(g.player.rotation.y, heading);
+  assert.ok(g.player.rotation.y>heading&&g.player.rotation.y-heading<=3.2*.1+1e-8);
+  assert.ok(Math.abs(g.actions.current.direction.x-Math.sin(g.player.rotation.y))<1e-10);
   g.world.colliders = [{ type: "rect", x: 5, z: 0, hx: 0.05, hz: 4 }];
   g.lock.update(0.5);
   assert.equal(g.lock.target, e);

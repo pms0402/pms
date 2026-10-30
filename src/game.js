@@ -628,8 +628,8 @@ export class Game {
   setBindings(bindings){this.bindings=normalizeBindings(bindings);this.onBlur();return this.bindings;}
   aimFromView(yaw=this.player.rotation.y){const mode=this.view.effectiveMode(),pitch=this.view.pitch[mode]||.03,height=(mode==='first'?2.105:2.35)*this.player.scale.y,distance=clamp(height/Math.max(.03,Math.tan(pitch)),2,18);this.actions.setAim(new THREE.Vector3(Math.sin(yaw),0,Math.cos(yaw)),distance);}
 
-  aimPointer(event){if(this.lockOn?.target)return;if(this.view.mode!=='overhead'){if(!this.actions.current)this.aimFromView();return;}
-    if(this.actions.current||event.pointerType==='touch')return;
+  aimPointer(event){if(this.lockOn?.target)return;if(this.view.mode!=='overhead'){this.aimFromView();return;}
+    if(event.pointerType==='touch')return;
     if(document.pointerLockElement===this.renderer.domElement){this.aimFromView();return;}
     const rect=this.renderer.domElement.getBoundingClientRect();this.pointerNdc.set((event.clientX-rect.left)/rect.width*2-1,-(event.clientY-rect.top)/rect.height*2+1);this.raycaster.setFromCamera(this.pointerNdc,this.camera);this.aimPlane.constant=-this.player.position.y;
     if(this.raycaster.ray.intersectPlane(this.aimPlane,this.aimPoint)){const direction=this.aimPoint.clone().sub(this.player.position).setY(0);if(direction.length()>.4)this.actions.setAim(direction,direction.length());}
@@ -653,7 +653,7 @@ export class Game {
     if(this.lockOn?.target){this.view.movement.reset();return;}
     if(!this.view.canLook()||this.view.mode==='overhead')return;
     if(!this.view.touchSteering()){this.view.movement.reset();return;}
-    if(this.actions.current||this.dashTime>0){this.view.movement.reset();return;}
+    if(this.dashTime>0){this.view.movement.reset();return;}
     this.aimFromView(this.player.rotation.y+this.view.movement.step(this.inputAxes().x,dt));
   }
   dash() {

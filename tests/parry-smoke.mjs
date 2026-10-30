@@ -601,7 +601,7 @@ try {
     ]),
     [0, 0.35],
   );
-  await phone.locator("#start-button").click();
+  await phone.locator("#start-button").tap();
   await phone.evaluate(() => cancelAnimationFrame(window.__game.raf));
   await phone.locator("#mobile-parry").tap();
   assert.ok(await phone.evaluate(() => window.__game.parry.active > 0));

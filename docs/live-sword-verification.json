@@ -1,0 +1,183 @@
+{
+  "release": "v0.20.2",
+  "baseline": "v0.20.1",
+  "unit": {
+    "passed": 237,
+    "failed": 0
+  },
+  "relatedBrowserSuites": [
+    {
+      "test": "live-sword-smoke.mjs",
+      "exit": 0,
+      "seconds": 25.8
+    },
+    {
+      "test": "mouse-controls-smoke.mjs",
+      "exit": 0,
+      "seconds": 26.8
+    },
+    {
+      "test": "follow-interaction-smoke.mjs",
+      "exit": 0,
+      "seconds": 25.3
+    },
+    {
+      "test": "view-smoke.mjs",
+      "exit": 0,
+      "seconds": 29.5
+    },
+    {
+      "test": "action-smoke.mjs",
+      "exit": 0,
+      "seconds": 32.7
+    },
+    {
+      "test": "articulation-smoke.mjs",
+      "exit": 0,
+      "seconds": 33.9
+    },
+    {
+      "test": "parry-smoke.mjs",
+      "exit": 0,
+      "rerun": "Passed after using native touch tap for the touch-only device fixture."
+    },
+    {
+      "test": "tactical-smoke.mjs",
+      "exit": 0,
+      "seconds": 41.8
+    },
+    {
+      "test": "motion-smoke.mjs",
+      "exit": 0,
+      "seconds": 9.2
+    },
+    {
+      "test": "standalone-smoke.mjs",
+      "exit": 0,
+      "seconds": 19.0
+    }
+  ],
+  "nativeInput": {
+    "rows": [
+      {
+        "mode": "third",
+        "style": "default",
+        "early": true,
+        "turnedHit": true,
+        "oldMiss": true,
+        "maxSnap": 0,
+        "heading": 3.1248000000000022,
+        "commands": 1,
+        "markers": 1,
+        "expectedMarkers": 1,
+        "samples": 12,
+        "minimumImmediateCameraAlignment": 0.9999999999999998,
+        "minimumCameraAlignment": 0.9999999999999998,
+        "minimumSwordAlignment": 1
+      },
+      {
+        "mode": "third",
+        "style": "broadsword",
+        "early": true,
+        "turnedHit": true,
+        "oldMiss": true,
+        "maxSnap": 0,
+        "heading": 3.1248000000000022,
+        "commands": 1,
+        "markers": 1,
+        "expectedMarkers": 1,
+        "samples": 12,
+        "minimumImmediateCameraAlignment": 0.9999999999999998,
+        "minimumCameraAlignment": 0.9999999999999998,
+        "minimumSwordAlignment": 1
+      },
+      {
+        "mode": "third",
+        "style": "twinblade",
+        "early": true,
+        "turnedHit": true,
+        "oldMiss": true,
+        "maxSnap": 0,
+        "heading": 3.1248000000000022,
+        "commands": 1,
+        "markers": 3,
+        "expectedMarkers": 3,
+        "samples": 12,
+        "minimumImmediateCameraAlignment": 0.9999999999999998,
+        "minimumCameraAlignment": 0.9999999999999998,
+        "minimumSwordAlignment": 1
+      },
+      {
+        "mode": "first",
+        "style": "default",
+        "early": true,
+        "turnedHit": true,
+        "oldMiss": true,
+        "maxSnap": 0,
+        "heading": 3.1248000000000022,
+        "commands": 1,
+        "markers": 1,
+        "expectedMarkers": 1,
+        "samples": 12,
+        "minimumImmediateCameraAlignment": 0.9999999999999999,
+        "minimumCameraAlignment": 0.9999999999999999,
+        "minimumSwordAlignment": 1
+      },
+      {
+        "mode": "first",
+        "style": "broadsword",
+        "early": true,
+        "turnedHit": true,
+        "oldMiss": true,
+        "maxSnap": 0,
+        "heading": 3.1248000000000022,
+        "commands": 1,
+        "markers": 1,
+        "expectedMarkers": 1,
+        "samples": 12,
+        "minimumImmediateCameraAlignment": 0.9999999999999999,
+        "minimumCameraAlignment": 0.9999999999999999,
+        "minimumSwordAlignment": 1
+      },
+      {
+        "mode": "first",
+        "style": "twinblade",
+        "early": true,
+        "turnedHit": true,
+        "oldMiss": true,
+        "maxSnap": 0,
+        "heading": 3.1248000000000022,
+        "commands": 1,
+        "markers": 3,
+        "expectedMarkers": 3,
+        "samples": 12,
+        "minimumImmediateCameraAlignment": 0.9999999999999999,
+        "minimumCameraAlignment": 0.9999999999999999,
+        "minimumSwordAlignment": 1
+      }
+    ],
+    "wave": {
+      "independent": true,
+      "live": true
+    },
+    "overhead": {
+      "same": true,
+      "turn": -0.9999999999998186,
+      "aligned": 0.9999999999999999
+    },
+    "touch": {
+      "manualTurn": 0.24999999999999975,
+      "moveTurn": 0.07813801599201087,
+      "same": true,
+      "alignment": 1
+    },
+    "errors": []
+  },
+  "builds": {
+    "production": true,
+    "standalone": true
+  },
+  "limitations": [
+    "Chromium/SwiftShader with real mouse and touch events; physical iPad/Safari frame behavior needs device testing."
+  ]
+}

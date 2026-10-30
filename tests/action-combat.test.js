@@ -43,7 +43,7 @@ function fixture(style = "default") {
       emit() {},
       sound() {},
       resolveSwordAction(a) {
-        hits.push({ time: a.elapsed, index: a.nextMarker, profile: a.profile });
+        hits.push({ time: a.elapsed, index: a.nextMarker, profile: a.profile, direction: a.direction.clone() });
       },
     };
   g.magic = {
@@ -73,13 +73,14 @@ test("no input never starts an attack or a spell; input wind-up has no damage un
   f.advance(2);
   assert.equal(f.hits.length, 1);
 });
-test("aim locks the entered stroke and recovery cannot be skipped by click spam", () => {
+test("aim steers the ongoing stroke immediately without skipping recovery or adding attacks", () => {
   const f = fixture();
   f.g.actions.setAim(new THREE.Vector3(1, 0, 0));
   f.g.actions.press("light");
   const a = f.g.actions.current;
   f.g.actions.setAim(new THREE.Vector3(-1, 0, 0));
-  assert.equal(a.direction.x, 1);
+  assert.equal(a.direction.x, -1);
+  assert.equal(f.g.player.rotation.y, -Math.PI / 2);
   for (let i = 0; i < 30; i++) assert.equal(f.g.actions.press("light"), false);
   f.advance(a.duration - 0.1);
   assert.ok(f.g.actions.press("light"));
@@ -87,6 +88,7 @@ test("aim locks the entered stroke and recovery cannot be skipped by click spam"
   f.advance(0.12);
   assert.equal(f.g.actions.manualCommands, 2);
   assert.equal(f.hits.length, 1);
+  assert.equal(f.hits[0].direction.x, -1);
 });
 test("ordinary combo ends at three and twinblade finisher commits exactly three bounded hits", () => {
   for (const style of ["default", "twinblade"]) {
@@ -100,6 +102,33 @@ test("ordinary combo ends at three and twinblade finisher commits exactly three 
     assert.equal(f.hits.length, style === "twinblade" ? 7 : 3);
     assert.ok(f.hits.at(-1).profile.damageMultiplier > 0);
   }
+});
+test('turning a twinblade finisher changes each authored contact without duplicating hits', () => {
+  const f=fixture('twinblade');f.g.actions.combo=4;f.g.actions.press('light');
+  const a=f.g.actions.current,directions=[new THREE.Vector3(1,0,0),new THREE.Vector3(0,0,-1),new THREE.Vector3(-1,0,0)];
+  assert.equal(a.markers.length,3);
+  for(let i=0;i<3;i++){
+    f.g.actions.setAim(directions[i]);
+    f.g.actions.update(a.duration*a.markers[i]-a.elapsed+1e-8);
+    assert.equal(f.hits.length,i+1);assert.ok(f.hits[i].direction.equals(directions[i]));
+  }
+  for(let i=0;i<20;i++)f.g.actions.setAim(new THREE.Vector3(Math.sin(i),0,Math.cos(i)));
+  const facing=f.g.player.rotation.y;f.advance(a.duration-a.elapsed+.02);
+  assert.equal(f.hits.length,3);assert.equal(f.g.actions.manualCommands,1);assert.equal(f.g.player.rotation.y,facing);
+});
+test('a charged heavy stays freely steerable through holding, release and recovery', () => {
+  const f=fixture('broadsword');f.g.actions.press('heavy');
+  f.g.actions.setAim(new THREE.Vector3(1,0,0));f.advance(1.2);assert.equal(f.hits.length,0);
+  f.g.actions.releaseHeavy();const a=f.g.actions.current;
+  f.g.actions.setAim(new THREE.Vector3(0,0,-1));assert.equal(a.direction.z,-1);
+  f.advance(a.duration+.02);assert.equal(f.hits.length,1);assert.equal(f.hits[0].direction.z,-1);
+  assert.equal(f.g.player.rotation.y,Math.PI);assert.ok(f.g.actions.heavyCooldown>2);
+});
+test('looking during a spell does not freeze the camera or move an already chosen cast target', () => {
+  const f=fixture();f.g.actions.setAim(new THREE.Vector3(1,0,0));f.g.actions.press('skill0');
+  const a=f.g.actions.current,target=a.target.clone();f.g.actions.setAim(new THREE.Vector3(-1,0,0));
+  assert.equal(f.g.player.rotation.y,-Math.PI/2);assert.ok(a.target.equals(target));
+  f.advance(a.duration+.02);assert.equal(f.g.player.rotation.y,-Math.PI/2);assert.equal(f.casts.length,1);
 });
 test("charge deals no damage on hold or cancellation; release consumes a four-second heavy cooldown", () => {
   const f = fixture("broadsword");

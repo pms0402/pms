@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { swordAction } from "./action-combat.js";
-/** A fixed line buffer follows the same action snapshot and radii as collision. */
+/** A fixed line buffer shares the live sword heading and action radii with collision. */
 export class CombatAim {
   constructor(game) {
     this.game = game;

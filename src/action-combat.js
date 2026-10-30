@@ -131,7 +131,7 @@ export function normalizedSlots(stats) {
   while (result.length < 3) result.push(null);
   return result;
 }
-/** All attacks start at player input and commit once at their animation marker. */
+/** Input starts an action; each authored contact uses the current sword heading. */
 export class ActionCombat {
   constructor(game) {
     this.game = game;
@@ -207,8 +207,8 @@ export class ActionCombat {
       return;
     this.hasAim = true;
     this.aim.copy(direction).setY(0).normalize();
-    if (!this.current)
-      this.game.player.rotation.y = Math.atan2(this.aim.x, this.aim.z);
+    this.game.player.rotation.y = Math.atan2(this.aim.x, this.aim.z);
+    if (this.current?.type === 'sword') this.current.direction.copy(this.aim);
     this.aimDistance = clamp(distance, 2, 18);
   }
   ready() {
@@ -435,7 +435,6 @@ export class ActionCombat {
     }
     if (a.elapsed >= a.duration) {
       this.current = null;
-      if(this.hasAim)g.player.rotation.y=Math.atan2(this.aim.x,this.aim.z);
       g.attackAnim = g.counterAnim = 0;
       this.comboTime=a.style==='broadsword'?1.05:a.style==='twinblade'?.65:.8;
       const buffered = this.buffer;

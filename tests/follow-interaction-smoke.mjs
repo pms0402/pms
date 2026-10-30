@@ -225,10 +225,12 @@ try {
       g.view.rotate(90, 0);
       const active = measure(),
         held =
-          g.player.rotation.y === locked && a.direction.equals(attackDirection);
+          g.player.rotation.y !== locked && !a.direction.equals(attackDirection) &&
+          Math.abs(Math.atan2(a.direction.x,a.direction.z)-g.player.rotation.y)<1e-8;
+      const liveHeading=g.player.rotation.y;
       g.actions.update(a.duration + 0.01);
       const after = measure(),
-        pending = g.player.rotation.y !== locked;
+        pending = g.player.rotation.y === liveHeading;
       g.renderer.render(g.scene, g.camera);
       results.push({
         mode,
@@ -261,7 +263,7 @@ try {
     JSON.stringify(cameras),
   );
   console.log(
-    "PASS first/third camera matches character heading through turning, movement, locked attack and buffered facing changes",
+    "PASS first/third camera and sword turn together during attacks with no recovery snap",
     JSON.stringify(cameras),
   );
   if (output)
