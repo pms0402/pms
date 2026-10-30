@@ -49,7 +49,7 @@ export function swordAction(
   const base = counter ? counterProfile(stats) : getSwordProfile(stats),
     style = weaponStyle(stats),
     max = style === "twinblade" ? 5 : 3,
-    finisher = index === max - 1;
+    finisher = !counter && index === max - 1;
   const speed = clamp(
       Math.pow(
         Math.max(0.1, combat.attackRate / 1.5) * base.attackRateMultiplier,
@@ -58,7 +58,7 @@ export function swordAction(
       0.75,
       1.65,
     ),
-    heavy = type === "heavy";
+    heavy = type === "heavy" && !counter;
   const duration =
     (counter
       ? 0.56
@@ -92,7 +92,9 @@ export function swordAction(
     profile: {
       ...base,
       mode: counter ? base.mode : style,
-      range: base.range * (heavy ? 1.3 : style === "broadsword" ? 1.15 : 1),
+      range:
+        base.range *
+        (counter ? 1 : heavy ? 1.3 : style === "broadsword" ? 1.15 : 1),
       arc: counter
         ? Math.PI
         : heavy
@@ -138,6 +140,8 @@ export class ActionCombat {
     this.reset();
   }
   reset() {
+    this.game.manualDashUntil = 0;
+    this.aimDistance = 12;
     this.current = null;
     this.buffer = null;
     this.charging = false;
@@ -221,7 +225,7 @@ export class ActionCombat {
     if (!this.ready()) return false;
     if (
       (type === "ultimate" && this.ultimateCooldown > 0) ||
-      (type === "heavy" && this.heavyCooldown > 0)
+      (type === "heavy" && this.heavyCooldown > 0 && g.parry.counterTime <= 0)
     )
       return false;
     if (type.startsWith("skill")) {
@@ -230,6 +234,7 @@ export class ActionCombat {
     }
     if (
       type === "heavy" &&
+      g.parry.counterTime <= 0 &&
       weaponStyle(g.stats) === "broadsword" &&
       !this.current &&
       this.heavyCooldown <= 0
@@ -275,7 +280,12 @@ export class ActionCombat {
         ? "ultimate"
         : null;
     if (type === "light" || type === "heavy") {
-      if (type === "heavy" && this.heavyCooldown > 0) return false;
+      if (
+        type === "heavy" &&
+        this.heavyCooldown > 0 &&
+        g.parry.counterTime <= 0
+      )
+        return false;
       const counter = g.parry.counterTime > 0;
       action = {
         ...swordAction(
@@ -301,7 +311,7 @@ export class ActionCombat {
         g.manualDashUntil = 0;
       }
       if (counter) g.parry.consume();
-      if (type === "heavy") this.heavyCooldown = 4;
+      if (action.heavy) this.heavyCooldown = 4;
       if (type === "light" && !counter) {
         this.combo = (this.combo + 1) % action.max;
         this.comboTime = 0.8;
@@ -365,7 +375,14 @@ export class ActionCombat {
     }
     if (this.charging) this.charge = Math.min(1, this.charge + dt / 1.2);
     if (this.buffer) {
-      this.buffer.life -= dt;
+      // A frame may overshoot recovery; don't expire a valid queued input in
+      // the unused part of that frame before we can start it.
+      this.buffer.life -= this.current
+        ? Math.min(
+            dt,
+            Math.max(0, this.current.duration - this.current.elapsed),
+          )
+        : dt;
       if (this.buffer.life < 0) this.buffer = null;
     }
     const a = this.current,

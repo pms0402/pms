@@ -3,7 +3,7 @@ export const DAMAGE_SOURCES = Object.freeze({
   fireball: "화염구",
   frost: "서리 파동",
   lightning: "연쇄 번개",
-  orbit: "궤도 룬",
+  orbit: "설치 룬",
   combo: "숨겨진 조합",
   equipment: "장비 효과",
   counter: "반격",

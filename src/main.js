@@ -220,7 +220,8 @@ function update(state) {
   $('#stage-progress').style.width = `${state.stageTime / STAGE_DURATION * 100}%`;
   const risk = state.phase === 'menu' ? getRiskStats(prefs.risk) : state.risk || getRiskStats(prefs.risk);
   const goldBonus = (risk.goldMultiplier || 1) * (state.playerStats?.goldMultiplier || 1);
-  hud('#reward-multiplier', `${decimal((state.stageStats || getStageStats(state.stage)).coinValue * 2.5,1)} G · ×${decimal(goldBonus, 2)}`);
+  const baseKillGold=(state.stageStats || getStageStats(state.stage)).coinValue*2.5;
+  hud('#reward-multiplier', `${baseKillGold<1e4?decimal(baseKillGold,1):formatGold(baseKillGold)} G · ×${decimal(goldBonus, 2)}`);
   $('#reward-multiplier').title = `기본 처치 골드 × 계약 × 유물·영구 강화 × 제단·경로·지역. 현재 총 보상 배율 ×${decimal(goldBonus, 2)}`;
   const enemyStats = state.stageStats || getStageStats(state.stage), baseEnemyStats = getStageStats(1);
   hud('#enemy-multiplier', `×${decimal(enemyStats.enemyHealth / baseEnemyStats.enemyHealth * (risk.enemyHealth || 1))} / ×${decimal(enemyStats.enemyDamage / baseEnemyStats.enemyDamage * (risk.enemyDamage || 1))}`);
@@ -388,7 +389,7 @@ function showGuide() {
   if (isChoiceDialog()) return;
   const steps = [
     ['시점과 카메라', '기본은 3인칭입니다. <kbd>V</kbd> / 상단 시점 버튼으로 3인칭→1인칭→항공을 전환합니다. 가까운 시점의 WASD는 바라보는 방향 기준입니다. PC는 전장 드래그로 시점을 돌리고 3인칭에서 휠로 거리를 바꿉니다. 1인칭에서는 전장을 클릭해 마우스를 잠글 수 있고 ESC/메뉴로 해제합니다. 모바일은 왼쪽 드래그·방향 버튼으로 이동, 오른쪽 드래그로 둘러봅니다. 공격은 기존대로 주변 적을 자동 추적합니다. F(한글 ㄹ)는 패링, V(한글 ㅍ)는 시점 변경입니다.'],
-    ['장비·탐험·정밀 방어', '장비는 <kbd>TAB</kbd> / 장비 버튼에서 비교·교체·버릴 수 있습니다. NPC 가까이에서 <kbd>C</kbd> / 교류로 대화하세요. <kbd>F</kbd> (한/영 무관) 패링은 전방 120°를 0.45초 방어하며 처음 0.16초는 완벽한 패링입니다. 성공하면 4m 충격파·0.1초 히트 스톱·공격한 보스 경직, 2초 안 다음 자동 검격은 180° 광역 250% 반격입니다. 재사용 4초, 보스 경직 저항 5초. 붉은 지면 공격은 방어 불가, 청색 직선·일반 탄환은 방어 가능.'],
+    ['장비·탐험·정밀 방어', '장비는 <kbd>TAB</kbd> / 장비 버튼에서 비교·교체·버릴 수 있습니다. NPC 가까이에서 <kbd>C</kbd> / 교류로 대화하세요. <kbd>F</kbd> (한/영 무관) 패링은 전방 120°를 0.45초 방어하며 처음 0.16초는 완벽한 패링입니다. 성공하면 4m 충격파·0.1초 히트 스톱·공격한 보스 경직, 2초 안 다음 직접 검 공격은 180° 광역 250% 반격입니다. 재사용 4초, 보스 경직 저항 5초. 붉은 지면 공격은 방어 불가, 청색 직선·일반 탄환은 방어 가능.'],
     ['세 단계 수호자와 끝없는 심연', '보스 체력 70% 미만·35% 미만에서 새로운 패턴과 연계가 열립니다. 보스 장비는 하나 선택하거나 넘길 수 있습니다. 일반 10층 승리 후 모드 선택에서 11층부터 무한 심연을 탐험하세요. 5층마다 재앙 보스, 20층부터 10층마다 교대 제약이 등장합니다. 기록·업적은 이 브라우저에 저장됩니다.'],
     ['전장을 움직이고, 좌클릭 공격 · 우클릭 강공격', '<kbd>W A S D</kbd> / 방향키로 이동, <kbd>SHIFT</kbd>로 무적 대시. 모바일은 방향 버튼이나 전장 드래그를 사용합니다. 좌클릭은 3/5타 콤보, 우클릭은 강공격입니다. 대검은 우클릭을 누른 채 차징합니다. <kbd>Q/E/R</kbd> 배치 스킬, <kbd>X</kbd> 궁극기, <kbd>F</kbd> 패링. 클릭하면 시점이 잠기고, 잠금이 안 되면 휠 버튼 드래그로 시점을 바꿉니다.'],
     ['검 범위도 선택으로 성장합니다', '기본 검은 가까운 적을 베는 무기입니다. <b>검 범위 강화</b>를 고르면 거리 +12%, 최대 8단계까지 늘어납니다. 검 공격력·속도·범위 강화 합계 <b>3단계</b>부터 대검 / 쌍검 / 검기 진화가 등장합니다. 한 런에는 하나의 검 진화를 고릅니다.'],

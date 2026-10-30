@@ -1,3 +1,4 @@
+import {keyLabel} from './control-bindings.js';
 import { setsMarkup } from './chronicle-ui.js';
 import { SETS } from './sets.js';
 import {
@@ -93,7 +94,7 @@ export function createExpansionUi({
     reward(choices) {
       openModal(
         "equipment",
-        `<div class="modal-eyebrow">GUARDIAN EQUIPMENT</div><h2 id="modal-title">수호자의 장비를 하나 고르세요.</h2><p class="modal-description">가방에 보관한 뒤 E / 장비에서 비교·장착하세요. 가방 ${game.equipment.bag.length}/16. 선택 중 전투가 멈춥니다.</p><div class="gear-grid">${choices
+        `<div class="modal-eyebrow">GUARDIAN EQUIPMENT</div><h2 id="modal-title">수호자의 장비를 하나 고르세요.</h2><p class="modal-description">가방에 보관한 뒤 Tab / 장비에서 비교·장착하세요. 가방 ${game.equipment.bag.length}/16. 선택 중 전투가 멈춥니다.</p><div class="gear-grid">${choices
           .map(
             (item) =>
               `<section>${itemMarkup(
@@ -191,13 +192,13 @@ export function createExpansionUi({
             ? `광역 반격 ${parry.counterTime.toFixed(1)}초`
             : parry.cooldown > 0
               ? `패링 ${parry.cooldown.toFixed(1)}초`
-              : "패링 · F / G";
+              : `패링 · ${keyLabel(game.bindings.parry)}`;
         guard.style.setProperty('--parry-ready',String(parry.counterTime>0 ? 1 : Math.max(0,1-(parry.cooldown||0)/(parry.maxCooldown||4))));
         guard.classList.toggle('counter-ready',parry.counterTime>0);
-        guard.title='F / G 물리 키 · 한글 입력 상태에서도 사용 가능 · 전방 120° · 첫 0.16초 완벽한 패링 · 청색 직선/일반 탄환 가능 · 지면 공격 방어 불가';
-        guard.setAttribute('aria-label',parry.counterTime>0 ? `광역 반격 가능 ${parry.counterTime.toFixed(1)}초. 다음 자동 검격에 발동` : `패링 F 또는 G. ${parry.cooldown>0 ? '재사용 '+parry.cooldown.toFixed(1)+'초' : '사용 가능'}`);
+        guard.title=keyLabel(game.bindings.parry)+' 물리 키 · 한글 입력 상태에서도 사용 가능 · 전방 120° · 첫 0.16초 완벽한 패링 · 청색 직선/일반 탄환 가능 · 지면 공격 방어 불가';
+        guard.setAttribute('aria-label',parry.counterTime>0 ? `광역 반격 가능 ${parry.counterTime.toFixed(1)}초. 다음 직접 검 공격에 발동` : `패링 ${keyLabel(game.bindings.parry)}. ${parry.cooldown>0 ? '재사용 '+parry.cooldown.toFixed(1)+'초' : '사용 가능'}`);
         guard.disabled =
-          state.phase !== "playing" ||
+          (state.phase !== "playing" && !(state.phase==='camp'&&state.camp?.practice&&!game.camp.suspended)) ||
           (parry.cooldown > 0 && !parry.counterTime);
       }
       const interact = document.querySelector("#interact-npc");
@@ -206,8 +207,8 @@ export function createExpansionUi({
         interact.disabled =
           !npc || state.phase !== "playing" || npc.distance > 3.2;
         interact.textContent = npc
-          ? `${npc.name} · ${npc.distance <= 3.2 ? "교류 R" : `${npc.distance.toFixed(0)}m`}`
-          : "교류 R";
+          ? `${npc.name} · ${npc.distance <= 3.2 ? `교류 ${keyLabel(game.bindings.interact)}` : `${npc.distance.toFixed(0)}m`}`
+          : `교류 ${keyLabel(game.bindings.interact)}`;
       }
       const phase = document.querySelector("#boss-combat-phase");
       if (phase)

@@ -586,7 +586,7 @@ export class Game {
       if(action==='dash'){event.preventDefault();this.dash();}
       else if(action==='parry'){event.preventDefault();this.actions.clearInput();this.actions.cancel();this.parry.press();}
       else if(action==='interact'){event.preventDefault();this.interact();}
-      else if(['light','heavy','skill0','skill1','skill2','ultimate'].includes(action)){event.preventDefault();this.actions.press(action);}
+      else if(['light','heavy','skill0','skill1','skill2','ultimate'].includes(action)){event.preventDefault();this.triggerControl(action);}
     };
     this.onKeyUp=event=>{const key=controlKey(event);this.keys.delete(key);if(key===this.bindings.heavy)this.actions.releaseHeavy();};
     this.onBlur=()=>{this.keys.clear();this.touchMove={x:0,y:0};this.touchStart=null;this.actions.clearInput();this.view.release();this.callbacks.onJoystick?.(null);};
@@ -598,7 +598,7 @@ export class Game {
         this.container.focus?.({preventScroll:true});
         if(event.button===1&&!Object.values(this.bindings).includes('mouse1')){this.view.pointerDown(event);return;}
         this.aimPointer(event);const action=Object.keys(this.bindings).find(id=>this.bindings[id]===controlKey(event));
-        if(action){event.preventDefault();this.triggerControl(action);this.renderer.domElement.setPointerCapture?.(event.pointerId);}
+        if(action){event.preventDefault();this.keys.add(controlKey(event));this.triggerControl(action);this.renderer.domElement.setPointerCapture?.(event.pointerId);}
         if(this.view.canLook()&&this.view.mode!=='overhead'&&document.pointerLockElement!==this.renderer.domElement){try{this.renderer.domElement.requestPointerLock?.()?.catch?.(()=>{});}catch{}}
         return;
       }
@@ -606,8 +606,8 @@ export class Game {
       this.touchStart={x:event.clientX,y:event.clientY,id:event.pointerId};this.renderer.domElement.setPointerCapture(event.pointerId);this.callbacks.onJoystick?.({x:event.clientX,y:event.clientY,dx:0,dy:0});
     };
     this.onPointerMove=event=>{if(this.view.pointerMove(event))return;if(event.pointerType!=='touch'){this.aimPointer(event);return;}if(this.touchStart?.id!==event.pointerId)return;const dx=event.clientX-this.touchStart.x,dy=event.clientY-this.touchStart.y;this.setMove(dx/55,dy/55);this.callbacks.onJoystick?.({...this.touchStart,dx,dy});};
-    this.onPointerUp=event=>{this.view.pointerUp(event);if(event.pointerType!=='touch'&&controlKey(event)===this.bindings.heavy)this.actions.releaseHeavy();if(this.touchStart?.id===event.pointerId){this.touchStart=null;this.setMove(0,0);this.callbacks.onJoystick?.(null);}};
-    this.onPointerCancel=event=>{this.actions.clearInput();this.view.pointerUp(event);if(this.touchStart?.id===event.pointerId){this.touchStart=null;this.setMove(0,0);this.callbacks.onJoystick?.(null);}};
+    this.onPointerUp=event=>{if(event.pointerType!=='touch')this.keys.delete(controlKey(event));this.view.pointerUp(event);if(event.pointerType!=='touch'&&controlKey(event)===this.bindings.heavy)this.actions.releaseHeavy();if(this.touchStart?.id===event.pointerId){this.touchStart=null;this.setMove(0,0);this.callbacks.onJoystick?.(null);}};
+    this.onPointerCancel=event=>{for(const key of this.keys)if(key.startsWith('mouse'))this.keys.delete(key);this.actions.clearInput();this.view.pointerUp(event);if(this.touchStart?.id===event.pointerId){this.touchStart=null;this.setMove(0,0);this.callbacks.onJoystick?.(null);}};
     const canvas=this.renderer.domElement;canvas.addEventListener('pointerdown',this.onPointerDown);canvas.addEventListener('pointermove',this.onPointerMove);canvas.addEventListener('pointerup',this.onPointerUp);canvas.addEventListener('pointercancel',this.onPointerCancel);canvas.addEventListener('lostpointercapture',this.onPointerCancel);
   }
   triggerControl(action){if(action==='light'&&this._state.phase==='camp'&&this.camp.practice)return this.camp.counter();if(action==='dash')return this.dash();if(action==='parry'){this.actions.cancel();return this.parry.press();}if(action==='interact')return this.interact();if(['light','heavy','skill0','skill1','skill2','ultimate'].includes(action))return this.actions.press(action);return this.callbacks.onControlAction?.(action)||false;}
@@ -1024,6 +1024,7 @@ export class Game {
     const s = this._state;
     if (s.phase !== 'region' || !this.regionChoices.some(region => region.id === id) ||
         this.pendingRouteStage !== s.stage + 1 || !ROUTES.some(route => route.id === this.pendingRouteId)) return false;
+    this.actions.cancel();
     this.sideAreas.clearFloor();
     this.routeId = this.pendingRouteId; this.regionId = id;
     s.stage = this.pendingRouteStage; s.stageTime = 0; this.setStageMood(s.stage);
