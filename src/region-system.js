@@ -7,7 +7,7 @@ const tint = (material, color) => material?.color?.set(color);
 
 /** Fixed render batches and warned hazards; no regional action changes saved player stats. */
 export class RegionSystem {
-  constructor(game) {
+  constructor(game,{surface=true}={}) {
     this.game = game; this.scene = game.scene; this.region = getRegion(); this.time = 0;
     this.hazards = []; this.slowRemaining = 0; this.poisonRemaining = 0; this.poisonTick = 0;
     this.hazardTimer = 10; this.blinkTimer = 8; this.disposed = false;
@@ -55,7 +55,7 @@ export class RegionSystem {
     this.ambient = new THREE.Points(this.ambientGeometry, this.ambientMaterial); this.ambient.visible = false; this.ambient.frustumCulled = false; this.scene.add(this.ambient);
     this.surfaceUniforms = { color: { value: new THREE.Color('#ffffff') }, blend: { value: 0 },kind:{value:0},time:{value:0} };
     const material = game.world?.ground?.material;
-    if (material) {
+    if (material && surface) {
       const compile = material.onBeforeCompile, key = material.customProgramCacheKey.bind(material);
       material.onBeforeCompile = (shader, renderer) => {
         compile.call(material, shader, renderer);

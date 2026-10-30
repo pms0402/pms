@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import {keyLabel} from "./control-bindings.js";
 import { activeSets, rollSet } from "./sets.js";
 export const EQUIPMENT_SLOTS = Object.freeze({
   weapon: "무기",
@@ -149,7 +150,7 @@ export class EquipmentSystem {
       return false;
     this.bag.push(item); this.game.analytics?.equipment(item);
     this.game.callbacks.onLoot?.(
-      `${item.title} · 장비 가방에 보관 · E로 비교/장착`,
+      `${item.title} · 장비 가방에 보관 · ${keyLabel(this.game.bindings?.inventory||"tab")}로 비교/장착`,
     );
     return true;
   }

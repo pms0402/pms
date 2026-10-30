@@ -124,6 +124,8 @@ export function normalizeStory(input = {}) {
       s.endings,
       ENDINGS.map((e) => e.id),
     ),
+    encounteredHidden:unique([...(Array.isArray(s.encounteredHidden)?s.encounteredHidden:[]),...(Array.isArray(s.defeated)?s.defeated:[])],HIDDEN_BOSSES.map(b=>b.id)),
+    encounteredBossStages:unique([...(Array.isArray(s.encounteredBossStages)?s.encounteredBossStages:[]),...(Array.isArray(s.normalBossStages)?s.normalBossStages:[])],[1,2,3,4,5,6,7,8,9,10]),
     normalClear: s.normalClear === true,
     normalBossStages: unique(
       s.normalBossStages,
@@ -184,6 +186,7 @@ export class StorySystem {
       !this.progress.records.includes("sanctuary")
     )
       this.progress.records.push("sanctuary");
+    this.progress.encounteredBossStages=[...new Set([...this.progress.encounteredBossStages,...this.progress.normalBossStages])];
     this.save();
   }
   save() {
@@ -199,6 +202,8 @@ export class StorySystem {
     );
     return true;
   }
+  encounterHidden(id){if(HIDDEN_BOSSES.some(b=>b.id===id)&&!this.progress.encounteredHidden.includes(id)){this.progress.encounteredHidden.push(id);this.save();}}
+  encounterBoss(stage){if(stage>=1&&stage<=10&&!this.progress.encounteredBossStages.includes(stage)){this.progress.encounteredBossStages.push(stage);this.save();}}
   onBoss(stage, region, mode) {
     if (mode !== "abyss" && !this.progress.normalBossStages.includes(stage))
       this.progress.normalBossStages.push(stage);

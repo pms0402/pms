@@ -1,0 +1,184 @@
+{
+  "lock": [
+    {
+      "mode": "third",
+      "step": 0.009196230732585464,
+      "dot": 0.9999999999999999,
+      "side": 0,
+      "back": -0.9999999999999999,
+      "moved": 1.498379073170552,
+      "same": true
+    },
+    {
+      "mode": "first",
+      "step": 0.00997677810299985,
+      "dot": 0.9999999999999998,
+      "side": 0,
+      "back": -0.9999999999999999,
+      "moved": 1.4965237874307664,
+      "same": true
+    },
+    {
+      "mode": "overhead",
+      "step": 0.009976352841504055,
+      "dot": 1,
+      "side": 0,
+      "back": -1,
+      "moved": 1.4964680687851277,
+      "same": true
+    }
+  ],
+  "collision": {
+    "rows": [
+      {
+        "mode": "first",
+        "early": 100000000,
+        "front": 99999960.4,
+        "rear": 100000000,
+        "outside": 100000000,
+        "close": 99999960.4
+      },
+      {
+        "mode": "third",
+        "early": 100000000,
+        "front": 99999960.4,
+        "rear": 100000000,
+        "outside": 100000000,
+        "close": 99999960.4
+      },
+      {
+        "mode": "overhead",
+        "early": 100000000,
+        "front": 99999960.4,
+        "rear": 100000000,
+        "outside": 100000000,
+        "close": 99999960.4
+      }
+    ],
+    "blocked": true,
+    "clipped": true
+  },
+  "links": {
+    "shatter": 1,
+    "ignite": 1,
+    "dash": 1,
+    "parry": 1,
+    "counter": 2,
+    "damage": 21.78,
+    "total": 692.6399999856949
+  },
+  "goals": [
+    {
+      "type": "elite",
+      "complete": true,
+      "rewarded": true,
+      "coin": 400,
+      "summoned": true,
+      "advanced": true,
+      "noFreeGrowth": true
+    },
+    {
+      "type": "hunt",
+      "complete": true,
+      "rewarded": true,
+      "coin": 450,
+      "summoned": true,
+      "advanced": true,
+      "noFreeGrowth": true
+    },
+    {
+      "type": "seals",
+      "complete": true,
+      "rewarded": true,
+      "coin": 450,
+      "summoned": true,
+      "advanced": true,
+      "noFreeGrowth": true
+    },
+    {
+      "type": "crossing",
+      "complete": true,
+      "rewarded": true,
+      "coin": 500,
+      "summoned": true,
+      "advanced": true,
+      "noFreeGrowth": true
+    },
+    {
+      "type": "ritual",
+      "complete": true,
+      "rewarded": true,
+      "coin": 400,
+      "summoned": true,
+      "advanced": true,
+      "noFreeGrowth": true
+    },
+    {
+      "type": "defense",
+      "complete": true,
+      "rewarded": true,
+      "coin": 531.25,
+      "summoned": true,
+      "advanced": true,
+      "noFreeGrowth": true
+    }
+  ],
+  "training": {
+    "same": true,
+    "phase": "camp",
+    "cd": 7.25,
+    "heavy": 3,
+    "parry": 2,
+    "story": true,
+    "progress": true,
+    "history": true,
+    "shader": true
+  },
+  "practiceCycles": {
+    "counts": [
+      {
+        "geometries": 156,
+        "textures": 22
+      },
+      {
+        "geometries": 161,
+        "textures": 22
+      },
+      {
+        "geometries": 161,
+        "textures": 22
+      },
+      {
+        "geometries": 161,
+        "textures": 22
+      },
+      {
+        "geometries": 161,
+        "textures": 22
+      },
+      {
+        "geometries": 161,
+        "textures": 22
+      },
+      {
+        "geometries": 161,
+        "textures": 22
+      },
+      {
+        "geometries": 161,
+        "textures": 22
+      }
+    ],
+    "same": true,
+    "shader": true
+  },
+  "practicePatterns": {
+    "unseenRejected": true,
+    "split": true,
+    "finite": true,
+    "admitted": true,
+    "hidden": true,
+    "preserved": true
+  },
+  "errors": []
+}

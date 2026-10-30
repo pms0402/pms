@@ -26,6 +26,7 @@ export function interactionTarget(game) {
       return { kind: "room", name: "시련 보상 제단", verb: "보상 받기" };
     return null;
   }
+  const objective=game.objectives?.interactionTarget();if(objective)return objective;
   const portal = side.portal;
   if (portal && !portal.used && portal.group.position.distanceTo(p) <= 3.5)
     return { kind: "portal", name: "비밀 공간 입구", verb: "살펴보기" };

@@ -123,6 +123,9 @@ try {
       // Avoid random healing drops; no healing/crit/regeneration perk is active.
       Math.random = () => .5;
       for (let floor = 1; floor <= 10; floor++) {
+        // Isolate stat invariance from the new objective controller, which has
+        // its own real completion/reward/transition coverage in tactical-smoke.
+        game.objectives.begin(floor, game.regionId, 'survival');
         const before = structuredClone(game.stats), beforeHp = game.state.hp;
         const boss = game.spawnBoss();
         const afterSpawn = structuredClone(game.stats);

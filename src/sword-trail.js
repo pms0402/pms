@@ -8,7 +8,7 @@ const CORNERS = [
   [1, true],
   [1, false],
 ];
-/** A small reusable ribbon follows the actual steel, not a delayed damage projectile. */
+/** A reusable energy ribbon follows the steel's cut and committed attack reach. */
 export class SwordTrail {
   constructor(game) {
     this.game = game;
@@ -78,6 +78,12 @@ export class SwordTrail {
       this.sampleTime[id] = this.time;
       this.base.set(0, 0, 0.12).applyMatrix4(blade.matrixWorld);
       this.tip.set(0, 0, 1).applyMatrix4(blade.matrixWorld);
+      // The visible energy edge carries upgrades/heavy reach beyond the steel.
+      // Its outer radius is the exact action range used by the sector hit test.
+      if(manual&&g.actions.current.style!=='wave'){
+        const dx=this.tip.x-g.player.position.x,dz=this.tip.z-g.player.position.z,r=Math.hypot(dx,dz),range=g.actions.current.profile.range;
+        if(r>.01){this.tip.x=g.player.position.x+dx*range/r;this.tip.z=g.player.position.z+dz*range/r;}
+      }
       const path = this.paths[id],
         previous = path.at(-1);
       if (previous && previous.tip.distanceToSquared(this.tip) > 9) {

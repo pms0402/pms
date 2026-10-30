@@ -4,6 +4,9 @@ import './interaction-ui.css';
 import './style.css';
 import './quality-ui.css';
 import './action-ui.css';
+import {createTacticalUi} from './tactical-ui.js';
+import {objectiveFor,OBJECTIVE_TYPES} from './stage-objectives.js';
+import './tactical-ui.css';
 import {createActionUi} from './action-ui.js';
 import { Game } from './game.js';
 import { formatGold, getStageStats, SPELLS, STAGE_DURATION, BOSS_SPAWN_TIME, MAX_STAGES } from './balance.js';
@@ -48,7 +51,7 @@ let lastResult = null;
 let campFromResult = false;
 let expansionUI, chronicleUI;
 let endgame = normalizeEndgame(readStorage('voidrun.endgame', {}), history);
-let actionUi,interactionUi;let game, latest, dialogName = '', pausedForDialog = false;
+let actionUi,interactionUi,tacticalUi;let game, latest, dialogName = '', pausedForDialog = false;
 let lastKills = 0;
 let toastTimeout, parryNoticeTimeout,impactTimeout,bossCueTimeout,lastBossCue='';
 const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -85,7 +88,7 @@ $('#app').innerHTML = `
       <button class="nav-link" data-nav="history">런 기록 <span class="nav-count" id="history-count">${history.length.toString().padStart(2, '0')}</span></button>
       <button class="nav-link" data-nav="permanent">영구 강화</button>
     </nav>
-    <div class="header-actions"><span class="build-label"><i></i> BUILD YOUR LEGEND <b>v0.19.3</b></span><span class="header-divider"></span><button id="sound-toggle" class="icon-button" title="사운드 켜기" aria-label="사운드 켜기">${icon('muted')}</button><button id="settings" class="icon-button" title="설정" aria-label="설정">${icon('settings')}</button></div>
+    <div class="header-actions"><span class="build-label"><i></i> BUILD YOUR LEGEND <b>v0.20.0</b></span><span class="header-divider"></span><button id="sound-toggle" class="icon-button" title="사운드 켜기" aria-label="사운드 켜기">${icon('muted')}</button><button id="settings" class="icon-button" title="설정" aria-label="설정">${icon('settings')}</button></div>
   </header>
   <main class="page">
     <section class="page-intro">
@@ -105,7 +108,7 @@ $('#app').innerHTML = `
           <div class="health-block"><div class="health-label">${icon('heart')}<span>HP</span><span id="invuln-state"></span><strong id="health-value">100 <small>/ 100</small></strong></div><div class="health-track"><div id="health-fill"></div></div><div class="xp-row"><span id="level-value">LV. 1</span><div class="xp-track"><div id="xp-fill"></div></div><span id="xp-value">0 / 10</span></div></div>
           <div class="run-counters"><div>${icon('clock')}<strong id="run-time">00:00</strong></div><div>${icon('skull')}<strong id="kill-count">0</strong></div><div class="gold-counter">${icon('coin')}<strong id="gold-count">0</strong></div></div>
         </div>
-        <div class="boss-hud hidden" id="boss-hud" role="meter" aria-label="보스 체력" aria-valuemin="0" aria-valuemax="100"><div><strong id="boss-name"></strong><span id="boss-combat-phase"></span><span id="boss-health-value"></span></div><div class="boss-health-track"><div id="boss-health-fill"></div></div><span id="boss-stagger" class="hidden"></span></div>
+        <div class="boss-hud hidden" id="boss-hud" role="meter" aria-label="보스 체력" aria-valuemin="0" aria-valuemax="100"><div><strong id="boss-name"></strong><span id="boss-combat-phase"></span><span id="boss-health-value"></span></div><div class="boss-health-track"><div id="boss-health-fill"></div></div><span id="boss-tactic" class="hidden"></span><span id="boss-stagger" class="hidden"></span></div>
         <div class="start-content" id="start-content">
           <div class="roguelike-tag"><span></span> 3D SURVIVAL ROGUELIKE</div>
           <h2>작은 시작.<br>거대한 <span>한 방.</span></h2>
@@ -127,8 +130,8 @@ $('#app').innerHTML = `
           <div class="dash-indicator hidden" id="dash-indicator"><kbd>SHIFT</kbd><div><strong id="dash-status">대시 준비</strong><div class="dash-track"><div id="dash-fill"></div></div></div>${icon('bolt')}</div>
           <div class="scene-tag" id="scene-tag"><span class="live-dot"></span> REAL-TIME 3D</div>
         </div>
-        <div class="expedition-actions hidden" id="expedition-actions"><button id="guard-button">패링 · F</button><button id="equipment-button">장비 · TAB</button><span id="abyss-rule" class="hidden"></span></div><div class="growth-toolbar hidden" id="growth-toolbar"><div class="spell-loadout" id="spell-loadout" aria-label="보유 마법">${[0,1,2,3].map(index=>`<button class="spell-slot locked" data-action-slot="${index}" aria-label="수동 스킬 ${index+1}"><kbd>${['Q','E','R','X'][index]}</kbd><span class="spell-slot-icon">${icon('bolt')}</span><span class="spell-slot-rank">—</span><span class="spell-cooldown"></span></button>`).join('')}</div><div id="synergy-status" class="synergy-status hidden" aria-label="발동 중인 조합"></div><button id="run-build-button" class="shop-button">${icon('book')} 배치 · 빌드 <span id="reward-pending" class="reward-pending hidden" title="다음 레벨업의 선택 보상"></span><kbd>B</kbd></button></div>
-        <div id="interaction-prompt" class="interaction-prompt hidden" role="status" aria-live="polite"><button id="interact-npc" class="hidden" aria-label="상호작용"><kbd>C</kbd><span></span></button></div><div class="manual-combat-readout"><span id="manual-combo">좌클릭 · 일반 공격</span><span id="manual-heavy">우클릭 · 강공격</span></div><div class="mobile-actions" id="mobile-actions"><button id="mobile-light" aria-label="일반 공격">공격</button><button id="mobile-heavy" aria-label="강공격 차징">강공격</button><button id="mobile-parry" aria-label="패링">패링</button></div><div id="virtual-stick" class="virtual-stick hidden" aria-hidden="true"><i></i></div><div id="hit-direction" aria-hidden="true"></div><div id="view-reticle" class="hidden" aria-hidden="true"></div><div id="view-hint" class="hidden"><span class="desktop-look"></span><span class="mobile-look">왼쪽 이동 · 오른쪽 드래그 캐릭터 회전</span></div><div class="touch-controls hidden" id="touch-controls"><div class="dpad"><button data-move="0,-1" aria-label="위로 이동">↑</button><button data-move="-1,0" aria-label="왼쪽 이동">←</button><button data-move="0,1" aria-label="아래로 이동">↓</button><button data-move="1,0" aria-label="오른쪽 이동">→</button></div><button id="touch-dash" aria-label="대시">${icon('bolt')}</button></div>
+        <div class="expedition-actions hidden" id="expedition-actions"><button id="guard-button">패링 · F</button><button id="equipment-button">장비 · TAB</button><button id="lock-toggle" aria-pressed="false">락온 · L</button><button id="lock-next" class="hidden">전환 · K</button><span id="lock-state"></span><span id="abyss-rule" class="hidden"></span></div><div class="growth-toolbar hidden" id="growth-toolbar"><div class="spell-loadout" id="spell-loadout" aria-label="보유 마법">${[0,1,2,3].map(index=>`<button class="spell-slot locked" data-action-slot="${index}" aria-label="수동 스킬 ${index+1}"><kbd>${['Q','E','R','X'][index]}</kbd><span class="spell-slot-icon">${icon('bolt')}</span><span class="spell-slot-rank">—</span><span class="spell-cooldown"></span></button>`).join('')}</div><div id="synergy-status" class="synergy-status hidden" aria-label="발동 중인 조합"></div><button id="run-build-button" class="shop-button">${icon('book')} 배치 · 빌드 <span id="reward-pending" class="reward-pending hidden" title="다음 레벨업의 선택 보상"></span><kbd>B</kbd></button></div>
+        <button id="objective-panel" class="objective-panel hidden"><strong id="objective-name"></strong><span id="objective-summary"></span></button><div id="link-callout" class="link-callout hidden" role="status" aria-live="polite"></div><div id="training-controls" class="training-controls hidden"><span id="training-metrics"></span><button id="training-refill">재사용 초기화</button><button id="training-change">종목 선택</button><button id="training-exit">야영지</button></div><div id="interaction-prompt" class="interaction-prompt hidden" role="status" aria-live="polite"><button id="interact-npc" class="hidden" aria-label="상호작용"><kbd>C</kbd><span></span></button></div><div class="manual-combat-readout"><span id="manual-combo">좌클릭 · 일반 공격</span><span id="manual-heavy">우클릭 · 강공격</span></div><div class="mobile-actions" id="mobile-actions"><button id="mobile-light" aria-label="일반 공격">공격</button><button id="mobile-heavy" aria-label="강공격 차징">강공격</button><button id="mobile-parry" aria-label="패링">패링</button></div><div id="virtual-stick" class="virtual-stick hidden" aria-hidden="true"><i></i></div><div id="hit-direction" aria-hidden="true"></div><div id="view-reticle" class="hidden" aria-hidden="true"></div><div id="view-hint" class="hidden"><span class="desktop-look"></span><span class="mobile-look">왼쪽 이동 · 오른쪽 드래그 캐릭터 회전</span></div><div class="touch-controls hidden" id="touch-controls"><div class="dpad"><button data-move="0,-1" aria-label="위로 이동">↑</button><button data-move="-1,0" aria-label="왼쪽 이동">←</button><button data-move="0,1" aria-label="아래로 이동">↓</button><button data-move="1,0" aria-label="오른쪽 이동">→</button></div><button id="touch-dash" aria-label="대시">${icon('bolt')}</button></div>
         <div class="canvas-error hidden" id="canvas-error"><h2>3D 화면을 시작할 수 없어요</h2><p>브라우저의 하드웨어 가속을 켠 뒤 새로고침해 주세요.</p><button class="primary-button" id="reload">새로고침 ${icon('refresh')}</button></div>
       </div>
       <aside class="run-panel">
@@ -197,9 +200,9 @@ function update(state) {
   hud('#health-value', `${formatGold(Math.ceil(state.hp))} <small>/ ${formatGold(Math.round(state.maxHp))}</small>`, true);
   writeStyle($('#health-fill'), 'width', `${Math.max(0, state.hp / state.maxHp * 100)}%`);
   $('#health-fill').classList.toggle('low', state.hp < state.maxHp * .3);
-  hud('#level-value', `LV. ${state.level}`);
+  hud('#level-value', state.training ? '연습' : `LV. ${state.level}`);
   writeStyle($('#xp-fill'), 'width', `${Math.min(100, state.xp / state.xpNeeded * 100)}%`);
-  hud('#xp-value', `${Math.floor(state.xp)} / ${state.xpNeeded}`);
+  hud('#xp-value', state.training ? '모험 경험치 미적용' : `${Math.floor(state.xp)} / ${state.xpNeeded}`);
   hud('#run-time', time(state.elapsed));
   hud('#kill-count', state.kills.toLocaleString());
   hud('#gold-count', formatGold(state.gold));
@@ -207,21 +210,22 @@ function update(state) {
   const floor = getStageDefinition(state.stage);
   const region = state.region || getRegion(state.regionId || (state.stage === MAX_STAGES ? 'throne' : 'sanctum'));
   const inCamp = state.phase === 'camp';
-  hud('#stage-name', inCamp ? '재건된 성역' : region.title); hud('#area-name', inCamp ? '재건된 성역 · 야영지' : region.title);
+  hud('#stage-name', state.training ? '성역 훈련장' : inCamp ? '재건된 성역' : region.title); hud('#area-name', state.training ? '성역 훈련장' : inCamp ? '재건된 성역 · 야영지' : region.title);
   hud('#stage-english', inCamp ? 'SANCTUARY CAMP' : region.english || floor.english);
   const regionHints = { sanctum: '탐험의 시작', volcano: '용암 예고', tundra: '서리 둔화', forest: '독성 장판', ruins: '마법 사선', void: '변이 · 균열', throne: '최종 수호자' };
-  hud('#region-summary', inCamp ? `이동 · 시설 ${keyLabel(game.bindings.interact)} · 빠른 메뉴` : `${regionHints[region.id] || '지역 특성'} · 골드 ×${decimal(region.goldMultiplier || 1, 2)}`);
+  hud('#region-summary', state.training ? '실전 연습 · 모험 기록 제외' : inCamp ? `이동 · 시설 ${keyLabel(game.bindings.interact)} · 빠른 메뉴` : `${regionHints[region.id] || '지역 특성'} · 골드 ×${decimal(region.goldMultiplier || 1, 2)}`);
   $('#region-info').style.setProperty('--region', region.color || '#b9cda5');
   writeAttr($('#region-info'), 'title', `${region.title} · ${region.hazard} · ${region.reward}`);
   writeAttr($('#region-info'), 'aria-label', `${region.title} · 지역 특성 및 보상 보기`);
-  hud('#area-stage', inCamp ? 'CAMP' : `STAGE ${String(state.stage).padStart(2, '0')}`);
+  hud('#area-stage', state.training?'TRAINING':inCamp ? 'CAMP' : `STAGE ${String(state.stage).padStart(2, '0')}`);
   const boss = state.boss;
   const bossAlive = !!boss && boss.hp > 0;
   const waitingForBoss = state.stageTime >= STAGE_DURATION && bossAlive;
   const beforeBoss = state.stageTime < BOSS_SPAWN_TIME && !boss?.spawned;
-  hud('#stage-timer-label', waitingForBoss ? '수호자를 처치해야 진행됩니다' : beforeBoss ? '보스 출현까지' : bossAlive ? '보스전 · 생존 목표까지' : '다음 스테이지까지');
-  hud('#stage-time', waitingForBoss ? '처치 대기' : time(Math.ceil((beforeBoss ? BOSS_SPAWN_TIME : STAGE_DURATION) - state.stageTime)));
-  writeStyle($('#stage-progress'), 'width', `${state.stageTime / STAGE_DURATION * 100}%`);
+  const goal=state.objective,nonTimed=goal&&goal.type!=='survival'&&!state.sideArea?.active;
+  hud('#stage-timer-label',state.training?'실전 훈련 · 모험 기록 제외':nonTimed?(goal.complete?'수호자 처치 후 다음 지역':goal.name):waitingForBoss ? '수호자를 처치해야 진행됩니다' : beforeBoss ? '보스 출현까지' : bossAlive ? '보스전 · 생존 목표까지' : '다음 스테이지까지');
+  hud('#stage-time',state.training?time(state.elapsed):nonTimed?(goal.complete?(bossAlive?'보스전':goal.canSummon?'소환 준비':time(Math.ceil(Math.max(0,20-state.stageTime)))):`${Math.floor(goal.progress)} / ${goal.target}`):waitingForBoss ? '처치 대기' : time(Math.ceil((beforeBoss ? BOSS_SPAWN_TIME : STAGE_DURATION) - state.stageTime)));
+  writeStyle($('#stage-progress'), 'width', `${nonTimed?Math.min(1,goal.progress/goal.target)*100:state.stageTime/STAGE_DURATION*100}%`);
   const risk = state.phase === 'menu' ? getRiskStats(prefs.risk) : state.risk || getRiskStats(prefs.risk);
   const goldBonus = (risk.goldMultiplier || 1) * (state.playerStats?.goldMultiplier || 1);
   const baseKillGold=(state.stageStats || getStageStats(state.stage)).coinValue*2.5;
@@ -295,7 +299,7 @@ function update(state) {
 
   lastKills = state.kills;
   chronicleUI?.update(state);
-  interactionUi?.update();
+  interactionUi?.update();tacticalUi?.update(state);
 }
 
 function getSpellStates(state = latest) {
@@ -393,19 +397,21 @@ function expansionGuide() {
 function showGuide() {
   if (isChoiceDialog()) return;
   const steps = [
-    ['시점과 카메라', '기본은 3인칭입니다. <kbd>V</kbd> / 상단 시점 버튼으로 3인칭→1인칭→항공을 전환합니다. 가까운 시점의 WASD는 바라보는 방향 기준입니다. PC는 전장 드래그로 시점을 돌리고 3인칭에서 휠로 거리를 바꿉니다. 1인칭에서는 전장을 클릭해 마우스를 잠글 수 있고 ESC/메뉴로 해제합니다. 모바일은 왼쪽 드래그·방향 버튼으로 이동, 오른쪽 드래그로 둘러봅니다. 공격은 기존대로 주변 적을 자동 추적합니다. F(한글 ㄹ)는 패링, V(한글 ㅍ)는 시점 변경입니다.'],
+    ['시점과 카메라', '기본은 3인칭입니다. <kbd>V</kbd> / 상단 시점 버튼으로 3인칭→1인칭→항공을 전환합니다. 자유 조준의 가까운 시점에서는 W/S로 전후진하고 A/D로 이동량에 비례해 부드럽게 선회합니다. PC는 전장 드래그로 시점을 돌리고 3인칭에서 휠로 거리를 바꿉니다. 1인칭에서는 전장을 클릭해 마우스를 잠글 수 있고 ESC/메뉴로 해제합니다. 모바일은 왼쪽 드래그·방향 버튼으로 이동, 오른쪽 드래그로 둘러봅니다. 공격은 직접 입력해야 발동하며 바라보는 방향으로 나갑니다. L로 락온/해제, K/J로 대상을 전환합니다. 락온 중 A/D는 적을 바라보며 옆으로 이동합니다. 모바일은 상단 락온·전환 버튼을 사용하세요. F(한글 ㄹ)는 패링, V(한글 ㅍ)는 시점 변경입니다.'],
     ['장비·탐험·정밀 방어', '장비는 <kbd>TAB</kbd> / 장비 버튼에서 비교·교체·버릴 수 있습니다. NPC 가까이에서 <kbd>C</kbd> / 교류로 대화하세요. <kbd>F</kbd> (한/영 무관) 패링은 전방 120°를 0.45초 방어하며 처음 0.16초는 완벽한 패링입니다. 성공하면 4m 충격파·0.1초 히트 스톱·공격한 보스 경직, 2초 안 다음 직접 검 공격은 180° 광역 250% 반격입니다. 재사용 4초, 보스 경직 저항 5초. 붉은 지면 공격은 방어 불가, 청색 직선·일반 탄환은 방어 가능.'],
     ['세 단계 수호자와 끝없는 심연', '보스 체력 70% 미만·35% 미만에서 새로운 패턴과 연계가 열립니다. 보스 장비는 하나 선택하거나 넘길 수 있습니다. 일반 10층 승리 후 모드 선택에서 11층부터 무한 심연을 탐험하세요. 5층마다 재앙 보스, 20층부터 10층마다 교대 제약이 등장합니다. 기록·업적은 이 브라우저에 저장됩니다.'],
     ['전장을 움직이고, 좌클릭 공격 · 우클릭 강공격', '<kbd>W A S D</kbd> / 방향키로 이동, <kbd>SHIFT</kbd>로 무적 대시. 모바일은 방향 버튼이나 전장 드래그를 사용합니다. 좌클릭은 3/5타 콤보, 우클릭은 강공격입니다. 대검은 우클릭을 누른 채 차징합니다. <kbd>Q/E/R</kbd> 배치 스킬, <kbd>X</kbd> 궁극기, <kbd>F</kbd> 패링. 클릭하면 시점이 잠기고, 잠금이 안 되면 휠 버튼 드래그로 시점을 바꿉니다.'],
     ['검 범위도 선택으로 성장합니다', '기본 검은 가까운 적을 베는 무기입니다. <b>검 범위 강화</b>를 고르면 거리 +12%, 최대 8단계까지 늘어납니다. 검 공격력·속도·범위 강화 합계 <b>3단계</b>부터 대검 / 쌍검 / 검기 진화가 등장합니다. 한 런에는 하나의 검 진화를 고릅니다.'],
     ['마법을 키우고 조합을 완성하세요', '레벨업마다 강화 하나를 고릅니다. 검·마법 공격력은 각각 <b>20%</b>, 모션·시전 가속 능력치는 <b>8%</b> (실제 가속 상한 적용), 최대 체력은 <b>15%</b>씩 곱해 성장합니다. 마법은 5단계 뒤 진화합니다. <b>서리 + 검 범위 2단계</b>, <b>화염구 + 검기</b>, <b>번개 + 궤도 룬</b> 조합은 추가 공격을 발동합니다. <kbd>B</kbd>에서 스킬을 배치하고, 이번 런 빌드 버튼에서 조합 조건을 확인하세요.'],
+    ['순서와 타이밍으로 전투 연계', '서리로 둔화시킨 적에게 강공격은 추가 피해, 화염 적중 뒤 검격은 작은 폭발, 대시 후 0.8초 안 번개는 직선 관통, 완벽한 패링 후 2초 안 마법은 25% 강화됩니다. 연계는 별도 재사용 제한이 있고 숨겨진 진화 조합과 구분됩니다. B에서 조건과 정확한 수치를 확인하세요.'],
+    ['야영지에서 부담 없이 연습하세요', '성역 훈련장에서 무기·마법 단계·몬스터를 골라 실제 전투를 연습하세요. 이미 만난 보스의 패턴도 연습할 수 있습니다. 훈련의 체력·스킬 대기시간·재화·통계는 모험과 분리되며 종료하면 원래 상태가 복원됩니다.'],
     ['언덕과 폐허를 탐험하세요', '넓어진 전장에 언덕과 성당·집·감시탑·관문이 있습니다. 언덕을 오르고 폐허의 문으로 들어갈 수 있습니다. 벽과 탑은 돌아가야 하며, 시야를 가리는 가까운 건물은 흐려집니다.'],
     ['상자는 열자마자 보상을 선택합니다', '수호 몬스터를 처치하고 상자에 가까이 가면 <b>골드를 즉시 받고, 유물 3개 중 하나를 바로 선택</b>합니다. 정예의 유물 선택권과 보스의 유산은 다음 레벨업의 네 번째 선택 후보가 됩니다. 고른 효과만 적용되며, 선택 중에는 전투가 멈춥니다.'],
     ['위험과 보상을 직접 고르세요', '전장에 나타난 <b>저주 제단</b>에서 적을 더 강하게 만드는 대신 골드 배율을 높일 수 있습니다. 저주는 이번 런 동안 누적되며, <b>받지 않고 지나갈 수도 있습니다.</b> 층을 돌파하면 다음 층의 일반 / 정예 / 보물 경로를 고릅니다. 경로를 고른 뒤 전투할 지역을 고릅니다. 경로·지역의 위험과 보상은 해당 층에만 적용됩니다.'],
     ['같은 층도 다른 지역에서', '경로를 고른 뒤, 서로 다른 <b>지역 3개 중 하나</b>를 선택합니다. 화산·설원·오염된 숲·유적·공허는 적 구성과 환경 위험, 유물 선택지가 다릅니다. 지역 카드에서 확정 보상과 위험을 비교하세요. 최종 10층은 종말의 왕좌입니다.'],
     ['표식으로 변이와 숨겨진 조합을 읽으세요', '변이 몬스터는 고유 색과 발밑 표식으로 구분합니다. 두 가지 표식을 가진 정예 변이는 보상도 커집니다. <b>검 진화 + 마법 진화 + 유물</b> 조건을 갖추면 숨겨진 조합이 해금됩니다. 아래 도감이나 <kbd>B</kbd>에서 조건을 확인하세요.'],
-    [`${STAGE_DURATION / 60}분 생존, 그리고 수호자 처치`, `각 층 <b>90초</b>에 보스가 등장합니다. <b>2분 생존 + 보스 처치</b>를 모두 달성해야 다음 층으로 갑니다. 다음 층의 기본 골드는 <b>10배</b>, 적 체력은 <b>1.7배</b>, 피해는 <b>1.35배</b>가 됩니다. <b>플레이어 능력치와 체력은 층 이동으로 자동 증가하지 않습니다.</b> ${MAX_STAGES}층의 수호자를 모두 쓰러뜨리세요.`],
-    ['죽고 번 골드로 다음 런을 준비하세요', '사망·완주·직접 런 종료 시 번 골드를 회수합니다. 결과에서 피해량과 사망 원인을 확인하고 <b>영구 강화하고 재도전</b>을 누르세요. 검술·마력 가지는 따로 성장하며, 구매 효과는 다음 런부터 적용됩니다. 같은 브라우저에 골드와 강화가 저장됩니다. <kbd>F</kbd>나 전장 오른쪽 위 버튼으로 전체 화면을 켜고 끕니다.'],
+    ['층마다 다른 목표, 그리고 수호자 처치', `1층과 마지막 10층은 <b>90초에 보스 등장 · 2분 생존 + 보스 처치</b>입니다. 다른 층에서는 <b>정예 사냥 · 장치 방어 · 위험 지역 돌파 · 봉인 해제 · 강적 추적 · 소환 의식</b> 중 하나를 완료해야 보스가 등장합니다. 좌측 목표를 눌러 위치·조건·확정 보상을 확인하세요. 장치와 봉인은 가까이에서 C로 작동하며, 방어 실패 시 수리하고 재도전할 수 있습니다. 목표와 보스 처치를 마치면 다음 층으로 갑니다. 다음 층의 기본 골드는 <b>10배</b>, 적 체력은 <b>1.7배</b>, 피해는 <b>1.35배</b>가 됩니다. <b>플레이어 능력치와 체력은 층 이동으로 자동 증가하지 않습니다.</b> ${MAX_STAGES}층의 수호자를 모두 쓰러뜨리세요.`],
+    ['죽고 번 골드로 다음 런을 준비하세요', '사망·완주·직접 런 종료 시 번 골드를 회수합니다. 결과에서 피해량과 사망 원인을 확인하고 <b>영구 강화하고 재도전</b>을 누르세요. 검술·마력 가지는 따로 성장하며, 구매 효과는 다음 런부터 적용됩니다. 같은 브라우저에 골드와 강화가 저장됩니다. 전장 오른쪽 위 전체 화면 버튼으로 화면을 넓힙니다.'],
   ];
   openModal('guide', `<div class="modal-eyebrow">FIELD MANUAL / 010</div><h2 id="modal-title">작은 선택이, 거대한 빌드로<span>.</span></h2><p class="modal-description">검의 진화, 마법 조합, 위험한 선택. 다음 런에 도전할 빌드를 찾아보세요.</p><div class="guide-steps">${steps.map(([title, description], index) => `<div><span>${String(index + 1).padStart(2, '0')}</span><div><h3>${title}</h3><p>${description}</p></div></div>`).join('')}</div><div class="guide-bottom">${icon('info')} 수치는 선택 전 카드에 표시됩니다. 저주는 런 전체, 경로와 지역은 다음 한 층에 적용됩니다.</div>${expansionGuide()}${encounterGuide()}`);
 }
@@ -609,10 +615,14 @@ function onRoute(choices, metadata = {}) {
   openModal('route', `<div class="modal-eyebrow">FLOOR ${stage} / CHOOSE YOUR PATH</div><h2 id="modal-title">다음 전장, 어떤 길로 갈까<span>.</span></h2><p class="modal-description">다음 ${stage}층의 위험도를 고르세요. ${stage < MAX_STAGES ? '이어서 전투할 지역을 선택합니다.' : '최종 지역은 종말의 왕좌입니다.'} 현재 체력과 빌드를 이어 갑니다.</p><div class="upgrade-grid event-grid">${choices.map((choice, index) => `<button class="upgrade-card route-card ${choice.id === 'standard' ? 'standard' : choice.id === 'elite' ? 'epic' : 'legendary'}" data-route="${escapeHTML(choice.id)}"><div class="upgrade-card-top"><span>${choice.id === 'standard' ? '추가 위험 없음' : '위험과 보상 증가'}</span><kbd>${index + 1}</kbd></div><div class="upgrade-icon">${icon(choice.icon || (choice.id === 'elite' ? 'skull' : choice.id === 'treasure' ? 'diamond' : 'move'))}</div><h3>${escapeHTML(choice.title)}</h3><p>${escapeHTML(choice.description)}</p>${eventMetrics(choice)}<span class="upgrade-select">${stage < MAX_STAGES ? '지역 선택으로' : '최종 지역 진입'} ${icon('arrow')}</span></button>`).join('')}</div><div class="guide-bottom">${icon('info')} 경로 효과는 다음 한 층에만 적용됩니다. 이미 받은 저주와 출발 계약은 계속 유지됩니다.</div>`, { pause: false, closeable: false });
   document.querySelectorAll('[data-route]').forEach(button => button.addEventListener('click', () => commitEventChoice(button, 'route', id => game.chooseRoute(id))));
 }
+function objectivePreview(stage, regionId) {
+  const objective = OBJECTIVE_TYPES[objectiveFor(stage, regionId, game._state.runId)];
+  return `<p class="region-objective"><b>층 목표 · ${escapeHTML(objective.name)}</b><br>${escapeHTML(objective.hint)}${objective.reward ? `<br>완료 보상 · 기본 골드 ×${objective.reward} 상당 (지역·위험 배율 적용)` : ''}</p>`;
+}
 function onRegion(choices, metadata = {}) {
   const stage = metadata.stage || Math.min(MAX_STAGES, (latest?.stage || 1) + 1);
   const route = ROUTES.find(item => item.id === metadata.routeId) || ROUTES[0];
-  const opened = openModal('region', `<div class="modal-eyebrow">FLOOR ${stage} / CHOOSE YOUR REGION</div><h2 id="modal-title">세 갈래 전장, 하나의 선택<span>.</span></h2><p class="modal-description">전투 방식과 필요한 유물을 보고 다음 지역을 고르세요. <b>${escapeHTML(route.title)}</b>을 선택했습니다. 아래 지역 배율에 경로·계약·저주 배율이 함께 적용됩니다.</p><div class="region-choice-grid">${choices.map((region, index) => `<button class="region-choice" data-region="${escapeHTML(region.id)}" style="--region:${escapeHTML(region.color)}"><div class="region-preview region-preview-${escapeHTML(region.id)}" aria-hidden="true"><span class="region-preview-orb"></span><span class="region-preview-ridge"></span>${icon(region.icon)}</div><div class="region-choice-body"><div class="region-choice-kicker"><span>${escapeHTML(region.english)}</span><kbd>${index + 1}</kbd></div><h3>${escapeHTML(region.title)}</h3><p>${escapeHTML(region.description)}</p>${eventMetrics(region)}${regionDetails(region)}<span class="region-enter">이 지역으로 진입 ${icon('arrow')}</span></div></button>`).join('')}</div><div class="guide-bottom">${icon('info')} 지역은 다음 한 층에만 적용됩니다. 선택 중 전투는 멈추며, 체력과 빌드는 그대로 이어집니다.</div>`, { pause: false, closeable: false });
+  const opened = openModal('region', `<div class="modal-eyebrow">FLOOR ${stage} / CHOOSE YOUR REGION</div><h2 id="modal-title">세 갈래 전장, 하나의 선택<span>.</span></h2><p class="modal-description">전투 방식과 필요한 유물을 보고 다음 지역을 고르세요. <b>${escapeHTML(route.title)}</b>을 선택했습니다. 아래 지역 배율에 경로·계약·저주 배율이 함께 적용됩니다.</p><div class="region-choice-grid">${choices.map((region, index) => `<button class="region-choice" data-region="${escapeHTML(region.id)}" style="--region:${escapeHTML(region.color)}"><div class="region-preview region-preview-${escapeHTML(region.id)}" aria-hidden="true"><span class="region-preview-orb"></span><span class="region-preview-ridge"></span>${icon(region.icon)}</div><div class="region-choice-body"><div class="region-choice-kicker"><span>${escapeHTML(region.english)}</span><kbd>${index + 1}</kbd></div><h3>${escapeHTML(region.title)}</h3><p>${escapeHTML(region.description)}</p>${eventMetrics(region)}${regionDetails(region)}${objectivePreview(stage,region.id)}<span class="region-enter">이 지역으로 진입 ${icon('arrow')}</span></div></button>`).join('')}</div><div class="guide-bottom">${icon('info')} 지역은 다음 한 층에만 적용됩니다. 선택 중 전투는 멈추며, 체력과 빌드는 그대로 이어집니다.</div>`, { pause: false, closeable: false });
   if (!opened) return;
   document.querySelectorAll('[data-region]').forEach(button => button.addEventListener('click', () => commitEventChoice(button, 'region', id => game.chooseRegion(id))));
 }
@@ -675,7 +685,7 @@ try {
     onCurse,
     onParry: () => { clearTimeout(parryNoticeTimeout); const notice=$('#parry-callout'); notice.classList.remove('hidden'); notice.classList.toggle('quiet', accessibility().effectIntensity===0); parryNoticeTimeout=setTimeout(()=>notice.classList.add('hidden'),700); },
     onStory: data => store('voidrun.story', data),
-    onCampFacility: id => chronicleUI.facility(id),
+    onCampFacility: id => chronicleUI.facility(id),onTrainingMenu:()=>tacticalUi.trainingMenu(),
     onPortal: choices => chronicleUI.portal(choices),
     onRoomChoice: () => chronicleUI.curseRoom(),
     onEquipmentReward: choices => expansionUI.reward(choices),
@@ -706,6 +716,7 @@ try {
   game.abyssUnlocked = endgame.unlocked;
   expansionUI = createExpansionUi({game, openModal, forceClose: forceCloseModal, closeModal, notify: showToast, readEndgame: () => endgame});
   chronicleUI = createChronicleUi({game, openModal, forceClose:forceCloseModal, closeModal, notify:showToast, showGuide, showBuild, showLoadout:()=>{campTab='loadout';showPermanentUpgrades();}, showTree:()=>{campTab='tree';showPermanentUpgrades();}, startRun, readHistory:()=>history, setRisk:id=>{prefs.risk=id;store('voidrun.preferences',prefs);game.setRiskPact(id);syncRisk();}});
+  tacticalUi=createTacticalUi({game,openModal,forceCloseModal,notify:showToast});tacticalUi.bind();
   game.story.load(readStorage('voidrun.story',{}),history,endgame);
   const readyButton = $('#start-button'), readyLabel = readyButton.innerHTML;
   readyButton.disabled = true; readyButton.textContent = '전장 준비 중…'; $('#game-canvas').setAttribute('aria-busy', 'true');
@@ -750,7 +761,9 @@ function syncView(view=game?.view.getState()){
   $('#view-hint').classList.toggle('hidden',!active||view.mode==='overhead');
   $('#view-reticle').classList.toggle('hidden',!active||view.mode!=='first');
   document.body.dataset.view=game?.view.effectiveMode()||view.mode;
-  writeText($('#view-hint .desktop-look'), view.locked?'마우스로 캐릭터 회전 · ESC 일시정지':'좌우 입력으로 부드러운 회전 · 클릭으로 조작');
+  const targeting=!!game?.lockOn?.target;
+  writeText($('#view-hint .desktop-look'), targeting?'락온 중 옆걸음 · 락온 키로 해제':view.locked?'마우스로 캐릭터 회전 · ESC 일시정지':'좌우 입력으로 부드러운 회전 · 클릭으로 조작');
+  writeText($('#view-hint .mobile-look'), targeting?'왼쪽 이동 · 락온 버튼으로 해제':'왼쪽 이동 · 오른쪽 드래그 캐릭터 회전');
   document.querySelectorAll('[data-view-mode]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.viewMode===view.mode)));
 }
 $('#camera-mode').addEventListener('click',event=>{event.preventDefault();game?.view.cycle();$('#game-canvas').focus({preventScroll:true});});

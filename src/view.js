@@ -58,6 +58,7 @@ export class ViewController {
     this.snap = true;
     this.anchor = new THREE.Vector3();
     this.followAnchor = new THREE.Vector3();
+    this.lockOffset=new THREE.Vector3();this.lockDistance=this.distance;
     this.desired = new THREE.Vector3();
     this.look = new THREE.Vector3();
     this.lastPlayer = new THREE.Vector3(Infinity, 0, 0);
@@ -119,7 +120,7 @@ export class ViewController {
     this.snap = true;
     this.game.swordTrail?.reset();
     this.update(0);
-    if(this.following())this.game.aimFromView?.();
+    if(this.following()&&!this.game.lockOn?.target)this.game.aimFromView?.();
     this.game.callbacks.onViewChange?.(this.getState());
     return true;
   }
@@ -139,6 +140,7 @@ export class ViewController {
       mode === "first" ? -1.2 : -0.1,
       1.15,
     );
+    if(this.game.lockOn?.target)return;
     this.game.aimFromView?.(requestedYaw);
     this.yaw=this.game.player.rotation.y;
   }
@@ -223,14 +225,14 @@ export class ViewController {
   clip(position) {
     const g = this.game,
       room = g.sideAreas?.active,
-      camp = g.camp?.active;
+      camp = g.camp?.active,training=g.training?.active;
     const t = cameraArmFraction(
       this.anchor,
       position,
-      room ? ROOM_SOLIDS : camp ? CAMP_SOLIDS : CAMERA_SOLIDS,
+      training?g.training.cameraSolids:room ? ROOM_SOLIDS : camp ? CAMP_SOLIDS : CAMERA_SOLIDS,
       (x, z) => g.groundHeight(x, z),
       0.24,
-      room ? 12 : camp ? 18 : Infinity,
+      training?17:room ? 12 : camp ? 18 : Infinity,
     );
     if (t < 1) position.lerpVectors(this.anchor, position, t);
   }
@@ -256,10 +258,17 @@ export class ViewController {
     this.anchor.y += (mode === "first" ? 2.105 : following?2.35:1.2) * g.player.scale.y;
     if(this.snap||mode!=='third')this.followAnchor.copy(this.anchor);
     else this.followAnchor.lerp(this.anchor,1-Math.exp(-Math.max(0,dt)*12));
+    const lockedTarget=g.lockOn?.target;
+    const lockOffset=lockedTarget?lockedTarget.group.position.clone().sub(p).multiplyScalar(.25):new THREE.Vector3();lockOffset.y=0;
+    this.lockOffset.lerp(lockOffset,1-Math.exp(-Math.max(0,dt)*6));
+    const lockDistance=lockedTarget?Math.min(12,Math.max(this.distance,5+p.distanceTo(lockedTarget.group.position)*.35)):this.distance;
+    this.lockDistance+= (lockDistance-this.lockDistance)*(1-Math.exp(-Math.max(0,dt)*6));
+    if(this.snap){this.lockOffset.copy(lockOffset);this.lockDistance=lockDistance;}
     if (mode === "overhead") {
       const menu = g._state.phase === "menu" ? 3.5 : 0;
       this.desired.set(p.x + 20 - menu, p.y + 26, p.z + 25 + menu);
-      this.look.set(p.x - menu, p.y + 0.5, p.z + menu);
+      this.desired.add(this.lockOffset);
+      this.look.set(p.x - menu, p.y + 0.5, p.z + menu).add(this.lockOffset);
     } else {
       const pitch = this.pitch[mode],
         sy = Math.sin(this.yaw),
@@ -275,7 +284,7 @@ export class ViewController {
       } else {
         this.desired
           .copy(following?this.followAnchor:this.anchor)
-          .addScaledVector(this.direction, -this.distance);
+          .addScaledVector(this.direction, -this.lockDistance);
         const shoulder = following?0:camera.aspect < .9 ? .55 : 1.15;
         this.desired.x -= cy * shoulder;this.desired.z += sy * shoulder;
         this.clip(this.desired);

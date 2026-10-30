@@ -4,7 +4,7 @@ export const DAMAGE_SOURCES = Object.freeze({
   frost: "서리 파동",
   lightning: "연쇄 번개",
   orbit: "설치 룬",
-  combo: "숨겨진 조합",
+  combo: "숨겨진 조합",link:"전투 연계",
   equipment: "장비 효과",
   counter: "반격",
   pet: "소환수",

@@ -41,11 +41,10 @@ export class CombatAim {
       point(u, v);
     };
     const sector = (origin, range, arc) => {
-      const put = (angle) =>
-        point(
-          origin.x + Math.sin(angle) * range,
-          origin.z + Math.cos(angle) * range,
-        );
+      const put = (angle) => {
+        const desired=new THREE.Vector3(origin.x+Math.sin(angle)*range,origin.y,origin.z+Math.cos(angle)*range),end=g.aimTarget?.(origin,desired)||desired;
+        point(end.x,end.z);
+      };
       for (let i = 0; i < 44; i++) {
         put(yaw - arc / 2 + (arc * i) / 44);
         put(yaw - arc / 2 + (arc * (i + 1)) / 44);
@@ -67,10 +66,11 @@ export class CombatAim {
       line(end.x - x, end.z - z, p.x - x, p.z - z);
     };
     if (a?.type === "skill") {
+      const target=g.aimTarget?.(g.player.position,a.target)||a.target;
       if (a.id === "lightning") corridor(22, 2.2);
       else {
         sector(
-          a.id === "frost" ? g.player.position : a.target,
+          a.id === "frost" ? g.player.position : target,
           g.magic.radius(a.id),
           Math.PI * 2,
         );
@@ -78,8 +78,8 @@ export class CombatAim {
           line(
             g.player.position.x,
             g.player.position.z,
-            a.target.x,
-            a.target.z,
+            target.x,
+            target.z,
           );
       }
     } else {

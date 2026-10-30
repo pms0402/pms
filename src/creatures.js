@@ -120,9 +120,9 @@ export function animatePlayerModel(game,time,moving,dt) {
  joint(game.leftShoulder,'x',(first?-.45+(twin?-swing*.45:0)+pitch*.65:-gait*.25+(twin?swing*.4:-swing*.16))-(twin?0:cast*.8),armRate);joint(game.leftShoulder,'y',twin?-yaw:0,armRate);
  joint(game.rightElbow,'x',game.parry?.active>0?-1.5:first?-.75+swing*.45:-.65+swing*.38,armRate);joint(game.leftElbow,'x',first?-.75+(twin?swing*.45:0):twin?-.65-swing*.25:-.25,armRate);
  // Counter-rotate only the artwork; targeting, sword sectors and dashes stay exact.
- game.playerVisual.rotation.y=first?angleDelta(game.player.rotation.y,game.view.yaw):angleDelta(game.player.rotation.y,state.facing)+yaw*.14;
+ game.playerVisual.rotation.y=first?angleDelta(game.player.rotation.y,game.view.yaw):(manualAction?0:angleDelta(game.player.rotation.y,state.facing))+yaw*.14;
  joint(game.playerVisual,'x',(dashing?.22:counter?.1:stride*.04)+(game.playerHitTime||0)*.65,14);joint(game.playerVisual,'z',-gait*.025+side*swing*(heavy?.075:.045),14);
- joint(game.swordArm,'z',-.12+side*swing*.36,armRate);joint(game.swordArm,'x',first?.65+pitch*.35-yaw*.18:-yaw*.18,armRate);joint(game.offhandGrip,'x',first?.65+pitch*.35+yaw*.18:0,armRate);
+ joint(game.swordArm,'z',-.12+side*swing*.36,armRate);joint(game.swordArm,'x',first?.65+pitch*.35-yaw*.18:(attack?.6:0)-yaw*.18,armRate);joint(game.offhandGrip,'x',first?.65+pitch*.35+yaw*.18:0,armRate);
  joint(game.offhandGrip,'z',twin?.12-swing*.25:0,armRate);
  game.cape.rotation.x=damp(game.cape.rotation.x,-(.08+stride*.17+(dashing?.22:0))+Math.sin(time*4)*.025,9,dt);
  for(const cloth of game.clothParts){

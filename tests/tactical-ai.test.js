@@ -125,3 +125,11 @@ test("bosses select near/far patterns and avoid repeating the same warning indef
     assert.match(far, /-warning$/);
   }
 });
+
+test("boss tactics consider arena edges, existing hazards and visible recovery", () => {
+  assert.equal(chooseBossAction('plague', 3, '', { nearEdge: true }), 'fan-warning');
+  assert.equal(chooseBossAction('plague', 3, '', { zones: 3 }), 'fan-warning');
+  assert.equal(chooseBossAction('reaper', 3, '', { nearEdge: true }), 'blink-warning');
+  assert.equal(chooseBossAction('artillery', 9, '', { exposed: true }), 'barrage-warning');
+  assert.equal(chooseBossAction('storm', 8, '', { phase: 3 }), 'nova-warning');
+});

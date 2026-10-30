@@ -116,6 +116,8 @@ try {
     game.stats.spells = { fireball: 0, frost: 0, lightning: 0, orbit: 0 };game.actions.syncSlots();
     game.stats.critChance = 0; game._state.hp = 63;
     for (let index = 0; index < floors - 1; index++) {
+      // Stat-invariance fixture; real objective transitions are in tactical-smoke.
+      game.objectives.begin(game.state.stage, game.regionId, 'survival');
       const sample = game.spawnEnemy(20, 0, 0, { mutations: [] });
       const beforeKill = JSON.stringify(game.stats);
       stages.push({ stage: game.state.stage, hp: game.stats.maxHp, enemyHp: sample.maxHp, regionHealth: game.getThreat().enemyHealth });

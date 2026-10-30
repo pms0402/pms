@@ -265,3 +265,14 @@ test("a prepared counter uses one counter profile even from charged/heavy or twi
     assert.equal(a.profile.range, style === "broadsword" ? 3.5 : 3.4);
   }
 });
+
+test("a single late-dash input starts after the dash and never creates automatic follow-up attacks",()=>{
+ const f=fixture();f.g.dashTime=.1;assert.ok(f.g.actions.press('light'));assert.equal(f.g.actions.current,null);
+ f.g.dashTime=0;f.g.actions.update(.02);assert.equal(f.g.actions.current.type,'sword');f.advance(2);assert.equal(f.hits.length,1);assert.equal(f.g.actions.current,null);
+ f.g.dashTime=.19;assert.equal(f.g.actions.press('light'),false);
+});
+test("contact cannot be cancelled mid-swing but wind-up and weapon recovery have explicit escape windows",()=>{
+ const f=fixture('broadsword');f.g.actions.press('light');const a=f.g.actions.current;assert.equal(f.g.actions.canCancel(),true);
+ a.elapsed=a.duration*a.markers[0];assert.equal(f.g.actions.canCancel(),false);
+ a.elapsed=a.duration*a.markers.at(-1)+.081;assert.equal(f.g.actions.canCancel(),true);assert.equal(f.g.actions.bufferWindow(),.24);
+});

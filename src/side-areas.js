@@ -262,6 +262,7 @@ export class SideAreaSystem {
     if (["king", "observer", "primordial"].includes(type)) {
       this.hiddenUsed.add(type);
       const boss = this.hidden.spawn(type);
+      if(boss)g.story.encounterHidden(type);
       if (boss) this.active.targets.add(boss);
     }
     g.callbacks.onLoot?.(

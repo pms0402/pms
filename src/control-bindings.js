@@ -18,6 +18,7 @@ export const DEFAULT_BINDINGS = Object.freeze({
   build: "b",
   view: "v",
   fullscreen: "f10",
+  lockon:"l",targetNext:"k",targetPrev:"j",
 });
 export const CONTROL_NAMES = Object.freeze({
   forward: "앞으로",
@@ -38,6 +39,7 @@ export const CONTROL_NAMES = Object.freeze({
   build: "빌드·스킬 배치",
   view: "시점",
   fullscreen: "전체화면",
+  lockon:"타깃 락온·해제",targetNext:"다음 타깃",targetPrev:"이전 타깃",
 });
 export const controlKey = (e) =>
   e.type?.startsWith("pointer") || e.type?.startsWith("mouse")
@@ -52,12 +54,16 @@ export function validBinding(key) {
   );
 }
 export function normalizeBindings(saved = {}) {
-  const b = { ...DEFAULT_BINDINGS };
-  if (!saved || typeof saved !== "object") return b;
-  for (const id of Object.keys(b))
-    if (validBinding(saved[id])) b[id] = saved[id];
-  if (new Set(Object.values(b)).size !== Object.keys(b).length)
-    return { ...DEFAULT_BINDINGS };
+  const b={...DEFAULT_BINDINGS},added=['lockon','targetNext','targetPrev'];
+  if(!saved||typeof saved!=='object')return b;
+  const existing=Object.keys(b).filter(id=>!added.includes(id));
+  for(const id of existing)if(validBinding(saved[id]))b[id]=saved[id];
+  if(new Set(existing.map(id=>b[id])).size!==existing.length)return{...DEFAULT_BINDINGS};
+  const used=new Set(existing.map(id=>b[id]));
+  for(const id of added){
+    const options=[saved[id],DEFAULT_BINDINGS[id],...'zuitopnm1234567890'];
+    b[id]=options.find(key=>validBinding(key)&&!used.has(key));used.add(b[id]);
+  }
   return b;
 }
 export function rebind(bindings, id, key) {

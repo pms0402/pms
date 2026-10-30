@@ -39,7 +39,7 @@ export class TacticalAI {
       dz = z - e.group.position.z,
       d = Math.hypot(dx, dz);
     if (d > 0.1 && e.speed > 0) {
-      if (g.world && !g.sideAreas.active) {
+      if (g.world && !g.sideAreas.active && !g.training?.active) {
         const steer = g.world.steer(
           e.group.position,
           dx,
@@ -62,7 +62,8 @@ export class TacticalAI {
   melee(e, dt) {
     if (e.golden || ![0, 1, 2, 7].includes(e.kind)) return false;
     const g = this.game,
-      p = g.player.position,
+      objectiveTarget=g.objectives?.targetFor(e),
+      p = objectiveTarget||g.player.position,
       pos = e.group.position,
       s = (e.tactics ||= {
         phase: "circle",
@@ -122,9 +123,9 @@ export class TacticalAI {
             e.aim.x,
             e.aim.z,
             0.25,
-          )
+          )&&(!g.combatLineClear||g.combatLineClear(pos,p))
         )
-          g.takeDamage(
+          (objectiveTarget?g.objectives.damageDevice.bind(g.objectives,e):g.takeDamage.bind(g))(
             g.stageStats().enemyDamage *
               e.baseDamageMultiplier *
               e.damageMultiplier *
@@ -198,7 +199,7 @@ export class TacticalAI {
     return true;
   }
 }
-export function chooseBossAction(archetype, distance, last = "") {
+export function chooseBossAction(archetype, distance, last = "",context={}) {
   const options = {
     artillery: ["fan-warning", "barrage-warning"],
     plague: ["poison-warning", "fan-warning"],
@@ -206,10 +207,14 @@ export function chooseBossAction(archetype, distance, last = "") {
     storm: ["nova-warning", "radial-warning"],
     reaper: ["cross-warning", "blink-warning"],
   }[archetype] || ["pulse-warning", "charge-warning"];
-  const chosen =
+  let chosen =
     distance <
     (archetype === "artillery" ? 10 : archetype === "reaper" ? 12 : 7)
       ? options[0]
       : options[1];
+  if(archetype==='plague'&&(context.nearEdge||context.zones>2))chosen='fan-warning';
+  if(archetype==='artillery'&&context.exposed&&distance>8)chosen='barrage-warning';
+  if(archetype==='storm'&&context.phase===3&&distance<9)chosen='nova-warning';
+  if(archetype==='reaper'&&context.nearEdge)chosen='blink-warning';
   return chosen === last ? options.find((id) => id !== last) : chosen;
 }

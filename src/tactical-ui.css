@@ -1,0 +1,214 @@
+.expedition-actions #lock-toggle[aria-pressed="true"] {
+  color: #f3d28e;
+  border-color: #d1af6c;
+  background: #3b3324e6;
+}
+#lock-state {
+  font-size: 10px;
+  color: #ead39c;
+  align-self: center;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.objective-panel {
+  position: absolute;
+  top: 188px;
+  left: 26px;
+  z-index: 7;
+  max-width: 245px;
+  text-align: left;
+  padding: 9px 12px;
+  border: 1px solid #818c62;
+  background: #18221be8;
+  border-radius: 6px;
+  color: #dce5c7;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: 0 4px 14px #0003;
+}
+.objective-panel strong,
+.objective-panel span {
+  display: block;
+  line-height: 1.5;
+}
+.objective-panel strong {
+  font-size: 12px;
+}
+.objective-panel span {
+  font-size: 10px;
+  color: #b7c39d;
+}
+.link-callout {
+  position: absolute;
+  left: 50%;
+  bottom: 208px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  color: #dcebc2;
+  font-size: 12px;
+  padding: 5px 10px;
+  background: #17221bd9;
+  border: 1px solid #80975f;
+  border-radius: 5px;
+  z-index: 7;
+  white-space: nowrap;
+}
+.training-controls {
+  position: absolute;
+  bottom: 120px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 8;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 5px;
+  max-width: 480px;
+  width: calc(100% - 40px);
+  padding: 8px;
+  background: #16232bf2;
+  border: 1px solid #6d97a2;
+  border-radius: 6px;
+  color: #c3e1e3;
+}
+.training-controls span {
+  flex-basis: 100%;
+  text-align: center;
+  font-size: 10px;
+  line-height: 1.5;
+}
+.training-controls button {
+  font: inherit;
+  font-size: 11px;
+  min-height: 32px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1px solid #60838c;
+  background: #243841;
+  color: #d5e7e8;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.training-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.training-options label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12px;
+  color: #b7c5b2;
+}
+.training-options select {
+  width: 100%;
+  font: inherit;
+  padding: 10px;
+  background: #202921;
+  color: #e0e8d5;
+  border: 1px solid #56674c;
+  border-radius: 5px;
+}
+.training-modes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 16px 0;
+}
+.tactical-recipes {
+  margin-top: 18px;
+  border-top: 1px solid #53604b;
+  padding-top: 12px;
+}
+.tactical-recipes article {
+  padding: 9px 0;
+}
+.tactical-recipes strong {
+  font-size: 13px;
+  color: #d9dda7;
+}
+.tactical-recipes p {
+  font-size: 12px;
+  margin: 4px 0;
+  color: #b5c2a8;
+}
+.tactical-recipes small {
+  font-size: 11px;
+  color: #929e86;
+}
+#boss-tactic {
+  font-size: 10px;
+  line-height: 1.5;
+  color: #c7cfbd;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.region-objective {
+  border-top: 1px solid #61704b;
+  padding-top: 10px;
+  color: #bcca9d;
+  font-size: 11px;
+  line-height: 1.65;
+}
+.has-tactical-panel #view-hint {
+  display: none;
+}
+@media (pointer: coarse) {
+  #lock-toggle,
+  #lock-next {
+    min-height: 40px !important;
+  }
+  #lock-state {
+    display: none;
+  }
+  .objective-panel {
+    top: 194px;
+    left: 12px;
+    max-width: 210px;
+    padding: 7px 10px;
+  }
+  .training-controls {
+    top: 194px;
+    bottom: auto;
+    width: calc(100% - 30px);
+    max-width: 360px;
+  }
+  .training-controls button {
+    min-height: 40px;
+  }
+  .link-callout {
+    bottom: 318px;
+    font-size: 11px;
+  }
+  .training-options {
+    grid-template-columns: 1fr;
+  }
+}
+@media (pointer: coarse) and (max-height: 520px) {
+  .objective-panel {
+    top: 125px;
+    left: 12px;
+    max-width: 205px;
+    padding: 5px 8px;
+  }
+  .training-controls {
+    top: auto;
+    bottom: 8px;
+    max-width: 310px;
+    padding: 5px;
+  }
+  .training-controls button {
+    min-height: 34px;
+  }
+  .link-callout {
+    bottom: 144px;
+  }
+  .has-tactical-panel .manual-combat-readout {
+    display: none;
+  }
+}

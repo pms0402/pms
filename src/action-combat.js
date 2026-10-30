@@ -222,7 +222,15 @@ export class ActionCombat {
   }
   press(type) {
     const g = this.game;
-    if (!this.ready()) return false;
+    if(!this.ready()){
+      if(g.dashTime>0&&g.dashTime<=.14&&g._state.phase==='playing'&&!g.callbacks.isUIBlocked?.()&&!(g.parry.active>0)&&!this.buffer){
+        const id=type.startsWith('skill')?this.syncSlots()[Number(type.slice(5))]:null;
+        if(type==='ultimate'&&this.ultimateCooldown>0||type==='heavy'&&this.heavyCooldown>0||type.startsWith('skill')&&(!id||g.magic.cooldowns[id]>0))return false;
+        if(!['light','heavy','ultimate','skill0','skill1','skill2'].includes(type))return false;
+        this.buffer={type,life:.24,afterDash:true};return true;
+      }
+      return false;
+    }
     if (
       (type === "ultimate" && this.ultimateCooldown > 0) ||
       (type === "heavy" && this.heavyCooldown > 0 && g.parry.counterTime <= 0)
@@ -245,13 +253,14 @@ export class ActionCombat {
     }
     if (this.charging) return false;
     if (this.current) {
-      if (this.current.duration - this.current.elapsed > 0.18) return false;
-      if (!this.buffer) this.buffer = { type, life: 0.18 };
+      if (this.current.duration - this.current.elapsed > this.bufferWindow()) return false;
+      if (!this.buffer) this.buffer = { type, life: this.bufferWindow() };
       return !!this.buffer;
     }
     return this.begin(type);
   }
   releaseHeavy() {
+    if(this.buffer?.afterDash&&this.buffer.type==='heavy'){this.buffer.released=true;return true;}
     if (!this.charging) return false;
     const charge = this.charge;
     this.charging = false;
@@ -270,6 +279,8 @@ export class ActionCombat {
     this.comboTime = 0;
     this.game.attackAnim = this.game.counterAnim = this.game.playerCastTime = 0;
   }
+  bufferWindow(){return this.current?.style==='broadsword'?.24:this.current?.style==='twinblade'?.16:.2;}
+  canCancel(){const a=this.current;if(!a||this.charging||a.type==='skill')return true;return a.elapsed<a.duration*a.markers[0]-.04||a.elapsed>=a.duration*a.markers.at(-1)+.08;}
   begin(type, charge = 0) {
     const g = this.game;
     if (!this.ready()) return false;
@@ -352,7 +363,8 @@ export class ActionCombat {
       action.target = g.player.position
         .clone()
         .addScaledVector(action.direction, this.aimDistance || 12);
-      g.resolvePosition(action.target, 0.2);
+      if(g.aimTarget)action.target=g.aimTarget(g.player.position,action.target);
+      else g.resolvePosition(action.target, 0.2);
       g.playerCastTime = 0.3;
       g.lastCastSpell = skill;
     } else return false;
@@ -390,6 +402,11 @@ export class ActionCombat {
     if (!a) {
       this.comboTime = Math.max(0, this.comboTime - dt);
       if (!this.comboTime) this.combo = 0;
+      if(this.buffer?.afterDash&&this.ready()){
+        const buffered=this.buffer;this.buffer=null;
+        if(buffered.type==='heavy'&&weaponStyle(g.stats)==='broadsword'&&!buffered.released)this.press('heavy');
+        else this.begin(buffered.type);
+      }
       return;
     }
     a.elapsed = Math.min(a.duration, a.elapsed + dt);
@@ -409,7 +426,9 @@ export class ActionCombat {
       a.nextMarker++;
       if (a.type === "sword") g.resolveSwordAction(a);
       else {
-        g.magic.castManual(a.id, a.direction, a.target, true);
+        if(g.aimTarget)a.target=g.aimTarget(g.player.position,a.target);
+        const castDirection=a.id==='fireball'?a.target.clone().sub(g.player.position).setY(0).normalize():a.direction;
+        g.magic.castManual(a.id, castDirection, a.target, true);
         g.classes.command?.(a.direction);
       }
       if (this.current !== a) return;
@@ -418,7 +437,7 @@ export class ActionCombat {
       this.current = null;
       if(this.hasAim)g.player.rotation.y=Math.atan2(this.aim.x,this.aim.z);
       g.attackAnim = g.counterAnim = 0;
-      this.comboTime = 0.7;
+      this.comboTime=a.style==='broadsword'?1.05:a.style==='twinblade'?.65:.8;
       const buffered = this.buffer;
       this.buffer = null;
       if (buffered) this.begin(buffered.type);
@@ -450,7 +469,7 @@ export class ActionCombat {
         : a
           ? a.elapsed / a.duration < (a.markers[0] || 0.42)
             ? "windup"
-            : a.elapsed / a.duration < 0.65
+            : a.elapsed < a.duration*a.markers.at(-1)+.08
               ? "active"
               : "recovery"
           : "ready",
@@ -460,7 +479,7 @@ export class ActionCombat {
       heavyCooldown: this.heavyCooldown,
       ultimateCooldown: this.ultimateCooldown,
       slots: this.syncSlots(),
-      buffered: !!this.buffer,
+      buffered: !!this.buffer,cancelReady:this.canCancel(),recoveryRemaining:a?Math.max(0,a.duration-a.elapsed):0,weapon:a?.style||weaponStyle(this.game.stats),
       commands: this.manualCommands,
     };
   }

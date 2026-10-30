@@ -208,3 +208,24 @@ test('annular hidden boss zones retain a safe inner circle after the warning', (
   assert.equal(f.hits.length, 1, 'the warned annulus deals actual damage');
   f.system.dispose();
 });
+
+test('plague leaves an escapable corridor and chained volleys retain a real recovery window', () => {
+  const plague = fixture('plague', 8);
+  plague.boss.group.position.set(6, 0, 0); plague.prepare();
+  plague.game.player.position.set(3.4, 0, 0);
+  plague.advance(1.3);
+  assert.equal(plague.hits.length, 0, 'a gap between marked pools remains safe when they activate');
+  plague.system.dispose();
+  for (const phase of [1, 3]) {
+    const artillery = fixture('artillery', 7);
+    artillery.boss.combatPhase = phase;
+    artillery.prepare(); artillery.system.resolve(artillery.boss);
+    const b = artillery.boss;
+    assert.ok(b.chainRemaining > 0);
+    close(b.recoveryTime - b.chainRemaining, phase === 3 ? .9 : 1.2);
+    artillery.system.cancelParryable(b);
+    assert.equal(b.chainRemaining, 0);
+    assert.equal(artillery.system.pendingShots.length, 0);
+    artillery.system.dispose();
+  }
+});

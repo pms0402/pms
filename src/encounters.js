@@ -24,7 +24,7 @@ export function getStageDefinition(stage = 1) {
 
 /** Boss silhouettes and their attacks are shared by the renderer and behaviour modules. */
 export const BOSS_TYPES = Object.freeze(Object.fromEntries([
-  { id: 'warden', name: '돌진 수호자', color: '#5d343b', secondary: '#ef785c', scale: 3.1, aspect: [1, 1, 1], speedMultiplier: 1, hint: '붉은 직선은 옆으로 피하고, 원형 충격파는 대시로 벗어나세요.', actions: ['charge', 'pulse'], actionLabels: { 'charge-warning': '돌진 예고', charge: '돌진', 'pulse-warning': '충격파 예고', pulse: '충격파' } },
+  { id: 'warden', name: '돌진 수호자', color: '#5d343b', secondary: '#ef785c', scale: 3.1, aspect: [1, 1, 1], speedMultiplier: 1, hint: '푸른 직선은 패링하거나 옆으로 피하고, 붉은 원형 충격파는 대시로 벗어나세요.', actions: ['charge', 'pulse'], actionLabels: { 'charge-warning': '돌진 예고', charge: '돌진', 'pulse-warning': '충격파 예고', pulse: '충격파' } },
   { id: 'artillery', name: '포격 사냥꾼', color: '#735139', secondary: '#ffbe72', scale: 3, aspect: [1.3, 0.9, 1.2], speedMultiplier: 0.9, hint: '거리를 벌리는 포격자를 쫓으며 부채꼴 탄환과 연속 사선을 피하세요.', actions: ['fan', 'barrage'], actionLabels: { 'fan-warning': '포격 조준', fan: '부채꼴 포격', 'barrage-warning': '연속 사격 예고', barrage: '연속 사격' } },
   { id: 'plague', name: '역병 지배자', color: '#485c36', secondary: '#b9eb6c', scale: 3.2, aspect: [1.05, 1.15, 1.25], speedMultiplier: 0.85, hint: '발밑의 독 예고에서 벗어나세요. 독 웅덩이는 잠시 남습니다.', actions: ['poison', 'fan'], actionLabels: { 'poison-warning': '독 웅덩이 예고', poison: '역병 확산', 'fan-warning': '독침 조준', fan: '독침 발사' } },
   { id: 'brood', name: '군단 소환자', color: '#66456d', secondary: '#dca1f7', scale: 3.4, aspect: [1.35, 0.85, 1.35], speedMultiplier: 0.8, hint: '소환된 적을 정리하며 본체를 공격하세요. 근접 충격파를 주의하세요.', actions: ['summon', 'pulse'], actionLabels: { 'summon-warning': '군단 소환 예고', summon: '군단 소환', 'pulse-warning': '충격파 예고', pulse: '군단의 파동' } },

@@ -178,7 +178,7 @@ export class BossSystem {
     boss.aimDirection.copy(target).sub(origin).setY(0).normalize();
     if (boss.aimDirection.lengthSq() === 0) boss.aimDirection.set(0, 0, 1);
     boss.actionIndex++; this.actions++;
-    const enraged = boss.hp < boss.maxHp * .5,pattern=chooseBossAction(boss.archetype,origin.distanceTo(target),boss.lastPattern);boss.lastPattern=pattern;
+    const enraged = boss.hp < boss.maxHp * .5,pattern=chooseBossAction(boss.archetype,origin.distanceTo(target),boss.lastPattern,{phase:boss.combatPhase||1,nearEdge:Math.hypot(target.x,target.z)>(this.game.training?.active?13:76),zones:this.zones.filter(z=>z.damage>0).length,exposed:this.game.actions?.exposed?.()||false});boss.lastPattern=pattern;
     switch (boss.archetype) {
       case 'artillery':
         boss.mode = pattern; boss.actionTimer = .95;
@@ -189,8 +189,8 @@ export class BossSystem {
         boss.mode = pattern; boss.actionTimer = 1.15;
         if (boss.mode === 'fan-warning') this.warningLine(boss, 1.15);
         else {
-          const offsets = [[0, 0], [3.3, 2.4], [-3.3, -2.4]];
-          if (boss.variant > 1) offsets.push([4.4, -3.4], [-4.4, 3.4]);
+          const offsets = [[0, 0], [6.8, 0], [-6.8, 0]];
+          if (boss.variant > 1) offsets.push([6.8, -6.8], [-6.8, 6.8]);
           for (const [dx, dz] of offsets) {
             const point = target.clone().add(new THREE.Vector3(dx, 0, dz));
             this.zone(point, 3.1, 1.15, 2.6, this.damage() * .7, 'pool');
@@ -210,10 +210,11 @@ export class BossSystem {
       case 'reaper': {
         if(pattern==='cross-warning'){boss.mode=pattern;boss.actionTimer=.95;for(let i=0;i<4;i++){const a=i*Math.PI/2+boss.actionIndex*.25,d=new THREE.Vector3(Math.sin(a),0,Math.cos(a));this.warningLine({...boss,aimDirection:d},.95);this.schedule(boss,.95,d,{count:3,spread:.1,speed:9.5});}break;}
         boss.mode = 'blink-warning'; boss.actionTimer = 1.05;
-        const angle = Math.atan2(origin.x - target.x, origin.z - target.z) + Math.PI / 2;
+        const edge=Math.hypot(target.x,target.z)>(this.game.training?.active?13:76),angle = edge?Math.atan2(-target.x,-target.z):Math.atan2(origin.x - target.x, origin.z - target.z) + Math.PI / 2;
         boss.blinkTarget.copy(target).add(new THREE.Vector3(Math.sin(angle) * 6.5, 0, Math.cos(angle) * 6.5));
         const radius = Math.hypot(boss.blinkTarget.x, boss.blinkTarget.z);
         if (radius > ARENA_RADIUS - 4) boss.blinkTarget.multiplyScalar((ARENA_RADIUS - 4) / radius);
+        this.game.resolvePosition?.(boss.blinkTarget,1.4);
         this.zone(boss.blinkTarget, 4.8, 1.05, .05, 0, 'blink'); break;
       }
     }
@@ -255,7 +256,8 @@ export class BossSystem {
       boss.mode = 'cross-warning'; boss.actionTimer = .85;
       return;
     }
-    boss.mode='recovery';boss.recoveryTime=(boss.combatPhase===3?.8:1.15)+Math.max(0,...this.pendingShots.map(s=>s.delay));
+    boss.chainRemaining=Math.max(0,...this.pendingShots.map(s=>s.delay));
+    boss.mode='recovery';boss.recoveryTime=(boss.combatPhase===3?.9:1.2)+boss.chainRemaining;
     boss.actionTimer = (boss.archetype === 'plague' ? 3.2 : boss.archetype === 'brood' ? 4.2 : 2.7) * (enraged ? .78 : 1) * (boss.combatPhase === 3 ? .82 : 1);
   }
 
@@ -270,7 +272,7 @@ export class BossSystem {
     if (boss.mode === 'chase' && distance > .01) {
       const movement = distance < wanted - 2 ? -.65 : distance > wanted + 1 ? 1 : 0;
       const speed = (boss.speed || 2.6) * slow * movement * dt;
-      const steer = movement > 0 && this.game.world && !this.game.sideAreas?.active ? this.game.world.steer(pos, dx, dz, 1.4, 0) : { x: dx / distance, z: dz / distance };
+      const steer = movement > 0 && this.game.world && !this.game.sideAreas?.active && !this.game.training?.active ? this.game.world.steer(pos, dx, dz, 1.4, 0) : { x: dx / distance, z: dz / distance };
       pos.x += steer.x * speed; pos.z += steer.z * speed;
     }
     boss.group.rotation.y = Math.atan2(dx, dz);
@@ -319,6 +321,7 @@ export class BossSystem {
   }
 
   cancelParryable(boss) {
+    boss.chainRemaining=0;
     this.pendingShots = this.pendingShots.filter(shot=>shot.boss !== boss);
     for (let i=this.zones.length-1;i>=0;i--) if(this.zones[i].type==='aim'||this.zones[i].parryable) {this.removeMarker(this.zones[i].marker);this.zones.splice(i,1);}
     // Mark instead of splice: a parry can occur inside the projectile iteration.
@@ -326,6 +329,7 @@ export class BossSystem {
   }
 
   cancelAttacks() {
+    if(this.boss)this.boss.chainRemaining=0;
     for (const zone of this.zones) this.removeMarker(zone.marker);
     this.zones.length = 0; this.pendingShots.length = 0;
     const bolts = this.game.enemyProjectiles || [];

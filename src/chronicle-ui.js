@@ -134,7 +134,7 @@ export function createChronicleUi({
         body = `<p class="modal-description">이번 런의 시작 검을 선택합니다. 영구 골드로 한 번 해금하면 다음 런에도 선택할 수 있습니다.</p><div class="npc-choices">${WEAPONS.map((w) => `<article class="npc-choice"><strong>${w.name}</strong><p>${w.description}</p><small>${w.cost ? `${w.cost} G 해금` : "기본 무기"}</small></article>`).join("")}</div><button class="primary-button" id="facility-loadout">시작 무기 선택 · 해금</button><button class="secondary-button" id="facility-guide">장비·세트 설명</button>`;
       if (id === "training")
         body =
-          '<p class="modal-description">직업의 강점과 약점을 비교하고 해금하세요. 패링 연습에서는 체력을 잃지 않고 런 통계도 수집하지 않습니다.</p><button class="primary-button" id="facility-loadout">직업 선택 · 영구 해금</button><button class="secondary-button" id="practice-start">패링 연습 시작</button><button class="secondary-button" id="facility-guide">기본 조작·전투 가이드</button>';
+          '<p class="modal-description">직업의 강점과 약점을 비교하고 해금하세요. 패링 연습에서는 체력을 잃지 않고 런 통계도 수집하지 않습니다.</p><button class="primary-button" id="facility-loadout">직업 선택 · 영구 해금</button><button class="secondary-button" id="training-open">실전 전투 훈련 선택</button><button class="secondary-button" id="practice-start">패링 연습 시작</button><button class="secondary-button" id="facility-guide">기본 조작·전투 가이드</button>';
       if (id === "gate")
         body = `<p class="modal-description">장비와 임시 강화는 새로 시작합니다. 야영지에서 구매한 영구 강화와 선택 직업·무기가 적용됩니다.</p><div class="npc-choices"><button class="npc-choice ${game.mode === "normal" ? "selected" : ""}" data-gate-mode="normal"><strong>일반 · 1–10층 ${game.mode === "normal" ? "✓" : ""}</strong><p>지역 분기를 골라 종말의 왕좌로 향합니다.</p></button><button class="npc-choice ${game.mode === "abyss" ? "selected" : ""}" data-gate-mode="abyss" ${game.abyssUnlocked ? "" : "disabled"}><strong>무한 심연 · 11층부터 ${game.mode === "abyss" ? "✓" : ""}</strong><p>${game.abyssUnlocked ? "왕좌 이후의 끝없는 도전. 출발 보정과 교대 제약." : "일반 10층 클리어 후 해금"}</p></button></div><h3>위험 계약</h3><div class="npc-choices">${RISK_PACTS.map((p) => `<button class="npc-choice ${game.selectedRisk === p.id ? "selected" : ""}" data-gate-risk="${p.id}"><strong>${p.name} ${game.selectedRisk === p.id ? "✓" : ""}</strong><p>${p.description}</p></button>`).join("")}</div><button class="primary-button" id="gate-start">${game.mode === "abyss" ? "심연" : "일반"} 탐험 시작</button>`;
       openModal(
@@ -146,6 +146,7 @@ export function createChronicleUi({
         "click",
         id === "smith" ? ui.setGuide : showGuide,
       );
+      $("#training-open")?.addEventListener("click",()=>game.callbacks.onTrainingMenu?.());
       $("#practice-start")?.addEventListener("click", () => {
         closeModal();
         game.camp.train();

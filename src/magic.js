@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {hurtRadius,segmentEntry} from './combat-collision.js';
 import {createRuneGeometry} from './rune-geometry.js';
 import {SKILL_TIMINGS} from './action-combat.js';
 import { SPELLS } from './balance.js';
@@ -63,27 +64,36 @@ export class MagicSystem {
     const synergy = this.rank('lightning') && this.rank('orbit') ? Math.max(0, Math.min(0.12, this.game.stats.runeSynergyBonus || 0)) : 0;
     const bonus = Number((this.game.stats[`${spellId}Bonus`] || 0) + (this.game.equipment?.bonuses().element[spellId] || 0));
     const spellBonus = Number.isFinite(bonus) ? Math.max(0, Math.min(1, bonus)) : 0;
-    return (this.game.setSystem?.damage(spellId) || 1) * (Number.isFinite(base) ? Math.max(0, base) : 18) * (1 + synergy) * (1 + spellBonus);
+    return (this.game.setSystem?.damage(spellId) || 1) * (this.castLink?.damageMultiplier||1)*(Number.isFinite(base) ? Math.max(0, base) : 18) * (1 + synergy) * (1 + spellBonus);
   }
   area() { return Math.max(1, Math.min(2.5, Number(this.game.stats.spellAreaMultiplier) || 1)); }
   distanceSquared(a, b) { const x = a.x - b.x, z = a.z - b.z; return x * x + z * z; }
   maxCooldown(id) {const rank=this.rank(id),haste=Math.max(.95,Math.min(1.35,Math.pow(Math.max(.1,this.game.stats.spellRate/1.5||1),.12)));return Math.max({fireball:8,frost:10,lightning:8,orbit:14}[id]||35,(SKILL_TIMINGS[id]?.cooldown||45)*(1-Math.max(0,rank-1)*.025)/haste);}
   radius(id){const r=this.rank(id),e=this.evolved(id);return Math.min(20,({fireball:6+(r-1)*.3+(e?1.5:0),frost:9+(r-1)*.4+(e?1.5:0),orbit:5.5+(r-1)*.3+(e?1.8:0),ultimate:11}[id]||8)*this.area());}
   manualDirection(){return this.game.actions?.direction().clone()||new THREE.Vector3(Math.sin(this.game.player.rotation?.y||0),0,Math.cos(this.game.player.rotation?.y||0));}
-  castManual(id,direction=this.manualDirection(),target=null,reserved=false){if(this.disposed||this.game._state.phase!=='playing'||(id!=='ultimate'&&!this.rank(id)))return false;if(id==='ultimate')return this.castUltimate(direction,target);const paid=this.cooldowns[id];const result=({fireball:()=>this.castFireball(direction,target),frost:()=>this.castFrost(),lightning:()=>this.castLightning(direction),orbit:()=>this.castOrbit(target)})[id]?.()||false;if(reserved)this.cooldowns[id]=paid;return result;}
+  castManual(id,direction=this.manualDirection(),target=null,reserved=false){
+    if(this.disposed||this.game._state.phase!=='playing'||(id!=='ultimate'&&!this.rank(id)))return false;
+    const context=this.game.links?.prepareCast(id),paid=this.cooldowns[id];this.castLink=context;
+    try{
+      const result=({fireball:()=>this.castFireball(direction,target),frost:()=>this.castFrost(),lightning:()=>this.castLightning(direction),orbit:()=>this.castOrbit(target),ultimate:()=>this.castUltimate(direction,target)})[id]?.()||false;
+      if(result&&context)this.game.links.commitCast(id,context);
+      if(reserved&&id!=='ultimate')this.cooldowns[id]=paid;return result;
+    }finally{this.castLink=null;}
+  }
+
 
   nearest(position, range, excluded = null) {
     let result = null, distance = range * range;
     for (const enemy of this.query(position, range)) {
       if (enemy.hp <= 0 || excluded?.has(enemy)) continue;
       const next = this.distanceSquared(position, enemy.group.position);
-      if (next < distance) { distance = next; result = enemy; }
+      if (next < distance && (!this.game.combatLineClear||this.game.combatLineClear(position,enemy.group.position))) { distance = next; result = enemy; }
     }
     return result;
   }
 
   hit(enemy, damage, origin, slowTime = 0, slowFactor = 0.5, source = 'magic', spellId = null, impact = null) {
-    if (!this.isAlive(enemy)) return;
+    if (!this.isAlive(enemy)||this.game.combatLineClear&&!this.game.combatLineClear(origin,enemy.group.position)) return false;
     if (spellId === 'frost' && this.game.setSystem?.count('glacier') >= 2) { slowFactor = Math.max(.35,slowFactor - .05); slowTime *= 1.1; }
     if (slowTime > 0) {
       const active = enemy.slowTime > 0;
@@ -100,8 +110,9 @@ export class MagicSystem {
     if (direction.lengthSq() < 0.001) direction.set(0, 0, 1);
     direction.normalize();
     this.hits++;
-    this.game.hitEnemy(enemy, damage, direction, source, spellId,
+    const landed=this.game.hitEnemy(enemy, damage, direction, source, spellId,
       impact || (spellId === 'frost' ? { knockbackScale: 0, hitStun: 0 } : undefined));
+    if(landed!==false)this.game.links?.onMagicHit(enemy,spellId);return landed;
   }
 
   resetEnemyStatus(enemy) {
@@ -285,7 +296,7 @@ export class MagicSystem {
     const origin=this.game.player.position,rank=this.rank('fireball'),evolved=this.evolved('fireball'),count=Math.min(5,(evolved?3:rank>=4?2:1)+Math.max(0,(this.game.stats.projectiles||1)-1)+(this.game.stats.skillExtraHits||0));
     for(let index=0;index<count&&this.projectiles.length<this.projectileBudget();index++){
       const angle=Math.atan2(aim.x,aim.z)+(index-(count-1)/2)*.16,direction=new THREE.Vector3(Math.sin(angle),0,Math.cos(angle)),mesh=this.projectilePool.pop()||this.createFireballMesh();mesh.rotation.set(0,0,0);mesh.children[0].scale.setScalar(evolved?1.7:1.3);mesh.position.copy(origin);mesh.position.y+=1;this.scene.add(mesh);
-      const distance=targetPoint?Math.max(2,Math.min(22,origin.distanceTo(targetPoint))):18;
+      const distance=targetPoint?Math.max(2,Math.min(22,Math.hypot(origin.x-targetPoint.x,origin.z-targetPoint.z))):18;
       this.projectiles.push({mesh,target:null,direction,life:distance/20,trailTimer:0,rank,evolved,damage:this.damage('fireball')*7.2*(1+.14*(rank-1))/Math.max(1,Math.sqrt(count)),radius:this.radius('fireball')});
     }
     this.spellsCast.fireball++;this.game.sound?.('fireball',origin);this.cooldowns.fireball=this.maxCooldown('fireball');return true;
@@ -308,9 +319,9 @@ export class MagicSystem {
     // Select the nearest capped targets in one pass instead of sorting the horde.
     const nearby = [], distances = [], limit = evolved ? 12 : 7;
     for (const enemy of this.query(position, radius + 3)) {
-      if (!this.isAlive(enemy)) continue;
+      if (!this.isAlive(enemy)||this.game.combatLineClear&&!this.game.combatLineClear(position,enemy.group.position)) continue;
       const distance = this.distanceSquared(position, enemy.group.position);
-      if (distance > (radius + Math.max(0, (enemy.size || 1) - 1)) ** 2) continue;
+      if (distance > (radius + hurtRadius(enemy)) ** 2) continue;
       let index = distances.length;
       while (index > 0 && distances[index - 1] > distance) index--;
       if (index >= limit) continue;
@@ -331,25 +342,28 @@ export class MagicSystem {
   updateProjectiles(dt) {
     for (let index = this.projectiles.length - 1; index >= 0; index--) {
       const projectile = this.projectiles[index];
+      const travel=20*Math.min(dt,Math.max(0,projectile.life)),previous=projectile.mesh.position.clone();
       projectile.life -= dt; projectile.trailTimer -= dt;
       if (this.isAlive(projectile.target)) {
         const desired = this.scratch.copy(projectile.target.group.position).sub(projectile.mesh.position).setY(0).normalize();
         projectile.direction.lerp(desired, 1 - Math.exp(-dt * 9)).normalize();
       }
-      projectile.mesh.position.addScaledVector(projectile.direction, dt * 20);
+      projectile.mesh.position.addScaledVector(projectile.direction, travel);
       projectile.mesh.position.y = (this.game.groundHeight?.(projectile.mesh.position.x, projectile.mesh.position.z) ?? this.game.player.position.y) + 1;
-      if (this.game.world && !this.game.sideAreas?.active && !this.game.world.isWalkable(projectile.mesh.position.x, projectile.mesh.position.z, .1)) projectile.life = 0;
+      if(this.game.aimTarget){const stop=this.game.aimTarget(previous,projectile.mesh.position);if(Math.hypot(stop.x-projectile.mesh.position.x,stop.z-projectile.mesh.position.z)>.001){projectile.life=0;projectile.mesh.position.copy(stop);projectile.mesh.position.y+=1;}}
       projectile.mesh.rotation.z += dt * 6; projectile.mesh.rotation.y += dt * 4;
       if (projectile.trailTimer <= 0) {
         if (this.game.combatArt) this.game.combatArt.trail(projectile.mesh.position, 'fireball');
         else this.spark(projectile.mesh.position, 'fireball', 0.18, 0.75);
         projectile.trailTimer = 0.09;
       }
-      let contact = false;
-      for (const enemy of this.query(projectile.mesh.position, 3)) {
-        if (enemy.hp <= 0) continue;
-        if (this.distanceSquared(projectile.mesh.position, enemy.group.position) < (0.85 + Math.max(0, (enemy.size || 1) - 1) * 0.8) ** 2) { contact = true; break; }
+      let entry=Infinity;
+      for(const enemy of this.query(projectile.mesh.position,travel+2.5)){
+        if(enemy.hp<=0)continue;
+        entry=Math.min(entry,segmentEntry(previous,projectile.mesh.position,{type:'circle',x:enemy.group.position.x,z:enemy.group.position.z,radius:.32+hurtRadius(enemy)}));
       }
+      const contact=entry!==Infinity;
+      if(contact){projectile.mesh.position.lerpVectors(previous,projectile.mesh.position,entry);projectile.mesh.position.y=(this.game.groundHeight?.(projectile.mesh.position.x,projectile.mesh.position.z)||0)+1;}
       if (contact || projectile.life <= 0) {
         // A missed projectile still visibly erupts, but never searches beyond its AoE.
         this.explode(projectile.mesh.position.clone(), projectile.radius, projectile.damage, projectile.evolved);
@@ -362,7 +376,7 @@ export class MagicSystem {
     if(!this.rank('frost'))return false;
     const rank=this.rank('frost'),evolved=this.evolved('frost'),radius=this.radius('frost'),origin=this.game.player.position.clone(),damage=this.damage('frost')*5.5*(1+.14*(rank-1));
     this.ring(origin,radius,'frost',.65,.8);this.particles(origin,'frost',12,radius*.5);
-    for(const enemy of this.query(origin,radius))if(this.isAlive(enemy)&&this.distanceSquared(origin,enemy.group.position)<=radius**2){this.hit(enemy,damage,origin,2.2*(1+(this.game.stats.statusBonus||0)),.5,'magic','frost');if(enemy.kind!==4&&(enemy.nextManualFreeze||0)<=this.time){enemy.freezeTime=Math.max(enemy.freezeTime||0,Math.min(.6,.35*(1+(this.game.stats.statusBonus||0))));enemy.nextManualFreeze=this.time+6;}}
+    for(const enemy of this.query(origin,radius))if(this.isAlive(enemy)&&this.distanceSquared(origin,enemy.group.position)<=radius**2&&(!this.game.combatLineClear||this.game.combatLineClear(origin,enemy.group.position))){this.hit(enemy,damage,origin,2.2*(1+(this.game.stats.statusBonus||0)),.5,'magic','frost');if(enemy.kind!==4&&(enemy.nextManualFreeze||0)<=this.time){enemy.freezeTime=Math.max(enemy.freezeTime||0,Math.min(.6,.35*(1+(this.game.stats.statusBonus||0))));enemy.nextManualFreeze=this.time+6;}}
     if(evolved&&this.zones.length<12){const marker=new THREE.Mesh(this.geometry.ring,this.material.frost);marker.rotation.x=-Math.PI/2;marker.position.copy(origin);marker.position.y+=.15;marker.scale.setScalar(radius);this.scene.add(marker);this.zones.push({type:'blizzard',position:origin,radius,damage:damage*.14,life:4,tick:.8,marker});}
     const echoes=Math.min(3,this.game.stats.skillExtraHits||0);if(echoes&&this.zones.length<12)this.zones.push({type:'frostEcho',position:origin,radius,damage:damage*.2,ticks:echoes,tick:.45,life:echoes*.5});
     this.spellsCast.frost++;this.game.sound?.('frost',origin);this.cooldowns.frost=this.maxCooldown('frost');return true;
@@ -376,6 +390,10 @@ export class MagicSystem {
     const count = 5 + (this.game.stats.skillExtraHits||0)*2 + Math.floor((rank - 1) / 2) + (evolved ? 3 : 0) + (this.game.setSystem?.count('storm') >= 4 ? 1 : 0);
     const damage = this.damage('lightning') * 7.5 * (1 + 0.18 * (rank - 1));
     const hit = new Set();
+    if(this.castLink?.pierce&&first){
+      const pierced=this.query(origin,22).filter(e=>e!==first&&e.hp>0).map(e=>({enemy:e,delta:e.group.position.clone().sub(origin)})).filter(({enemy,delta})=>delta.x*aim.x+delta.z*aim.z>0&&delta.x*aim.x+delta.z*aim.z<=22&&Math.abs(delta.x*aim.z-delta.z*aim.x)<2.2&&(!this.game.combatLineClear||this.game.combatLineClear(origin,enemy.group.position))).sort((a,b)=>a.delta.dot(aim)-b.delta.dot(aim)).slice(0,2);
+      for(const {enemy} of pierced){hit.add(enemy);this.lightningLine(origin,enemy.group.position,.42,1);this.hit(enemy,damage*.75,origin,0,.5,'magic','lightning');}
+    }
     let previous = origin.clone(), target = first;
     for (let index = 0; index < count && target; index++) {
       const point = target.group.position.clone(); point.y += 1;
@@ -383,7 +401,8 @@ export class MagicSystem {
       hit.add(target); this.hit(target, damage * Math.max(0.65, 1 - index * 0.05), previous, 0, 0.5, 'magic', 'lightning');
       if (evolved && index > 0) this.lightningLine(origin, point, 0.2, 0.35);
       previous = point;
-      target = this.nearest(point, (evolved ? 11 : 8) * this.area(), hit);
+      if(this.castLink?.pierce&&index===0&&hit.size>1){const farthest=[...hit].sort((a,b)=>b.group.position.clone().sub(origin).dot(aim)-a.group.position.clone().sub(origin).dot(aim))[0];previous=farthest.group.position.clone();}
+      target = this.nearest(previous, (evolved ? 11 : 8) * this.area(), hit);
     }
     this.spellsCast.lightning++;this.game.playerCastTime=.3;this.game.lastCastSpell="lightning";this.game.sound?.("lightning",this.game.player.position);
     this.cooldowns.lightning = this.maxCooldown('lightning');
@@ -392,14 +411,14 @@ export class MagicSystem {
 
   castOrbit(target=null){
     if(!this.rank('orbit')||this.zones.length>=12)return false;
-    const position=target?.clone()||this.game.player.position.clone().addScaledVector(this.manualDirection(),8),radius=this.radius('orbit'),evolved=this.evolved('orbit'),marker=new THREE.Group();
+    const desired=target?.clone()||this.game.player.position.clone().addScaledVector(this.manualDirection(),8),position=this.game.aimTarget?.(this.game.player.position,desired)||desired,radius=this.radius('orbit'),evolved=this.evolved('orbit'),marker=new THREE.Group();
     this.geometry.glyph ||=createRuneGeometry(false);this.geometry.glyphEvolved ||=createRuneGeometry(true);
     const ring=new THREE.Mesh(this.geometry.ring,this.material.orbit);ring.rotation.x=-Math.PI/2;ring.scale.setScalar(radius);marker.add(ring);marker.position.copy(position);marker.position.y+=.14;this.scene.add(marker);
     const count=3+(evolved?3:0);for(let i=0;i<count;i++){const orb=new THREE.Group();orb.add(new THREE.Mesh(evolved?this.geometry.glyphEvolved:this.geometry.glyph,this.material.orbit));const core=new THREE.Mesh(this.geometry.core,this.material.core);core.scale.setScalar(.7);orb.add(core);marker.add(orb);this.orbs.push(orb);orb.userData.field=marker;orb.userData.offset=i/count*Math.PI*2;}
     this.zones.push({type:'rune',position,radius,damage:this.damage('orbit')*2.3*(1+.12*(this.rank('orbit')-1)),life:6,tick:0,marker,evolved});this.spellsCast.orbit++;this.cooldowns.orbit=this.maxCooldown('orbit');this.game.sound?.('orbit',position);return true;
   }
   castUltimate(direction,target=null){
-    const origin=target?.clone()||this.game.player.position.clone().addScaledVector(direction,10),radius=this.radius('ultimate'),active=this.game.actions?.syncSlots()||SPELL_IDS.filter(id=>this.rank(id));
+    const desired=target?.clone()||this.game.player.position.clone().addScaledVector(direction,10),origin=this.game.aimTarget?.(this.game.player.position,desired)||desired,radius=this.radius('ultimate'),active=this.game.actions?.syncSlots()||SPELL_IDS.filter(id=>this.rank(id));
     this.ring(origin,radius,'orbit',.85,.9);this.ring(origin,radius*.8,'lightning',.65,.6);this.game.combatArt?.emit(origin,'counter',20);
     const damage=this.damage('orbit')*(12+active.filter(Boolean).length);
     for(const enemy of this.query(origin,radius).slice(0,32))if(this.isAlive(enemy)&&this.distanceSquared(origin,enemy.group.position)<=radius**2){this.hit(enemy,damage,origin,active.includes('frost')?1.5:0,.65,'magic','orbit',{analyticsSource:'ultimate',knockbackScale:.5,hitStun:.12});if(active.includes('fireball'))enemy.burnTime=3;}

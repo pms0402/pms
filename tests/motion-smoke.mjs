@@ -28,8 +28,9 @@ try {
     const walking = pose(); g.setMoveInput(0, 0); advance(1 / 60);
     const stopped = pose(), releaseStride = g.playerMotion.stride;
     advance(.8); const settled = { stride: g.playerMotion.stride, leg: g.legLeft.rotation.x };
+    g.view.movement.reset(); // Isolate artwork interpolation from residual steering.
     const beforeFacing = g.player.rotation.y + g.playerVisual.rotation.y;
-    g.player.rotation.y += Math.PI / 2; const logicalFacing = g.player.rotation.y; advance(1 / 60);
+    g.aimFromView(g.player.rotation.y + Math.PI / 2); const logicalFacing = g.player.rotation.y; advance(1 / 60);
     const turnStep = Math.abs(angle(beforeFacing, g.player.rotation.y + g.playerVisual.rotation.y));
     const combatFacingUnchanged = g.player.rotation.y === logicalFacing;
     const enemy = g.spawnEnemy(g.player.position.x, g.player.position.z + 2, 0); enemy.speed = 0; enemy.hp = enemy.maxHp = 1e6;
@@ -67,7 +68,7 @@ try {
   }
   assert.ok(result.stopStep < .13 && result.releaseStride > .6, 'release blends out rather than snapping legs to idle');
   assert.ok(result.settled.stride < .001 && Math.abs(result.settled.leg) < .003);
-  assert.ok(result.turnStep > 0 && result.turnStep < .5 && result.combatFacingUnchanged);
+  assert.ok(result.turnStep > 0 && result.turnStep < .5 && result.combatFacingUnchanged, JSON.stringify(result));
   assert.ok(result.immediateHit && result.noExtraHits && result.sameStats && result.duration === .54);
   assert.ok(result.twinAttack && Math.abs(result.twinYaw) > .05 && Math.abs(result.recoveredTwinYaw) < .001, JSON.stringify({twinAttack:result.twinAttack,yaw:result.twinYaw,recovered:result.recoveredTwinYaw}));
   assert.ok(result.dashLean > .01 && result.dashLean < .15 && Math.abs(result.restLean) < .003);

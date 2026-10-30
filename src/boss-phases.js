@@ -46,7 +46,7 @@ export class BossPhases {
     if (phase <= boss.combatPhase) return;
     for (let next = boss.combatPhase + 1; next <= phase; next++)
       this.transitions.push(next);
-    boss.combatPhase = phase;boss.recoveryTime=0;
+    boss.combatPhase = phase;boss.recoveryTime=0;boss.chainRemaining=0;
     boss.phaseCooldown = 2;
     if (boss.hiddenBoss) { boss.hiddenPending = null; boss.hiddenTimer = 1.5; }
     this.game.clearTelegraph?.(boss);
@@ -95,7 +95,7 @@ export class BossPhases {
           if (--r.left > 0) this.startRush(boss, r.left);
           else {
             this.rush = null;
-            boss.mode = "chase";
+            boss.mode = "recovery";boss.recoveryTime=1.3;
             boss.actionTimer = 2;
             this.game.bossSystem.zone(
               boss.group.position,

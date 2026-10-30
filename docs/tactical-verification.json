@@ -1,0 +1,292 @@
+{
+  "release": "v0.20.0",
+  "baseline": "v0.19.3",
+  "baselineCommit": "4e30a9d785e082c89d0e69dbc94239b1c928ced8",
+  "environment": {
+    "browser": "Chromium WebGL",
+    "gpu": "SwiftShader",
+    "desktop": [
+      1280,
+      900
+    ],
+    "mobile": [
+      [
+        390,
+        844
+      ],
+      [
+        844,
+        390
+      ]
+    ],
+    "views": [
+      "first",
+      "third",
+      "overhead"
+    ]
+  },
+  "unit": {
+    "command": "npm test",
+    "passed": 233,
+    "failed": 0
+  },
+  "browser": {
+    "uniqueSuites": 32,
+    "passed": 32,
+    "latestResults": [
+      {
+        "test": "action-encounters-smoke.mjs",
+        "exit": 0,
+        "seconds": 17.3
+      },
+      {
+        "test": "action-smoke.mjs",
+        "exit": 0,
+        "seconds": 41.9
+      },
+      {
+        "test": "adventure-smoke.mjs",
+        "exit": 0,
+        "seconds": 156.0
+      },
+      {
+        "test": "archive-smoke.mjs",
+        "exit": 0,
+        "seconds": 9.5
+      },
+      {
+        "test": "articulation-smoke.mjs",
+        "exit": 0,
+        "seconds": 48.4
+      },
+      {
+        "test": "audio-smoke.mjs",
+        "exit": 0,
+        "seconds": 20.8
+      },
+      {
+        "test": "browser-smoke.mjs",
+        "exit": 0,
+        "seconds": 100.9
+      },
+      {
+        "test": "builds-smoke.mjs",
+        "exit": 0,
+        "seconds": 132.3
+      },
+      {
+        "test": "characters-smoke.mjs",
+        "exit": 0,
+        "seconds": 17.8
+      },
+      {
+        "test": "combat-smoke.mjs",
+        "exit": 0,
+        "seconds": 102.3
+      },
+      {
+        "test": "controls-smoke.mjs",
+        "exit": 0,
+        "seconds": 29.8
+      },
+      {
+        "test": "deploy-smoke.mjs",
+        "exit": 0,
+        "seconds": 27.8
+      },
+      {
+        "test": "economy-scale-smoke.mjs",
+        "exit": 0,
+        "seconds": 39.9
+      },
+      {
+        "test": "encounter-smoke.mjs",
+        "exit": 0,
+        "seconds": 45.4
+      },
+      {
+        "test": "endgame-smoke.mjs",
+        "exit": 0,
+        "seconds": 78.8
+      },
+      {
+        "test": "expansion-smoke.mjs",
+        "exit": 0,
+        "seconds": 50.6
+      },
+      {
+        "test": "follow-interaction-smoke.mjs",
+        "exit": 0,
+        "seconds": 25.8
+      },
+      {
+        "test": "frost-smoke.mjs",
+        "exit": 0,
+        "seconds": 12.2
+      },
+      {
+        "test": "growth-smoke.mjs",
+        "exit": 0,
+        "seconds": 103.3
+      },
+      {
+        "test": "manual-growth-smoke.mjs",
+        "exit": 0,
+        "seconds": 59.3
+      },
+      {
+        "test": "motion-smoke.mjs",
+        "exit": 0,
+        "seconds": 17.7
+      },
+      {
+        "test": "parry-smoke.mjs",
+        "exit": 0,
+        "seconds": 97.3
+      },
+      {
+        "test": "permanent-smoke.mjs",
+        "exit": 0,
+        "seconds": 70.4
+      },
+      {
+        "test": "presentation-smoke.mjs",
+        "exit": 0,
+        "seconds": 34.4
+      },
+      {
+        "test": "quality-smoke.mjs",
+        "exit": 0,
+        "seconds": 30.7
+      },
+      {
+        "test": "resources-smoke.mjs",
+        "exit": 0,
+        "seconds": 20.2
+      },
+      {
+        "test": "sanctum-smoke.mjs",
+        "exit": 0,
+        "seconds": 19.0
+      },
+      {
+        "test": "standalone-smoke.mjs",
+        "exit": 0,
+        "seconds": 36.0
+      },
+      {
+        "test": "tactical-smoke.mjs",
+        "exit": 0,
+        "seconds": 54.9
+      },
+      {
+        "test": "view-smoke.mjs",
+        "exit": 0,
+        "seconds": 41.9
+      },
+      {
+        "test": "world-expansion-smoke.mjs",
+        "exit": 0,
+        "seconds": 59.8
+      },
+      {
+        "test": "world-smoke.mjs",
+        "exit": 0,
+        "seconds": 22.4
+      }
+    ],
+    "rechecked": [
+      "Five legacy scenario assumptions adapted to explicit survival objectives, contact cancellation rules, energy reach and isolated visual turning.",
+      "Changed integration/UI/training paths rechecked with real browser inputs."
+    ]
+  },
+  "builds": {
+    "production": true,
+    "standalone": true,
+    "sha256": {
+      "dist/assets/index-BM7y4DYW.js": "acaf6634eefa5e3700658976a9d98a5cf9f19d674a05011dc4f97bc61174986f",
+      "dist/assets/index-CrNJf1yo.css": "6159405ea4fdaf1459a58320314af08b600a663abb2489a2f8286a518175036a",
+      "dist/VOIDRUN.html": "5f4153d81d48f8c2ef14718f13c3c1c3eab3093bbe6b1cbd68e89493c252214f"
+    }
+  },
+  "featureEvidenceFile": "tactics/feature-verification.json",
+  "balanceEvidenceFile": "tactics/balance-scenarios.json",
+  "render": {
+    "actors": 160,
+    "cpuDrawCalls": 772,
+    "gpuDrawCalls": 189,
+    "sameTriangles": true,
+    "meanPixelError": 0.0008231026785714286,
+    "changedPixelRatio": 8.719308035714286e-05,
+    "textures": 22
+  },
+  "training": {
+    "renderedCycles": 8,
+    "steadyGeometries": 161,
+    "steadyTextures": 22,
+    "originalSpellCooldown": 7.25,
+    "originalHeavyCooldown": 3,
+    "originalParryCooldown": 2,
+    "originalOwnersRestored": true,
+    "sharedGroundShaderUnchanged": true
+  },
+  "archiveSHA256": "e8867949d23b1319d9f111432b4ce02f6982fca30ea40d564bc76b1d31b019aa",
+  "changedFiles": [
+    "README.md",
+    "docs/tactical-combat-plan.md",
+    "docs/tactical-combat-report.md",
+    "docs/tactical-verification.json",
+    "docs/tactics/balance-scenarios.json",
+    "docs/tactics/feature-verification.json",
+    "docs/tactics/objective-portrait.png",
+    "docs/tactics/training-landscape.png",
+    "package.json",
+    "scripts/tactical-balance.mjs",
+    "src/action-combat.js",
+    "src/action-ui.js",
+    "src/analytics.js",
+    "src/boss-phases.js",
+    "src/bosses.js",
+    "src/chronicle-ui.js",
+    "src/combat-aim.js",
+    "src/combat-collision.js",
+    "src/combat-links.js",
+    "src/control-bindings.js",
+    "src/creatures.js",
+    "src/encounters.js",
+    "src/equipment.js",
+    "src/game.js",
+    "src/interaction.js",
+    "src/lock-on.js",
+    "src/magic.js",
+    "src/main.js",
+    "src/parry.js",
+    "src/region-system.js",
+    "src/scene-context.js",
+    "src/side-areas.js",
+    "src/stage-objectives.js",
+    "src/story.js",
+    "src/sword-trail.js",
+    "src/tactical-ai.js",
+    "src/tactical-ui.css",
+    "src/tactical-ui.js",
+    "src/training.js",
+    "src/view.js",
+    "tests/action-combat.test.js",
+    "tests/articulation-smoke.mjs",
+    "tests/boss-patterns.test.js",
+    "tests/combat-links.test.js",
+    "tests/endgame-smoke.mjs",
+    "tests/growth-smoke.mjs",
+    "tests/manual-growth-smoke.mjs",
+    "tests/motion-smoke.mjs",
+    "tests/objectives.test.js",
+    "tests/tactical-ai.test.js",
+    "tests/tactical-foundation.test.js",
+    "tests/tactical-smoke.mjs"
+  ],
+  "limitations": [
+    "No physical iPad/Safari or low-end GPU long-session test.",
+    "Scripted fixed builds do not establish human/full-run win rates; capped floor-10 build loses in abyss 20/40."
+  ]
+}

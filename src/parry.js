@@ -76,7 +76,7 @@ export class ParrySystem {
       else return g.attack();
       return true;
     }
-    if (this.cooldown > 0) return false;
+    if (this.cooldown > 0 || g.actions?.canCancel?.()===false) return false;
     if (g._state.phase === "playing" && g.analytics)
       g.analytics.parryAttempts++;
     this.age = 0;
@@ -140,7 +140,7 @@ export class ParrySystem {
     );
     g.sound("perfect-parry");
     if (g._state.phase === "playing") {
-      this.successes++;
+      this.successes++;g.links?.onParry();
       g.setSystem?.onParry();
       g.classes?.onParry();
       if (g.analytics) g.analytics.parrySuccesses++;

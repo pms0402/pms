@@ -113,6 +113,9 @@ try {
     window.testStrike(g);
     const damage = [1000 - a.hp, 1000 - b.hp];
     g.parry.cooldown = 0;
+    const contactProtected = !g.parry.press();
+    const action = g.actions.current;
+    g.actions.update(action.duration - action.elapsed + 1e-8);
     g.parry.press();
     g.parry.update(0.2);
     g.invulnerable = 0;
@@ -125,10 +128,11 @@ try {
     g.takeDamage(10, source, { toString: () => "" }, null, {
       unblockable: true,
     });
-    return { perfect, damage, guarded, unblockable: 100 - g._state.hp };
+    return { perfect, damage, guarded, contactProtected, unblockable: 100 - g._state.hp };
   });
   assert.equal(defense.perfect.hp, 100);
   assert.ok(defense.perfect.counter > 0);
+  assert.ok(defense.contactProtected);
   near(defense.damage[0], 99);
   near(defense.damage[1], 99);
   near(defense.guarded, 3.5);
@@ -337,6 +341,8 @@ try {
     };
     for (const stage of [11, 14, 19]) {
       g._state.stage = stage;
+      // This fixture checks abyss routing, not objective completion (tactical-smoke).
+      g.objectives.begin(stage, g.regionId, 'survival');
       g._state.stageTime = 120;
       g.bossDefeated = true;
       g.nextStage();

@@ -177,6 +177,15 @@ try {
           .clone()
           .set(0, 0, 1)
           .applyMatrix4(g.blade.matrixWorld);
+        // The steel supplies the cut direction; the visible energy edge ends
+        // at the committed attack range, including heavy/range upgrades.
+        const action = g.actions.current;
+        if (action?.type === 'sword' && action.style !== 'wave') {
+          const dx = tip.x - g.player.position.x, dz = tip.z - g.player.position.z;
+          const radius = Math.hypot(dx, dz);
+          tip.x = g.player.position.x + dx * action.profile.range / radius;
+          tip.z = g.player.position.z + dz * action.profile.range / radius;
+        }
         aligned &&= p.tip.distanceTo(tip) < 1e-5;
       }
       yaws.push(g.rightShoulder.rotation.y);
@@ -243,7 +252,7 @@ try {
   );
   assert.ok(Math.min(...sword.yaws) < -0.1 && Math.max(...sword.yaws) > 0.1);
   console.log(
-    "PASS true blade-tip ribbons, alternating drawn cuts, twin blades/counter, unchanged immediate hits and bounded/reset buffers",
+    "PASS blade-directed energy ribbons at committed reach, alternating cuts, twin blades/counter and bounded/reset buffers",
   );
   const crowd = await page.evaluate(() => {
     const g = window.motionFixture();
