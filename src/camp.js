@@ -197,7 +197,7 @@ export class CampSystem {
     const r = Math.hypot(g.player.position.x, g.player.position.z);
     if (r > 16) g.player.position.multiplyScalar(16 / r);
     g.player.position.y = 0;
-    if(g.view.mode!=='overhead')g.aimFromView();
+    if(g.view.mode!=='overhead')g.faceMovement(d,dt);
     if (d.lengthSq() > 0.01 && g.view.mode==='overhead')
       g.player.rotation.y = g.lerpAngle(
         g.player.rotation.y,

@@ -202,18 +202,16 @@ try {
         g.advanceSimulation(1 / 60);
         measure();
       }
-      g.keys.clear();
-      let stable = g.player.rotation.y === yaw;
-      g.keys.add("a");
-      const side = g.inputDirection().clone(),
-        forward = side.clone().set(Math.sin(yaw), 0, Math.cos(yaw));
-      const strafe = Math.abs(side.dot(forward)) < 1e-8;
-      for (let i = 0; i < 8; i++) {
-        g.advanceSimulation(1 / 60);
-        measure();
-      }
-      g.keys.clear();
-      stable = stable && g.player.rotation.y === yaw;
+      g.keys.clear();g.inputDirection();
+      const stable=Math.abs(g.player.rotation.y-yaw)<1e-8;
+      g.keys.add("d");
+      const right=g.inputDirection().clone();
+      for(let i=0;i<45;i++){g.advanceSimulation(1/60);measure();}
+      const facing=g.player.position.clone().set(Math.sin(g.player.rotation.y),0,Math.cos(g.player.rotation.y));
+      const turnsRight=facing.dot(right)>.99999;
+      const noSpiral=g.inputDirection().distanceTo(right)<1e-8;
+      const followed=measure();
+      g.keys.clear();g.inputDirection();
       g.actions.press("light");
       const a = g.actions.current,
         locked = g.player.rotation.y,
@@ -233,7 +231,9 @@ try {
         active,
         after,
         stable,
-        strafe,
+        turnsRight,
+        noSpiral,
+        followed,
         held,
         pending,
         following: g.view.getState().following,
@@ -246,7 +246,7 @@ try {
       (c) =>
         [c.start, c.turned, c.active, c.after].every((n) => n > 0.999999) &&
         c.stable &&
-        c.strafe &&
+        c.turnsRight && c.noSpiral && c.followed>.999999 &&
         c.held &&
         c.pending &&
         c.following,

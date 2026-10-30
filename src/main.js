@@ -85,7 +85,7 @@ $('#app').innerHTML = `
       <button class="nav-link" data-nav="history">런 기록 <span class="nav-count" id="history-count">${history.length.toString().padStart(2, '0')}</span></button>
       <button class="nav-link" data-nav="permanent">영구 강화</button>
     </nav>
-    <div class="header-actions"><span class="build-label"><i></i> BUILD YOUR LEGEND <b>v0.19.1</b></span><span class="header-divider"></span><button id="sound-toggle" class="icon-button" title="사운드 켜기" aria-label="사운드 켜기">${icon('muted')}</button><button id="settings" class="icon-button" title="설정" aria-label="설정">${icon('settings')}</button></div>
+    <div class="header-actions"><span class="build-label"><i></i> BUILD YOUR LEGEND <b>v0.19.2</b></span><span class="header-divider"></span><button id="sound-toggle" class="icon-button" title="사운드 켜기" aria-label="사운드 켜기">${icon('muted')}</button><button id="settings" class="icon-button" title="설정" aria-label="설정">${icon('settings')}</button></div>
   </header>
   <main class="page">
     <section class="page-intro">
@@ -750,7 +750,7 @@ function syncView(view=game?.view.getState()){
   $('#view-hint').classList.toggle('hidden',!active||view.mode==='overhead');
   $('#view-reticle').classList.toggle('hidden',!active||view.mode!=='first');
   document.body.dataset.view=game?.view.effectiveMode()||view.mode;
-  writeText($('#view-hint .desktop-look'), view.locked?'마우스로 캐릭터 회전 · ESC 일시정지':'캐릭터 방향 고정 추적 · 클릭으로 조작');
+  writeText($('#view-hint .desktop-look'), view.locked?'마우스로 캐릭터 회전 · ESC 일시정지':'이동 방향으로 회전 · 클릭으로 조작');
   document.querySelectorAll('[data-view-mode]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.viewMode===view.mode)));
 }
 $('#camera-mode').addEventListener('click',event=>{event.preventDefault();game?.view.cycle();$('#game-canvas').focus({preventScroll:true});});

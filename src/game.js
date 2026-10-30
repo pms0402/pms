@@ -24,7 +24,7 @@ import { BossPhases } from './boss-phases.js';
 import { EquipmentSystem } from './equipment.js';
 import { ParrySystem, PARRY, counterProfile } from './parry.js';
 import { gameKey, isGameShortcut } from './game-input.js';
-import { ViewController, viewMovement } from './view.js';
+import { ViewController } from './view.js';
 import { DeathPresentation } from './death-presentation.js';
 import { EnemyStates } from './enemy-states.js';
 import {CreatureSurfaces} from './creature-surfaces.js';
@@ -585,6 +585,7 @@ export class Game {
         if(!event.repeat&&this.callbacks.onControlAction?.(action,event))event.preventDefault();return;
       }
       if(this.callbacks.isUIBlocked?.())return;
+      this.inputDirection();
       this.keys.add(key);
       if([' ','arrowup','arrowdown','arrowleft','arrowright','tab'].includes(key))event.preventDefault();
       if(event.repeat)return;
@@ -593,8 +594,8 @@ export class Game {
       else if(action==='interact'){event.preventDefault();this.interact();}
       else if(['light','heavy','skill0','skill1','skill2','ultimate'].includes(action)){event.preventDefault();this.triggerControl(action);}
     };
-    this.onKeyUp=event=>{const key=controlKey(event);this.keys.delete(key);if(key===this.bindings.heavy)this.actions.releaseHeavy();};
-    this.onBlur=()=>{this.keys.clear();this.touchMove={x:0,y:0};this.touchStart=null;this.actions.clearInput();this.view.release();this.callbacks.onJoystick?.(null);};
+    this.onKeyUp=event=>{const key=controlKey(event);this.keys.delete(key);this.inputDirection();if(key===this.bindings.heavy)this.actions.releaseHeavy();};
+    this.onBlur=()=>{this.keys.clear();this.touchMove={x:0,y:0};this.touchStart=null;this.actions.clearInput();this.view.movement.reset();this.view.release();this.callbacks.onJoystick?.(null);};
     this.onVisibility=()=>{if(document.hidden)this.onBlur();this.lastTime=performance.now();};
     window.addEventListener('keydown',this.onKeyDown);window.addEventListener('keyup',this.onKeyUp);window.addEventListener('blur',this.onBlur);document.addEventListener('visibilitychange',this.onVisibility);
     this.onPointerDown=event=>{
@@ -627,14 +628,19 @@ export class Game {
     if(this.raycaster.ray.intersectPlane(this.aimPlane,this.aimPoint)){const direction=this.aimPoint.clone().sub(this.player.position).setY(0);if(direction.length()>.4)this.actions.setAim(direction,direction.length());}
   }
 
-  setMove(x, y) { this.touchMove = { x: clamp(x, -1, 1), y: clamp(y, -1, 1) }; }
+  setMove(x, y) { this.inputDirection();this.touchMove = { x: clamp(x, -1, 1), y: clamp(y, -1, 1) };this.inputDirection(); }
   setMoveInput(x, y) { this.setMove(x, y); }
   inputDirection() {
     let x = (this.keys.has(this.bindings.right) || (this.keys.has('arrowright') && !Object.values(this.bindings).includes('arrowright')) ? 1 : 0) - (this.keys.has(this.bindings.left) || (this.keys.has('arrowleft') && !Object.values(this.bindings).includes('arrowleft')) ? 1 : 0) + this.touchMove.x;
     let y = (this.keys.has(this.bindings.back) || (this.keys.has('arrowdown') && !Object.values(this.bindings).includes('arrowdown')) ? 1 : 0) - (this.keys.has(this.bindings.forward) || (this.keys.has('arrowup') && !Object.values(this.bindings).includes('arrowup')) ? 1 : 0) + this.touchMove.y;
     const length = Math.hypot(x, y); if (length > 1) { x /= length; y /= length; }
-    if(this.view?.mode!=='overhead')return viewMovement(x,y,this.player.rotation.y);
+    if(this.view?.mode!=='overhead')return this.view.movement.direction(x,y,this.player.rotation.y);
     return new THREE.Vector3((x + y) * Math.SQRT1_2, 0, (y - x) * Math.SQRT1_2);
+  }
+  faceMovement(direction,dt) {
+    if(!this.view.canLook()||this.view.mode==='overhead'||this.actions.current)return;
+    const yaw=direction.lengthSq()>.01?this.lerpAngle(this.player.rotation.y,Math.atan2(direction.x,direction.z),1-Math.exp(-20*dt)):this.player.rotation.y;
+    this.aimFromView(yaw);
   }
   dash() {
     if (this._state.phase !== 'playing' || this.dashCooldown > 0) return false;
@@ -960,7 +966,7 @@ export class Game {
     this.resolvePosition(this.player.position, .65);
     this.playerVisual.visible = true;
 
-    if(this.view.canLook()&&this.view.mode!=='overhead'&&!this.actions.current)this.aimFromView();
+    if(this.view.mode!=='overhead')this.faceMovement(direction,dt);
     else if (moving&&!this.actions.current&&!this.actions.hasAim) this.player.rotation.y = this.lerpAngle(this.player.rotation.y, Math.atan2(direction.x, direction.z), dt * 13);
     if (!inRoom) this.spawnTimer -= dt;
     if (!inRoom && !this.bossSpawned && s.stageTime >= BOSS_SPAWN_TIME) this.spawnBoss();

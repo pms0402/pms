@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import * as THREE from "three";
 import { cameraArmFraction, CAMERA_SOLIDS } from "../src/camera-collision.js";
-import { viewMovement } from "../src/view.js";
+import { viewMovement,MovementFrame } from "../src/view.js";
 
 test("view-relative movement keeps direction, analog magnitude and diagonal speed", () => {
   for (const yaw of [0, 0.7, Math.PI, 4.2]) {
@@ -57,4 +57,18 @@ test("camera avoids terrain, room boundaries and zero-length segments without in
   );
   const t = cameraArmFraction(p, { x: 20, y: 3, z: 0 }, [], () => 0, 0.24, 12);
   assert.ok(t > 0.5 && t < 0.6);
+});
+
+test("held directional input stays straight as character and camera turn, then rebases after release",()=>{
+ const frame=new MovementFrame(),right=frame.direction(1,0,0);
+ for(let i=1;i<=60;i++)assert.ok(frame.direction(1,0,-Math.PI/2*i/60).distanceTo(right)<1e-10);
+ frame.direction(0,0,-Math.PI/2);
+ assert.ok(frame.direction(0,-1,-Math.PI/2).distanceTo(right)<1e-10);
+});
+test("mouse turning rotates held movement once and analog steering keeps the original reference",()=>{
+ const frame=new MovementFrame();frame.direction(0,-1,0);frame.turn(Math.PI/2);
+ assert.ok(frame.direction(0,-1,Math.PI/2).x>.99999);
+ const analog=frame.direction(.3,-.4,-1);assert.ok(Math.abs(analog.length()-.5)<1e-10);
+ assert.ok(analog.distanceTo(viewMovement(.3,-.4,Math.PI/2))<1e-10);
+ frame.reset();assert.ok(frame.direction(0,-1,0).z>.99999);
 });

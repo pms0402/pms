@@ -19,6 +19,18 @@ export function viewMovement(x, y, yaw, out = new THREE.Vector3()) {
     Math.sin(yaw) * x - Math.cos(yaw) * y,
   );
 }
+// Keep a held movement gesture in world space while the follow camera turns.
+// Mouse look deliberately rotates this frame; returning to neutral releases it.
+export class MovementFrame {
+  constructor() { this.reset(); }
+  reset() { this.yaw = null; }
+  turn(delta) { if (this.yaw !== null) this.yaw += delta; }
+  direction(x, y, facing, out = new THREE.Vector3()) {
+    if (x*x+y*y <= .01) this.reset();
+    else if (this.yaw === null) this.yaw = facing;
+    return viewMovement(x, y, this.yaw ?? facing, out);
+  }
+}
 const clamp = (x, min, max) => Math.max(min, Math.min(max, x));
 const CAMP_SOLIDS = CAMP_FACILITIES.map((f) => ({
   x: f.x,
@@ -34,6 +46,7 @@ export class ViewController {
   constructor(game) {
     this.game = game;
     this.mode = "overhead";
+    this.movement = new MovementFrame();
     this.yaw = Math.PI * 1.25;
     this.pitch = { third: 0.24, first: 0.04 };
     this.distance = 9.2;
@@ -97,6 +110,7 @@ export class ViewController {
     this.release();
     this.restoreBody();
     this.mode = mode;
+    this.movement.reset();
     this.snap = true;
     this.game.swordTrail?.reset();
     this.update(0);
@@ -114,6 +128,7 @@ export class ViewController {
     const scale = touch ? 0.005 : 0.0028;
     const actions=this.game.actions,base=actions?.hasAim?Math.atan2(actions.aim.x,actions.aim.z):this.game.player.rotation.y;
     const requestedYaw=THREE.MathUtils.euclideanModulo(base-dx*scale,Math.PI*2);
+    this.movement.turn(-dx*scale);
     const mode = this.effectiveMode();
     this.pitch[mode] = clamp(
       this.pitch[mode] + dy * scale,
@@ -310,6 +325,7 @@ export class ViewController {
     this.suppressed.length = 0;
   }
   reset() {
+    this.movement.reset();
     this.cueTime=0;
     this.release();
     this.restoreBody();

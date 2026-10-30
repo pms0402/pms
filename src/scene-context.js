@@ -52,6 +52,7 @@ export class SceneContext {
   }
 }
 export function clearCosmetics(g) {
+  g.view?.movement.reset();
   g.actions?.cancel();g.parry.feedback.reset(); g.parry.hitStop = 0;
   g.enemyRenderer.reset();
   g.swordTrail?.reset();

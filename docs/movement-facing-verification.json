@@ -1,0 +1,73 @@
+{
+  "version": "v0.19.2",
+  "baseline": "650af326f073bfa797b0cc282f014ac5971a078b",
+  "unitTests": {
+    "passed": 215,
+    "failed": 0
+  },
+  "browserSuites": [
+    {
+      "test": "follow-interaction-smoke.mjs",
+      "exit": 0,
+      "seconds": 41.3
+    },
+    {
+      "test": "view-smoke.mjs",
+      "exit": 0,
+      "seconds": 50.1
+    },
+    {
+      "test": "action-encounters-smoke.mjs",
+      "exit": 0,
+      "seconds": 18.7
+    },
+    {
+      "test": "action-smoke.mjs",
+      "exit": 0,
+      "seconds": 43.5
+    },
+    {
+      "test": "controls-smoke.mjs",
+      "exit": 0,
+      "seconds": 19.8
+    },
+    {
+      "test": "world-expansion-smoke.mjs",
+      "exit": 0,
+      "seconds": 66.1
+    },
+    {
+      "test": "deploy-smoke.mjs",
+      "exit": 0,
+      "seconds": 25.1
+    },
+    {
+      "test": "combat-smoke.mjs",
+      "exit": 0,
+      "seconds": 104.7
+    },
+    {
+      "test": "standalone-smoke.mjs",
+      "exit": 0,
+      "seconds": 34.0
+    }
+  ],
+  "behaviour": [
+    "Moving in first/third person turns the character toward actual movement and the camera follows the same heading.",
+    "A held movement gesture retains its world direction as the camera turns; neutral input resets its reference. Mouse look rotates the movement reference deliberately.",
+    "Attack snapshots keep their committed direction; movement turning resumes after recovery.",
+    "Camp, rooms, input release/blur, view change and restart reset or preserve the movement reference appropriately.",
+    "Graphics, overhead movement, balance and stored progression unchanged."
+  ],
+  "builds": [
+    "production",
+    "self-contained HTML"
+  ],
+  "limitations": [
+    "Browser checks use Chromium/SwiftShader and emulated mobile touch; no physical Safari timing measurement."
+  ],
+  "bundle": {
+    "path": "dist/assets/index-BoaVzmDA.js",
+    "sha256": "7f7eac314ccd27c2f4663d7dce4dc2ac0d547b0fad63101413f812de313a0961"
+  }
+}

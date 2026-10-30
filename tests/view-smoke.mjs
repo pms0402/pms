@@ -61,11 +61,11 @@ try {
     g.view.yaw=0;g.player.rotation.y=0;g.actions.hasAim=false;
     g.keys.add("w");
     const forward = g.inputDirection().toArray();
-    g.keys.clear();
+    g.keys.clear();g.inputDirection();
     g.view.yaw=Math.PI/2;g.player.rotation.y=Math.PI/2;g.actions.hasAim=false;
     g.keys.add("w");
     const east = g.inputDirection().toArray();
-    g.keys.clear();
+    g.keys.clear();g.inputDirection();
     g.setViewMode("first");
     g.view.yaw=0;g.player.rotation.y=0;g.actions.hasAim=false;
     const e = g.spawnEnemy(g.player.position.x, g.player.position.z + 2, 0, {
