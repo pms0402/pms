@@ -7,6 +7,7 @@ import {
   swordAction,
   SKILL_TIMINGS,
   swordPoseProgress,
+  PRIMARY_HOLD_TIME,
 } from "../src/action-combat.js";
 import {
   DEFAULT_BINDINGS,
@@ -72,6 +73,78 @@ test("no input never starts an attack or a spell; input wind-up has no damage un
   assert.equal(f.hits.length, 1);
   f.advance(2);
   assert.equal(f.hits.length, 1);
+});
+test('a short primary gesture commits one light on release, never on pointer down', () => {
+  const f=fixture(),a=f.g.actions;
+  assert.ok(a.pressPrimary('pointer:1'));
+  f.advance(.1);
+  assert.equal(a.current,null);assert.equal(f.hits.length,0);
+  assert.ok(a.releasePrimary('pointer:1'));
+  assert.equal(a.current.heavy,false);assert.equal(a.manualCommands,1);
+  assert.equal(a.releasePrimary('pointer:1'),false);
+  f.advance(2);assert.equal(f.hits.length,1);assert.equal(a.manualCommands,1);
+});
+test('playback speed cannot turn an ordinary short tap into a heavy gesture',()=>{
+  const f=fixture(),a=f.g.actions;f.g.playbackSpeed=3;
+  a.pressPrimary('button:1');f.advance(.6); // .2 real seconds at 3x.
+  a.releasePrimary('button:1');assert.equal(a.current.heavy,false);
+  f.advance(2);a.pressPrimary('button:1');f.advance(.9);
+  a.releasePrimary('button:1');assert.equal(a.current.heavy,true);
+});
+test('holding primary produces exactly one released heavy for each weapon, with no extra light or auto-repeat', () => {
+  for(const style of ['default','broadsword','twinblade','wave']){
+    const f=fixture(style),a=f.g.actions;
+    assert.ok(a.pressPrimary('button:7'));f.advance(2);
+    assert.ok(a.state().primaryHeavy&&a.charging);
+    assert.equal(a.manualCommands,0);assert.equal(f.hits.length,0);
+    assert.ok(a.releasePrimary('button:7'));
+    assert.ok(a.current.heavy);assert.equal(a.heavyCooldown,4);
+    const expected=swordAction(f.g.stats,f.g.combatStats,'heavy',0,style==='broadsword'?1:0);
+    assert.equal(a.current.profile.damageMultiplier,expected.profile.damageMultiplier);
+    f.advance(6);assert.equal(f.hits.length,1);assert.equal(a.manualCommands,1);
+  }
+});
+test('cancel, pause cleanup and unrelated pointer releases cannot fire a held primary', () => {
+  const f=fixture('broadsword'),a=f.g.actions;
+  a.pressPrimary('button:1');f.advance(.6);
+  assert.equal(a.releasePrimary('button:2'),false);assert.ok(a.charging);
+  assert.equal(a.cancelPrimary('button:2'),false);
+  assert.ok(a.cancelPrimary('button:1'));assert.equal(a.charging,false);
+  assert.equal(a.releasePrimary('button:1'),false);
+  a.pressPrimary('pointer:4');f.advance(.6);a.clearInput();
+  assert.equal(a.primary,null);assert.equal(a.releasePrimary('pointer:4'),false);
+  f.advance(2);assert.equal(a.manualCommands,0);assert.equal(f.hits.length,0);
+});
+test('a long primary uses a light while heavy cools down, and never spends a second heavy cooldown', () => {
+  const f=fixture(),a=f.g.actions;a.heavyCooldown=3;
+  a.pressPrimary('button:1');f.advance(.5);
+  assert.equal(a.charging,false);assert.equal(a.state().primaryHeavy,false);
+  a.releasePrimary('button:1');assert.equal(a.current.heavy,false);
+  assert.ok(a.heavyCooldown>2);f.advance(1);assert.equal(f.hits.length,1);
+});
+test('a spell replaces a held attack and does not leave a deferred sword command', () => {
+  const f=fixture(),a=f.g.actions;
+  a.pressPrimary('button:1');f.advance(.4);assert.ok(a.charging);
+  assert.ok(a.press('skill0'));assert.equal(a.primary,null);assert.equal(a.charging,false);
+  assert.equal(a.releasePrimary('button:1'),false);
+  f.advance(2);assert.equal(f.casts.length,1);assert.equal(f.hits.length,0);
+});
+test('released primary heavies preserve recovery buffering and cannot strand a broadsword charge', () => {
+  const f=fixture('broadsword'),a=f.g.actions;
+  a.press('light');a.pressPrimary('button:1');
+  f.advance(a.current.duration-.12);assert.ok(a.releasePrimary('button:1'));
+  f.advance(.14);assert.ok(a.current.heavy);assert.equal(a.charging,false);
+  f.advance(2);assert.equal(f.hits.length,2);
+  a.heavyCooldown=0;f.g.dashTime=.1;
+  a.pressPrimary('pointer:1');f.advance(PRIMARY_HOLD_TIME+.01);
+  a.releasePrimary('pointer:1');assert.ok(a.buffer.released);
+  f.g.dashTime=0;f.advance(.01);assert.ok(a.current.heavy);assert.equal(a.charging,false);
+});
+test('prepared parry counter stays a single counter when a primary attack is held', () => {
+  const f=fixture(),a=f.g.actions;f.g.parry.counterTime=2;
+  a.pressPrimary('button:1');f.advance(.4);a.releasePrimary('button:1');
+  assert.ok(a.current.counter&&!a.current.heavy);assert.equal(a.heavyCooldown,0);
+  f.advance(2);assert.equal(f.hits.length,1);assert.equal(f.g.parry.counterTime,0);
 });
 test("aim steers the ongoing stroke immediately without skipping recovery or adding attacks", () => {
   const f = fixture();
@@ -291,7 +364,7 @@ test("a prepared counter uses one counter profile even from charged/heavy or twi
     assert.equal(a.markers.length, 1);
     assert.equal(f.g.actions.charging, false);
     assert.equal(f.g.actions.heavyCooldown, 3);
-    assert.equal(a.profile.range, style === "broadsword" ? 3.5 : 3.4);
+    assert.ok(Math.abs(a.profile.range - (style === "broadsword" ? 4.5 : 4.05)) < 1e-9);
   }
 });
 

@@ -10,6 +10,7 @@ import { CURSES, ROUTES, getRunModifiers, getCurseChoices } from './run-events.j
 import { getActiveSynergies } from './synergies.js';
 import { createTerrainWorld } from './world.js';
 import { buildMonster, createPlayerModel, animatePlayerModel, animateEnemyModel } from './creatures.js';
+import { sculptedGeometry } from './sculpted-models.js';
 import { createActorMotion } from './motion.js';
 import { tagMotionGeometry } from './monster-motion.js';
 import { EnemyRenderer } from './enemy-renderer.js';
@@ -348,7 +349,9 @@ export class Game {
     this.heroGlow.color.set(colors[2]); this.heroGlow.emissive.set(colors[2]);
     this.playerLight?.color.set('#dce4f2');
     this.classes?.appearance();
+    for(const [id,parts] of Object.entries(this.heroClassParts||{}))for(const part of parts)part.visible=id===this.stats.characterId;
     const weapon = this.stats.weaponId;
+    this.blade.geometry=sculptedGeometry(this,weapon==='greatsword'?'weapon_cleaver':weapon==='tempest'?'weapon_saber':'weapon_longsword');
     this.blade.scale.set(weapon === 'greatsword' ? .16 : weapon === 'tempest' ? .075 : .11, .045, weapon === 'greatsword' ? 1.45 : weapon === 'tempest' ? 1.05 : 1.15);
     this.blade.position.set(0, 0, .30);
     const profile = getSwordProfile(this.stats);
@@ -363,6 +366,7 @@ export class Game {
       this.offhandGrip.add(this.offhandBlade);
     }
     this.offhandBlade.visible = profile.mode === 'twinblade'||weapon==='tempest';
+    this.offhandBlade.geometry=this.blade.geometry;
     this.offhandParts?.forEach(mesh => { mesh.visible = profile.mode === 'twinblade'||weapon==='tempest'; });
     this.offhandBlade.scale.copy(this.blade.scale); this.offhandBlade.rotation.y = -0.4;
   }
@@ -386,10 +390,10 @@ export class Game {
     }
   }
 
-  createEnemyTemplate(kind) {
+  createEnemyTemplate(kind,designId) {
     const visual = new THREE.Group();
     const material = ({ 5: this.mats.charger, 6: this.mats.bomber, 7: this.mats.splitter, 8: this.mats.sniper, 9: this.mats.shaman })[kind] || (kind === 4 ? this.mats.boss : kind === 3 ? this.mats.ranged : kind === 2 ? this.mats.enemy3 : kind === 1 ? this.mats.enemy2 : this.mats.enemy);
-    buildMonster(this, visual, kind, material);
+    buildMonster(this, visual, kind, material,designId);
     // Geometry is baked once per material and shared by every enemy of this kind.
     const byMaterial = new Map();
     visual.updateMatrixWorld(true);
@@ -398,7 +402,7 @@ export class Game {
       // Box/cone geometry is indexed while the faceted body is non-indexed.
       // Normalize the layout before merging so arms and the body stay intact.
       const geometry = mesh.geometry.index ? mesh.geometry.toNonIndexed() : mesh.geometry.clone();
-      entries.push(tagMotionGeometry(geometry.applyMatrix4(mesh.matrix),kind,mesh.userData.rigJoint||0));
+      entries.push(tagMotionGeometry(geometry.applyMatrix4(mesh.matrix),kind,mesh.userData.rigJoint||0,mesh.userData.rigPivot));
       byMaterial.set(mesh.material, entries);
     }
     visual.clear();
@@ -407,13 +411,14 @@ export class Game {
       geometries.forEach(entry => entry.dispose());
       if (!geometry) continue;
       this.ownedGeometries.add(geometry);
+      geometry.userData.sculpted=designId||'monster_'+kind;
       const mesh = new THREE.Mesh(geometry, material); mesh.castShadow = true; mesh.receiveShadow = true;
       // Animation lives in the actor root and GPU joints; leaf local transforms
       // stay at their authored bind pose while world matrices still follow it.
       mesh.updateMatrix();mesh.matrixAutoUpdate=false;
       visual.add(mesh);
     }
-    this.enemyTemplates.set(kind, visual);
+    this.enemyTemplates.set(designId||kind, visual);
     return visual;
   }
 
@@ -599,9 +604,9 @@ export class Game {
       else if(action==='parry'){event.preventDefault();this.triggerControl('parry');}
       else if(action==='interact'){event.preventDefault();this.interact();}
       else if(['lockon','targetNext','targetPrev'].includes(action)){event.preventDefault();this.triggerControl(action);}
-      else if(['light','heavy','skill0','skill1','skill2','ultimate'].includes(action)){event.preventDefault();this.triggerControl(action);}
+      else if(['light','heavy','skill0','skill1','skill2','ultimate'].includes(action)){event.preventDefault();if(action==='light'&&this._state.phase==='playing')this.actions.pressPrimary('key:'+key);else this.triggerControl(action);}
     };
-    this.onKeyUp=event=>{const key=controlKey(event);this.keys.delete(key);if(key===this.bindings.heavy)this.actions.releaseHeavy();};
+    this.onKeyUp=event=>{const key=controlKey(event);this.keys.delete(key);this.actions.releasePrimary('key:'+key);if(key===this.bindings.heavy)this.actions.releaseHeavy();};
     this.onBlur=()=>{this.keys.clear();this.touchMove={x:0,y:0};this.touchStart=null;this.actions.clearInput();this.view.movement.reset();this.view.release();this.callbacks.onJoystick?.(null);};
     this.onVisibility=()=>{if(document.hidden)this.onBlur();this.lastTime=performance.now();};
     window.addEventListener('keydown',this.onKeyDown);window.addEventListener('keyup',this.onKeyUp);window.addEventListener('blur',this.onBlur);document.addEventListener('visibilitychange',this.onVisibility);
@@ -609,9 +614,10 @@ export class Game {
       if(!['playing','camp'].includes(this._state.phase)||this.camp.suspended||this.callbacks.isUIBlocked?.())return;
       if(event.pointerType!=='touch'){
         this.container.focus?.({preventScroll:true});
+        if(this.view.screenControls&&event.button===0&&this.view.pointerDown(event))return;
         if(event.button===1&&!Object.values(this.bindings).includes('mouse1')){this.view.pointerDown(event);return;}
         this.aimPointer(event);const action=Object.keys(this.bindings).find(id=>this.bindings[id]===controlKey(event));
-        if(action){event.preventDefault();this.keys.add(controlKey(event));this.triggerControl(action);if(document.pointerLockElement!==this.renderer.domElement)this.renderer.domElement.setPointerCapture?.(event.pointerId);}
+        if(action){event.preventDefault();this.keys.add(controlKey(event));if(action==='light'&&this._state.phase==='playing')this.actions.pressPrimary('pointer:'+event.pointerId);else this.triggerControl(action);if(document.pointerLockElement!==this.renderer.domElement)this.renderer.domElement.setPointerCapture?.(event.pointerId);}
         this.view.capture();
         return;
       }
@@ -619,7 +625,7 @@ export class Game {
       this.touchStart={x:event.clientX,y:event.clientY,id:event.pointerId};this.renderer.domElement.setPointerCapture(event.pointerId);this.callbacks.onJoystick?.({x:event.clientX,y:event.clientY,dx:0,dy:0});
     };
     this.onPointerMove=event=>{if(this.view.pointerMove(event))return;if(event.pointerType!=='touch'){this.aimPointer(event);return;}if(this.touchStart?.id!==event.pointerId)return;const dx=event.clientX-this.touchStart.x,dy=event.clientY-this.touchStart.y;this.setMove(dx/55,dy/55);this.callbacks.onJoystick?.({...this.touchStart,dx,dy});};
-    this.onPointerUp=event=>{if(event.pointerType!=='touch')this.keys.delete(controlKey(event));this.view.pointerUp(event);if(event.pointerType!=='touch'&&controlKey(event)===this.bindings.heavy)this.actions.releaseHeavy();if(this.touchStart?.id===event.pointerId){this.touchStart=null;this.setMove(0,0);this.callbacks.onJoystick?.(null);}};
+    this.onPointerUp=event=>{if(event.pointerType!=='touch')this.keys.delete(controlKey(event));this.view.pointerUp(event);this.actions.releasePrimary('pointer:'+event.pointerId);if(event.pointerType!=='touch'&&controlKey(event)===this.bindings.heavy)this.actions.releaseHeavy();if(this.touchStart?.id===event.pointerId){this.touchStart=null;this.setMove(0,0);this.callbacks.onJoystick?.(null);}};
     this.onPointerCancel=event=>{for(const key of this.keys)if(key.startsWith('mouse'))this.keys.delete(key);this.actions.clearInput();this.view.pointerUp(event);if(this.touchStart?.id===event.pointerId){this.touchStart=null;this.setMove(0,0);this.callbacks.onJoystick?.(null);}};
     this.onLostPointerCapture=event=>{if(event.buttons===0||document.pointerLockElement===this.renderer.domElement)return;this.onPointerCancel(event);};
     const canvas=this.renderer.domElement;canvas.addEventListener('pointerdown',this.onPointerDown);canvas.addEventListener('pointermove',this.onPointerMove);canvas.addEventListener('pointerup',this.onPointerUp);canvas.addEventListener('pointercancel',this.onPointerCancel);canvas.addEventListener('lostpointercapture',this.onLostPointerCapture);

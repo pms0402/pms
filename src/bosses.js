@@ -45,6 +45,15 @@ export class BossSystem {
     boss.mode = 'chase'; boss.actionTimer = 1.6; boss.actionIndex = 0;
     boss.aimDirection = new THREE.Vector3(0, 0, 1);
     boss.blinkTarget = new THREE.Vector3(); boss.ringAngle = 0;
+    // Six distinct bind meshes share the established boss animation/physics rig.
+    const designId='boss_'+boss.archetype;
+    if(this.game.createEnemyTemplate){
+      const template=this.game.enemyTemplates.get(designId)||this.game.createEnemyTemplate(4,designId);
+      this.game.enemyRenderer?.release(boss);
+      boss.visual.clear();
+      for(const part of template.children)boss.visual.add(part.clone());
+      boss.visual.userData.design=designId;
+    }
     this.bodyColor = info.color || COLORS[boss.archetype] || '#ee896b';
     this.color = info.secondary || COLORS[boss.archetype] || '#ee896b';
     if (boss.archetype !== 'warden') this.decorate(boss);
@@ -60,13 +69,7 @@ export class BossSystem {
 
   decorate(boss) {
     const type = boss.archetype;
-    const material = this.material(type, this.bodyColor);
-    const glow = this.material(`${type}:glow`, this.color, true);
     const group = new THREE.Group();
-    const add = (geometry, x, y, z, sx = 1, sy = sx, sz = sx) => {
-      const mesh = new THREE.Mesh(this.geometry[geometry], geometry === 'crystal' || geometry === 'halo' ? glow : material);
-      mesh.position.set(x, y, z); mesh.scale.set(sx, sy, sz); mesh.castShadow = true; group.add(mesh); return mesh;
-    };
     // Colour copies are cached by archetype; shared enemy/world materials stay intact.
     for (const mesh of boss.visual?.children || []) {
       if (!mesh.material) continue;
@@ -76,37 +79,18 @@ export class BossSystem {
         const key = `${type}:body:${base.uuid}`;
         if (!this.materials.has(key)) {
           const copy = base.clone();
-          copy.color?.lerp(new THREE.Color(this.bodyColor), .65);
-          if (copy.emissive) copy.emissive.lerp(new THREE.Color(this.color), .3);
+          const amount = base === this.game.mats?.bone ? .12 : base === this.game.mats?.enemyDark ? .28 : .45;
+          copy.color?.lerp(new THREE.Color(this.bodyColor), amount);
+          // Keep dark cloth/armor shaded; only authored luminous parts emit light.
+          if (copy.emissive && base.emissive?.getHex()>0) copy.emissive.lerp(new THREE.Color(this.color), .3);
           this.materials.set(key, copy);
         }
         return this.materials.get(key);
       };
       mesh.material = Array.isArray(original) ? original.map(recolor) : recolor(original);
     }
-    if (type === 'artillery') {
-      for (const side of [-1, 1]) add('box', side * .65, 1.05, .35, .35, .35, 1.25);
-      add('crystal', 0, 1.85, .15, .8);
-    } else if (type === 'plague') {
-      for (let i = 0; i < 3; i++) add('crystal', (i - 1) * .55, 1.45 + (i % 2) * .3, -.4, .9, 1.5, .9);
-      add('halo', 0, .22, 0, 1.3).rotation.x = Math.PI / 2;
-    } else if (type === 'brood') {
-      add('box', 0, 1.05, -.6, 1.15, 1.2, .9);
-      for (const side of [-1, 1]) {
-        add('horn', side * .85, .95, -.3, 1.2).rotation.z = side * -1.1;
-        add('crystal', side * .62, 1.4, -.8, .7);
-      }
-    } else if (type === 'storm') {
-      add('halo', 0, 1.9, 0, 1.1).rotation.x = Math.PI / 2;
-      for (let i = 0; i < 4; i++) add('crystal', Math.sin(i * Math.PI / 2) * 1.05, 1.25, Math.cos(i * Math.PI / 2) * 1.05, .65, 1.6, .65);
-    } else if (type === 'reaper') {
-      add('box', .9, 1.1, 0, .12, 2.25, .12);
-      const blade = add('horn', .45, 2.05, 0, 1.6, 1, .6); blade.rotation.z = -Math.PI / 2;
-      add('halo', 0, 1.3, -.35, 1.35, 1.35, .5);
-    }
-    if (boss.variant > 1) {
-      for (const side of [-1, 1]) add('crystal', side * .7, 2.2, -.25, .7, 1.6, .7);
-    }
+    // Cannons, antlers, brood limbs, wing plates and scythe are authored in
+    // the full silhouette, rather than boxes/cones attached to a larger grunt.
     boss.group.add(group); this.decorations.push({ boss, group });
   }
 

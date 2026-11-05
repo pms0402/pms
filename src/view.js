@@ -54,6 +54,7 @@ export class ViewController {
   constructor(game) {
     this.game = game;
     this.mode = "overhead";
+    this.screenControls = false;
     this.movement = new MovementSteering();
     this.yaw = Math.PI * 1.25;
     this.pitch = { third: 0.24, first: 0.04 };
@@ -154,7 +155,7 @@ export class ViewController {
       touches:navigator.maxTouchPoints,mouseObserved:this.mouseObserved});
   }
   canCapture() {
-    return !this.touchSteering() && this.mode !== 'overhead' && this.canLook() &&
+    return !this.screenControls && !this.touchSteering() && this.mode !== 'overhead' && this.canLook() &&
       !this.game.callbacks.isUIBlocked?.();
   }
   capture() {
@@ -170,6 +171,15 @@ export class ViewController {
   }
   firstPerson() {
     return this.effectiveMode() === "first";
+  }
+  setScreenControls(enabled, notify = true) {
+    this.screenControls = !!enabled;
+    this.game.actions.clearInput();
+    this.game.keys.clear();
+    this.movement.reset();
+    if (this.screenControls) this.release();
+    if(notify)this.game.callbacks.onViewChange?.(this.getState());
+    return this.screenControls;
   }
   canLook() {
     return (
@@ -213,7 +223,7 @@ export class ViewController {
   }
   pointerDown(e) {
     if (this.mode === "overhead" || !this.canLook()) return false;
-    if(e.pointerType!=="touch"&&e.button!==1)return false;
+    if(e.pointerType!=="touch"&&e.button!==1&&!(this.screenControls&&e.button===0))return false;
     const rect = this.canvas.getBoundingClientRect();
     if (e.pointerType === "touch" && e.clientX < rect.left + rect.width * 0.5)
       return false;
@@ -263,6 +273,7 @@ export class ViewController {
       locked: document.pointerLockElement === this.canvas,
       following:this.following(),
       inputMode:this.touchSteering()?'touch':'mouse',
+      screenControls: this.screenControls,
     };
   }
   fov() {

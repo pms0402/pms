@@ -7,12 +7,14 @@ const near = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-9,
 const point = (distance, degrees) => [Math.sin(degrees * Math.PI / 180) * distance, Math.cos(degrees * Math.PI / 180) * distance];
 const stats = () => ({ damage: 18, spellDamage: 18, swordRangeMultiplier: 1, passiveLevels: {}, spells: { fireball: 1 }, evolutions: {} });
 
-test('starter sword hits only within the measured 2.8-unit, forward 120-degree sector', () => {
+test('starter sword hits only within the measured 3.6-unit, forward 120-degree sector', () => {
   const profile = getSwordProfile();
   assert.equal(profile.range, BASE_SWORD_RANGE);
   near(profile.arc, Math.PI * 2 / 3);
-  assert.equal(isSwordHit(profile, 0, 2.8, 0, 1), true);
-  assert.equal(isSwordHit(profile, 0, 2.8001, 0, 1), false);
+  assert.equal(profile.range, 3.6);
+  assert.equal(isSwordHit(profile, 0, 3.3, 0, 1), true, 'a target beyond the previous starter reach is now reachable');
+  assert.equal(isSwordHit(profile, 0, profile.range, 0, 1), true);
+  assert.equal(isSwordHit(profile, 0, profile.range+.0001, 0, 1), false);
   assert.equal(isSwordHit(profile, 0, 4, 0, 1), false, 'the old invisible five-unit reach is gone');
   assert.equal(isSwordHit(profile, ...point(2.5, 60), 0, 1), true);
   assert.equal(isSwordHit(profile, ...point(2.5, -60), 0, 1), true);
@@ -25,11 +27,11 @@ test('starter sword hits only within the measured 2.8-unit, forward 120-degree s
 
 test('optional target radius intersects finite sector edges without allowing rear hits', () => {
   const profile = getSwordProfile();
-  assert.equal(isSwordHit(profile, 0, 2.9, 0, 1, 0.2), true);
+  assert.equal(isSwordHit(profile, 0, profile.range+.1, 0, 1, 0.2), true);
   assert.equal(isSwordHit(profile, ...point(2, 62), 0, 1, 0.1), true);
   assert.equal(isSwordHit(profile, ...point(2, 70), 0, 1, 0.1), false);
   assert.equal(isSwordHit(profile, 0, -1, 0, 1, 0.2), false);
-  assert.equal(isSwordHit(profile, 0, 2.9, 0, 1, 0), false, 'zero-radius checks match the visible boundary exactly');
+  assert.equal(isSwordHit(profile, 0, profile.range+.1, 0, 1, 0), false, 'zero-radius checks match the visible boundary exactly');
 });
 
 test('earned range ranks compound with saved/relic range, stay separate from damage and stop at eight', () => {

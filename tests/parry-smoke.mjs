@@ -189,7 +189,7 @@ try {
         [0, 2],
         [1.5, 2.5],
         [0, -2],
-        [0, 4.1],
+        [0, 6],
       ],
       targets = locations.map(([x, z]) =>
         g.spawnEnemy(x, z, 0, { noMutations: true }),

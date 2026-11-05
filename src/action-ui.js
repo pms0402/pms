@@ -60,7 +60,7 @@ export function createActionUi({
     const root = $("#modal");
     root.insertAdjacentHTML(
       "beforeend",
-      `<section class="control-settings"><h3>키 설정</h3><p>버튼을 누른 뒤 키 또는 마우스 버튼을 입력하세요. 중복 배치는 막습니다. ESC는 입력 취소입니다.</p><div class="binding-grid">${Object.entries(
+      `<section class="control-settings"><h3>전투 조작 방식</h3><p>화면 조작은 터치패드용입니다. 커서를 풀고 오른쪽 버튼으로 공격·마법을 사용합니다. 전장을 드래그하면 시점이 회전합니다. 공격은 짧게 눌렀다 놓으면 일반 공격, 길게 누른 뒤 놓으면 강공격입니다.</p><div class="segmented" aria-label="전투 조작 방식"><button data-screen-controls="false" aria-pressed="${!game.view.screenControls}">마우스 고정</button><button data-screen-controls="true" aria-pressed="${game.view.screenControls}">화면 조작 · 터치패드</button></div><h3>키 설정</h3><p>버튼을 누른 뒤 키 또는 마우스 버튼을 입력하세요. 중복 배치는 막습니다. ESC는 입력 취소입니다.</p><div class="binding-grid">${Object.entries(
         CONTROL_NAMES,
       )
         .map(
@@ -80,6 +80,9 @@ export function createActionUi({
         )
         .join("")}</section>`,
     );
+    root.querySelectorAll('[data-screen-controls]').forEach(button => {
+      button.onclick = () => setScreenControls(button.dataset.screenControls === 'true');
+    });
     const persist = () => {
       prefs.bindings = { ...game.bindings };
       save();
@@ -148,6 +151,12 @@ export function createActionUi({
         }),
     );
   }
+  function setScreenControls(enabled) {
+    prefs.screenControls = game.view.setScreenControls(enabled);
+    save();
+    document.querySelectorAll('[data-screen-controls]').forEach(button =>
+      attr(button, 'aria-pressed', String((button.dataset.screenControls === 'true') === enabled)));
+  }
   function touchLayout() {
     const root = $("#arena");
     root.style.setProperty(
@@ -163,7 +172,7 @@ export function createActionUi({
       Math.max(0, Math.min(60, prefs.touchY || 0)) + "px",
     );
   }
-  const slots=[...document.querySelectorAll('[data-action-slot]')].map(button=>({button,index:+button.dataset.actionSlot,icon:button.querySelector('.spell-slot-icon'),rank:button.querySelector('.spell-slot-rank'),key:button.querySelector('kbd'),iconId:null}));
+  const slots=[...document.querySelectorAll('[data-action-slot]')].map(button=>({button,index:+button.dataset.actionSlot,icon:button.querySelector('.spell-slot-icon'),name:button.querySelector('.spell-slot-name'),rank:button.querySelector('.spell-slot-rank'),key:button.querySelector('kbd'),iconId:null}));
   const hudNodes=new Map();
   const node=selector=>{let n=hudNodes.get(selector);if(!n){n=$(selector);hudNodes.set(selector,n);}return n;};
   function update(state) {
@@ -176,21 +185,36 @@ export function createActionUi({
       const iconId=i===3?'bolt':SPELLS.find(s=>s.id===id)?.icon||'plus';
       if(slot.iconId!==iconId){slot.icon.innerHTML=icon(iconId);slot.iconId=iconId;}
       text(slot.rank,cd>0?cd.toFixed(1)+'s':i===3?'궁극기':spell?.rank?spell.evolved?'진화':'LV.'+spell.rank:'빈 슬롯');
+      text(slot.name,i===3?'공허 붕괴':id?spellName(id):'미배치');
       text(slot.key,keyLabel(game.bindings[i===3?'ultimate':'skill'+i]));
       const label=(i===3?'공허 붕괴':spellName(id))+' · '+(ready?'사용 가능':cd>0?cd.toFixed(1)+'초':'미배치');attr(button,'aria-label',label);attr(button,'title',label);
     }
     text(node('#dash-indicator kbd'),keyLabel(game.bindings.dash));
-    text(node('#manual-combo'),a.phase==='charging'?'차징 '+Math.round(a.charge*100)+'%':a.buffered?'다음 공격 예약':a.phase==='recovery'?`${{default:'일반 검',broadsword:'대검',twinblade:'쌍검',wave:'검기'}[a.weapon]} 회수 ${a.recoveryRemaining.toFixed(1)}s · 회피 가능`:`${keyLabel(game.bindings.light)} · ${a.combo||0}/${a.comboMax}연계`);
-    text(node('#manual-heavy'),a.heavyCooldown>0?`강공격 ${a.heavyCooldown.toFixed(1)}s`:`${keyLabel(game.bindings.heavy)} · 강공격`);
-    text(node('#mobile-heavy'),a.phase==='charging'?Math.round(a.charge*100)+'%':a.heavyCooldown>0?a.heavyCooldown.toFixed(1):'강공격');
+    text(node('#manual-combo'),a.phase==='charging'?(a.weapon==='broadsword'?'차징 '+Math.round(a.charge*100)+'%':'강공격 준비 · 놓아서 사용'):a.buffered?'다음 공격 예약':a.phase==='recovery'?`${{default:'일반 검',broadsword:'대검',twinblade:'쌍검',wave:'검기'}[a.weapon]} 회수 ${a.recoveryRemaining.toFixed(1)}s · 회피 가능`:`${keyLabel(game.bindings.light)} · ${a.combo||0}/${a.comboMax}연계`);
+    text(node('#manual-heavy'),a.heavyCooldown>0?`강공격 ${a.heavyCooldown.toFixed(1)}s`:'공격 길게 누른 뒤 놓기 · 강공격');
+    const attack=node('#mobile-light');
+    text(attack.querySelector('strong'),a.primaryHeavy?'강공격': '공격');
+    text(attack.querySelector('small'),a.primaryHeavy?(a.weapon==='broadsword'?'충전 '+Math.round(a.charge*100)+'%':'놓아서 사용'):'길게: 강공격');
+    toggle(attack,'holding',a.primaryHeld);toggle(attack,'heavy-ready',a.primaryHeavy);
+    style(attack,'--hold',a.holdProgress||0);
+    text(node('#mobile-heavy'),a.phase==='charging'?(a.weapon==='broadsword'?Math.round(a.charge*100)+'%':'준비'):a.heavyCooldown>0?a.heavyCooldown.toFixed(1):'강공격');
     text(node('#mobile-parry'),state.parry?.counterReady?'반격':state.parry?.cooldown>0?state.parry.cooldown.toFixed(1):'패링');
     const guard=node('#guard-button'),label=state.parry?.counterReady?'반격 · '+keyLabel(game.bindings.light):state.parry?.cooldown>0?'패링 '+state.parry.cooldown.toFixed(1)+'s':'패링 · '+keyLabel(game.bindings.parry);
     text(guard,label);attr(guard,'title',keyLabel(game.bindings.parry)+' · 전방 120° · 첫 0.16초 완벽한 패링 · 성공 후 직접 공격으로 반격 · 붉은 지면 공격 방어 불가');attr(guard,'aria-label',label);
     text(node('#equipment-button'),'장비 · '+keyLabel(game.bindings.inventory));
   }
   function bind() {
+    const panel = $('#combat-controls');
+    panel.insertBefore($('#spell-loadout'), $('#mobile-actions'));
+    game.view.setScreenControls(prefs.screenControls === true, false);
+    $('#screen-controls-toggle').onclick = () => {
+      const enabled = !game.view.screenControls;
+      setScreenControls(enabled);
+      if (!enabled) game.view.capture();
+    };
     document.querySelectorAll("[data-action-slot]").forEach((b) =>
       b.addEventListener("pointerdown", (e) => {
+        if(e.button!==0)return;
         e.preventDefault();
         game.actions.press(
           +b.dataset.actionSlot === 3
@@ -199,12 +223,17 @@ export function createActionUi({
         );
       }),
     );
-    $("#mobile-light").addEventListener("pointerdown", (e) => {
+    const light = $('#mobile-light');
+    light.addEventListener("pointerdown", (e) => {
+      if(e.button!==0)return;
       e.preventDefault();
-      game.actions.press("light");
+      if(game.actions.pressPrimary('button:'+e.pointerId))light.setPointerCapture(e.pointerId);
     });
+    light.addEventListener('pointerup', e => { e.preventDefault();game.actions.releasePrimary('button:'+e.pointerId); });
+    for(const event of ['pointercancel','lostpointercapture'])light.addEventListener(event,e=>game.actions.cancelPrimary('button:'+e.pointerId));
     const heavy = $("#mobile-heavy");
     heavy.addEventListener("pointerdown", (e) => {
+      if(e.button!==0)return;
       e.preventDefault();
       heavy.setPointerCapture(e.pointerId);
       game.actions.press("heavy");
@@ -218,9 +247,9 @@ export function createActionUi({
       if (event.buttons > 0) game.actions.clearInput();
     });
     $("#mobile-parry").addEventListener("pointerdown", (e) => {
+      if(e.button!==0)return;
       e.preventDefault();
-      game.actions.cancel();
-      game.parry.press();
+      game.triggerControl('parry');
     });
     touchLayout();
   }

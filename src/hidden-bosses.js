@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { HIDDEN_BOSSES } from "./story.js";
+import { buildSculptedMonster, sculptedGeometry } from './sculpted-models.js';
 export class HiddenBossSystem {
   constructor(game) {
     this.game = game;
@@ -41,6 +42,11 @@ export class HiddenBossSystem {
           : id === "observer"
             ? this.materials.void
             : this.materials.red;
+    if(id==='observer'||id==='primordial'){
+      buildSculptedMonster(g,root,4,mat,'hidden_'+id);
+      root.userData.design='hidden_'+id;
+      return root;
+    }
     const add = (geo, x, y, z, sx = 1, sy = sx, sz = sx, m = mat) => {
       const mesh = new THREE.Mesh(this.geometry[geo], m);
       mesh.position.set(x, y, z);
@@ -58,7 +64,9 @@ export class HiddenBossSystem {
         const a = (i * Math.PI * 2) / 5;
         add("crown", Math.sin(a) * 0.45, 4.5, Math.cos(a) * 0.45);
       }
-      this.sword = add("blade", 1, 2.3, 0.8, 1.5, 1.5, 1.5);
+      this.sword = new THREE.Mesh(sculptedGeometry(g,'weapon_cleaver'),mat);
+      this.sword.position.set(1,2.3,.8);this.sword.scale.set(.30,.13,3.4);
+      this.sword.rotation.x=-Math.PI/2;root.add(this.sword);
     } else if (id === "observer") {
       add("sphere", 0, 2, 0, 1.9, 1.35, 1.25);
       add("sphere", 0, 2, 1.1, 0.72, 0.8, 0.25, this.materials.eye);

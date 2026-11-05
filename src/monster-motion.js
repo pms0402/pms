@@ -62,9 +62,9 @@ export function jointPivot(kind, id) {
     ];
   return [0, 0, 0];
 }
-export function tagMotionGeometry(geometry, kind, joint) {
+export function tagMotionGeometry(geometry, kind, joint, authoredPivot) {
   const n = geometry.attributes.position.count,
-    pivot = jointPivot(kind, joint),
+    pivot = authoredPivot || jointPivot(kind, joint),
     j = new Float32Array(n),
     k = new Float32Array(n),
     p = new Float32Array(n * 3);

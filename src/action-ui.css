@@ -315,3 +315,95 @@ body.camp-active .expedition-actions #guard-button {
 .manual-skill-description small {
   color: #dbc293;
 }
+
+/* A single skill row stays next to the attack controls in every input mode. */
+.combat-controls {
+  position: absolute;
+  z-index: 8;
+  right: calc(18px + var(--touch-x, 0px));
+  bottom: calc(85px + var(--touch-y, 0px));
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  pointer-events: none;
+  transform: scale(var(--touch-scale, 1));
+  transform-origin: bottom right;
+}
+.combat-controls > * { pointer-events: auto; }
+#screen-controls-toggle {
+  min-height: 32px;
+  padding: 6px 10px;
+  font-size: 10px;
+  width: auto;
+}
+#screen-controls-toggle[aria-pressed="true"] {
+  color: #d6efb5;
+  border-color: #b5d589;
+  background: #30482be8;
+}
+.combat-controls .spell-loadout { gap: 8px; }
+.combat-controls .spell-slot {
+  width: 50px !important;
+  height: 74px !important;
+  min-height: 44px;
+  touch-action: none;
+}
+.combat-controls .spell-slot-icon { margin-top: 9px; }
+.spell-slot-name { position: relative; z-index: 2; font-size: 9px; white-space: nowrap; }
+.combat-controls .spell-slot-rank { margin-top: 2px; font-size: 9px; }
+#combat-controls #mobile-actions {
+  position: static;
+  grid-template-columns: repeat(4, 50px);
+  grid-auto-rows: 50px;
+  gap: 8px;
+  transform: none;
+}
+#combat-controls #mobile-actions > button {
+  width: 50px !important;
+  height: 50px !important;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border-radius: 12px;
+  border: 1px solid #9ab1a466;
+  color: #dce8d5;
+  background: #182a24ed;
+  font-size: 11px;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+#combat-controls #mobile-light { background: #415c2ded; border-color: #b5d589; }
+#mobile-light strong, #mobile-light small { display: block; font-weight: 500; }
+#mobile-light small { margin-top: 3px; font-size: 7px; color: #d1ddb9; }
+#combat-controls #mobile-light.holding { box-shadow: inset 0 0 0 calc(var(--hold) * 3px) #c5df9d; }
+#combat-controls #mobile-light.heavy-ready { background: #72532bed; border-color: #f0cd8b; }
+body.screen-controls.run-active #mobile-actions { display: grid; }
+body.screen-controls .expedition-actions #guard-button { display: none; }
+body:not(.run-active) .combat-controls .spell-loadout { display: none; }
+body.run-active .growth-toolbar { right: 265px !important; }
+@media (pointer: coarse) {
+  .combat-controls { right: calc(14px + var(--touch-x, 0px)); bottom: calc(70px + var(--touch-y, 0px)); }
+  #screen-controls-toggle { display: none; }
+  .combat-controls .spell-slot { height: 66px !important; }
+  body.run-active .growth-toolbar { right: 14px !important; bottom: 15px !important; }
+}
+@media (max-width: 600px) {
+  .manual-combat-readout { max-width: calc(100% - 265px); left: 12px; bottom: 90px; flex-direction: column; gap: 2px; font-size: 9px; }
+  .combat-controls { right: calc(12px + var(--touch-x, 0px)); }
+  .combat-controls .spell-loadout, #combat-controls #mobile-actions { gap: 6px; }
+  .combat-controls .spell-slot, #combat-controls #mobile-actions > button { width: 46px !important; }
+  #combat-controls #mobile-actions { grid-template-columns: repeat(4,46px); }
+  body.run-active .growth-toolbar { right: 14px !important; bottom: 15px !important; }
+}
+@media (max-height: 520px) {
+  .combat-controls { bottom: calc(48px + var(--touch-y, 0px)); gap: 5px; }
+  .combat-controls .spell-slot { height: 56px !important; }
+  .combat-controls .spell-slot-icon { margin-top: 6px; }
+  .combat-controls .spell-slot .icon { width: 16px; height: 16px; }
+  .combat-controls .spell-slot kbd { top: 0; font-size: 8px; }
+  #combat-controls #mobile-actions { grid-auto-rows: 44px; }
+  #combat-controls #mobile-actions > button { height: 44px !important; }
+  body.run-active .growth-toolbar { bottom: 8px !important; }
+}

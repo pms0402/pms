@@ -7,6 +7,7 @@ export const SKILL_IDS = Object.freeze([
   "lightning",
   "orbit",
 ]);
+export const PRIMARY_HOLD_TIME = 0.28;
 export const SKILL_TIMINGS = Object.freeze({
   fireball: { cooldown: 12, cast: 0.42, movement: 0.4 },
   frost: { cooldown: 14, cast: 0.5, movement: 0.65 },
@@ -145,6 +146,7 @@ export class ActionCombat {
     this.current = null;
     this.buffer = null;
     this.charging = false;
+    this.primary = null;
     this.charge = 0;
     this.combo = 0;
     this.comboTime = 0;
@@ -220,7 +222,33 @@ export class ActionCombat {
       !(g.parry.active > 0)
     );
   }
+  pressPrimary(owner) {
+    const g = this.game;
+    if (this.primary || this.charging || g._state.phase !== 'playing' ||
+      g.callbacks.isUIBlocked?.() || g.parry.active > 0 || g.dashTime > .14) return false;
+    this.primary = { owner, held: 0 };
+    return true;
+  }
+  releasePrimary(owner) {
+    if (!this.primary || this.primary.owner !== owner) return false;
+    const heavy = this.primary.held + 1e-9 >= PRIMARY_HOLD_TIME;
+    this.primary = null;
+    if (this.charging) return this.releaseHeavy();
+    // A cooling heavy falls back to the ordinary combo instead of eating a tap.
+    const result = this.press(heavy && this.heavyCooldown <= 0 ? 'heavy' : 'light');
+    if (this.charging || this.buffer?.afterDash && this.buffer.type === 'heavy') this.releaseHeavy();
+    return result;
+  }
+  cancelPrimary(owner) {
+    if (!this.primary || this.primary.owner !== owner) return false;
+    this.primary = null;
+    this.charging = false;
+    this.charge = 0;
+    return true;
+  }
   press(type) {
+    // A different explicit command replaces an unfinished button gesture.
+    if (this.primary) this.cancelPrimary(this.primary.owner);
     const g = this.game;
     if(!this.ready()){
       if(g.dashTime>0&&g.dashTime<=.14&&g._state.phase==='playing'&&!g.callbacks.isUIBlocked?.()&&!(g.parry.active>0)&&!this.buffer){
@@ -269,6 +297,7 @@ export class ActionCombat {
   }
   clearInput() {
     this.buffer = null;
+    this.primary = null;
     this.charging = false;
     this.charge = 0;
   }
@@ -385,7 +414,17 @@ export class ActionCombat {
       this.game.sound("skill-ready");
       this.game.callbacks.onLoot?.("궁극기 준비");
     }
-    if (this.charging) this.charge = Math.min(1, this.charge + dt / 1.2);
+    if (this.primary) {
+      const playback = this.game.playbackSpeed || 1;
+      this.primary.held += dt / playback;
+      if (this.primary.held >= PRIMARY_HOLD_TIME && !this.current && this.ready() &&
+        this.heavyCooldown <= 0 && this.game.parry.counterTime <= 0) {
+        this.charging = true;
+        // Only the broadsword gains its existing extra charge multiplier.
+        this.charge = weaponStyle(this.game.stats) === 'broadsword'
+          ? Math.min(1, (this.primary.held - PRIMARY_HOLD_TIME) * playback / 1.2) : 0;
+      }
+    } else if (this.charging) this.charge = Math.min(1, this.charge + dt / 1.2);
     if (this.buffer) {
       // A frame may overshoot recovery; don't expire a valid queued input in
       // the unused part of that frame before we can start it.
@@ -475,6 +514,9 @@ export class ActionCombat {
       combo: this.combo,
       comboMax: weaponStyle(this.game.stats) === "twinblade" ? 5 : 3,
       charge: this.charging ? this.charge : 0,
+      primaryHeld: !!this.primary,
+      primaryHeavy: !!this.primary && this.primary.held >= PRIMARY_HOLD_TIME && this.heavyCooldown <= 0,
+      holdProgress: this.primary ? Math.min(1, this.primary.held / PRIMARY_HOLD_TIME) : 0,
       heavyCooldown: this.heavyCooldown,
       ultimateCooldown: this.ultimateCooldown,
       slots: this.syncSlots(),

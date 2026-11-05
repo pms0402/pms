@@ -213,6 +213,8 @@ export class ClassSystem {
     this.accessory = new THREE.Group();
     const def = classDefinition(id);
     if (!def) return;
+    // The protagonist's authored class kits replace the old floating primitives.
+    if(g.heroClassParts)return;
     const material =
       this.classMaterials?.[id] ||
       new THREE.MeshStandardMaterial({

@@ -59,7 +59,7 @@ test("counter uses a bounded half-circle and scales with sword growth and evolut
     }),
     max = counterProfile({ swordRangeMultiplier: 100 });
   assert.equal(base.arc, Math.PI);
-  assert.equal(base.range, 3.5);
+  assert.equal(base.range, 4.5);
   assert.ok(evolved.range > base.range);
   assert.equal(max.range, 7);
   assert.equal(max.targets, 24);

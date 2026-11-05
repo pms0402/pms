@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import { BossSystem } from '../src/bosses.js';
+import { buildSculptedMonster } from '../src/sculpted-models.js';
 
 const close = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-8, `${actual} ≈ ${expected}`);
 function fixture(archetype, stage = 2) {
@@ -132,9 +133,13 @@ test('reaper marks a fixed landing point before blinking and delays the crossfir
 test('each boss silhouette differs while cached materials and temporary resources stay bounded', () => {
   const f = fixture('artillery');
   const baseColor = f.material.color.getHex(), shapes = [];
+  f.game.ownedGeometries=new Set();f.game.enemyTemplates=new Map();
+  f.game.mats={enemyDark:new THREE.MeshStandardMaterial(),bone:new THREE.MeshStandardMaterial(),eye:new THREE.MeshBasicMaterial(),bossGlow:new THREE.MeshBasicMaterial(),trunk:new THREE.MeshStandardMaterial()};
+  f.game.createEnemyTemplate=(kind,id)=>{const v=new THREE.Group();buildSculptedMonster(f.game,v,kind,f.material,id);f.game.enemyTemplates.set(id,v);return v;};
   for (const archetype of ['artillery', 'plague', 'brood', 'storm', 'reaper']) {
     f.boss.archetype = archetype; f.system.begin(f.boss);
-    shapes.push(f.system.decorations[0].group.children.map(mesh => `${mesh.geometry.type}:${mesh.position.toArray().join(',')}`).join('|'));
+    for(const mesh of f.boss.visual.children)if(mesh.userData.originalBossMaterial.emissive?.getHex()===0)assert.equal(mesh.material.emissive.getHex(),0,'nonluminous sculpt surfaces keep real shadows and material contrast');
+    shapes.push(f.boss.visual.children.map(mesh => {mesh.geometry.computeBoundingBox();return `${mesh.geometry.attributes.position.count}:${mesh.geometry.boundingBox.getSize(new THREE.Vector3()).toArray().join(',')}`;}).join('|'));
   }
   assert.equal(new Set(shapes).size, 5);
   assert.equal(f.material.color.getHex(), baseColor, 'private recolouring never changes a shared monster material');

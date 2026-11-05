@@ -73,7 +73,7 @@ try {
   await fresh();
   const collision = await page.evaluate(() => {
     const game = window.__game;
-    const points = [[0, 2.3], [0, 3.3], [0, -2.4], [Math.sin(80 * Math.PI / 180) * 2.4, Math.cos(80 * Math.PI / 180) * 2.4]];
+    const points = [[0, 2.3], [0, 4.8], [0, -2.4], [Math.sin(80 * Math.PI / 180) * 2.4, Math.cos(80 * Math.PI / 180) * 2.4]];
     const targets = points.map(([x, z]) => { const enemy = game.spawnEnemy(x, z, 0); enemy.hp = enemy.maxHp = 1000; enemy.speed = 0; return enemy; });
     window.testStrike(game);
     const slash = game.effects.find(effect => effect.type === 'slash');
@@ -82,7 +82,7 @@ try {
     game.animateEffects(.1);
     return { hp: targets.map(enemy => enemy.hp), profile: game.state.sword, visual, afterScale: slash.mesh.scale.x };
   });
-  near(collision.profile.range, 2.8, 'unupgraded sword has a short measured reach');
+  near(collision.profile.range, 3.6, 'unupgraded sword has a short measured reach');
   assert.ok(collision.hp[0] < 1000, 'front target inside the sweep is hit');
   assert.deepEqual(collision.hp.slice(1), [1000, 1000, 1000], 'outside radius, rear and outside-angle targets cannot take invisible sword hits');
   near(collision.visual.radius, collision.profile.range, 'visible outer edge equals the collision range');
@@ -105,7 +105,7 @@ try {
     near(sweep.aim, 1, `${sweep.mode} graphic points toward the actual attack direction`);
     near(sweep.angle, sweep.arc, `${sweep.mode} graphic matches its evolved collision angle`);
   }
-  console.log('PASS sword detail: measured2.8 reach, exact forward sector and matching nonexpanding sweep');
+  console.log('PASS sword detail: measured3.6 reach, exact forward sector and matching nonexpanding sweep');
 
   await fresh();
   const beforeRange = await page.evaluate(() => window.__game.state.sword.range);
@@ -122,7 +122,7 @@ try {
   await earnChoice('blade_range'); await earnChoice('power'); await earnChoice('blade_wave');
   const evolution = await page.evaluate(() => ({ mode: window.__game.state.sword.mode, multiplier: window.__game.state.sword.range, rejected: window.__game.chooseUpgrade('blade_broadsword') }));
   assert.equal(evolution.mode, 'wave'); assert.equal(evolution.rejected, false);
-  near(evolution.multiplier, 2.8 * 1.12 ** 2 * 1.8, 'earned wave evolution combines with chosen range ranks');
+  near(evolution.multiplier, 3.6 * 1.12 ** 2 * 1.8, 'earned wave evolution combines with chosen range ranks');
   console.log('PASS chosen growth: range rank reaches new targets; three sword ranks unlock one mutually exclusive evolution');
 
   await fresh();
@@ -259,10 +259,15 @@ try {
   await page.locator('[data-upgrade]').first().click();
   // Transition collection can earn further real levels from the boss/guards.
   // Select those normally rather than silently discarding their swept XP.
-  for (let pending = 0; pending < 12; pending++) {
+  for (let pending = 0; pending < 24; pending++) {
     await page.evaluate(() => window.__game.tick(.01));
     const phase = await page.evaluate(() => window.__game.state.phase);
     if (phase === 'route') break;
+    if(phase==='skill-swap'){
+      assert.equal(await page.locator('[data-skill-swap]').count(),4,'a fourth learned spell requires a real three-slot loadout/keep choice before continuing');
+      await page.locator('[data-skill-swap="-1"]').click();
+      continue;
+    }
     assert.equal(phase, 'upgrade', 'remaining earned XP must still resolve through explicit choices');
     await page.locator('[data-upgrade]').first().click();
   }

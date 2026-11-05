@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import headData from './assets/knight-head.json' with { type: 'json' };
+import { sculptedGeometry } from './sculpted-models.js';
 
 /** A jointed, adult-proportioned silver-haired knight. All assets are local geometry. */
 export function createPlayerModel(game) {
@@ -64,9 +65,11 @@ export function createPlayerModel(game) {
   };
 
   // Tailored silhouette: narrow waist, longer legs and fitted overlapping breastplate.
-  game.playerBody = loft(armor, root, [[1.06, .17, .115], [1.18, .185, .13], [1.37, .215, .145], [1.61, .28, .145], [1.76, .26, .125], [1.85, .14, .095]]);
+  game.playerBody = mesh(sculptedGeometry(game,'hero_cuirass'),armor,root);
   game.playerBody.userData.keep = true;
-  shell(armor, root, [[1.36, .205, .15], [1.43, .235, .174], [1.57, .283, .187], [1.70, .272, .167], [1.76, .238, .145], [1.80, .16, .115]]);
+  // The closed forged torso is the breastplate; seams follow its convex surface.
+  tube(edge,root,[[0,1.79,.108],[0,1.69,.163],[0,1.58,.198],[0,1.40,.176],[0,1.26,.156]],.005);
+  for(const side of [-1,1])tube(edge,root,[[side*.21,1.76,.11],[side*.27,1.63,.15],[side*.22,1.43,.155],[side*.10,1.35,.17]],.005);
   for (const side of [-1, 1]) {
     tube(edge, root, [[side * .17, 1.76, .12], [side * .13, 1.71, .15], [side * .06, 1.68, .172], [0, 1.65, .178]], .004);
     tube(edge, root, [[side * .14, 1.69, .153], [side * .09, 1.67, .167], [side * .065, 1.60, .185]], .0025);
@@ -84,8 +87,8 @@ export function createPlayerModel(game) {
   game.playerHood = loft(cloth, root, [[1.78, .23, .15, -.01], [1.90, .205, .13, -.015], [1.98, .17, .095, -.035]]);
   game.playerHood.userData.keep = true;
   for (const side of [-1, 1]) {
-    plate(cloth, root, [[side * .11, 1.79], [side * .23, 1.96], [side * .32, 1.82], [side * .22, 1.55]], .11, .018, .009);
-    tube(edge, root, [[side * .11, 1.79, .144], [side * .23, 1.96, .144], [side * .31, 1.82, .144]], .005);
+    plate(cloth, root, [[side * .11, 1.81], [side * .18, 1.98], [side * .27, 1.88], [side * .22, 1.73]], .10, .018, .009);
+    tube(edge, root, [[side * .11, 1.81, .13], [side * .18, 1.98, .13], [side * .27, 1.88, .13]], .005);
   }
 
   // Coat panels are real curved surfaces, weighted at the hem for cloth animation.
@@ -105,10 +108,10 @@ export function createPlayerModel(game) {
     const m = mesh(geometry, material, root, ...anchor, true); m.name = name;
     game.clothParts.push({ mesh: m, base: new Float32Array(positions), weights: new Float32Array(weights), phase: game.clothParts.length * 1.7 }); return m;
   };
-  game.cape = coat('Split black mantle', cloth, [[0, 1.88, .66, -.17], [0, 1.55, .62, -.22], [0, 1.12, .46, -.23], [0, .67, .72, -.31], [0, .24, 1.03, -.42]]);
+  game.cape = coat('Split black mantle', cloth, [[0, 1.88, .70, -.17], [0, 1.55, .66, -.24], [0, 1.12, .48, -.27], [0, .67, .65, -.34], [0, .24, .88, -.42]]);
   game.capeBase = game.clothParts[0].base;
   for (const side of [-1, 1]) {
-    coat('Front coat tail', cloth, [[side * .16, 1.08, .17, .16], [side * .22, .83, .23, .20], [side * .29, .53, .25, .23], [side * .37, .20, .23, .26]], 6, 16);
+    coat('Front coat tail', cloth, [[side * .19, 1.08, .16, .15], [side * .24, .83, .17, .17], [side * .28, .53, .20, .18], [side * .32, .26, .15, .20]], 6, 16);
     coat('Violet coat lining', lining, [[side * .30, 1.07, .12, -.02], [side * .40, .65, .16, -.04], [side * .48, .29, .18, -.03]], 4, 14);
   }
 
@@ -122,11 +125,13 @@ export function createPlayerModel(game) {
   headGeometry.setIndex(headData.indices);
   const faceMaterial = skin.clone(); faceMaterial.vertexColors = true; game.heroMaterials.face = faceMaterial;
   game.playerHead = mesh(headGeometry, faceMaterial, root, 0, 2.105, 0, true); game.playerHead.name = 'Anatomical sculpted face';
-  const eyeWhite = metal('#b6b4b3', .43, 0), iris = metal('#746286', .4, 0);
+  const eyeWhite = metal('#929391', .55, 0), iris = metal('#5b4c73', .46, 0);
   for (const side of [-1, 1]) {
-    ellipsoid(eyeWhite, root, side * .0403, 2.1095, .0852, .0214, .0214, .0214);
-    ellipsoid(iris, root, side * .0403, 2.1095, .1057, .008, .0086, .002);
-    ellipsoid(faceShadow, root, side * .0403, 2.1095, .1075, .0034, .0053, .001);
+    ellipsoid(eyeWhite, root, side * .0403, 2.1095, .096, .019, .0085, .011);
+    ellipsoid(iris, root, side * .0403, 2.1095, .106, .006, .0075, .0015);
+    ellipsoid(faceShadow, root, side * .0403, 2.1095, .1075, .0028, .0048, .001);
+    tube(faceShadow,root,[[side*.021,2.111,.102],[side*.040,2.118,.108],[side*.060,2.113,.100]],.0017);
+    tube(skin,root,[[side*.021,2.106,.102],[side*.040,2.101,.108],[side*.060,2.107,.100]],.0017);
     tube(hairShade, root, [[side * .018, 2.141, .094], [side * .038, 2.148, .096], [side * .063, 2.143, .087]], .0027);
   }
 
@@ -156,45 +161,46 @@ export function createPlayerModel(game) {
     const hair = joint(root, 'Flowing silver locks', side * .08, 2.20, -.045); game.hairLocks.push(hair);
     for (let i = 0; i < 7; i++) {
       const s = side || (i % 2 ? -1 : 1), spread = i / 6;
-      lock(hair, i % 3 === 0 ? hairShade : silverHair, [[s * .015, .04, -.04], [s * (.06 + spread * .035), -.17, -.08 - spread * .035], [s * (.16 + spread * .09), -.40, -.15], [s * (.13 + spread * .13), -.72, -.09 + spread * .02], [s * (.32 + spread * .09), -.99 - spread * .13, -.12 + spread * .05]], .032 + spread * .014);
+      const length=.74+spread*.35+(i%2)*.05;
+      lock(hair, i % 3 === 0 ? hairShade : silverHair, [[s * .015, .04, -.04], [s * (.07 + spread * .035), -.17, -.08 - spread * .035], [s * (.14 + spread * .09), -.39, -.17], [s * (.12 + spread * .13), -length*.76, -.13 + spread * .02], [s * (.25 + spread * .16), -length, -.08 + spread * .05]], .036 + spread * .014);
     }
   }
 
   // Narrow, articulated limbs; layered pointed pauldrons replace spherical pads.
   for (const side of [-1, 1]) {
     const hip = joint(root, side < 0 ? 'Left hip' : 'Right hip', side * .122, 1.045);
-    loft(leather, hip, [[0, .095, .092], [-.12, .10, .095], [-.35, .070, .068], [-.47, .063, .064]]);
+    mesh(sculptedGeometry(game,'hero_thigh'),leather,hip);
     plate(armor, hip, [[-.065, -.10], [.065, -.10], [.06, -.29], [0, -.40], [-.055, -.29]], .071, .015, .009);
     const knee = joint(hip, 'Knee', 0, -.47);
-    loft(leather, knee, [[0, .062, .064], [-.16, .073, .069], [-.37, .05, .054], [-.53, .045, .05]]);
+    mesh(sculptedGeometry(game,'hero_shin'),leather,knee);
     plate(armor, knee, [[0, .055], [-.074, -.035], [-.057, -.15], [0, -.20], [.057, -.15], [.074, -.035]], .052, .025, .009);
     plate(armor, knee, [[0, -.135], [-.057, -.20], [-.043, -.37], [0, -.45], [.043, -.37], [.057, -.20]], .055, .017, .008);
     tube(edge, knee, [[0, -.16, .087], [0, -.29, .094], [0, -.43, .08]], .005);
     const foot = joint(knee, 'Pointed boot', 0, -.55, .025);
-    loft(leather, foot, [[.005, .055, .15, .065], [.025, .06, .155, .065], [.065, .05, .125, .045], [.10, .041, .065, 0], [.12, .038, .05, 0]]);
+    mesh(sculptedGeometry(game,'hero_boot'),leather,foot);
     tube(edge, foot, [[-.049, .036, .09], [0, .055, .19], [.049, .036, .09]], .004);
     game[side < 0 ? 'legLeft' : 'legRight'] = hip; game[side < 0 ? 'kneeLeft' : 'kneeRight'] = knee; game[side < 0 ? 'footLeft' : 'footRight'] = foot;
 
     const shoulder = joint(root, side < 0 ? 'Left shoulder' : 'Right shoulder', side * .315, 1.81, -.002);
-    loft(leather, shoulder, [[.005, .08, .085], [-.13, .078, .08], [-.31, .057, .061]]);
+    mesh(sculptedGeometry(game,'hero_upperarm'),leather,shoulder);
     for (let layer = 0; layer < (side < 0 ? 3 : 2); layer++) {
-      const width = (side < 0 ? .225 : .185) - layer * .026, y = .018 - layer * .06;
+      const width = (side < 0 ? .29 : .23) - layer * .035, y = .018 - layer * .065;
       const positions = [], uvs = [], indices = [], columns = 14, rows = 10;
       for (let j = 0; j <= rows; j++) for (let i = 0; i <= columns; i++) {
         const t = j / rows, u = i / columns * 2 - 1;
-        positions.push(side * (-.055 + t * width), y + Math.sin(t * Math.PI) * .065 + (1 - u * u) * .057 + t ** 5 * (side < 0 ? .09 : .045), u * (.115 - t * .025));
+        positions.push(side * (-.055 + t * width), y + Math.sin(t * Math.PI) * .085 + (1 - u * u) * .065 + t ** 5 * (side < 0 ? .14 : .075), u * (.125 - t * .025));
         uvs.push(i / columns, t);
       }
       for (let j = 0; j < rows; j++) for (let i = 0; i < columns; i++) { const a = j * (columns + 1) + i, b = a + columns + 1; if (side < 0) indices.push(a, b, a + 1, a + 1, b, b + 1); else indices.push(a, a + 1, b, a + 1, b + 1, b); }
       const geometry = own(new THREE.BufferGeometry()); geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3)); geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2)); geometry.setIndex(indices); geometry.computeVertexNormals();
       mesh(geometry, armor, shoulder);
-      const rim = Array.from({length:9}, (_, i) => { const t=i/8; return [side*(-.055+t*width),y+Math.sin(t*Math.PI)*.065+t**5*(side<0?.09:.045),.115-t*.025]; });
+      const rim = Array.from({length:9}, (_, i) => { const t=i/8; return [side*(-.055+t*width),y+Math.sin(t*Math.PI)*.085+t**5*(side<0?.14:.075),.125-t*.025]; });
       tube(edge, shoulder, rim, .0035);
     }
     const clasp = mesh(game.geo.roundTorus, edge, shoulder, side * -.035, .075, .06); clasp.scale.set(.038, .05, .026);
     tube(edge, shoulder, [[side * -.045, .03, .075], [side * -.085, -.07, .10], [side * -.09, -.16, .08]], .004);
     const elbow = joint(shoulder, 'Elbow', 0, -.31); elbow.rotation.x = -.6;
-    loft(inset, elbow, [[.025, .065, .065], [-.10, .079, .07], [-.25, .051, .051], [-.30, .047, .045]]);
+    mesh(sculptedGeometry(game,'hero_forearm'),inset,elbow);
     shell(armor, elbow, [[-.28, .048, .061], [-.21, .063, .082], [-.10, .082, .091], [0, .075, .081], [.045, .042, .062]]);
     tube(edge, elbow, [[0, .05, .091], [0, -.10, .092], [0, -.26, .079]], .005);
     for (let i = 0; i < 3; i++) tube(edge, elbow, [[-.053, -.06 - i * .052, .074], [0, -.085 - i * .052, .092], [.053, -.06 - i * .052, .074]], .0035);
@@ -226,6 +232,28 @@ export function createPlayerModel(game) {
   game.blade.userData.keep = true;
   game.heroGlow = glow;
 
+  // Class kits are actual armor/cloth shapes, anchored to the moving joints.
+  game.heroClassParts={};
+  const kit=(id,parent=root)=>{const g=new THREE.Group();g.name='Silhouette kit: '+id;g.visible=false;parent.add(g);(game.heroClassParts[id]||=([])).push(g);return g;};
+  const shield=kit('paladin',game.leftElbow);
+  plate(edge,shield,[[-.21,.12],[.21,.12],[.24,-.14],[0,-.48],[-.24,-.14]],.14,.05,.018);
+  plate(armor,shield,[[-.17,.08],[.17,.08],[.19,-.12],[0,-.40],[-.19,-.12]],.18,.03,.01);
+  plate(glow,shield,[[-.02,.01],[.02,.01],[.02,-.11],[.11,-.11],[.11,-.15],[.02,-.15],[.02,-.29],[-.02,-.29],[-.02,-.15],[-.11,-.15],[-.11,-.11],[-.02,-.11]],.21,.01,.002);
+  for(const id of ['arcanist','summoner','warlock']){
+    const collar=kit(id);
+    for(const s of [-1,1])plate(id==='warlock'?inset:cloth,collar,[[s*.11,1.8],[s*.25,2.18],[s*.35,1.92],[s*.26,1.55]],-.04,.04,.012);
+    if(id==='summoner'){
+      const tome=plate(leather,collar,[[.20,1.10],[.40,1.08],[.42,.78],[.23,.77]],.13,.10,.015);
+      plate(edge,collar,[[.23,1.07],[.39,1.05],[.40,.81],[.25,.8]],.195,.012,.005);
+    }
+    if(id==='warlock')for(const s of [-1,1])tube(inset,collar,[[s*.11,2.22,-.07],[s*.21,2.40,-.09],[s*.16,2.53,-.12]],.032);
+  }
+  const berserker=kit('berserker',game.leftShoulder);
+  for(let i=0;i<3;i++)plate(armor,berserker,[[-.04,.05-i*.08],[-.28,.20-i*.06],[-.40,.16-i*.07],[-.22,-.12-i*.08]],-.03,.19,.012);
+  const assassin=kit('assassin');
+  for(const s of [-1,1])plate(cloth,assassin,[[s*.10,1.78],[s*.18,2.27],[s*.07,2.38],[s*.23,2.31],[s*.29,2.00]],-.075,.08,.012);
+  root.userData.sculpted=true;
+
   // Bake decorations by material inside each articulated part, never across joints.
   const bake = group => {
     for (const child of [...group.children]) if (child.children.length) bake(child);
@@ -236,7 +264,7 @@ export function createPlayerModel(game) {
       const pieces = parts.map(part => { part.updateMatrix(); const geometry = part.geometry.index ? part.geometry.toNonIndexed() : part.geometry.clone(); return geometry.applyMatrix4(part.matrix); });
       const geometry = mergeGeometries(pieces, false); pieces.forEach(p => p.dispose());
       if (!geometry) continue; mesh(own(geometry), material, group);
-      for (const part of parts) { group.remove(part); if (game.ownedGeometries.delete(part.geometry)) part.geometry.dispose(); }
+      for (const part of parts) { group.remove(part); if (!part.geometry.userData.sculpted && game.ownedGeometries.delete(part.geometry)) part.geometry.dispose(); }
     }
   };
   bake(root);

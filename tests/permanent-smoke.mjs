@@ -110,6 +110,9 @@ try {
   assert.equal(secondRun.level, 1);
   assert.deepEqual(secondRun.playerStats.passiveLevels, {});
   assert.deepEqual(secondRun.playerStats.spells, { fireball: 1, frost: 0, lightning: 0, orbit: 0 });
+  // Use the real cursor-accessible view before clicking a live HUD/navigation item.
+  for(let i=0;i<3&&await page.evaluate(()=>window.__game.view.mode!=='overhead');i++)await page.keyboard.press('v');
+  await page.waitForFunction(()=>!document.pointerLockElement);
   await page.locator('[data-nav="permanent"]').first().click();
   assert.equal(await phase(), 'paused');
   const disabled = await page.locator('[data-permanent-buy]').evaluateAll(buttons => buttons.length === 10 && buttons.every(button => button.disabled));

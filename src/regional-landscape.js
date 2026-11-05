@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { createRuneGeometry } from "./rune-geometry.js";
+import { sculptedGeometry } from './sculpted-models.js';
 
 /** One reusable batch per regional structure type; details do not change navigation. */
 export class RegionalLandscape {
@@ -60,98 +61,6 @@ export class RegionalLandscape {
       this.geometries.push(g);
       return g;
     };
-    const column = (r, h, x = 0, z = 0) =>
-      new THREE.CylinderGeometry(r * 0.7, r, h, 7).translate(x, h / 2, z);
-    const basalt = merge([
-      column(0.55, 3.1),
-      column(0.35, 1.9, 0.7, 0.1),
-      column(0.29, 1.4, -0.6, -0.1),
-    ]);
-    const crystals = merge([
-      new THREE.ConeGeometry(0.45, 3, 5).translate(0, 1.5, 0),
-      new THREE.ConeGeometry(0.26, 1.8, 5)
-        .rotateZ(-0.4)
-        .translate(0.6, 0.7, 0.1),
-      new THREE.ConeGeometry(0.22, 1.5, 5)
-        .rotateZ(0.3)
-        .translate(-0.5, 0.6, -0.1),
-    ]);
-    const treeParts = [];
-    const branch = (points, r) =>
-      treeParts.push(
-        new THREE.TubeGeometry(
-          new THREE.CatmullRomCurve3(
-            points.map((p) => new THREE.Vector3(...p)),
-          ),
-          7,
-          r,
-          5,
-          false,
-        ),
-      );
-    branch(
-      [
-        [0, 0, 0],
-        [-0.2, 2, 0.1],
-        [0.5, 4, 0.2],
-        [0.2, 6.1, -0.2],
-      ],
-      0.22,
-    );
-    for (const side of [-1, 1]) {
-      branch(
-        [
-          [0, 2, 0.1],
-          [side * 1.2, 3.5, 0.2],
-          [side * 2, 4.7, -0.4],
-        ],
-        0.13,
-      );
-      branch(
-        [
-          [side * 0.8, 3.2, 0.15],
-          [side * 1.6, 3.7, 1],
-          [side * 2.3, 3.9, 1.2],
-        ],
-        0.065,
-      );
-      branch(
-        [
-          [side * 1.3, 3.8, 0],
-          [side * 1.2, 5.1, -0.3],
-          [side * 0.8, 5.7, -0.4],
-        ],
-        0.055,
-      );
-    }
-    const tree = merge(treeParts);
-    const fungus = merge([
-      column(0.12, 0.9),
-      new THREE.SphereGeometry(1, 12, 6, 0, Math.PI * 2, 0, Math.PI * 0.56)
-        .scale(0.75, 0.28, 0.68)
-        .translate(0, 0.85, 0),
-      column(0.08, 0.55, 0.62, 0.13),
-      new THREE.SphereGeometry(1, 10, 5, 0, Math.PI * 2, 0, Math.PI * 0.56)
-        .scale(0.48, 0.18, 0.44)
-        .translate(0.62, 0.52, 0.13),
-    ]);
-    const ruin = merge([
-      column(0.5, 3.2),
-      new THREE.BoxGeometry(1.8, 0.4, 1.8).translate(0, 0.2, 0),
-      new THREE.BoxGeometry(1.4, 0.5, 1.4).rotateZ(0.1).translate(0, 3.2, 0),
-      new THREE.SphereGeometry(0.7, 12, 8)
-        .scale(0.7, 1, 0.65)
-        .translate(0, 4.05, 0),
-      new THREE.BoxGeometry(0.9, 0.16, 0.5).translate(0, 4.12, 0.35),
-    ]);
-    const brokenArch = merge([
-      new THREE.TorusGeometry(1.8, 0.26, 5, 18, Math.PI * 1.1).rotateZ(-0.1),
-      column(0.28, 2.4, -1.6),
-      column(0.28, 1.6, 1.6),
-      new THREE.BoxGeometry(1.2, 0.4, 0.8)
-        .rotateZ(0.4)
-        .translate(0.6, 1.1, 0.1),
-    ]);
     const vent = merge([
       new THREE.TorusGeometry(0.8, 0.17, 5, 16)
         .rotateX(-Math.PI / 2)
@@ -163,14 +72,14 @@ export class RegionalLandscape {
     const sigil = createRuneGeometry(true);
     sigil.rotateX(-Math.PI / 2);
     this.geometries.push(sigil);
-    this.add("volcano", basalt, stone, 30, 0);
+    this.add("volcano", sculptedGeometry(game,'world_basalt'), stone, 30, 0);
     this.add("volcano", vent, lava, 22, 0);
-    this.add("tundra", crystals, ice, 36, 0);
-    this.add("forest", tree, bark, 28, 0);
-    this.add("forest", fungus, toxin, 48, 0);
-    this.add("ruins", ruin, ancient, 20, 0);
+    this.add("tundra", sculptedGeometry(game,'world_ice'), ice, 36, 0);
+    this.add("forest", sculptedGeometry(game,'world_tree'), bark, 28, 0);
+    this.add("forest", sculptedGeometry(game,'world_fungus'), toxin, 48, 0);
+    this.add("ruins", sculptedGeometry(game,'world_ruin'), ancient, 20, 0);
     this.add("ruins", sigil, rune, 24, 0.08);
-    this.add("void", brokenArch, voidStone, 24, 5.1, true);
+    this.add("void", sculptedGeometry(game,'world_voidarch'), voidStone, 24, 5.1, true);
     this.add("void", sigil, rune, 28, 0.08);
     this.setRegion("sanctum");
   }

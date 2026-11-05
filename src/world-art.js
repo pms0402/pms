@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { mergeGeometries, mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
 import { STRUCTURES, WORLD_COLLIDERS, WORLD_RADIUS, LANDMARK, terrainHeight, isWalkable } from './terrain.js';
+import { sculptedGeometry } from './sculpted-models.js';
 
 /** Shared, sculpted scenery. Physics remains in terrain.js. */
 export function buildWorldArt(game) {
@@ -129,21 +130,13 @@ export function buildWorldArt(game) {
   merge(landmark);
 
   const rock = cached('weatheredRock', () => {
-    const g = mergeVertices(new THREE.IcosahedronGeometry(1, 3)); const p = g.attributes.position;
-    for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i), z = p.getZ(i), n = 1 + .11 * Math.sin(x * 5 + z * 3) * Math.cos(y * 6) + .07 * Math.sin(z * 11 - y * 4); p.setXYZ(i, x * n, y * n, z * n); }
-    g.computeVertexNormals(); return stoneUV(g);
+    return stoneUV(sculptedGeometry(game,'world_rock').clone());
   });
   const grave = cached('roundedGrave', () => {
     const shape = new THREE.Shape(); shape.moveTo(-.32, 0); shape.lineTo(.32, 0); shape.lineTo(.32, .75); shape.absarc(0, .75, .32, 0, Math.PI, false); shape.lineTo(-.32, 0); shape.closePath();
     return new THREE.ExtrudeGeometry(shape, { depth: .15, bevelEnabled: true, bevelSegments: 2, bevelSize: .035, bevelThickness: .025, steps: 1, curveSegments: 14 });
   });
-  const deadTree = cached('twistedDeadTree', () => {
-    const pieces = [];
-    const branch = (points, radius) => pieces.push(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points.map(p => new THREE.Vector3(...p))), 9, radius, 5, false));
-    branch([[0, 0, 0], [.09, 1.5, .05], [-.12, 3.0, .10], [.10, 4.0, .16]], .11);
-    for (const side of [-1, 1]) { branch([[0, 1.8, .08], [side * .65, 2.5, 0], [side * 1.1, 3.3, -.10]], .06); branch([[side * .58, 2.45, 0], [side * 1.3, 2.7, .18], [side * 1.65, 2.9, .27]], .028); }
-    const geometry = mergeGeometries(pieces.map(g => g.toNonIndexed()), false); pieces.forEach(g => g.dispose()); return geometry;
-  });
+  const deadTree = sculptedGeometry(game,'world_tree');
   for (let i = 0; i < 350; i++) {
     const angle = random() * Math.PI * 2, radius = i < 100 ? 8 + random() * 22 : 18 + Math.sqrt(random()) * (WORLD_RADIUS - 20), x = Math.cos(angle) * radius, z = Math.sin(angle) * radius;
     if (!isWalkable(x, z, 2)) continue; const h = terrainHeight(x, z);

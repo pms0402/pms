@@ -2,7 +2,7 @@ const finite = (value, fallback) => Number.isFinite(Number(value)) ? Number(valu
 const clamp = (value, minimum, maximum) => Math.min(maximum, Math.max(minimum, value));
 const radians = degrees => degrees * Math.PI / 180;
 
-export const BASE_SWORD_RANGE = 2.8;
+export const BASE_SWORD_RANGE = 3.6;
 export const SWORD_EVOLUTION_REQUIREMENT = 3;
 
 export const SWORD_EVOLUTIONS = Object.freeze([

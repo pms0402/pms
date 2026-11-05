@@ -1,0 +1,775 @@
+{
+  "release": "v0.21.0",
+  "sourceBase": "1714e34a4a13390aa27f9aa553d7291ac3a8d222",
+  "unitTests": {
+    "passed": 250,
+    "failed": 0
+  },
+  "build": {
+    "production": "passed",
+    "standalone": "passed",
+    "standaloneBytes": 6696382
+  },
+  "browser": {
+    "uniqueSuites": 21,
+    "passed": 21,
+    "results": {
+      "silhouettes": 0,
+      "permanent": 0,
+      "trackpad": 0,
+      "live-sword": 0,
+      "mouse-controls": 0,
+      "follow-interaction": 0,
+      "view": 0,
+      "action": 0,
+      "action-encounters": 0,
+      "articulation": 0,
+      "motion": 0,
+      "parry": 0,
+      "tactical": 0,
+      "characters": 0,
+      "quality": 0,
+      "world": 0,
+      "world-expansion": 0,
+      "builds": 0,
+      "standalone": 0,
+      "resources": 0,
+      "endgame": 0
+    },
+    "lastRechecks": [
+      {
+        "suite": "silhouettes",
+        "exitCode": 0
+      },
+      {
+        "suite": "permanent",
+        "exitCode": 0
+      },
+      {
+        "suite": "trackpad",
+        "exitCode": 0
+      },
+      {
+        "suite": "articulation",
+        "exitCode": 0
+      },
+      {
+        "suite": "quality",
+        "exitCode": 0
+      },
+      {
+        "suite": "world-expansion",
+        "exitCode": 0
+      },
+      {
+        "suite": "resources",
+        "exitCode": 0
+      },
+      {
+        "suite": "standalone",
+        "exitCode": 0
+      },
+      {
+        "suite": "tactical",
+        "exitCode": 0
+      }
+    ],
+    "fixtureCorrections": [
+      "The old permanent test clicked navigation while pointer-locked; it now uses the actual V key to reach overhead before clicking.",
+      "The counter test places its outside target beyond the new 4.5m counter radius.",
+      "The reward-order test resolves a legitimate fourth-spell replacement choice before pending XP/route selection."
+    ]
+  },
+  "models": {
+    "authoredDesigns": 34,
+    "dataBytes": 3298931,
+    "format": "embedded little-endian quantized Int16 positions/normals and Uint16 indices",
+    "renderAndResourceProof": {
+      "hero": {
+        "authored": "hero_cuirass",
+        "records": [
+          {
+            "id": "wanderer",
+            "visible": []
+          },
+          {
+            "id": "arcanist",
+            "visible": [
+              "arcanist"
+            ]
+          },
+          {
+            "id": "berserker",
+            "visible": [
+              "berserker"
+            ]
+          },
+          {
+            "id": "assassin",
+            "visible": [
+              "assassin"
+            ]
+          },
+          {
+            "id": "summoner",
+            "visible": [
+              "summoner"
+            ]
+          },
+          {
+            "id": "paladin",
+            "visible": [
+              "paladin"
+            ]
+          },
+          {
+            "id": "warlock",
+            "visible": [
+              "warlock"
+            ]
+          },
+          {
+            "weapon": "voidblade",
+            "geometry": "weapon_longsword",
+            "offhand": true
+          },
+          {
+            "weapon": "tempest",
+            "geometry": "weapon_saber",
+            "offhand": true
+          },
+          {
+            "weapon": "greatsword",
+            "geometry": "weapon_cleaver",
+            "offhand": true
+          }
+        ],
+        "before": 321,
+        "after": 321,
+        "meshes": 81,
+        "triangles": 33958
+      },
+      "monsters": [
+        {
+          "kind": 0,
+          "parts": 4,
+          "triangles": 8342,
+          "joints": [
+            0,
+            2,
+            4,
+            3,
+            5,
+            1
+          ],
+          "authored": true
+        },
+        {
+          "kind": 1,
+          "parts": 4,
+          "triangles": 9296,
+          "joints": [
+            0,
+            6,
+            4,
+            7,
+            5,
+            1,
+            8
+          ],
+          "authored": true
+        },
+        {
+          "kind": 2,
+          "parts": 4,
+          "triangles": 10040,
+          "joints": [
+            0,
+            2,
+            4,
+            3,
+            5,
+            1
+          ],
+          "authored": true
+        },
+        {
+          "kind": 3,
+          "parts": 6,
+          "triangles": 4598,
+          "joints": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "authored": true
+        },
+        {
+          "kind": 4,
+          "parts": 5,
+          "triangles": 10280,
+          "joints": [
+            0,
+            2,
+            4,
+            3,
+            5,
+            1
+          ],
+          "authored": true
+        },
+        {
+          "kind": 5,
+          "parts": 4,
+          "triangles": 10182,
+          "joints": [
+            0,
+            6,
+            4,
+            7,
+            5,
+            1,
+            8
+          ],
+          "authored": true
+        },
+        {
+          "kind": 6,
+          "parts": 4,
+          "triangles": 4202,
+          "joints": [
+            0,
+            6,
+            4,
+            2,
+            1,
+            7,
+            5,
+            3
+          ],
+          "authored": true
+        },
+        {
+          "kind": 7,
+          "parts": 4,
+          "triangles": 3368,
+          "joints": [
+            0
+          ],
+          "authored": true
+        },
+        {
+          "kind": 8,
+          "parts": 4,
+          "triangles": 3048,
+          "joints": [
+            0,
+            1,
+            2,
+            4,
+            3,
+            5
+          ],
+          "authored": true
+        },
+        {
+          "kind": 9,
+          "parts": 5,
+          "triangles": 4686,
+          "joints": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "authored": true
+        }
+      ],
+      "bosses": [
+        {
+          "stage": 1,
+          "archetype": "warden",
+          "design": "boss_warden",
+          "triangles": 10964,
+          "signature": "23712:1824:5628:1728",
+          "hp": 1750,
+          "maxHp": 1750,
+          "size": 3.1
+        },
+        {
+          "stage": 2,
+          "archetype": "artillery",
+          "design": "boss_artillery",
+          "triangles": 12538,
+          "signature": "26862:1824:5472:1728:1728",
+          "hp": 2975,
+          "maxHp": 2975,
+          "size": 3
+        },
+        {
+          "stage": 3,
+          "archetype": "plague",
+          "design": "boss_plague",
+          "triangles": 10042,
+          "signature": "21954:1824:3852:1728:768",
+          "hp": 5057.499999999999,
+          "maxHp": 5057.499999999999,
+          "size": 3.2
+        },
+        {
+          "stage": 4,
+          "archetype": "brood",
+          "design": "boss_brood",
+          "triangles": 6024,
+          "signature": "12564:3084:1728:696",
+          "hp": 8597.75,
+          "maxHp": 8597.75,
+          "size": 3.4
+        },
+        {
+          "stage": 5,
+          "archetype": "storm",
+          "design": "boss_storm",
+          "triangles": 11424,
+          "signature": "23712:1824:7008:1728",
+          "hp": 14616.174999999997,
+          "maxHp": 14616.174999999997,
+          "size": 3
+        },
+        {
+          "stage": 6,
+          "archetype": "reaper",
+          "design": "boss_reaper",
+          "triangles": 5447,
+          "signature": "5094:9387:1728:132",
+          "hp": 24847.497499999994,
+          "maxHp": 24847.497499999994,
+          "size": 2.8
+        }
+      ],
+      "hidden": [
+        {
+          "id": "king",
+          "parts": 7,
+          "design": "hero-clone",
+          "boxes": 0
+        },
+        {
+          "id": "observer",
+          "parts": 4,
+          "design": "hidden_observer",
+          "boxes": 0
+        },
+        {
+          "id": "primordial",
+          "parts": 16,
+          "design": "hidden_primordial",
+          "boxes": 0
+        }
+      ],
+      "regions": [
+        {
+          "id": "volcano",
+          "shapes": [
+            "world_basalt"
+          ],
+          "instances": 52
+        },
+        {
+          "id": "tundra",
+          "shapes": [
+            "world_ice"
+          ],
+          "instances": 36
+        },
+        {
+          "id": "forest",
+          "shapes": [
+            "world_tree",
+            "world_fungus"
+          ],
+          "instances": 76
+        },
+        {
+          "id": "ruins",
+          "shapes": [
+            "world_ruin"
+          ],
+          "instances": 44
+        },
+        {
+          "id": "void",
+          "shapes": [
+            "world_voidarch"
+          ],
+          "instances": 52
+        }
+      ],
+      "crowd": {
+        "crowded": {
+          "enemies": 160,
+          "calls": 179,
+          "triangles": 730802,
+          "geometries": 237,
+          "textures": 18
+        },
+        "resets": [
+          {
+            "geometries": 222,
+            "textures": 18,
+            "owned": 573
+          },
+          {
+            "geometries": 222,
+            "textures": 18,
+            "owned": 573
+          },
+          {
+            "geometries": 222,
+            "textures": 18,
+            "owned": 573
+          },
+          {
+            "geometries": 222,
+            "textures": 18,
+            "owned": 573
+          }
+        ]
+      },
+      "errors": []
+    }
+  },
+  "controls": {
+    "start": {
+      "screen": true,
+      "locked": false,
+      "phase": "playing",
+      "commands": 0,
+      "saved": true
+    },
+    "reach": {
+      "range": 3.6,
+      "near": 99999960.4,
+      "far": 100000000,
+      "rear": 100000000,
+      "commands": 1,
+      "visual": [
+        3.6
+      ]
+    },
+    "holds": [
+      {
+        "style": "default",
+        "during": {
+          "commands": 0,
+          "hp": 100000000,
+          "heavy": true,
+          "charge": 0
+        },
+        "released": {
+          "heavy": true,
+          "cd": 4,
+          "commands": 1,
+          "charging": false
+        },
+        "after": {
+          "commands": 1,
+          "hit": true
+        }
+      },
+      {
+        "style": "broadsword",
+        "during": {
+          "commands": 0,
+          "hp": 100000000,
+          "heavy": true,
+          "charge": 1
+        },
+        "released": {
+          "heavy": true,
+          "cd": 4,
+          "commands": 1,
+          "charging": false
+        },
+        "after": {
+          "commands": 1,
+          "hit": true
+        }
+      },
+      {
+        "style": "twinblade",
+        "during": {
+          "commands": 0,
+          "hp": 100000000,
+          "heavy": true,
+          "charge": 0
+        },
+        "released": {
+          "heavy": true,
+          "cd": 4,
+          "commands": 1,
+          "charging": false
+        },
+        "after": {
+          "commands": 1,
+          "hit": true
+        }
+      },
+      {
+        "style": "wave",
+        "during": {
+          "commands": 0,
+          "hp": 100000000,
+          "heavy": true,
+          "charge": 0
+        },
+        "released": {
+          "heavy": true,
+          "cd": 4,
+          "commands": 1,
+          "charging": false
+        },
+        "after": {
+          "commands": 1,
+          "hit": true
+        }
+      }
+    ],
+    "fastTap": {
+      "speed": 3,
+      "heavy": false,
+      "commands": 1
+    },
+    "skills": {
+      "casts": {
+        "fireball": 1,
+        "frost": 1,
+        "lightning": 1,
+        "orbit": 1
+      },
+      "commands": 5,
+      "locked": false
+    },
+    "drag": [
+      {
+        "mode": "third",
+        "turned": 0.2520000000000027,
+        "aligned": 1,
+        "commands": 0,
+        "locked": false
+      },
+      {
+        "mode": "first",
+        "turned": 0.2520000000000024,
+        "aligned": 1,
+        "commands": 0,
+        "locked": false
+      }
+    ],
+    "pointerLock": {
+      "locked": true,
+      "heavy": true
+    },
+    "layouts": [
+      {
+        "width": 390,
+        "height": 844,
+        "sw": 390,
+        "sh": 844,
+        "rects": [
+          {
+            "id": "mobile-light",
+            "x": 166,
+            "y": 714,
+            "width": 46,
+            "height": 50,
+            "top": 714,
+            "right": 212,
+            "bottom": 764,
+            "left": 166
+          },
+          {
+            "id": "mobile-heavy",
+            "x": 218,
+            "y": 714,
+            "width": 46,
+            "height": 50,
+            "top": 714,
+            "right": 264,
+            "bottom": 764,
+            "left": 218
+          },
+          {
+            "id": "mobile-parry",
+            "x": 270,
+            "y": 714,
+            "width": 46,
+            "height": 50,
+            "top": 714,
+            "right": 316,
+            "bottom": 764,
+            "left": 270
+          },
+          {
+            "id": "touch-dash",
+            "x": 322,
+            "y": 714,
+            "width": 46,
+            "height": 50,
+            "top": 714,
+            "right": 368,
+            "bottom": 764,
+            "left": 322
+          },
+          {
+            "id": "skill0",
+            "x": 166,
+            "y": 640,
+            "width": 46,
+            "height": 66,
+            "top": 640,
+            "right": 212,
+            "bottom": 706,
+            "left": 166
+          },
+          {
+            "id": "skill1",
+            "x": 218,
+            "y": 640,
+            "width": 46,
+            "height": 66,
+            "top": 640,
+            "right": 264,
+            "bottom": 706,
+            "left": 218
+          },
+          {
+            "id": "skill2",
+            "x": 270,
+            "y": 640,
+            "width": 46,
+            "height": 66,
+            "top": 640,
+            "right": 316,
+            "bottom": 706,
+            "left": 270
+          },
+          {
+            "id": "skill3",
+            "x": 322,
+            "y": 640,
+            "width": 46,
+            "height": 66,
+            "top": 640,
+            "right": 368,
+            "bottom": 706,
+            "left": 322
+          }
+        ]
+      },
+      {
+        "width": 844,
+        "height": 390,
+        "sw": 844,
+        "sh": 390,
+        "rects": [
+          {
+            "id": "mobile-light",
+            "x": 599,
+            "y": 291,
+            "width": 50,
+            "height": 44,
+            "top": 291,
+            "right": 649,
+            "bottom": 335,
+            "left": 599
+          },
+          {
+            "id": "mobile-heavy",
+            "x": 657,
+            "y": 291,
+            "width": 50,
+            "height": 44,
+            "top": 291,
+            "right": 707,
+            "bottom": 335,
+            "left": 657
+          },
+          {
+            "id": "mobile-parry",
+            "x": 715,
+            "y": 291,
+            "width": 50,
+            "height": 44,
+            "top": 291,
+            "right": 765,
+            "bottom": 335,
+            "left": 715
+          },
+          {
+            "id": "touch-dash",
+            "x": 773,
+            "y": 291,
+            "width": 50,
+            "height": 44,
+            "top": 291,
+            "right": 823,
+            "bottom": 335,
+            "left": 773
+          },
+          {
+            "id": "skill0",
+            "x": 599,
+            "y": 227,
+            "width": 50,
+            "height": 56,
+            "top": 227,
+            "right": 649,
+            "bottom": 283,
+            "left": 599
+          },
+          {
+            "id": "skill1",
+            "x": 657,
+            "y": 230,
+            "width": 50,
+            "height": 56,
+            "top": 230,
+            "right": 707,
+            "bottom": 286,
+            "left": 657
+          },
+          {
+            "id": "skill2",
+            "x": 715,
+            "y": 230,
+            "width": 50,
+            "height": 56,
+            "top": 230,
+            "right": 765,
+            "bottom": 286,
+            "left": 715
+          },
+          {
+            "id": "skill3",
+            "x": 773,
+            "y": 230,
+            "width": 50,
+            "height": 56,
+            "top": 230,
+            "right": 823,
+            "bottom": 286,
+            "left": 773
+          }
+        ]
+      }
+    ],
+    "errors": []
+  },
+  "legacyArchiveSha256": "e8867949d23b1319d9f111432b4ce02f6982fca30ea40d564bc76b1d31b019aa",
+  "limits": [
+    "Chromium/SwiftShader and touch emulation, not a real iPad/Safari or hardware GPU frame-rate measurement.",
+    "The new local geometry increases download size and near-view triangles; no resolution/shadow/particle/actor caps were reduced to compensate."
+  ]
+}
