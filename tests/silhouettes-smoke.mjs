@@ -82,9 +82,11 @@ try{
   const g=__game;artFixture();g.setQuality('high');g.setViewMode('overhead');g.player.visible=true;
   const kinds=[0,1,2,3,5,6,7,8,9];for(let i=0;i<160;i++){const a=i*2.399,r=5+i%15,e=g.spawnEnemy(Math.sin(a)*r,Math.cos(a)*r,kinds[i%kinds.length],{noMutations:true});e.speed=0;e.hp=e.maxHp=1e9;}
   g.updateCamera(1);g.renderer.render(g.scene,g.camera);const crowded={enemies:g.enemies.length,calls:g.renderer.info.render.calls,triangles:g.renderer.info.render.triangles,geometries:g.renderer.info.memory.geometries,textures:g.renderer.info.memory.textures};
+  // Warm the three district variants, then compare identical regional scenes.
+  for(let v=0;v<3;v++){g.world.setRegion('sanctum',v);g.updateCamera(1);g.renderer.render(g.scene,g.camera);}
   const resets=[];
   for(let n=0;n<4;n++){
-   artFixture();for(let i=0;i<18;i++)g.spawnEnemy(Math.sin(i)*9,Math.cos(i)*9,kinds[i%9],{noMutations:true});g.updateCamera(1);g.renderer.render(g.scene,g.camera);
+   artFixture();g.world.setRegion('sanctum',1);for(let i=0;i<18;i++)g.spawnEnemy(Math.sin(i)*9,Math.cos(i)*9,kinds[i%9],{noMutations:true});g.updateCamera(1);g.renderer.render(g.scene,g.camera);
    resets.push({geometries:g.renderer.info.memory.geometries,textures:g.renderer.info.memory.textures,owned:g.ownedGeometries.size});
   }
   return{crowded,resets};

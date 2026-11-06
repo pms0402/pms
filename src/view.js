@@ -297,8 +297,8 @@ export class ViewController {
     const t = cameraArmFraction(
       this.anchor,
       position,
-      training?g.training.cameraSolids:room ? ROOM_SOLIDS : camp ? CAMP_SOLIDS : CAMERA_SOLIDS,
-      (x, z) => g.groundHeight(x, z),
+      training?g.training.cameraSolids:room ? ROOM_SOLIDS : camp ? CAMP_SOLIDS : g.world?.topology?.cameraSolids()||CAMERA_SOLIDS,
+      (x, z) => training||room||camp?0:g.world?.topology?.layout.ground(x,z)??g.groundHeight(x,z),
       0.24,
       training?17:room ? 12 : camp ? 18 : Infinity,
     );
@@ -322,7 +322,9 @@ export class ViewController {
       camera.near = near;
       camera.updateProjectionMatrix();
     }
+    const oldY=this.anchor.y,offset=(mode === "first" ? 2.105 : following?2.35:1.2)*g.player.scale.y;
     this.anchor.copy(p);
+    if(!this.snap&&mode==='first')this.anchor.y=oldY-offset+(p.y-(oldY-offset))*(1-Math.exp(-Math.max(0,dt)*20));
     this.anchor.y += (mode === "first" ? 2.105 : following?2.35:1.2) * g.player.scale.y;
     if(this.snap||mode!=='third')this.followAnchor.copy(this.anchor);
     else this.followAnchor.lerp(this.anchor,1-Math.exp(-Math.max(0,dt)*12));
@@ -395,7 +397,7 @@ export class ViewController {
       )
     )
       return;
-    for (const child of g.playerVisual.children)
+    for (const child of [...g.playerVisual.children.filter(c=>c!==g.playerUpper),...(g.playerUpper?.children||[])])
       if (child !== g.rightShoulder && child !== g.leftShoulder) {
         this.suppressed.push([child, child.visible]);
         child.visible = false;

@@ -61,7 +61,7 @@ export class ParryFeedback {
     this.waveTime = 0.32;
     this.flashTime = 0.14;
     this.wave.position.copy(p);
-    this.wave.position.y = g.groundHeight(p.x, p.z) + 0.15;
+    this.wave.position.y = g.groundHeight(p.x,p.z,p.y) + 0.15;
     this.disc.position.copy(this.wave.position);
     this.disc.scale.setScalar(radius);
     this.refit(this.disc, 0.15);
@@ -85,7 +85,7 @@ export class ParryFeedback {
     this.counterTime = 0.28;
     this.counter.position.copy(g.player.position);
     this.counter.position.y =
-      g.groundHeight(g.player.position.x, g.player.position.z) + 0.24;
+      g.groundHeight(g.player.position.x,g.player.position.z,g.player.position.y) + 0.24;
     this.counter.scale.setScalar(profile.range);
     this.counter.rotation.z =
       Math.atan2(direction.x, direction.z) - Math.PI / 2;

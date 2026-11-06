@@ -137,7 +137,7 @@ export class MutationSystem {
     if (this.disposed || !enemy?.mutations?.length || enemy.mutationDeathHandled || enemy.kind === 4 || enemy.minion || enemy.splitChild) return;
     enemy.mutationDeathHandled = true;
     if (enemy.mutations.includes('explosive') && this.explosions.length < this.maxExplosions) {
-      const position = enemy.group.position.clone(); position.y = (this.game.groundHeight?.(position.x, position.z) ?? position.y) + .17;
+      const position = enemy.group.position.clone(); position.y = (this.game.groundHeight?.(position.x,position.z,position.y) ?? position.y) + .17;
       this.warningDirty = true;
       this.explosions.push({ position, remaining: 1, radius: 2.8, damage: (this.game.stageStats?.() || getStageStats(this.game._state.stage)).enemyDamage * .95 * (enemy.baseDamageMultiplier || 1) });
     }
@@ -148,7 +148,7 @@ export class MutationSystem {
         if (this.game.enemies.length >= limit) break;
         const position = enemy.group.position.clone(); position.x += side * .7;
         this.game.world?.resolve(position, .25);
-        const child = this.game.spawnEnemy(position.x, position.z, 1, { minion: true, splitChild: true, noMutations: true });
+        const child = this.game.spawnEnemy(position.x, position.z, 1, { minion: true, splitChild: true, noMutations: true,surfaceY:position.y });
         if (child) this.counts.children++;
       }
     }
@@ -196,7 +196,7 @@ export class MutationSystem {
         const put = (angle, radius) => {
           const x = blast.position.x + Math.cos(angle) * radius;
           const z = blast.position.z + Math.sin(angle) * radius;
-          const y = (this.game.groundHeight?.(x, z) ?? blast.position.y - .17) + .17;
+          const y = (this.game.groundHeight?.(x,z,blast.position.y-.17) ?? blast.position.y - .17) + .17;
           attribute.setXYZ(vertex++, x, y, z);
         };
         for (let band = 0; band < 4; band++) for (let segment = 0; segment < 32; segment++) {

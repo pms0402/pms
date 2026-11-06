@@ -95,7 +95,7 @@ export class BossSystem {
   }
 
   marker(position, radius, { type = 'disc', direction, length = 19 } = {}) {
-    const group = new THREE.Group(); group.position.copy(position); group.position.y = (this.game.groundHeight?.(position.x, position.z) ?? position.y ?? 0) + .13;
+    const group = new THREE.Group(); group.position.copy(position); group.position.y = (this.game.groundHeight?.(position.x, position.z,position.y) ?? position.y ?? 0) + .13;
     const material = new THREE.MeshBasicMaterial({ color: type === 'line' ? '#8bdcff' : '#ff7065', transparent: true, opacity: .18, side: THREE.DoubleSide, depthWrite: false });
     const fill = new THREE.Mesh((type === 'line' ? this.geometry.plane : this.geometry.disc).clone(), material);
     fill.rotation.x = -Math.PI / 2;
@@ -115,7 +115,7 @@ export class BossSystem {
     if (this.zones.length >= MAX_ZONES) return null;
     const owner = this.boss?.name || getBossStats(this.stage()).name;
     const cause = `${owner} · ${type === 'pool' ? '독 장판' : '충격파'}`;
-    const groundPosition = position.clone(); groundPosition.y = this.game.groundHeight?.(position.x, position.z) ?? position.y ?? 0;
+    const groundPosition = position.clone(); groundPosition.y = this.game.groundHeight?.(position.x, position.z,position.y) ?? position.y ?? 0;
     const zone = { position: groundPosition, radius, warning, life, damage, type, cause, active: false, tick: 0, marker: this.marker(position, radius) };
     this.zones.push(zone); return zone;
   }
@@ -206,6 +206,7 @@ export class BossSystem {
   }
 
   resolve(boss) {
+    boss.visualAttack=.36;
     const mode = boss.mode, enraged = boss.hp < boss.maxHp * .5;
     if (mode === 'barrage-warning') {
       for (let i = 0; i < (boss.variant > 1 ? 4 : 3); i++) this.schedule(boss, i * .26, boss.aimDirection, { count: 3, spread: .11, speed: 11 });
@@ -217,7 +218,7 @@ export class BossSystem {
         const angle = i / Math.max(1, wanted) * TAU + boss.actionIndex;
         const pos = boss.group.position;
         const kind = boss.variant > 1 ? [2, 3, 5, 1][i % 4] : i % 2 ? 1 : 0;
-        const minion = this.game.spawnEnemy(pos.x + Math.sin(angle) * 4.2, pos.z + Math.cos(angle) * 4.2, kind, { minion: true });
+        const minion = this.game.spawnEnemy(pos.x + Math.sin(angle) * 4.2, pos.z + Math.cos(angle) * 4.2, kind, { minion: true,surfaceY:pos.y });
         if (minion) this.summoned++;
       }
       this.game.burst?.(boss.group.position, this.color, 10);
@@ -253,8 +254,8 @@ export class BossSystem {
     boss.slowTime = Math.max(0, (boss.slowTime || 0) - dt);
     const slow = boss.slowTime > 0 ? Math.max(.55, boss.slowFactor || .5) : 1;
     const wanted = boss.archetype === 'artillery' ? 15 : boss.archetype === 'plague' ? 11 : boss.archetype === 'brood' ? 9 : 5.5;
-    if (boss.mode === 'chase' && distance > .01) {
-      const movement = distance < wanted - 2 ? -.65 : distance > wanted + 1 ? 1 : 0;
+    if (boss.mode === 'chase' && (distance > .01||Math.abs(target.y-pos.y)>1.5)) {
+      const movement = this.game.combatLineClear&&!this.game.combatLineClear(pos,target)?1:distance < wanted - 2 ? -.65 : distance > wanted + 1 ? 1 : 0;
       const speed = (boss.speed || 2.6) * slow * movement * dt;
       const steer = movement > 0 && this.game.world && !this.game.sideAreas?.active && !this.game.training?.active ? this.game.world.steer(pos, dx, dz, 1.4, 0) : { x: dx / distance, z: dz / distance };
       pos.x += steer.x * speed; pos.z += steer.z * speed;
@@ -262,7 +263,7 @@ export class BossSystem {
     boss.group.rotation.y = Math.atan2(dx, dz);
     boss.actionTimer -= dt;
     if (boss.actionTimer <= 0) {
-      if (boss.mode === 'chase') this.prepare(boss);
+      if (boss.mode === 'chase') {if(!this.game.combatLineClear||this.game.combatLineClear(pos,target))this.prepare(boss);else boss.actionTimer=.25;}
       else this.resolve(boss);
     }
     const radius = Math.hypot(pos.x, pos.z);

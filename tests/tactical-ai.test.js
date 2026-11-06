@@ -133,3 +133,9 @@ test("boss tactics consider arena edges, existing hazards and visible recovery",
   assert.equal(chooseBossAction('artillery', 9, '', { exposed: true }), 'barrage-warning');
   assert.equal(chooseBossAction('storm', 8, '', { phase: 3 }), 'nova-warning');
 });
+
+test('a melee enemy directly above its target routes to another floor before attacking',()=>{
+ const f=fixture(),e=f.add(0);e.group.position.y=6;e.speed=3;let routes=0;
+ f.g.world={steer:()=>{routes++;return{x:1,z:0};}};f.g.combatLineClear=()=>false;
+ f.tick(.05);assert.ok(routes>0&&e.group.position.x>0);assert.equal(e.action,'chase');assert.equal(f.hits.length,0);
+});

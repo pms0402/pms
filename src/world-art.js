@@ -6,7 +6,7 @@ import { sculptedGeometry } from './sculpted-models.js';
 /** Shared, sculpted scenery. Physics remains in terrain.js. */
 export function buildWorldArt(game) {
   const { scene, mats, geo } = game, stone = mats.rock, dark = mats.rockDark, wood = mats.trunk;
-  const geometries = new Map(), occluders = [];
+  const geometries = new Map(), occluders = [],decor=[];
   let seed = 7341;
   const random = () => { seed = seed * 16807 % 2147483647; return (seed - 1) / 2147483646; };
   const own = geometry => { game.ownedGeometries.add(geometry); return geometry; };
@@ -140,9 +140,9 @@ export function buildWorldArt(game) {
   for (let i = 0; i < 350; i++) {
     const angle = random() * Math.PI * 2, radius = i < 100 ? 8 + random() * 22 : 18 + Math.sqrt(random()) * (WORLD_RADIUS - 20), x = Math.cos(angle) * radius, z = Math.sin(angle) * radius;
     if (!isWalkable(x, z, 2)) continue; const h = terrainHeight(x, z);
-    if (i < 130) { const mesh = add(rock, i % 3 ? stone : dark, x, h + .08, z); mesh.scale.set(.25 + random() * .8, .18 + random() * .45, .25 + random() * .7); mesh.rotation.y = random() * 6.28; }
-    else if (i < 200) { const group = new THREE.Group(); group.position.set(x, h, z); group.rotation.set((random() - .5) * .13, random() * 6.28, (random() - .5) * .15); scene.add(group); add(grave, stone, 0, 0, 0, group); box(iron, 0, .66, .19, .28, .04, .03, group); }
-    else if (i > 280) { const mesh = add(deadTree, wood, x, h, z); mesh.rotation.y = random() * 6.28; mesh.scale.setScalar(.65 + random() * .6); }
+    if (i < 130) { const mesh = add(rock, i % 3 ? stone : dark, x, h + .08, z); decor.push(mesh);mesh.userData.terrainDecor={x,z};mesh.scale.set(.25 + random() * .8, .18 + random() * .45, .25 + random() * .7); mesh.rotation.y = random() * 6.28; }
+    else if (i < 200) { const group = new THREE.Group(); group.position.set(x, h, z); group.rotation.set((random() - .5) * .13, random() * 6.28, (random() - .5) * .15); scene.add(group);decor.push(group);group.userData.terrainDecor={x,z}; add(grave, stone, 0, 0, 0, group); box(iron, 0, .66, .19, .28, .04, .03, group); }
+    else if (i > 280) { const mesh = add(deadTree, wood, x, h, z);decor.push(mesh);mesh.userData.terrainDecor={x,z}; mesh.rotation.y = random() * 6.28; mesh.scale.setScalar(.65 + random() * .6); }
   }
 
   const paving = mats.ruinPaving = stone.clone(); paving.roughness = .65; paving.color.set('#bfc2c4');
@@ -170,7 +170,7 @@ export function buildWorldArt(game) {
     if (road < 2.5 || !isWalkable(x, z, 1)) continue;
     dummy.position.set(x, terrainHeight(x, z), z); dummy.rotation.y = random() * 6.28; dummy.scale.setScalar(.7 + random() * 1.1); dummy.updateMatrix(); clumps.setMatrixAt(count++, dummy.matrix);
   }
-  clumps.count = count; clumps.receiveShadow = true; clumps.computeBoundingSphere(); scene.add(clumps);
+  clumps.count = count; clumps.receiveShadow = true; clumps.computeBoundingSphere(); scene.add(clumps);clumps.userData.terrainGrounded=true;
   const cloudPixels = new Uint8Array(128 * 128 * 4);
   for (let y = 0; y < 128; y++) for (let x = 0; x < 128; x++) {
     const u = (x + .5) / 64 - 1, v = (y + .5) / 64 - 1, falloff = Math.max(0, 1 - Math.hypot(u, v));
@@ -190,5 +190,5 @@ export function buildWorldArt(game) {
     mist.instanceMatrix.needsUpdate = true;
   };
   update(0);
-  return { occluders, landmark, grass: clumps, mist, update, detailCount: count, setQuality(value) { clumps.count = value === 'low' ? Math.floor(count * .38) : value==='medium'?Math.floor(count*.67):count; mist.visible = value !== 'low';mist.count=value==='medium'?10:16; }, dispose() { mistMap.dispose(); } };
+  return { occluders, landmark,decor, grass: clumps, mist, update, detailCount: count, setQuality(value) { clumps.count = value === 'low' ? Math.floor(count * .38) : value==='medium'?Math.floor(count*.67):count; mist.visible = value !== 'low';mist.count=value==='medium'?10:16; }, dispose() { mistMap.dispose(); } };
 }

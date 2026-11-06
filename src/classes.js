@@ -156,7 +156,7 @@ export class ClassSystem {
     this.pet.visible = this.id() === "summoner";
     if (this.pet.visible) {
       const target = g
-        .queryEnemies(g.player.position, 12).filter(e=>t<this.petCommandUntil&&(e.group.position.x-g.player.position.x)*this.petAim.x+(e.group.position.z-g.player.position.z)*this.petAim.z>0)
+        .queryEnemies(g.player.position, 12).filter(e=>(!g.combatLineClear||g.combatLineClear(g.player.position,e.group.position))&&t<this.petCommandUntil&&(e.group.position.x-g.player.position.x)*this.petAim.x+(e.group.position.z-g.player.position.z)*this.petAim.z>0)
         .reduce(
           (best, e) =>
             !best ||
@@ -170,7 +170,7 @@ export class ClassSystem {
       this.pet.position.lerp(
         new THREE.Vector3(
           wanted.x + 1,
-          g.groundHeight(wanted.x, wanted.z) + 1.2,
+          g.groundHeight(wanted.x,wanted.z,wanted.y) + 1.2,
           wanted.z + 1,
         ),
         1 - Math.exp(-dt * 5),

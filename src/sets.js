@@ -149,7 +149,7 @@ export class SetSystem {
     );
     for (const e of g
       .queryEnemies(p, radius)
-      .filter((e) => e !== enemy)
+      .filter((e) => e !== enemy&&(!g.combatLineClear||g.combatLineClear(p,e.group.position)))
       .slice(0, count))
       g.hitEnemy(
         e,

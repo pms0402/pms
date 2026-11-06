@@ -33,7 +33,7 @@ export class CombatAim {
     let at = 0;
     const point = (x, z) => {
       this.points[at++] = x;
-      this.points[at++] = g.groundHeight(x, z) + 0.12;
+      this.points[at++] = g.groundHeight(x,z,g.player.position.y) + 0.12;
       this.points[at++] = z;
     };
     const line = (x, z, u, v) => {

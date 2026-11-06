@@ -268,5 +268,11 @@ export function createPlayerModel(game) {
     }
   };
   bake(root);
+  // Two connected skeletal roots preserve equipment attachment and split torso/hips.
+  game.playerPelvis=joint(root,'Weight-bearing pelvis',0,1.045,0);
+  game.playerUpper=joint(root,'Spine and shoulder girdle',0,1.35,0);
+  root.updateWorldMatrix(true,true);
+  for(const leg of [game.legLeft,game.legRight])game.playerPelvis.attach(leg);
+  for(const child of [...root.children])if(child!==game.playerPelvis&&child!==game.playerUpper)game.playerUpper.attach(child);
   root.userData.design = 'silver-haired-dusk-knight';
 }

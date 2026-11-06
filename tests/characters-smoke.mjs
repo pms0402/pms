@@ -9,7 +9,7 @@ try{
   const g=window.__game;cancelAnimationFrame(g.raf);g.spawnTimer=g.attackTimer=g.nextChestTime=g.nextEliteTime=g.nextGoldenTime=g.nextAltarTime=1e6;g.stats.spells={};g.actions.syncSlots();g.stats.critChance=0;g._state.xpNeeded=1e9;
   let boxes=0,curved=0;g.playerVisual.traverse(m=>{if(m.isMesh){if(m.geometry.type==='BoxGeometry')boxes++;if(['SphereGeometry','CapsuleGeometry','LatheGeometry','TorusGeometry'].includes(m.geometry.type))curved++;}});
   g.playerHead.geometry.computeBoundingBox();const headBounds=g.playerHead.geometry.boundingBox;
-  const adultRatio=(g.playerHead.position.y+headBounds.max.y)/(headBounds.max.y-headBounds.min.y);
+  const adultRatio=(g.playerHead.getWorldPosition(g.player.position.clone()).y/(g.player.scale.y||1)-g.player.position.y/(g.player.scale.y||1)+headBounds.max.y)/(headBounds.max.y-headBounds.min.y);
   const design={adultRatio,hair:g.hairLocks.length,cloth:g.clothParts.length,metal:g.heroMaterials.armor.metalness,clothRoughness:g.heroMaterials.cloth.roughness};
   const before={knee:g.kneeLeft.rotation.x,arm:g.rightShoulder.rotation.x,cape:Array.from(g.cape.geometry.attributes.position.array)};g.setMoveInput(1,0);g.stepForTest(.2);g.setMoveInput(0,0);
   const walking={knee:g.kneeLeft.rotation.x,otherKnee:g.kneeRight.rotation.x,arm:g.rightShoulder.rotation.x,capeChanged:g.cape.geometry.attributes.position.array.some((n,i)=>Math.abs(n-before.cape[i])>.0001)};

@@ -387,16 +387,16 @@ try {
     b.hp = 1;
     g.stats.relics = ["shockwave"];
     g.bossSystem.fire(b, g.player.position.clone().set(0, 0, -1), { count: 3 });
-    for (const shot of g.enemyProjectiles) shot.mesh.position.set(0, 0, 0.4);
+    for (const shot of g.enemyProjectiles) shot.mesh.position.set(0, .9, 0.4);
     const other = g.spawnEnemy(20, 0, 0, { noMutations: true });
     g.shootEnemyProjectile(other, g.player.position.clone().set(1, 0, 0));
     const survivor = g.enemyProjectiles.at(-1);
-    survivor.mesh.position.set(30, 0, 0);
-    const x = survivor.mesh.position.x;
+    survivor.mesh.position.set(30, .9, 0);
+    const x = survivor.mesh.position.x,expectedStep=survivor.velocity.x*.001;
     g.parry.press();
     g.updateEnemyProjectiles(0.001);
     return {
-      step: survivor.mesh.position.x - x,
+      step: survivor.mesh.position.x - x,expectedStep,
       alive: b.hp > 0,
       shots: g.enemyProjectiles.length,
       hp: g._state.hp,
@@ -405,7 +405,7 @@ try {
   });
   assert.equal(projectileDeath.alive, false);
   assert.equal(projectileDeath.shots, 1);
-  near(projectileDeath.step, 0.009);
+  near(projectileDeath.step,projectileDeath.expectedStep);
   assert.equal(projectileDeath.hp, 100);
   near(projectileDeath.relic, 1);
   console.log(

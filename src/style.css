@@ -881,3 +881,5 @@ body.theater-mode .boss-hud { top:max(8px,env(safe-area-inset-top)); }
 @media(pointer:coarse){.desktop-look{display:none}.mobile-look{display:inline}}
 @media(max-width:640px){#camera-mode{min-width:48px;width:48px;font-size:9px}.arena-top-actions{gap:5px}#view-hint{right:13px;top:201px;font-size:8px;max-width:145px}}
 @media(max-height:520px){#view-hint{top:145px;font-size:8px;max-width:140px}}
+
+#terrain-hint{position:absolute;left:50%;top:82px;transform:translateX(-50%);padding:5px 12px;border:1px solid #9ab0a122;border-radius:20px;background:#101817aa;color:#c1cdc4;font:11px/1.3 sans-serif;pointer-events:none;white-space:nowrap;max-width:90%;overflow:hidden;text-overflow:ellipsis} @media(max-width:700px){#terrain-hint{top:106px;font-size:10px;padding:4px 8px;max-width:80%}}

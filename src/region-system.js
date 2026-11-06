@@ -8,7 +8,7 @@ const tint = (material, color) => material?.color?.set(color);
 /** Fixed render batches and warned hazards; no regional action changes saved player stats. */
 export class RegionSystem {
   constructor(game,{surface=true}={}) {
-    this.game = game; this.scene = game.scene; this.region = getRegion(); this.time = 0;
+    this.game = game; this.manageWorld=surface;this.scene = game.scene; this.region = getRegion(); this.time = 0;
     this.hazards = []; this.slowRemaining = 0; this.poisonRemaining = 0; this.poisonTick = 0;
     this.hazardTimer = 10; this.blinkTimer = 8; this.disposed = false;
     this.hazardsTriggered = 0; this.blinks = 0; this.damageEvents = 0;
@@ -76,6 +76,7 @@ export class RegionSystem {
 
   setRegion(id) {
     this.reset(); this.region = getRegion(id);
+    if(this.manageWorld){let seed=0;for(const c of String(this.game._state.runId||''))seed=(seed*31+c.charCodeAt(0))>>>0;this.game.world?.setRegion?.(id,(seed+(this.game._state.stage||1))%3);}
     this.game.atmosphere?.setRegion(id);this.game.landscape?.setRegion(id);this.game.soundscape?.setRegion(id);
     this.game.moodTarget = this.region.palette.map(color => new THREE.Color(color));
     this.game.updateMood?.(100);
@@ -135,7 +136,7 @@ export class RegionSystem {
   /** Public deterministic seam also used by gameplay tests; all hazards share the cap. */
   spawnHazard(type, position, enemy = null) {
     if (this.hazards.length >= MAX_HAZARDS || !position) return false;
-    const hazard = { type, position: new THREE.Vector3(position.x, this.game.groundHeight?.(position.x, position.z) || 0, position.z), elapsed: 0, nextHit: 0, enemy,
+    const hazard = { type, position: new THREE.Vector3(position.x, this.game.groundHeight?.(position.x,position.z,position.y) || 0, position.z), elapsed: 0, nextHit: 0, enemy,
       warning: type === 'poison' ? 1.6 : type === 'blink' ? 1.2 : 1.4, duration: type === 'poison' ? 4 : .22, radius: type === 'poison' ? 3 : type === 'blink' ? 1.1 : 2.6, fired: false };
     if (enemy) enemy.regionBlinkPending = true;
     this.hazards.push(hazard); this.hazardsTriggered++; return hazard;
@@ -184,10 +185,10 @@ export class RegionSystem {
 
   updateVisuals() {
     this.surfaceUniforms.time.value=this.time;
-    const draw = (mesh, index, position, size, lift = .055) => { this.dummy.position.set(position.x, (this.game.groundHeight?.(position.x, position.z) || 0) + lift, position.z); this.dummy.rotation.set(0, 0, 0); this.dummy.scale.set(size, 1, size); this.dummy.updateMatrix(); mesh.setMatrixAt(index, this.dummy.matrix); };
+    const draw = (mesh, index, position, size, lift = .055) => { this.dummy.position.set(position.x, (this.game.groundHeight?.(position.x,position.z,position.y) || 0) + lift, position.z); this.dummy.rotation.set(0, 0, 0); this.dummy.scale.set(size, 1, size); this.dummy.updateMatrix(); mesh.setMatrixAt(index, this.dummy.matrix); };
     const drawGround = (mesh, index, hazard, filled) => {
       const positions = mesh.geometry.attributes.position, vertices = filled ? 37 : 72, offset = index * vertices;
-      const set = (vertex, x, z) => positions.setXYZ(vertex, x, (this.game.groundHeight?.(x, z) || 0) + (filled ? .05 : .065), z);
+      const set = (vertex, x, z) => positions.setXYZ(vertex, x, (this.game.groundHeight?.(x,z,hazard.position.y) || 0) + (filled ? .05 : .065), z);
       if (filled) set(offset, hazard.position.x, hazard.position.z);
       for (let i = 0; i < 36; i++) {
         const a = i / 36 * TAU, dx = Math.sin(a) * hazard.radius, dz = Math.cos(a) * hazard.radius;

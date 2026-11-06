@@ -38,14 +38,14 @@ export class TacticalAI {
     let dx = x - e.group.position.x,
       dz = z - e.group.position.z,
       d = Math.hypot(dx, dz);
-    if (d > 0.1 && e.speed > 0) {
+    if ((d > 0.1||Math.abs((g.objectives?.targetFor(e)?.y??g.player.position.y??0)-(e.group.position.y||0))>1.5) && e.speed > 0) {
       if (g.world && !g.sideAreas.active && !g.training?.active) {
         const steer = g.world.steer(
           e.group.position,
           dx,
           dz,
           Math.min(1.2, e.size * 0.4),
-          e.seed,
+          e.seed,g.objectives?.targetFor(e)?.y??g.player.position.y,
         );
         dx = steer.x;
         dz = steer.z;
@@ -153,9 +153,11 @@ export class TacticalAI {
     }
     if (d > 42 && !g.sideAreas.active) {
       const point = g.spawnPosition(20, 27);
-      pos.set(point.x, g.groundHeight(point.x, point.z), point.z);
+      pos.set(point.x, g.groundHeight(point.x,point.z,point.y), point.z);
       return true;
     }
+    const sight=Math.abs((pos.y||0)-(p.y||0))<2.4&&(!g.combatLineClear||g.combatLineClear(pos,p));
+    if(!sight){this.move(e,p.x,p.z,dt);e.action='chase';return true;}
     if (d < range + 0.1 && s.timer <= 0 && this.admit()) {
       e.aim.set(dx, 0, dz).normalize();
       if (!e.aim.lengthSq()) e.aim.set(0, 0, 1);

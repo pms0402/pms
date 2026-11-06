@@ -155,7 +155,7 @@ export class ParrySystem {
       if (g.stats.relics?.includes("shockwave") && !(this.relicCooldown > 0)) {
         this.relicCooldown = 6;
         for (const e of g.queryEnemies(g.player.position, 2.4).slice(0, 4))
-          g.hitEnemy(e, g.combatStats.damage * 0.2, undefined, "parry");
+          if(!g.combatLineClear||g.combatLineClear(g.player.position,e.group.position))g.hitEnemy(e, g.combatStats.damage * 0.2, undefined, "parry");
       }
     }
     return 0;
@@ -173,6 +173,7 @@ export class ParrySystem {
       t = g._state.elapsed;
     if (
       !enemy ||
+      this.game.combatLineClear&&!this.game.combatLineClear(this.game.player.position,enemy.group.position)||
       enemy.hp <= 0 ||
       enemy.kind === 4 ||
       (enemy.nextParryControl || 0) > t

@@ -249,6 +249,10 @@ try {
       enemy.group.position.clone(),
     );
     runSteps(0.5);
+    // Heavy impacts now move the target during its stagger. Follow it before the link.
+    const follow=enemy.group.position.clone().sub(g.player.position).setY(0);
+    if(follow.length()>2.5){const length=follow.length();g.player.position.addScaledVector(follow,(length-2.5)/length);g.resolvePosition(g.player.position,.65);}
+    g.actions.setAim(enemy.group.position.clone().sub(g.player.position).setY(0).normalize());
     g.actions.press("light");
     runSteps(0.7);
     const ignite = g.links.triggers.ignite;
@@ -362,7 +366,7 @@ try {
         raider.tactics = { phase: "circle", timer: 0, angle: 0 };
         g.updateEnemies(0.01);
         g.updateEnemies(1);
-        if (!(a.hp < a.maxHp)) throw Error("raider did not attack device");
+        if (!(a.hp < a.maxHp)) throw Error("raider did not attack device "+JSON.stringify({point:point.toArray(),player:g.player.position.toArray(),position:raider.group.position.toArray(),kind:raider.kind,phase:raider.action,tactics:raider.tactics,aim:raider.aim.toArray(),target:g.objectives.targetFor(raider)?.toArray(),hp:a.hp,max:a.maxHp,line:g.combatLineClear(raider.group.position,point)}));
         for (let i = 0; i < 3370 && g._state.phase === "playing"; i++) {
           for (const e of [...g.objectives.raiders])
             g.hitEnemy(e, e.maxHp * 1000);

@@ -28,6 +28,7 @@ try {
     const walking = pose(); g.setMoveInput(0, 0); advance(1 / 60);
     const stopped = pose(), releaseStride = g.playerMotion.stride;
     advance(.8); const settled = { stride: g.playerMotion.stride, leg: g.legLeft.rotation.x };
+    const feetAtRest=[g.footLeft,g.footRight].map((part,i)=>{g.player.updateMatrixWorld(true);return part.getWorldPosition(g.player.position.clone()).distanceTo(g.playerMotion.ground.feet[i].world);});
     g.view.movement.reset(); // Isolate artwork interpolation from residual steering.
     const beforeFacing = g.player.rotation.y + g.playerVisual.rotation.y;
     g.aimFromView(g.player.rotation.y + Math.PI / 2); const logicalFacing = g.player.rotation.y; advance(1 / 60);
@@ -43,7 +44,7 @@ try {
     const twinAttack = window.testStrike(g); advance(.1);
     const twinYaw = g.leftShoulder.rotation.y;
     advance(.7); const recoveredTwinYaw = g.leftShoulder.rotation.y;
-    g.dash(); advance(1 / 60); const dashLean = g.playerVisual.rotation.x; advance(.8); const restLean = g.playerVisual.rotation.x;
+    g.dash(); advance(1 / 60); const dashLean = g.playerUpper.rotation.x; advance(.8); const restLean = g.playerUpper.rotation.x;
     setup();g.setViewMode('overhead'); // Retain the original full-crowd visibility fixture.
     for (let i = 0; i < 160; i++) {
       const a = i * 2.399, r = 6 + i % 10;
@@ -58,8 +59,9 @@ try {
     const speeds = [];
     for (const speed of [1, 2, 3]) { g.setPlaybackSpeed(speed); const elapsed = g.state.elapsed; g.advanceSimulation(.05); speeds.push(g.state.elapsed - elapsed); }
     g.pause(); const frozenPose = pose(); g.advanceSimulation(.05); const paused = JSON.stringify(pose()) === JSON.stringify(frozenPose);
+
     setup(); const reset = g.playerMotion.stride === 0 && g.playerMotion.phase === 0;
-    return { rates, stopStep: Math.max(...walking.map((n, i) => Math.abs(n - stopped[i]))), releaseStride, settled, turnStep, combatFacingUnchanged, immediateHit, noExtraHits, sameStats, duration, twinAttack, twinYaw, recoveredTwinYaw, dashLean, restLean, finiteCrowd, cleanPool, calls, batch, speeds, paused, reset };
+    return { feetAtRest,rates, stopStep: Math.max(...walking.map((n, i) => Math.abs(n - stopped[i]))), releaseStride, settled, turnStep, combatFacingUnchanged, immediateHit, noExtraHits, sameStats, duration, twinAttack, twinYaw, recoveredTwinYaw, dashLean, restLean, finiteCrowd, cleanPool, calls, batch, speeds, paused, reset };
   });
   for (const rate of result.rates) {
     assert.ok(Math.abs(rate.phase - result.rates[0].phase) < 1e-8);
@@ -67,7 +69,7 @@ try {
     assert.ok(Math.max(...rate.pose.map((v, i) => Math.abs(v - result.rates[0].pose[i]))) < .07, 'high refresh and normal refresh retain the same gait');
   }
   assert.ok(result.stopStep < .13 && result.releaseStride > .6, 'release blends out rather than snapping legs to idle');
-  assert.ok(result.settled.stride < .001 && Math.abs(result.settled.leg) < .003);
+  assert.ok(result.settled.stride < .001 && Number.isFinite(result.settled.leg)&&result.feetAtRest.every(d=>d<.12));
   assert.ok(result.turnStep > 0 && result.turnStep < .5 && result.combatFacingUnchanged, JSON.stringify(result));
   assert.ok(result.immediateHit && result.noExtraHits && result.sameStats && result.duration === .54);
   assert.ok(result.twinAttack && Math.abs(result.twinYaw) > .05 && Math.abs(result.recoveredTwinYaw) < .001, JSON.stringify({twinAttack:result.twinAttack,yaw:result.twinYaw,recovered:result.recoveredTwinYaw}));

@@ -64,7 +64,7 @@ export class ExplorationSystem {
     if (this.npc || !NPC_TYPES[type]) return false;
     const p = this.game.spawnPosition(5, 8),
       group = this.model(type);
-    group.position.set(p.x, this.game.groundHeight(p.x, p.z), p.z);
+    group.position.set(p.x, this.game.groundHeight(p.x,p.z,p.y), p.z);
     this.game.scene.add(group);
     this.npc = { type, group, used: false };
     this.game.callbacks.onLoot?.(

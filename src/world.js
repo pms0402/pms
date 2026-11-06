@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {buildWorldArt} from './world-art.js';
 import {createGroundMaterial} from './ground-material.js';
+import {ExplorableTerrain} from './explorable-terrain.js';
 import {WORLD_RADIUS,HILLS,STRUCTURES,WORLD_COLLIDERS,terrainHeight,isWalkable,resolveTerrainMovement,steerAroundWalls} from './terrain.js';
 
 export function createTerrainWorld(game) {
@@ -66,5 +67,14 @@ export function createTerrainWorld(game) {
    for(const piece of item.pieces){piece.material.opacity=item.opacity;piece.material.depthWrite=item.opacity>.95;piece.castShadow=item.opacity>.95;}
   }
  };
- return {ground,tint,white,art,setQuality:art.setQuality,updateOcclusion,structures:STRUCTURES,colliders:WORLD_COLLIDERS,hills:HILLS,height:terrainHeight,isWalkable,resolve:resolveTerrainMovement,steer,updateNavigation};
+ const world={ground,tint,white,art,setQuality:art.setQuality,structures:STRUCTURES,hills:HILLS,legacyResolve:resolveTerrainMovement};
+ const topology=new ExplorableTerrain(game,world);world.topology=topology;
+ world.height=(x,z,y)=>topology.height(x,z,y);world.isWalkable=(x,z,r,y)=>topology.isWalkable(x,z,r,y);
+ world.resolve=(p,r,h)=>topology.resolve(p,r,h);world.steer=(...args)=>topology.steer(...args);
+ world.updateNavigation=(p,time)=>topology.updateNavigation(p,time);
+ world.setRegion=(id,variant)=>topology.activate(id,variant);
+ world.projectReachable=(p,r,h)=>topology.project(p,r,h);
+ Object.defineProperty(world,'colliders',{get:()=>topology.layout.walls()});
+ world.updateOcclusion=(p,c,dt,fade=true)=>{updateOcclusion(p,c,dt,fade);topology.renderer.fade(p,game.view?.mode,dt);};
+ return world;
 }

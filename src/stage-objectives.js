@@ -127,8 +127,14 @@ export class StageObjectives {
             Math.cos(i * 2.3 + 0.7) * (12 + i * 7),
           ),
         );
-      g.resolvePosition(pos, 1.5);
-      pos.y = g.groundHeight(pos.x, pos.z);
+      const topology=g.world?.topology;
+      if(topology?.enabled()){
+        const anchors=topology.layout.anchors.filter(a=>a.id!=='safe-arena');
+        const a=anchors[(g._state.stage+i)%Math.max(1,anchors.length)];if(a)pos.set(a.x,a.y,a.z);
+        g.world.projectReachable(pos,1,3.6);
+      }
+      g.resolvePosition(pos, 1);
+      pos.y = g.groundHeight(pos.x, pos.z,pos.y);
       const group = new THREE.Group(),
         ring = new THREE.Mesh(this.geometry.ring, this.materials.gold),
         crystal = new THREE.Mesh(this.geometry.crystal, this.materials.crystal);
@@ -159,7 +165,7 @@ export class StageObjectives {
     if (g.enemies.length >= 160) return null;
     const pos = point.clone();
     g.resolvePosition(pos, 1);
-    const e = g.spawnEnemy(pos.x, pos.z, kind, options);
+    const e = g.spawnEnemy(pos.x, pos.z, kind, {...options,surfaceY:pos.y});
     if (e) e.objectiveEnemy = true;
     return e;
   }

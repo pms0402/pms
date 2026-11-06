@@ -1,0 +1,1329 @@
+{
+  "version": "v0.22.0",
+  "validatedAt": "2026-11-06T04:14:17.797597+00:00",
+  "baselineCommit": "5e915c56fe5cdda46237d8a97fb7f7bca42e3b69",
+  "runtimeSourceSHA256": "07a821b4f10c53325b8b0fdfef73e0a565ae69e8909f619f446be137ce8de37b",
+  "bundle": {
+    "file": "index-Cv-fgiho.js",
+    "sha256": "df64442fa214a53d778b40604af63770a3380d420bf3de3fe9bbdacf6a172f74"
+  },
+  "unit": {
+    "passed": 264,
+    "failed": 0,
+    "skipped": 0,
+    "command": "npm test"
+  },
+  "browser": {
+    "uniquePassed": 24,
+    "suites": [
+      {
+        "suite": "tactical",
+        "exitCode": 0
+      },
+      {
+        "suite": "topology",
+        "exitCode": 0
+      },
+      {
+        "suite": "parry",
+        "exitCode": 0
+      },
+      {
+        "suite": "silhouettes",
+        "exitCode": 0
+      },
+      {
+        "suite": "trackpad",
+        "exitCode": 0
+      },
+      {
+        "suite": "topology-mobile",
+        "exitCode": 0
+      },
+      {
+        "suite": "motion",
+        "exitCode": 0
+      },
+      {
+        "suite": "characters",
+        "exitCode": 0
+      },
+      {
+        "suite": "permanent",
+        "exitCode": 0
+      },
+      {
+        "suite": "live-sword",
+        "exitCode": 0
+      },
+      {
+        "suite": "mouse-controls",
+        "exitCode": 0
+      },
+      {
+        "suite": "follow-interaction",
+        "exitCode": 0
+      },
+      {
+        "suite": "view",
+        "exitCode": 0
+      },
+      {
+        "suite": "action",
+        "exitCode": 0
+      },
+      {
+        "suite": "action-encounters",
+        "exitCode": 0
+      },
+      {
+        "suite": "articulation",
+        "exitCode": 0
+      },
+      {
+        "suite": "quality",
+        "exitCode": 0
+      },
+      {
+        "suite": "world",
+        "exitCode": 0
+      },
+      {
+        "suite": "world-expansion",
+        "exitCode": 0
+      },
+      {
+        "suite": "builds",
+        "exitCode": 0
+      },
+      {
+        "suite": "standalone",
+        "exitCode": 0
+      },
+      {
+        "suite": "resources",
+        "exitCode": 0
+      },
+      {
+        "suite": "endgame",
+        "exitCode": 0
+      },
+      {
+        "suite": "presentation",
+        "exitCode": 0
+      }
+    ],
+    "finalEnvironmentRechecks": [
+      {
+        "suite": "topology",
+        "exitCode": 0
+      },
+      {
+        "suite": "quality",
+        "exitCode": 0
+      },
+      {
+        "suite": "resources",
+        "exitCode": 0
+      },
+      {
+        "suite": "silhouettes",
+        "exitCode": 0
+      },
+      {
+        "suite": "world",
+        "exitCode": 0
+      },
+      {
+        "suite": "topology-mobile",
+        "exitCode": 0
+      }
+    ],
+    "engine": "Chromium / SwiftShader",
+    "realMobileHardwareTested": false
+  },
+  "topology": {
+    "routes": [
+      {
+        "region": "volcano",
+        "anchor": {
+          "id": "crossing",
+          "x": 36,
+          "z": 0,
+          "y": 4.552312576770782
+        },
+        "run": {
+          "ok": true,
+          "steps": 284,
+          "position": [
+            35.5,
+            4.552312576770782,
+            0
+          ],
+          "maxStep": 0.28448567996965757,
+          "slip": 0.03582786497828662
+        },
+        "state": {
+          "hazard": null,
+          "title": "검은 협곡과 용암 다리",
+          "variant": 2,
+          "district": "다리·상부 연결로",
+          "height": 4.552312576770782,
+          "bridges": 3,
+          "stairs": 6,
+          "broken": 0,
+          "cache": 3
+        },
+        "memory": {
+          "geometries": 136,
+          "textures": 18
+        },
+        "render": {
+          "frame": 23,
+          "calls": 116,
+          "triangles": 345844,
+          "points": 224,
+          "lines": 0
+        }
+      },
+      {
+        "region": "tundra",
+        "anchor": {
+          "id": "crossing",
+          "x": 36,
+          "z": 0,
+          "y": 4.552312576770782
+        },
+        "run": {
+          "ok": true,
+          "steps": 284,
+          "position": [
+            35.5,
+            4.552312576770782,
+            0
+          ],
+          "maxStep": 0.28448567996965757,
+          "slip": 0.04118327350333228
+        },
+        "state": {
+          "hazard": null,
+          "title": "빙하 호수와 얼음 동굴",
+          "variant": 2,
+          "district": "다리·상부 연결로",
+          "height": 4.552312576770782,
+          "bridges": 2,
+          "stairs": 4,
+          "broken": 0,
+          "cache": 3
+        },
+        "memory": {
+          "geometries": 142,
+          "textures": 18
+        },
+        "render": {
+          "frame": 25,
+          "calls": 122,
+          "triangles": 342674,
+          "points": 224,
+          "lines": 0
+        }
+      },
+      {
+        "region": "forest",
+        "anchor": {
+          "id": "root-canopy",
+          "x": 0,
+          "z": -36,
+          "y": 4.507814621552825
+        },
+        "run": {
+          "ok": true,
+          "steps": 528,
+          "position": [
+            -0.4267921582115901,
+            4.507814621552825,
+            -35.752712022344184
+          ],
+          "maxStep": 0.6573344898005893,
+          "slip": 0.028383483445496432
+        },
+        "state": {
+          "hazard": null,
+          "title": "뿌리 미로와 숨은 샛길",
+          "variant": 2,
+          "district": "다리·상부 연결로",
+          "height": 4.507814621552825,
+          "bridges": 1,
+          "stairs": 2,
+          "broken": 0,
+          "cache": 3
+        },
+        "memory": {
+          "geometries": 158,
+          "textures": 18
+        },
+        "render": {
+          "frame": 26,
+          "calls": 110,
+          "triangles": 458574,
+          "points": 224,
+          "lines": 0
+        }
+      },
+      {
+        "region": "ruins",
+        "anchor": {
+          "id": "upper-citadel",
+          "x": 0,
+          "z": 40,
+          "y": 6.261636696259181
+        },
+        "run": {
+          "ok": true,
+          "steps": 316,
+          "position": [
+            0,
+            6.261636696259181,
+            39.5
+          ],
+          "maxStep": 0.2983168344223125,
+          "slip": 0.0440883481126716
+        },
+        "state": {
+          "hazard": null,
+          "title": "상층 성벽과 지하 회랑",
+          "variant": 2,
+          "district": "상층 성벽",
+          "height": 6.261636696259181,
+          "bridges": 0,
+          "stairs": 2,
+          "broken": 0,
+          "cache": 3
+        },
+        "memory": {
+          "geometries": 172,
+          "textures": 18
+        },
+        "render": {
+          "frame": 27,
+          "calls": 137,
+          "triangles": 373842,
+          "points": 224,
+          "lines": 0
+        }
+      },
+      {
+        "region": "void",
+        "anchor": {
+          "id": "floating-island:0",
+          "x": 36,
+          "z": 0,
+          "y": 6.25
+        },
+        "run": {
+          "ok": true,
+          "steps": 284,
+          "position": [
+            35.5,
+            6.25,
+            0
+          ],
+          "maxStep": 0.2976770866107905,
+          "slip": 0.03904953115635405
+        },
+        "state": {
+          "hazard": null,
+          "title": "떠 있는 군도와 균열 교량",
+          "variant": 2,
+          "district": "공중 군도",
+          "height": 6.25,
+          "bridges": 4,
+          "stairs": 4,
+          "broken": 0,
+          "cache": 3
+        },
+        "memory": {
+          "geometries": 174,
+          "textures": 18
+        },
+        "render": {
+          "frame": 28,
+          "calls": 126,
+          "triangles": 364106,
+          "points": 224,
+          "lines": 0
+        }
+      }
+    ],
+    "bridgeLever": {
+      "closed": true,
+      "used": true,
+      "prompt": {
+        "kind": "terrain",
+        "id": "bridge-lever",
+        "name": "무너진 다리의 윈치",
+        "verb": "보조 교량 펼치기"
+      },
+      "opened": true,
+      "pieces": 2,
+      "crossing": {
+        "ok": true,
+        "steps": 367,
+        "position": [
+          35.55479316684581,
+          4.552312576770782,
+          -13.73293179244801
+        ],
+        "maxStep": 0.565923721879182,
+        "slip": 0.0364573788366185
+      },
+      "exit": {
+        "ok": true,
+        "steps": 192,
+        "position": [
+          59.55010777918308,
+          0.2784073704330709,
+          -13.999847327972628
+        ],
+        "maxStep": 0.29819932324545784,
+        "slip": 0.031366554216747486
+      },
+      "lower": {
+        "ok": true,
+        "steps": 544,
+        "position": [
+          36.26995662531388,
+          -5.197687423229217,
+          -0.4522357928767073
+        ],
+        "maxStep": 0.6831125582971511,
+        "slip": 0.07193660576929159
+      },
+      "faded": true,
+      "solid": true
+    },
+    "underpass": {
+      "route": {
+        "ok": true,
+        "steps": 637,
+        "position": [
+          -40.40657138985801,
+          -5.701966214179993,
+          0.3666752556598176
+        ],
+        "maxStep": 0.6559311341284825,
+        "slip": 0.05502680254792622
+      },
+      "opened": true,
+      "gold": 300,
+      "broken": true,
+      "after": {
+        "ok": true,
+        "steps": 45,
+        "position": [
+          -32.44499999999999,
+          -5.701966214179993,
+          0
+        ],
+        "maxStep": 0,
+        "slip": 0.02209270740969127
+      },
+      "roof": 0.3480337858200073,
+      "floor": -5.701966214179993
+    },
+    "layers": {
+      "clear": false,
+      "unchanged": true,
+      "stop": [
+        -40.68082832562247,
+        -0.24406621417999297,
+        1.8679180482585254
+      ],
+      "top": 0.3480337858200073,
+      "floor": -5.701966214179993
+    },
+    "undergroundFx": {
+      "y": -5.541966214179993,
+      "expected": -5.541966214179993,
+      "particles": [
+        -5.101966214179994,
+        -5.101966214179994,
+        -5.101966214179994,
+        -5.101966214179994,
+        -5.101966214179994,
+        -5.101966214179994,
+        -4.856065053285825,
+        -5.101966214179994,
+        -5.101966214179994,
+        -5.101966214179994,
+        -5.101966214179994,
+        -5.101966214179994
+      ]
+    },
+    "projectilePitch": {
+      "actual": -0.30009892198743054,
+      "expected": -0.30009892198743054,
+      "speed": 9
+    },
+    "camera": [
+      {
+        "mode": "first",
+        "camera": [
+          -39.9,
+          -2.4392162141799933,
+          6.123233995736766e-18
+        ],
+        "rightArm": true,
+        "first": true
+      },
+      {
+        "mode": "third",
+        "camera": [
+          -48.936309368638675,
+          0.12739794894964485,
+          -5.471911332246928e-16
+        ],
+        "rightArm": true,
+        "first": false
+      },
+      {
+        "mode": "overhead",
+        "camera": [
+          -20,
+          20.298033785820007,
+          25
+        ],
+        "rightArm": true,
+        "first": false
+      }
+    ],
+    "objectives": [
+      {
+        "region": "volcano",
+        "type": "elite",
+        "layer": true,
+        "reachable": true,
+        "standing": true
+      },
+      {
+        "region": "volcano",
+        "type": "seals",
+        "layer": true,
+        "reachable": true,
+        "standing": true
+      },
+      {
+        "region": "volcano",
+        "type": "seals",
+        "layer": true,
+        "reachable": true,
+        "standing": true
+      },
+      {
+        "region": "volcano",
+        "type": "seals",
+        "layer": true,
+        "reachable": true,
+        "standing": true
+      },
+      {
+        "region": "volcano",
+        "type": "defense",
+        "layer": true,
+        "reachable": true,
+        "standing": true
+      },
+      {
+        "region": "volcano",
+        "type": "crossing",
+        "layer": true,
+        "reachable": true,
+        "standing": true
+      },
+      {
+        "region": "volcano",
+        "type": "crossing",
+        "layer": true,
+        "reachable": true,
+        "standing": true
+      },
+      {
+        "region": "volcano",
+        "type": "crossing",
+        "layer": true,
+        "reachable": true,
+        "standing": true
+      },
+      {
+        "region": "volcano",
+        "type": "hunt",
+        "layer": true,
+        "reachable": true,
+        "standing": true
+      },
+      {
+        "region": "volcano",
+        "type": "ritual",
+        "layer": true,
+        "reachable": true,
+        "standing": true
+      },
+      {
+        "region": "tundra",
+        "type": "elite",
+        "layer": true,
+        "reachable": true,
+        "standing": true
+      },
+      {
+        "region": "tundra",
+        "type": "seals",
+        "layer": true,
+        "reachable": true,
+        "standing": true
+      },
+      {
+        "region": "tundra",
+        "type": "seals",
+        "layer": true,
+        "reachable": true,
+        "standing": true
+      },
+      {
+        "region": "tundra",
+        "type": "seals",
+        "layer": true,
+        "reachable": true,
+        "standing": true
+      },
+      {
+        "region": "tundra",
+        "type": "defense",
+        "layer": true,
+        "reachable": true,
+        "standing": true
+      },
+      {
+        "region": "tundra",
+        "type": "crossing",
+        "layer": true,
+        "reachable": true,
+        "standing": true
+      },
+      {
+        "region": "tundra",
+        "type": "crossing",
+        "layer": true,
+        "reachable": true,
+        "standing": true
+      },
+      {
+        "region": "tundra",
+        "type": "crossing",
+        "layer": true,
+        "reachable": true,
+        "standing": true
+      },
+      {
+        "region": "tundra",
+        "type": "hunt",
+        "layer": true,
+        "reachable": true,
+        "standing": true
+      },
+      {
+        "region": "tundra",
+        "type": "ritual",
+        "layer": true,
+        "reachable": true,
+        "standing": true
+      },
+      {
+        "region": "forest",
+        "type": "elite",
+        "layer": true,
+        "reachable": true,
+        "standing": true
+      },
+      {
+        "region": "forest",
+        "type": "seals",
+        "layer": true,
+        "reachable": true,
+        "standing": true
+      },
+      {
+        "region": "forest",
+        "type": "seals",
+        "layer": true,
+        "reachable": true,
+        "standing": true
+      },
+      {
+        "region": "forest",
+        "type": "seals",
+        "layer": true,
+        "reachable": true,
+        "standing": true
+      },
+      {
+        "region": "forest",
+        "type": "defense",
+        "layer": true,
+        "reachable": true,
+        "standing": true
+      },
+      {
+        "region": "forest",
+        "type": "crossing",
+        "layer": true,
+        "reachable": true,
+        "standing": true
+      },
+      {
+        "region": "forest",
+        "type": "crossing",
+        "layer": true,
+        "reachable": true,
+        "standing": true
+      },
+      {
+        "region": "forest",
+        "type": "crossing",
+        "layer": true,
+        "reachable": true,
+        "standing": true
+      },
+      {
+        "region": "forest",
+        "type": "hunt",
+        "layer": true,
+        "reachable": true,
+        "standing": true
+      },
+      {
+        "region": "forest",
+        "type": "ritual",
+        "layer": true,
+        "reachable": true,
+        "standing": true
+      },
+      {
+        "region": "ruins",
+        "type": "elite",
+        "layer": true,
+        "reachable": true,
+        "standing": true
+      },
+      {
+        "region": "ruins",
+        "type": "seals",
+        "layer": true,
+        "reachable": true,
+        "standing": true
+      },
+      {
+        "region": "ruins",
+        "type": "seals",
+        "layer": true,
+        "reachable": true,
+        "standing": true
+      },
+      {
+        "region": "ruins",
+        "type": "seals",
+        "layer": true,
+        "reachable": true,
+        "standing": true
+      },
+      {
+        "region": "ruins",
+        "type": "defense",
+        "layer": true,
+        "reachable": true,
+        "standing": true
+      },
+      {
+        "region": "ruins",
+        "type": "crossing",
+        "layer": true,
+        "reachable": true,
+        "standing": true
+      },
+      {
+        "region": "ruins",
+        "type": "crossing",
+        "layer": true,
+        "reachable": true,
+        "standing": true
+      },
+      {
+        "region": "ruins",
+        "type": "crossing",
+        "layer": true,
+        "reachable": true,
+        "standing": true
+      },
+      {
+        "region": "ruins",
+        "type": "hunt",
+        "layer": true,
+        "reachable": true,
+        "standing": true
+      },
+      {
+        "region": "ruins",
+        "type": "ritual",
+        "layer": true,
+        "reachable": true,
+        "standing": true
+      },
+      {
+        "region": "void",
+        "type": "elite",
+        "layer": true,
+        "reachable": true,
+        "standing": true
+      },
+      {
+        "region": "void",
+        "type": "seals",
+        "layer": true,
+        "reachable": true,
+        "standing": true
+      },
+      {
+        "region": "void",
+        "type": "seals",
+        "layer": true,
+        "reachable": true,
+        "standing": true
+      },
+      {
+        "region": "void",
+        "type": "seals",
+        "layer": true,
+        "reachable": true,
+        "standing": true
+      },
+      {
+        "region": "void",
+        "type": "defense",
+        "layer": true,
+        "reachable": true,
+        "standing": true
+      },
+      {
+        "region": "void",
+        "type": "crossing",
+        "layer": true,
+        "reachable": true,
+        "standing": true
+      },
+      {
+        "region": "void",
+        "type": "crossing",
+        "layer": true,
+        "reachable": true,
+        "standing": true
+      },
+      {
+        "region": "void",
+        "type": "crossing",
+        "layer": true,
+        "reachable": true,
+        "standing": true
+      },
+      {
+        "region": "void",
+        "type": "hunt",
+        "layer": true,
+        "reachable": true,
+        "standing": true
+      },
+      {
+        "region": "void",
+        "type": "ritual",
+        "layer": true,
+        "reachable": true,
+        "standing": true
+      }
+    ],
+    "enemyLayers": [
+      {
+        "kind": 0,
+        "done": true,
+        "frames": 621,
+        "rangedDamage": null,
+        "enemy": [
+          -40.69530233224825,
+          -5.701966214179993,
+          2.898257221245672
+        ],
+        "player": [
+          -40,
+          -5.701966214179993,
+          0
+        ]
+      },
+      {
+        "kind": 3,
+        "done": true,
+        "frames": 160,
+        "rangedDamage": 5.200000000000003,
+        "enemy": [
+          -46.10589400346913,
+          0.48414071224972016,
+          5.4254713644762305
+        ],
+        "player": [
+          -40,
+          -5.701966214179993,
+          0
+        ]
+      }
+    ],
+    "crowd": {
+      "elapsedMs": 1873.5,
+      "count": 160,
+      "batches": {
+        "enabled": true,
+        "batches": 76,
+        "activeBatches": 76,
+        "instances": 676
+      },
+      "calls": 221,
+      "finite": true,
+      "memory": {
+        "geometries": 253,
+        "textures": 18
+      }
+    },
+    "errors": []
+  },
+  "mobile": {
+    "start": {
+      "y": 6.064216774702071,
+      "terrain": {
+        "hazard": null,
+        "title": "상층 성벽과 지하 회랑",
+        "variant": 1,
+        "district": "상층 성벽",
+        "height": 6.064216774702071,
+        "bridges": 0,
+        "stairs": 2,
+        "broken": 0,
+        "cache": 3
+      },
+      "commands": 0
+    },
+    "attack": {
+      "commands": 1,
+      "y": 6.064216774702071,
+      "footSlip": 0,
+      "pose": [
+        -4.372891021571026e-05,
+        7.682179220384024e-05,
+        -6.7388914264445415e-06,
+        0.9999999960703909
+      ]
+    },
+    "parryBefore": 0,
+    "parryAfter": 1,
+    "edge": {
+      "y": 4.064556974172592,
+      "z": -0.09999999999999987,
+      "edge": 0.7000000000000002
+    },
+    "dash": {
+      "y": 4.064556974172592,
+      "z": 0.7000000000000002,
+      "first": 4.064556974172592,
+      "finite": true
+    },
+    "errors": []
+  },
+  "resources": {
+    "cycles": 16,
+    "samples": [
+      {
+        "heap": 64123882,
+        "geometries": 169,
+        "textures": 18,
+        "batches": 38,
+        "lodSources": 38,
+        "owned": 435,
+        "cpuParts": 0,
+        "terrainCache": 3,
+        "terrainKeys": [
+          "forest:0",
+          "ruins:0",
+          "volcano:0"
+        ]
+      },
+      {
+        "heap": 64191102,
+        "geometries": 171,
+        "textures": 18,
+        "batches": 38,
+        "lodSources": 38,
+        "owned": 435,
+        "cpuParts": 0,
+        "terrainCache": 3,
+        "terrainKeys": [
+          "forest:0",
+          "ruins:0",
+          "volcano:0"
+        ]
+      },
+      {
+        "heap": 66859739,
+        "geometries": 172,
+        "textures": 18,
+        "batches": 38,
+        "lodSources": 38,
+        "owned": 435,
+        "cpuParts": 0,
+        "terrainCache": 3,
+        "terrainKeys": [
+          "forest:0",
+          "ruins:0",
+          "volcano:0"
+        ]
+      },
+      {
+        "heap": 64830394,
+        "geometries": 175,
+        "textures": 18,
+        "batches": 38,
+        "lodSources": 38,
+        "owned": 435,
+        "cpuParts": 0,
+        "terrainCache": 3,
+        "terrainKeys": [
+          "forest:0",
+          "ruins:0",
+          "volcano:0"
+        ]
+      },
+      {
+        "heap": 64885166,
+        "geometries": 176,
+        "textures": 18,
+        "batches": 38,
+        "lodSources": 38,
+        "owned": 435,
+        "cpuParts": 0,
+        "terrainCache": 3,
+        "terrainKeys": [
+          "forest:0",
+          "ruins:0",
+          "volcano:0"
+        ]
+      },
+      {
+        "heap": 64768450,
+        "geometries": 176,
+        "textures": 18,
+        "batches": 38,
+        "lodSources": 38,
+        "owned": 435,
+        "cpuParts": 0,
+        "terrainCache": 3,
+        "terrainKeys": [
+          "forest:0",
+          "ruins:0",
+          "volcano:0"
+        ]
+      },
+      {
+        "heap": 64671090,
+        "geometries": 176,
+        "textures": 18,
+        "batches": 38,
+        "lodSources": 38,
+        "owned": 435,
+        "cpuParts": 0,
+        "terrainCache": 3,
+        "terrainKeys": [
+          "forest:0",
+          "ruins:0",
+          "volcano:0"
+        ]
+      },
+      {
+        "heap": 64900318,
+        "geometries": 176,
+        "textures": 18,
+        "batches": 38,
+        "lodSources": 38,
+        "owned": 435,
+        "cpuParts": 0,
+        "terrainCache": 3,
+        "terrainKeys": [
+          "forest:0",
+          "ruins:0",
+          "volcano:0"
+        ]
+      },
+      {
+        "heap": 65159310,
+        "geometries": 176,
+        "textures": 18,
+        "batches": 38,
+        "lodSources": 38,
+        "owned": 435,
+        "cpuParts": 0,
+        "terrainCache": 3,
+        "terrainKeys": [
+          "forest:0",
+          "ruins:0",
+          "volcano:0"
+        ]
+      },
+      {
+        "heap": 65129542,
+        "geometries": 176,
+        "textures": 18,
+        "batches": 38,
+        "lodSources": 38,
+        "owned": 435,
+        "cpuParts": 0,
+        "terrainCache": 3,
+        "terrainKeys": [
+          "forest:0",
+          "ruins:0",
+          "volcano:0"
+        ]
+      },
+      {
+        "heap": 67436824,
+        "geometries": 176,
+        "textures": 18,
+        "batches": 38,
+        "lodSources": 38,
+        "owned": 435,
+        "cpuParts": 0,
+        "terrainCache": 3,
+        "terrainKeys": [
+          "forest:0",
+          "ruins:0",
+          "volcano:0"
+        ]
+      },
+      {
+        "heap": 64855710,
+        "geometries": 176,
+        "textures": 18,
+        "batches": 38,
+        "lodSources": 38,
+        "owned": 435,
+        "cpuParts": 0,
+        "terrainCache": 3,
+        "terrainKeys": [
+          "forest:0",
+          "ruins:0",
+          "volcano:0"
+        ]
+      },
+      {
+        "heap": 65235962,
+        "geometries": 176,
+        "textures": 18,
+        "batches": 38,
+        "lodSources": 38,
+        "owned": 435,
+        "cpuParts": 0,
+        "terrainCache": 3,
+        "terrainKeys": [
+          "forest:0",
+          "ruins:0",
+          "volcano:0"
+        ]
+      },
+      {
+        "heap": 65269186,
+        "geometries": 176,
+        "textures": 18,
+        "batches": 38,
+        "lodSources": 38,
+        "owned": 435,
+        "cpuParts": 0,
+        "terrainCache": 3,
+        "terrainKeys": [
+          "forest:0",
+          "ruins:0",
+          "volcano:0"
+        ]
+      },
+      {
+        "heap": 65225850,
+        "geometries": 176,
+        "textures": 18,
+        "batches": 38,
+        "lodSources": 38,
+        "owned": 435,
+        "cpuParts": 0,
+        "terrainCache": 3,
+        "terrainKeys": [
+          "forest:0",
+          "ruins:0",
+          "volcano:0"
+        ]
+      },
+      {
+        "heap": 65295278,
+        "geometries": 176,
+        "textures": 18,
+        "batches": 38,
+        "lodSources": 38,
+        "owned": 435,
+        "cpuParts": 0,
+        "terrainCache": 3,
+        "terrainKeys": [
+          "forest:0",
+          "ruins:0",
+          "volcano:0"
+        ]
+      }
+    ],
+    "errors": [],
+    "method": "Chromium/SwiftShader, rotate all five regions, spawn 24 mixed species including bosses and all forced mutation marker types, render then restart, normalize to the same volcano/forest/ruins variant-0 cache, force test-only GC each cycle; verify geometry/texture/heap plateau and cache cap after 8 warmup cycles"
+  },
+  "motion": {
+    "feetAtRest": [
+      0.0008802273898787827,
+      0.0008802273898779418
+    ],
+    "rates": [
+      {
+        "hz": 30,
+        "phase": 1.6522985637881589,
+        "stride": 0.9963021362835165,
+        "facing": 3.9269908169872414,
+        "pose": [
+          -0.11700604406041133,
+          -1.1310676832270352,
+          0.19924287851793002,
+          1.902579080097602,
+          0.13933739293075023
+        ],
+        "x": 2.1213203435596433,
+        "z": -2.121320343559643
+      },
+      {
+        "hz": 60,
+        "phase": 1.6522985637881589,
+        "stride": 0.9963021362835165,
+        "facing": 3.9269908169872414,
+        "pose": [
+          -0.11700611382625249,
+          -1.131062440523634,
+          0.19924288513345753,
+          1.9025808131364061,
+          0.13944142025088851
+        ],
+        "x": 2.1213203435596433,
+        "z": -2.121320343559643
+      },
+      {
+        "hz": 120,
+        "phase": 1.6522985637881515,
+        "stride": 0.9963021362835155,
+        "facing": 3.9269908169872414,
+        "pose": [
+          -0.1163023988054816,
+          -1.14186468626008,
+          0.19923271167242657,
+          1.9334034857245923,
+          0.13139217247471394
+        ],
+        "x": 2.121320343559641,
+        "z": -2.1213203435596406
+      }
+    ],
+    "stopStep": 0.04075254741658996,
+    "releaseStride": 0.8433515508334747,
+    "settled": {
+      "stride": 0.00028291292748825614,
+      "leg": -0.1818419160822932
+    },
+    "turnStep": 0.3676789063035866,
+    "combatFacingUnchanged": true,
+    "immediateHit": true,
+    "noExtraHits": true,
+    "sameStats": true,
+    "duration": 0.54,
+    "twinAttack": true,
+    "twinYaw": 0.7984944696682379,
+    "recoveredTwinYaw": 3.069643477626254e-06,
+    "dashLean": 0.032948262381584686,
+    "restLean": -0.0009121933565128637,
+    "finiteCrowd": true,
+    "cleanPool": true,
+    "calls": 193,
+    "batch": {
+      "enabled": true,
+      "batches": 76,
+      "activeBatches": 76,
+      "instances": 676
+    },
+    "speeds": [
+      0.04999999999999999,
+      0.10000000000000009,
+      0.15000000000000047
+    ],
+    "paused": true,
+    "reset": true
+  },
+  "renderParity": {
+    "before": {
+      "calls": 807,
+      "triangles": 559974
+    },
+    "after": {
+      "calls": 207,
+      "triangles": 559974
+    },
+    "meanError": 0.0008898809523809524,
+    "changedFraction": 7.366071428571429e-05,
+    "sourceParts": 676,
+    "active": {
+      "enabled": true,
+      "batches": 76,
+      "activeBatches": 76,
+      "instances": 676
+    },
+    "reset": {
+      "enabled": true,
+      "batches": 76,
+      "activeBatches": 0,
+      "instances": 0
+    },
+    "reused": true,
+    "unchanged": true,
+    "discardedGeometryFreed": true,
+    "materials": {
+      "environment": true,
+      "terrain": true,
+      "normal": true,
+      "cloth": true,
+      "shadow": true
+    },
+    "shadows": true,
+    "pixelRatio": 1,
+    "textures": 18,
+    "geometries": 183
+  },
+  "archiveSHA256": "e8867949d23b1319d9f111432b4ce02f6982fca30ea40d564bc76b1d31b019aa",
+  "publicURL": "https://pms0402.github.io/pms/",
+  "screenshots": [
+    "terrain-motion/cave-first.png",
+    "terrain-motion/forest.png",
+    "terrain-motion/mobile.png",
+    "terrain-motion/ruins.png",
+    "terrain-motion/under-bridge.png",
+    "terrain-motion/void.png",
+    "terrain-motion/volcano.png"
+  ]
+}

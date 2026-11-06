@@ -27,6 +27,7 @@ export function interactionTarget(game) {
     return null;
   }
   const objective=game.objectives?.interactionTarget();if(objective)return objective;
+  const terrain=game.world?.topology?.interactionTarget();if(terrain)return terrain;
   const portal = side.portal;
   if (portal && !portal.used && portal.group.position.distanceTo(p) <= 3.5)
     return { kind: "portal", name: "비밀 공간 입구", verb: "살펴보기" };

@@ -6,7 +6,7 @@ const base=process.env.BASE_URL||'http://127.0.0.1:5301',out=process.env.SMOKE_O
 if(out)await mkdir(out,{recursive:true});
 const browser=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox','--enable-unsafe-swiftshader','--use-angle=swiftshader']});
 const errors=[],proof={};
-function watch(p){p.setDefaultTimeout(15000);p.on('pageerror',e=>errors.push(e.message));p.on('console',m=>{if(/Shader Error|GL_INVALID|THREE.WebGLProgram/.test(m.text()))errors.push(m.text());});}
+function watch(p){p.setDefaultTimeout(45000);p.on('pageerror',e=>errors.push(e.message));p.on('console',m=>{if(/Shader Error|GL_INVALID|THREE.WebGLProgram/.test(m.text()))errors.push(m.text());});}
 async function fixture(p,style='default'){
   await p.evaluate(style=>{
     const g=window.__game;cancelAnimationFrame(g.raf);

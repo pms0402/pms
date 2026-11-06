@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {hurtRadius,segmentEntry} from './combat-collision.js';
+import {hurtRadius,volumeEntry,bodyHeight} from './combat-collision.js';
 import {createRuneGeometry} from './rune-geometry.js';
 import {SKILL_TIMINGS} from './action-combat.js';
 import { SPELLS } from './balance.js';
@@ -169,7 +169,7 @@ export class MagicSystem {
     this.hiddenCooldowns.firestorm = this.time + 4;
     const marker = new THREE.Group();
     marker.position.copy(origin);
-    marker.position.y = (this.game.groundHeight?.(origin.x, origin.z) ?? origin.y) + .12;
+    marker.position.y = (this.game.groundHeight?.(origin.x,origin.z,origin.y) ?? origin.y) + .12;
     for (let i = 0; i < 3; i++) {
       const ring = new THREE.Mesh(this.geometry.ring, this.material.fireball);
       ring.rotation.x = -Math.PI / 2 + i * .08;
@@ -296,6 +296,7 @@ export class MagicSystem {
     const origin=this.game.player.position,rank=this.rank('fireball'),evolved=this.evolved('fireball'),count=Math.min(5,(evolved?3:rank>=4?2:1)+Math.max(0,(this.game.stats.projectiles||1)-1)+(this.game.stats.skillExtraHits||0));
     for(let index=0;index<count&&this.projectiles.length<this.projectileBudget();index++){
       const angle=Math.atan2(aim.x,aim.z)+(index-(count-1)/2)*.16,direction=new THREE.Vector3(Math.sin(angle),0,Math.cos(angle)),mesh=this.projectilePool.pop()||this.createFireballMesh();mesh.rotation.set(0,0,0);mesh.children[0].scale.setScalar(evolved?1.7:1.3);mesh.position.copy(origin);mesh.position.y+=1;this.scene.add(mesh);
+      if(targetPoint)direction.y=Math.max(-.7,Math.min(.7,(targetPoint.y-origin.y)/Math.max(2,Math.hypot(targetPoint.x-origin.x,targetPoint.z-origin.z))));direction.normalize();
       const distance=targetPoint?Math.max(2,Math.min(22,Math.hypot(origin.x-targetPoint.x,origin.z-targetPoint.z))):18;
       this.projectiles.push({mesh,target:null,direction,life:distance/20,trailTimer:0,rank,evolved,damage:this.damage('fireball')*7.2*(1+.14*(rank-1))/Math.max(1,Math.sqrt(count)),radius:this.radius('fireball')});
     }
@@ -314,6 +315,7 @@ export class MagicSystem {
   }
 
   explode(position, radius, damage, evolved, secondary = false) {
+    this.game.world?.topology?.damage(position,radius,damage);
     this.game.sound?.('fire-impact',position);this.ring(position, radius, 'fireball', 0.4, 0.55);
     this.particles(position, 'fireball', evolved ? 10 : 6);
     // Select the nearest capped targets in one pass instead of sorting the horde.
@@ -336,7 +338,7 @@ export class MagicSystem {
       if (bonus) { steamed = true; this.synergyHits++; }
     }
     if (steamed) { this.ring(position, radius * 0.8, 'steam', 0.55, 0.45); this.particles(position, 'steam', 6, radius * 0.25); }
-    if(!secondary&&this.zones.length<12){const marker=new THREE.Mesh(this.geometry.ring,this.material.fireball);marker.rotation.x=-Math.PI/2;marker.position.copy(position);marker.position.y+=.12;marker.scale.setScalar(radius);this.scene.add(marker);this.zones.push({type:'burn',position:position.clone(),radius,damage:damage*.18,life:4+(this.game.stats.statusBonus||0),tick:.8,marker});if(evolved&&this.zones.length<12)this.zones.push({type:'ember',position:position.clone(),radius,damage:damage*.45,life:.4,tick:.35});}
+    if(!secondary&&this.zones.length<12){const floor=position.clone();floor.y=this.game.groundHeight?.(position.x,position.z,position.y)??position.y;const marker=new THREE.Mesh(this.geometry.ring,this.material.fireball);marker.rotation.x=-Math.PI/2;marker.position.copy(floor);marker.position.y+=.12;marker.scale.setScalar(radius);this.scene.add(marker);this.zones.push({type:'burn',position:floor.clone(),radius,damage:damage*.18,life:4+(this.game.stats.statusBonus||0),tick:.8,marker});if(evolved&&this.zones.length<12)this.zones.push({type:'ember',position:floor.clone(),radius,damage:damage*.45,life:.4,tick:.35});}
   }
 
   updateProjectiles(dt) {
@@ -345,12 +347,11 @@ export class MagicSystem {
       const travel=20*Math.min(dt,Math.max(0,projectile.life)),previous=projectile.mesh.position.clone();
       projectile.life -= dt; projectile.trailTimer -= dt;
       if (this.isAlive(projectile.target)) {
-        const desired = this.scratch.copy(projectile.target.group.position).sub(projectile.mesh.position).setY(0).normalize();
+        const desired = this.scratch.copy(projectile.target.group.position).add(new THREE.Vector3(0,1,0)).sub(projectile.mesh.position).normalize();
         projectile.direction.lerp(desired, 1 - Math.exp(-dt * 9)).normalize();
       }
       projectile.mesh.position.addScaledVector(projectile.direction, travel);
-      projectile.mesh.position.y = (this.game.groundHeight?.(projectile.mesh.position.x, projectile.mesh.position.z) ?? this.game.player.position.y) + 1;
-      if(this.game.aimTarget){const stop=this.game.aimTarget(previous,projectile.mesh.position);if(Math.hypot(stop.x-projectile.mesh.position.x,stop.z-projectile.mesh.position.z)>.001){projectile.life=0;projectile.mesh.position.copy(stop);projectile.mesh.position.y+=1;}}
+      if(this.game.projectileTarget){const stop=this.game.projectileTarget(previous,projectile.mesh.position);if(stop.distanceToSquared(projectile.mesh.position)>.000001){projectile.life=0;projectile.mesh.position.copy(stop);}}
       projectile.mesh.rotation.z += dt * 6; projectile.mesh.rotation.y += dt * 4;
       if (projectile.trailTimer <= 0) {
         if (this.game.combatArt) this.game.combatArt.trail(projectile.mesh.position, 'fireball');
@@ -360,10 +361,10 @@ export class MagicSystem {
       let entry=Infinity;
       for(const enemy of this.query(projectile.mesh.position,travel+2.5)){
         if(enemy.hp<=0)continue;
-        entry=Math.min(entry,segmentEntry(previous,projectile.mesh.position,{type:'circle',x:enemy.group.position.x,z:enemy.group.position.z,radius:.32+hurtRadius(enemy)}));
+        entry=Math.min(entry,volumeEntry(previous,projectile.mesh.position,{type:'circle',x:enemy.group.position.x,z:enemy.group.position.z,radius:.32+hurtRadius(enemy),minY:enemy.group.position.y,maxY:enemy.group.position.y+bodyHeight(enemy)}));
       }
       const contact=entry!==Infinity;
-      if(contact){projectile.mesh.position.lerpVectors(previous,projectile.mesh.position,entry);projectile.mesh.position.y=(this.game.groundHeight?.(projectile.mesh.position.x,projectile.mesh.position.z)||0)+1;}
+      if(contact)projectile.mesh.position.lerpVectors(previous,projectile.mesh.position,entry);
       if (contact || projectile.life <= 0) {
         // A missed projectile still visibly erupts, but never searches beyond its AoE.
         this.explode(projectile.mesh.position.clone(), projectile.radius, projectile.damage, projectile.evolved);
@@ -375,6 +376,7 @@ export class MagicSystem {
   castFrost() {
     if(!this.rank('frost'))return false;
     const rank=this.rank('frost'),evolved=this.evolved('frost'),radius=this.radius('frost'),origin=this.game.player.position.clone(),damage=this.damage('frost')*5.5*(1+.14*(rank-1));
+    this.game.world?.topology?.damage(origin,radius,damage);
     this.ring(origin,radius,'frost',.65,.8);this.particles(origin,'frost',12,radius*.5);
     for(const enemy of this.query(origin,radius))if(this.isAlive(enemy)&&this.distanceSquared(origin,enemy.group.position)<=radius**2&&(!this.game.combatLineClear||this.game.combatLineClear(origin,enemy.group.position))){this.hit(enemy,damage,origin,2.2*(1+(this.game.stats.statusBonus||0)),.5,'magic','frost');if(enemy.kind!==4&&(enemy.nextManualFreeze||0)<=this.time){enemy.freezeTime=Math.max(enemy.freezeTime||0,Math.min(.6,.35*(1+(this.game.stats.statusBonus||0))));enemy.nextManualFreeze=this.time+6;}}
     if(evolved&&this.zones.length<12){const marker=new THREE.Mesh(this.geometry.ring,this.material.frost);marker.rotation.x=-Math.PI/2;marker.position.copy(origin);marker.position.y+=.15;marker.scale.setScalar(radius);this.scene.add(marker);this.zones.push({type:'blizzard',position:origin,radius,damage:damage*.14,life:4,tick:.8,marker});}
@@ -505,14 +507,14 @@ export class MagicSystem {
     const poolKey = `ring:${id}`;
     const mesh = this.meshPools.get(poolKey)?.pop() || new THREE.Mesh(this.geometry.ring, this.material[id].clone());
     mesh.material.opacity = opacity;
-    mesh.rotation.x = -Math.PI / 2; mesh.position.copy(position); mesh.position.y = (this.game.groundHeight?.(position.x, position.z) ?? position.y ?? 0) + 0.16;
+    mesh.rotation.x = -Math.PI / 2; mesh.position.copy(position); mesh.position.y = (this.game.groundHeight?.(position.x,position.z,position.y) ?? position.y ?? 0) + 0.16;
     mesh.scale.setScalar(radius * 0.2);
     this.addEffect({ mesh, type: 'ring', life, total: life, radius, opacity, ownedMaterial: true, poolKey });
   }
   spark(position, id, life = 0.2, scale = 1) {
     const poolKey = `spark:${id}`;
     const mesh = this.meshPools.get(poolKey)?.pop() || new THREE.Mesh(this.geometry.spark, this.material[id]);
-    mesh.position.copy(position); mesh.position.y = Math.max(0.5, position.y || 0); mesh.scale.setScalar(scale);
+    mesh.position.copy(position); mesh.position.y = Math.max((this.game.groundHeight?.(position.x,position.z,position.y)??position.y??0)+.5,position.y??0); mesh.scale.setScalar(scale);
     this.addEffect({ mesh, type: 'spark', life, total: life, baseScale: scale, poolKey });
   }
   particles(position, id, count = 6, spread = 0.2) {
@@ -521,7 +523,7 @@ export class MagicSystem {
       const mesh = this.meshPools.get(poolKey)?.pop() || new THREE.Mesh(this.geometry.spark, this.material[id]);
       const angle = index / count * TAU;
       mesh.scale.setScalar(1);
-      mesh.position.copy(position); mesh.position.x += Math.cos(angle) * spread; mesh.position.z += Math.sin(angle) * spread; mesh.position.y = (this.game.groundHeight?.(mesh.position.x, mesh.position.z) ?? position.y ?? 0) + 0.6;
+      mesh.position.copy(position); mesh.position.x += Math.cos(angle) * spread; mesh.position.z += Math.sin(angle) * spread; mesh.position.y = (this.game.groundHeight?.(mesh.position.x,mesh.position.z,position.y) ?? position.y ?? 0) + 0.6;
       this.addEffect({ mesh, type: 'particle', life: 0.45, total: 0.45, velocity: new THREE.Vector3(Math.cos(angle) * 5, 2 + index % 3, Math.sin(angle) * 5), poolKey });
     }
   }

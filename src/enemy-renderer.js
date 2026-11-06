@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { rigMaterial, deformReference, jointAngles } from "./monster-motion.js";
 import { MonsterLod } from "./mesh-lod.js";
-const REST_POSE = new Float32Array(8);
+const REST_POSE = new Float32Array(16);
 
 /** Draw identical opaque monster parts together, keeping their exact geometry and materials. */
 export class EnemyRenderer {
@@ -84,6 +84,7 @@ export class EnemyRenderer {
             4,
           ).setUsage(THREE.DynamicDrawUsage),
         );
+        for(const id of ['vrPose2','vrPose3'])geometry.setAttribute(id,new THREE.InstancedBufferAttribute(new Float32Array(this.capacity*4),4).setUsage(THREE.DynamicDrawUsage));
         if (!this.rigMaterials.has(material))
           this.rigMaterials.set(material, rigMaterial(material));
         material = this.rigMaterials.get(material);
@@ -124,6 +125,7 @@ export class EnemyRenderer {
           joints.every((j) => j === joint)
             ? {
                 joint,
+                hasBend:original.attributes.vrBend?.array.some((v,i)=>i%4===3&&v>0),
                 kind: original.attributes.vrKind.array[0],
                 pivot: original.attributes.vrPivot.array.slice(0, 3),
               }
@@ -131,7 +133,7 @@ export class EnemyRenderer {
         );
       }
       const rigid = this.rigidParts.get(original);
-      if (rigid) {
+      if (rigid&&(!enemy.motion?.pose?.[15]||!rigid.hasBend)) {
         if (existing) {
           part.geometry = original;
           existing.geometry.dispose();
@@ -261,6 +263,8 @@ export class EnemyRenderer {
           for (let c = 0; c < 4; c++) {
             a[at + c] = pose[c];
             b[at + c] = pose[c + 4];
+            batch.mesh.geometry.attributes.vrPose2.array[at+c]=pose[c+8]||0;
+            batch.mesh.geometry.attributes.vrPose3.array[at+c]=pose[c+12]||0;
           }
         }
         batch.mesh.setMatrixAt(batch.count++, part.matrixWorld);
@@ -277,7 +281,7 @@ export class EnemyRenderer {
       mesh.instanceMatrix.addUpdateRange(0, count * 16);
       mesh.instanceMatrix.needsUpdate = true;
       if (batch.rigged)
-        for (const id of ["vrPose0", "vrPose1"]) {
+        for (const id of ["vrPose0", "vrPose1","vrPose2","vrPose3"]) {
           const attr = mesh.geometry.attributes[id];
           attr.clearUpdateRanges();
           attr.addUpdateRange(0, count * 4);

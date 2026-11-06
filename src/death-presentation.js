@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import {rigMaterial} from "./monster-motion.js";
 
 /** Cosmetic copies only: defeated actors leave queries, rewards and pools immediately. */
 export class DeathPresentation {
@@ -36,6 +37,7 @@ export class DeathPresentation {
       entry.materials.forEach((m) => m.dispose());
       entry.materials = [];
       entry.root.clear();
+      entry.pose=Array.from({length:4},()=>new THREE.Vector4());
       const copy = source.clone(true),
         materials = new Map();
       const original = [];
@@ -53,7 +55,7 @@ export class DeathPresentation {
         o.receiveShadow = true;
         const clone = (m) => {
           if (!materials.has(m)) {
-            const c = m.clone();
+            const c = o.geometry.attributes.vrJoint?rigMaterial(m,entry.pose):m.clone();
             c.transparent = true;
             c.depthWrite = false;
             materials.set(m, c);
@@ -69,18 +71,21 @@ export class DeathPresentation {
       copy.rotation.set(0, 0, 0);
       copy.scale.setScalar(1);
       copy.visible = true;
-      entry.root.add(copy);
+      entry.root.add(copy);entry.copy=copy;
       entry.key = key;
     }
     entry.boss = enemy.kind === 4;
-    entry.total = entry.life = entry.boss ? 0.85 : 0.58;
+    entry.total = entry.life = entry.boss ? 1.15 : .95;
+    const pose=enemy.motion?.pose||new Float32Array(16);for(let i=0;i<4;i++)entry.pose[i].fromArray(pose,i*4);
+    entry.baseDeath=entry.pose[3].z;entry.visualY=enemy.visual?.position.y||0;entry.initialX=enemy.visual?.rotation.x||0;entry.initialZ=enemy.visual?.rotation.z||0;entry.copy.position.y=entry.visualY;
+    entry.pose[3].w=1;entry.pose[0].y=0;entry.pose[0].z=0;entry.pose[0].w=0;entry.pose[1].x=0;
     entry.root.visible = true;
     entry.root.position.copy(enemy.group.position);
     entry.root.scale.copy(enemy.group.scale);
     entry.scale = enemy.group.scale.y;
     entry.y = enemy.group.position.y;
     entry.yaw = enemy.group.rotation.y + (enemy.visual?.rotation.y || 0);
-    entry.root.rotation.set(0, entry.yaw, 0);
+    entry.root.rotation.set(entry.initialX,entry.yaw,entry.initialZ);
     const dx = direction?.x || Math.sin(entry.yaw),
       dz = direction?.z || Math.cos(entry.yaw);
     entry.dx = dx;
@@ -95,14 +100,16 @@ export class DeathPresentation {
       e.life = Math.max(0, e.life - dt);
       const t = 1 - e.life / e.total,
         fall = t * t * (3 - 2 * t);
-      e.root.position.y = e.y - t * 0.18 * e.scale;
+      e.root.position.y = e.y + Math.sin(Math.PI*Math.min(1,t*2))*.08*e.scale;
+      e.pose[3].z=Math.max(e.baseDeath,Math.min(1,t*1.6));e.pose[2].w=(1-t)*.5;
       e.root.position.x += e.dx * dt * 0.45 * (1 - t);
       e.root.position.z += e.dz * dt * 0.45 * (1 - t);
-      e.root.rotation.x = e.fallX * fall * 1.2;
-      e.root.rotation.z = e.fallZ * fall * 0.85;
-      e.root.scale.y = e.scale * (1 - fall * 0.65);
+      this.game.resolvePosition?.(e.root.position,e.boss?1.2:.45,e.boss?7.5:2);
+      e.root.rotation.x = e.initialX+(e.fallX*1.2-e.initialX)*fall;
+      e.root.rotation.z = e.initialZ+(e.fallZ*.85-e.initialZ)*fall;e.copy.position.y=e.visualY*(1-fall)+.08*fall;
+      e.root.scale.y=e.scale;
       for (const m of e.materials)
-        m.opacity = Math.max(0, 1 - Math.max(0, t - 0.3) / 0.7);
+        m.opacity = Math.max(0, 1 - Math.max(0,t-.58)/.42);
       e.root.visible = e.life > 0;
     }
   }

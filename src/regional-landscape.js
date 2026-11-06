@@ -109,7 +109,7 @@ export class RegionalLandscape {
         continue;
       entries.push({
         x,
-        z,
+        z,offset,
         y: this.game.groundHeight(x, z) + offset,
         angle: random() * Math.PI * 2,
         scale: 0.7 + random() * 0.65,
@@ -120,6 +120,7 @@ export class RegionalLandscape {
   }
   setRegion(id) {
     this.region = id;
+    for(const b of this.batches)if(b.region===id)for(const p of b.entries){p.y=this.game.groundHeight(p.x,p.z)+(p.offset||0);p.reserved=!b.floating&&this.game.world.topology?.layout.reserved(p.x,p.z);}
     for (const b of this.batches) {
       b.mesh.visible = b.region === id;
       b.mesh.count =
@@ -149,7 +150,7 @@ export class RegionalLandscape {
             (b.floating ? Math.sin(this.time * 0.12 + p.phase) * 0.08 : 0),
           0,
         );
-        this.dummy.scale.setScalar(p.scale);
+        this.dummy.scale.setScalar(p.reserved?0:p.scale);
         this.dummy.updateMatrix();
         b.mesh.setMatrixAt(i, this.dummy.matrix);
       }

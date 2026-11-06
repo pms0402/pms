@@ -47,7 +47,9 @@
     "test:follow-interaction": "node tests/follow-interaction-smoke.mjs",
     "benchmark:optimization": "node scripts/optimization-benchmark.mjs",
     "test:trackpad": "node tests/trackpad-smoke.mjs",
-    "test:silhouettes": "node tests/silhouettes-smoke.mjs"
+    "test:silhouettes": "node tests/silhouettes-smoke.mjs",
+    "test:topology": "node tests/topology-smoke.mjs",
+    "test:topology-mobile": "node tests/topology-mobile-smoke.mjs"
   },
   "dependencies": {
     "@fontsource-variable/noto-sans-kr": "5.2.10",

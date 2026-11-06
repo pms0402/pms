@@ -74,7 +74,7 @@ export class SideAreaSystem {
     if (this.portal || this.active) return false;
     const p = g.spawnPosition(7, 11),
       group = new THREE.Group();
-    group.position.set(p.x, g.groundHeight(p.x, p.z) + 1.2, p.z);
+    group.position.set(p.x, g.groundHeight(p.x,p.z,p.y) + 1.2, p.z);
     group.add(new THREE.Mesh(this.geometry.gate, this.materials.glow));
     g.scene.add(group);
     const options = ["ancient", "treasure", "trial", "curse", "dungeon"];
