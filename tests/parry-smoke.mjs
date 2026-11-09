@@ -47,6 +47,9 @@ try {
       g.player.rotation.y = 0;
       return g;
     };
+    // Isolate parry damage at the original fixture origin; native arena transitions
+    // and F parry are verified separately by boss-arena-smoke.mjs.
+    window.fixtureBoss = g => { const boss=g.spawnBoss();g.bossArena.close();g.invulnerable=0;return boss; };
     window.fixture();
   });
   await p.keyboard.press("f");
@@ -241,7 +244,7 @@ try {
   near(cap.actual, 24 * 99);
   const bossCounter = await p.evaluate(() => {
     const g = window.fixture(),
-      b = g.spawnBoss();
+      b = window.fixtureBoss(g);
     b.group.position.set(0, 0, 2);
     b.hp = b.maxHp = 10000;
     g.parry.counterTime = 2;
@@ -282,7 +285,7 @@ try {
     for (let stage = 1; stage <= 6; stage++) {
       const g = window.fixture();
       g._state.stage = stage;
-      const b = g.spawnBoss();
+      const b = window.fixtureBoss(g);
       b.group.position.set(0, 0, 1.9);
       const hazard = g.bossSystem.zone(
         g.player.position,
@@ -382,7 +385,7 @@ try {
   );
   const projectileDeath = await p.evaluate(() => {
     const g = window.fixture(),
-      b = g.spawnBoss();
+      b = window.fixtureBoss(g);
     b.group.position.set(0, 0, 2);
     b.hp = 1;
     g.stats.relics = ["shockwave"];
@@ -560,7 +563,7 @@ try {
     g.stats.spells = {};g.actions.syncSlots();
     g.invulnerable = 0;
     g.player.rotation.y = 0;
-    const b = g.spawnBoss();
+    const b = g.spawnBoss();g.bossArena.close();g.invulnerable=0;
     b.group.position.set(0, 0, 1.9);
     b.mode = "charge";
     b.chargeDirection.set(0, 0, -1);

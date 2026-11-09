@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import {rigMaterial} from "./monster-motion.js";
+import {hiddenBindGeometry} from './boss-motion.js';
 
 /** Cosmetic copies only: defeated actors leave queries, rewards and pools immediately. */
 export class DeathPresentation {
@@ -35,6 +36,7 @@ export class DeathPresentation {
     if (!entry) return;
     if (entry.key !== key) {
       entry.materials.forEach((m) => m.dispose());
+      entry.geometries?.forEach(g=>g.dispose());entry.geometries=[];
       entry.materials = [];
       entry.root.clear();
       entry.pose=Array.from({length:4},()=>new THREE.Vector4());
@@ -44,12 +46,15 @@ export class DeathPresentation {
       source.traverse((o) => {
         if (o.isMesh) original.push(o);
       });
+      if(enemy.bossArmament){const extra=enemy.bossArmament.clone(true);extra.position.set(0,0,0);extra.rotation.set(0,0,0);extra.scale.setScalar(1);copy.add(extra);enemy.bossArmament.traverse(o=>{if(o.isMesh)original.push(o);});}
       let index = 0;
       copy.traverse((o) => {
         if (!o.isMesh) return;
         const real = original[index++],
           posed = this.game.enemyRenderer?.cpuParts.get(real);
         if (posed) o.geometry = posed.original;
+        if(enemy.hiddenBoss){o.geometry=hiddenBindGeometry(enemy,real).clone();entry.geometries.push(o.geometry);}
+        else if(real.geometry.userData.bossPresence){o.geometry=real.geometry.clone();entry.geometries.push(o.geometry);}
         o.visible = true;
         o.castShadow = false;
         o.receiveShadow = true;
@@ -76,6 +81,7 @@ export class DeathPresentation {
     }
     entry.boss = enemy.kind === 4;
     entry.total = entry.life = entry.boss ? 1.15 : .95;
+    entry.finish=enemy.archetype;entry.total=entry.life=entry.boss?1.45:.95;
     const pose=enemy.motion?.pose||new Float32Array(16);for(let i=0;i<4;i++)entry.pose[i].fromArray(pose,i*4);
     entry.baseDeath=entry.pose[3].z;entry.visualY=enemy.visual?.position.y||0;entry.initialX=enemy.visual?.rotation.x||0;entry.initialZ=enemy.visual?.rotation.z||0;entry.copy.position.y=entry.visualY;
     entry.pose[3].w=1;entry.pose[0].y=0;entry.pose[0].z=0;entry.pose[0].w=0;entry.pose[1].x=0;
@@ -108,6 +114,11 @@ export class DeathPresentation {
       e.root.rotation.x = e.initialX+(e.fallX*1.2-e.initialX)*fall;
       e.root.rotation.z = e.initialZ+(e.fallZ*.85-e.initialZ)*fall;e.copy.position.y=e.visualY*(1-fall)+.08*fall;
       e.root.scale.y=e.scale;
+      if(e.boss){
+        if(['reaper','storm','observer'].includes(e.finish)){e.root.rotation.x=e.initialX+e.fallX*.35*fall;e.root.rotation.z=e.initialZ+e.fallZ*.22*fall;e.copy.position.y=e.visualY+Math.sin(t*Math.PI)*.6;}
+        else if(e.finish==='plague'||e.finish==='primordial'){e.root.rotation.x=e.initialX+e.fallX*.55*fall;e.copy.position.y=e.visualY-fall*.45;}
+        else if(e.finish==='warden'||e.finish==='king'){e.pose[3].z=Math.min(1,t*1.8);e.root.rotation.x=e.initialX+e.fallX*.65*fall;}
+      }
       for (const m of e.materials)
         m.opacity = Math.max(0, 1 - Math.max(0,t-.58)/.42);
       e.root.visible = e.life > 0;
@@ -131,7 +142,7 @@ export class DeathPresentation {
   }
   dispose() {
     this.reset();
-    for (const e of this.slots) e.materials.forEach((m) => m.dispose());
+    for (const e of this.slots) {e.materials.forEach((m) => m.dispose());e.geometries?.forEach(g=>g.dispose());}
     this.root.removeFromParent();
     this.slots.length = 0;
   }

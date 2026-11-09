@@ -354,7 +354,7 @@ try {
     g._state.hp = 60;
     const enemy = g.spawnEnemy(7, 7, 0, { mutations: ["explosive"] }),
       boss = g.spawnBoss();
-    boss.hp -= 20;
+    boss.hp -= 20;g.bossArena.close(); // Isolate room suspension from the separately tested boss arena.
     const pos = g.player.position.clone(),
       original = {
         enemies: [...g.enemies],
@@ -556,7 +556,7 @@ try {
         g.sideAreas.hidden.prepare(b);
         g.player.position.set(0, 0, 0);
         g.invulnerable = 0;
-        for (let i = 0; i < 14; i++) g.bossSystem.updateEffects(0.1);
+        for (let i = 0, steps=Math.ceil(g.bossSystem.zones[0].warning/.1); i < steps; i++) g.bossSystem.updateEffects(0.1);
         const safe = g._state.hp;
         g.player.position.set(7, 0, 0);
         g.invulnerable = 0;
@@ -579,6 +579,7 @@ try {
         record: g.story.progress.defeated.includes(id),
         clean: g.bossSystem.zones.length === 0 && g.bossPhases.boss === null,
       };
+      g.bossArena.skip();g.bossArena.close({collect:true});
       g.sideAreas.claim();
       out[id].loot = g.equipment.choices.map((i) => ({
         set: i.setId,

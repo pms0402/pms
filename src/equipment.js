@@ -272,7 +272,7 @@ export class EquipmentSystem {
     }
   }
   nextReward() {
-    if (this.game._state.phase !== "playing" || !this.rewardQueue.length)
+    if (this.game.bossArena?.rewardBlocked || this.game._state.phase !== "playing" || !this.rewardQueue.length)
       return false;
     this.choices = this.rewardQueue.shift();
     this.game._state.phase = "equipment";

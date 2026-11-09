@@ -1,4 +1,6 @@
 import * as THREE from "three";
+import {bossJointOffset,BOSS_JOINT_GLSL} from "./boss-joints.js";
+const bossOffset=new Float32Array(3);
 /** Animation tags are baked with the original high-quality geometry, never into colliders. */
 export function monsterJoint(kind, x, y, z) {
   const side = x < 0 ? 0 : 1,
@@ -127,6 +129,7 @@ export function jointAngles(kind, j, pose, out) {
       x-=(pose[13]||0)*(leg?.2:.4);
     }
   }
+  if(pose[15]&&pose[12]){bossJointOffset(j,pose,bossOffset);x+=bossOffset[0];y+=bossOffset[1];z+=bossOffset[2];}
   out[0] = x;
   out[1] = y;
   out[2] = z;
@@ -135,6 +138,7 @@ export function jointAngles(kind, j, pose, out) {
 export const MONSTER_GLSL = `
 attribute float vrJoint;attribute float vrKind;attribute vec3 vrPivot;attribute vec4 vrBend;
 attribute vec4 vrPose0;attribute vec4 vrPose1;attribute vec4 vrPose2;attribute vec4 vrPose3;
+${BOSS_JOINT_GLSL}
 vec3 vrAngles(){float j=vrJoint,k=vrKind,side=mod(j,2.)<.5?-1.:1.;float x=0.,y=0.,z=0.;
 if(j>.5&&j<1.5){x=vrPose1.w*.025-vrPose0.w*.13+vrPose0.z*.12;y=vrPose1.z*.22;}
 else if(j>7.5){y=sin(vrPose0.x+1.)*(.12+vrPose0.y*.2);}
@@ -145,7 +149,7 @@ if(quad&&leg)z=side*max(0.,-wave)*vrPose0.y*.07;}
 if(vrPose3.w>.5){float impact=vrPose2.w,death=vrPose3.z;bool leg=j>3.5||(k==6.&&j>1.5);
 if(j>.5&&j<1.5){x+=vrPose2.x*.2-impact*.28-death*.35;y+=vrPose2.z*impact*.1;}
 else if(j>1.5&&j<7.5){if(leg){z-=x*sin(vrPose1.z)*.65;x*=cos(vrPose1.z);x-=vrPose2.x*.4+death*.48;z+=vrPose2.y*.2;}else{x+=cos(vrPose2.z)*impact*.5+death*.65;z+=side*death*.35;float style=vrPose3.x;x-=vrPose1.x*(style==2.?.5:style==4.?.3:0.);y+=side*vrPose0.z*(style==5.?.5:style==1.?.2:0.);}x-=vrPose3.y*(leg?.2:.4);}}
-return vec3(x,y,z);}
+return vec3(x,y,z)+(vrPose3.w>.5&&vrPose3.x>.5?vrBoss(j):vec3(0.));}
 vec3 vrRotate(vec3 p,vec3 a){float s=sin(a.x),c=cos(a.x);p=vec3(p.x,c*p.y-s*p.z,s*p.y+c*p.z);s=sin(a.y);c=cos(a.y);p=vec3(c*p.x+s*p.z,p.y,-s*p.x+c*p.z);s=sin(a.z);c=cos(a.z);return vec3(c*p.x-s*p.y,s*p.x+c*p.y,p.z);}
 `;
 export function secondaryAngle(kind,j,pose){

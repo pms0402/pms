@@ -42,6 +42,7 @@ export function segmentEntry(a, b, solid, padding = 0) {
   return near <= 1 && far >= 0 ? Math.max(0, near) : Infinity;
 }
 export function combatSolids(game) {
+  if(game.bossArena?.active)return game.bossArena.layout.walls();
   if (game.training?.active) return game.training.colliders;
   if (game.sideAreas?.active) return ROOM_COMBAT_SOLIDS;
   return game.world?.colliders || WORLD_COLLIDERS;
@@ -70,7 +71,7 @@ export function combatLineClear(game, a, b,absolute=false) {
   if (!a || !b || !Number.isFinite(a.x + a.z + b.x + b.z)) return false;
   if (clearFraction(game, a, b,.04,absolute) < 1 - 1e-8) return false;
   if (
-    game.sideAreas?.active ||
+    (game.sideAreas?.active&&!game.bossArena?.active) ||
     game.training?.active ||
     game.camp?.active ||
     !game.groundHeight
@@ -81,7 +82,7 @@ export function combatLineClear(game, a, b,absolute=false) {
     const t = i / count,
       y = (a.y || 0) * (1 - t) + (b.y || 0) * t + (absolute?0:1.2);
     const x=a.x+(b.x-a.x)*t,z=a.z+(b.z-a.z)*t;
-    if ((game.world?.topology?.layout.ground(x,z)??game.groundHeight(x,z)) > y)
+    if (((game.bossArena?.active?game.bossArena.layout:game.world?.topology?.layout)?.ground(x,z)??game.groundHeight(x,z)) > y)
       return false;
   }
   return true;
@@ -106,11 +107,11 @@ export function clipAimPoint(game, origin, target, out = new THREE.Vector3()) {
   out.y = game.groundHeight?.(out.x,out.z,origin.y) || 0;
   return out;
 }
-export function bodyHeight(enemy){return Math.max(.75,(enemy.group?.scale?.y||enemy.size||1)*(enemy.kind===4?2.3:[1,5,6,7].includes(enemy.kind)?1.2:1.8));}
+export function bodyHeight(enemy){if(Number.isFinite(enemy.hurtHeight))return Math.max(.75,enemy.hurtHeight);return Math.max(.75,(enemy.group?.scale?.y||enemy.size||1)*(enemy.kind===4?2.3:[1,5,6,7].includes(enemy.kind)?1.2:1.8));}
 export function swordHeightHit(origin,enemy,padding=.55){const y=origin.y+1.2,p=enemy.group.position;return y+padding>=p.y+.1&&y-padding<=p.y+bodyHeight(enemy);}
 export function projectileTarget(game,a,b,out=new THREE.Vector3()){
   let fraction=clearFraction(game,a,b,.10,true);const count=Math.max(1,Math.ceil(a.distanceTo(b)/.25));
-  if(!game.training?.active&&!game.sideAreas?.active&&!game.camp?.active)for(let i=1;i<=count;i++){const t=i/count;if(t>=fraction)break;const x=a.x+(b.x-a.x)*t,z=a.z+(b.z-a.z)*t;if((game.world?.topology?.layout.ground(x,z)??game.groundHeight(x,z))>=a.y+(b.y-a.y)*t-.08){fraction=(i-1)/count;break;}}
+  if(!game.training?.active&&(!game.sideAreas?.active||game.bossArena?.active)&&!game.camp?.active)for(let i=1;i<=count;i++){const t=i/count;if(t>=fraction)break;const x=a.x+(b.x-a.x)*t,z=a.z+(b.z-a.z)*t;if(((game.bossArena?.active?game.bossArena.layout:game.world?.topology?.layout)?.ground(x,z)??game.groundHeight(x,z))>=a.y+(b.y-a.y)*t-.08){fraction=(i-1)/count;break;}}
   return out.copy(a).lerp(b,Math.max(0,fraction-(fraction<1?.002:0)));
 }
 export function hurtRadius(enemy) {

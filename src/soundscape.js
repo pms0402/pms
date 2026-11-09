@@ -28,6 +28,18 @@ export const SOUND_PROFILES = Object.freeze({
   combo: [620, 1240, 0.18, 0.075, 0.01, "sine", 0.2],
   ui: [640, 490, 0.075, 0.045, 0, "sine", 0.045],
   step: [85, 45, 0.045, 0.025, 0.04, "triangle", 0.22],
+  "boss-enter":[73,36,.7,.14,.13,"triangle",.4],
+  "boss-phase":[110,42,.55,.14,.16,"sawtooth",.45],
+  "arena-collapse":[72,27,.38,.12,.25,"triangle",.25],
+  "boss-victory":[330,660,.75,.12,.02,"sine",.6],
+  "boss-motif":[55,41,.25,.035,0,"sine",.3],
+  "boss-stone":[90,28,.28,.11,.2,"triangle",.3],
+  "boss-cannon":[62,25,.4,.12,.3,"triangle",.3],
+  "boss-venom":[310,70,.35,.065,.15,"sawtooth",.4],
+  "boss-summon":[165,220,.42,.08,.02,"sine",.4],
+  "boss-thunder":[100,28,.23,.12,.3,"square",.3],
+  "boss-rift":[660,140,.32,.075,.015,"sine",.3],
+  "boss-abyss":[49,25,.5,.1,.1,"triangle",.4],
   boss: [95, 38, 0.4, 0.15, 0.17, "triangle", 0.3],
 });
 const REGIONAL = {
@@ -177,7 +189,7 @@ export class Soundscape {
       this.game.muted ||
       !c ||
       c.state !== "running" ||
-      this.effectsVolume <= 0
+      (type==='boss-motif'?this.backgroundVolume:this.effectsVolume) <= 0
     )
       return false;
     const p = SOUND_PROFILES[type] || SOUND_PROFILES.ui,
@@ -274,7 +286,7 @@ export class Soundscape {
       gain.gain.setValueAtTime(Math.max(0.15, 1 - d / 35), now);
     } else gain.gain.setValueAtTime(1, now);
     gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
-    output.connect(this.effects);
+    output.connect(type==='boss-motif'?this.background:this.effects);
     const voice = {
       nodes,
       sources,
@@ -325,7 +337,7 @@ export class Soundscape {
         }
       } else this.stepDistance = 0;
     }
-    const region = this.game.camp?.active
+    const region = this.game.bossArena?.active ? this.game.bossArena.definition.region : this.game.camp?.active
       ? "sanctum"
       : this.game.sideAreas?.active
         ? "void"

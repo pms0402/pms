@@ -124,6 +124,10 @@ export class HiddenBossSystem {
     e.visual.visible = false;
     e.specialModel = this.model(id);
     e.group.add(e.specialModel);
+    e.group.updateWorldMatrix(true,true);
+    const bounds=new THREE.Box3(),partBounds=new THREE.Box3();
+    e.specialModel.traverseVisible(part=>{if(!part.isMesh)return;part.geometry.computeBoundingBox();partBounds.copy(part.geometry.boundingBox).applyMatrix4(part.matrixWorld);bounds.union(partBounds);});
+    e.hurtHeight=Math.max(.75,bounds.max.y-bounds.min.y);
     e.mode = "chase";
     e.hiddenTimer = 1.5;
     e.hiddenAction = 0;
@@ -133,7 +137,7 @@ export class HiddenBossSystem {
     g.bossDefeated = false;
     g.bossSystem.boss = e;
     g.bossSystem.color = info.color;
-    g.bossPhases.begin(e);
+    g.bossPhases.begin(e);g.bossArena?.begin(e);
     this.boss = e;
     g.callbacks.onBoss?.(g.state.boss);
     return e;
@@ -176,12 +180,13 @@ export class HiddenBossSystem {
       distance = direction.length();
     direction.normalize();
     if (e.specialModel && e.hiddenBoss !== "king") {
-      e.specialModel.rotation.y = t * 0.25;
+      e.specialModel.rotation.y = 0;
       e.specialModel.position.y = Math.sin(t * 2) * 0.2;
     }
     if (e.hiddenBoss === "king" && !e.hiddenPending && distance > 4) {
+      const step=g.bossArena?.active?g.bossArena.terrain.steer(e.group.position,direction.x*distance,direction.z*distance,1.4,0):direction;
       e.group.position.addScaledVector(
-        direction,
+        new THREE.Vector3(step.x,0,step.z),
         e.speed * (e.slowTime > 0 ? 0.65 : 1) * dt,
       );
       e.group.rotation.y = Math.atan2(direction.x, direction.z);
@@ -200,14 +205,14 @@ export class HiddenBossSystem {
         `${e.name} 근접`,
         e,
       );
-    g.sideAreas.resolve(e.group.position, 1.5);
+    g.resolvePosition(e.group.position, 1.4,7.5);
   }
   prepare(e) {
     const g = this.game,
       p = g.player.position.clone(),
       phase = e.combatPhase,
       d = g.bossStats().damage;
-    e.hiddenAction++;
+    e.hiddenAction++;e.visualCast=.35;
     const dir = p.clone().sub(e.group.position).setY(0).normalize();
     e.aimDirection.copy(dir);
     if (e.hiddenBoss === "king") {
@@ -252,7 +257,7 @@ export class HiddenBossSystem {
             Math.cos(e.hiddenAction * 2) * 6,
           ),
         );
-      g.sideAreas.resolve(dest, 2);
+      const rift=g.bossArena?.blinkTarget();if(rift)dest.copy(rift);g.resolvePosition(dest, 1.4,7.5);
       if (dest.distanceTo(p) < 4)
         dest.copy(p).setY(0).normalize().multiplyScalar(-7);
       this.zone(dest, 2, 1.2, 0.18, 0, "blink");
@@ -262,15 +267,15 @@ export class HiddenBossSystem {
       if (e.hiddenAction % 2 === 0 || phase === 3) {
         this.zone(
           new THREE.Vector3(),
-          12,
-          1.35,
+          g.bossArena?.active ? 18 : 12,
+          g.bossArena?.active ? 1.65 : 1.35,
           0.18,
           d * 1.1,
           "primordial",
           4,
         );
         e.hiddenPending = { type: "annulus" };
-        e.hiddenTimer = 1.35;
+        e.hiddenTimer = g.bossArena?.active ? 1.65 : 1.35;
       } else {
         for (const side of [-1, 1])
           this.zone(
@@ -287,6 +292,7 @@ export class HiddenBossSystem {
     }
   }
   resolve(e) {
+    e.visualAttack=.36;this.game.bossArena?.attack(e.hiddenPending?.type);
     const g = this.game,
       d = g.bossStats().damage,
       phase = e.combatPhase,

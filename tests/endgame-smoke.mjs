@@ -176,6 +176,7 @@ try {
       };
       g.hitEnemy(b, 1e8, undefined, "explosion");
       result.cleaned = g.bossSystem.zones.length === 0 && !g.bossPhases.boss;
+      g.bossArena.skip(); // Skip the short victory cue before reward assertions.
       g.equipment.nextReward();
       return result;
     }, type);
@@ -303,6 +304,7 @@ try {
     g.regionSystem.setRegion("throne");
     const b = g.spawnBoss();
     g.hitEnemy(b, 1e12, undefined, "explosion");
+    g.bossArena.skip();
     g.equipment.nextReward();
     document.querySelector('[data-equipment-choice="skip"]').click();
     g._state.stageTime = 120;

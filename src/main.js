@@ -2,6 +2,7 @@ import {attr as writeAttr,style as writeStyle,text as writeText} from './dom-upd
 import {createInteractionUi} from './interaction-ui.js';
 import './interaction-ui.css';
 import './style.css';
+import {updateBossArenaUI} from './boss-arena-ui.js';
 import './quality-ui.css';
 import './action-ui.css';
 import {createTacticalUi} from './tactical-ui.js';
@@ -88,7 +89,7 @@ $('#app').innerHTML = `
       <button class="nav-link" data-nav="history">런 기록 <span class="nav-count" id="history-count">${history.length.toString().padStart(2, '0')}</span></button>
       <button class="nav-link" data-nav="permanent">영구 강화</button>
     </nav>
-    <div class="header-actions"><span class="build-label"><i></i> BUILD YOUR LEGEND <b>v0.22.0</b></span><span class="header-divider"></span><button id="sound-toggle" class="icon-button" title="사운드 켜기" aria-label="사운드 켜기">${icon('muted')}</button><button id="settings" class="icon-button" title="설정" aria-label="설정">${icon('settings')}</button></div>
+    <div class="header-actions"><span class="build-label"><i></i> BUILD YOUR LEGEND <b>v0.24.0</b></span><span class="header-divider"></span><button id="sound-toggle" class="icon-button" title="사운드 켜기" aria-label="사운드 켜기">${icon('muted')}</button><button id="settings" class="icon-button" title="설정" aria-label="설정">${icon('settings')}</button></div>
   </header>
   <main class="page">
     <section class="page-intro">
@@ -171,7 +172,7 @@ function showToast(message) {
 }
 
 function update(state) {
-  latest = state;
+  latest = state;updateBossArenaUI(game,state);
   document.body.classList.toggle('boss-active',!!state.boss?.alive);document.body.classList.toggle('reduced-effects',accessibility().effectIntensity===0);
   const cue=state.boss?.alive?`${state.stage}:${state.boss.archetype}:${state.boss.combatPhase}`:'';
   if(cue&&lastBossCue&&cue!==lastBossCue){game.view.emphasize();$('#boss-hud').classList.add('phase-cue');clearTimeout(bossCueTimeout);bossCueTimeout=setTimeout(()=>$('#boss-hud').classList.remove('phase-cue'),650);}lastBossCue=cue;
@@ -528,6 +529,8 @@ function showSettings() {
   for (const [selector,key] of [['data-camera-shake','cameraShake'],['data-parry-effects','effectIntensity']]) document.querySelectorAll(`[${selector}]`).forEach(b=>b.onclick=()=>{prefs[key]=Number(b.getAttribute(selector));game.setAccessibility(accessibility());store('voidrun.preferences',prefs);document.querySelectorAll(`[${selector}]`).forEach(x=>{const on=Number(x.getAttribute(selector))===prefs[key];x.classList.toggle('selected',on);x.setAttribute('aria-pressed',String(on));});});
   $('#modal').insertAdjacentHTML('beforeend', `<div class="setting-row audio-mix"><div><h3>효과음 음량</h3><p>검·마법·피격·UI</p></div><label><input type="range" min="0" max="1" step="0.05" id="effects-volume" aria-label="효과음 음량" value="${game.soundscape.effectsVolume}"><output id="effects-volume-value">${Math.round(game.soundscape.effectsVolume*100)}%</output></label></div><div class="setting-row audio-mix"><div><h3>배경·환경음 음량</h3><p>지역별 바람과 낮은 화음</p></div><label><input type="range" min="0" max="1" step="0.05" id="background-volume" aria-label="배경 환경음 음량" value="${game.soundscape.backgroundVolume}"><output id="background-volume-value">${Math.round(game.soundscape.backgroundVolume*100)}%</output></label></div>`);
   for(const [id,key] of [['effects-volume','effectsVolume'],['background-volume','backgroundVolume']]) $('#'+id).addEventListener('input',e=>{prefs[key]=Number(e.target.value);$('#'+id+'-value').textContent=Math.round(prefs[key]*100)+'%';game.setAudioVolumes(prefs.effectsVolume??.7,prefs.backgroundVolume??.3);store('voidrun.preferences',prefs);});
+  $('#modal').insertAdjacentHTML('beforeend',`<div class="setting-row"><div><h3>보스 등장 · 전환 연출</h3><p>짧은 이름·카메라 연출. 이동·공격·Enter로 건너뜁니다.</p></div><button id="setting-boss-cinematics" class="toggle ${prefs.bossCinematics!==false?'on':''}" role="switch" aria-label="보스 연출" aria-checked="${prefs.bossCinematics!==false}"><span></span></button></div>`);
+  $('#setting-boss-cinematics').onclick=()=>{prefs.bossCinematics=prefs.bossCinematics===false;game.bossArena.cinematics=prefs.bossCinematics;store('voidrun.preferences',prefs);$('#setting-boss-cinematics').classList.toggle('on',prefs.bossCinematics);$('#setting-boss-cinematics').setAttribute('aria-checked',String(prefs.bossCinematics));};
   actionUi?.settings();
   const canReset = ['menu', 'over', 'won', 'camp'].includes(game.state.phase);
   $('#modal').insertAdjacentHTML('beforeend', `<div class="reset-settings"><h3>게임 저장 데이터 초기화</h3><p>보유 골드·영구 강화·캐릭터와 무기 해금·런 기록을 모두 삭제합니다. 사운드와 그래픽 설정은 유지됩니다.</p><button class="secondary-button reset-danger" id="reset-save" ${canReset ? '' : 'disabled'}>저장 데이터 초기화</button>${canReset ? '' : '<p>진행 중인 런을 종료한 뒤 초기화할 수 있습니다.</p>'}</div>`);
@@ -725,7 +728,7 @@ try {
   game.setPermanentBonuses(getPermanentBonuses(progress));
   game.setViewMode(VIEW_MODES.includes(prefs.viewMode)?prefs.viewMode:'third');
   game.setPlaybackSpeed([1, 2, 3].includes(prefs.speed) ? prefs.speed : 1);
-  game.setAccessibility(accessibility());
+  game.setAccessibility(accessibility());game.bossArena.cinematics=prefs.bossCinematics!==false;
   game.setAudioVolumes(Number.isFinite(prefs.effectsVolume)?prefs.effectsVolume:.7,Number.isFinite(prefs.backgroundVolume)?prefs.backgroundVolume:.3);
   game.setQuality(prefs.quality); syncSound(); syncRisk(); syncLoadout();
   game.setRiskPact?.(prefs.risk);

@@ -46,6 +46,7 @@ export class BossPhases {
     if (phase <= boss.combatPhase) return;
     for (let next = boss.combatPhase + 1; next <= phase; next++)
       this.transitions.push(next);
+    this.game.bossArena?.phase(boss,phase);
     boss.combatPhase = phase;boss.recoveryTime=0;boss.chainRemaining=0;
     boss.phaseCooldown = 2;
     if (boss.hiddenBoss) { boss.hiddenPending = null; boss.hiddenTimer = 1.5; }
@@ -81,8 +82,9 @@ export class BossPhases {
           r.time = 0.45;
         }
       } else {
-        boss.group.position.addScaledVector(r.direction, dt * 24);
-        this.game.resolvePosition?.(boss.group.position, 1.4);
+        const before=boss.group.position.clone();boss.group.position.addScaledVector(r.direction, dt * 24);
+        if(this.game.bossArena?.crush(before,boss.group.position,boss))return true;
+        this.game.resolvePosition?.(boss.group.position, 1.4,7.5);
         if (boss.group.position.distanceTo(this.game.player.position) < 2.3)
           this.game.takeDamage(
             this.game.bossStats().damage,
@@ -204,7 +206,7 @@ export class BossPhases {
         i < (final ? 6 : 4) && g.enemies.length < 160 && sys.summoned < 18;
         i++
       ) {
-        const pos = g.spawnPosition(9, 13),
+        const pos = g.bossArena?.minionPosition(i)||g.spawnPosition(9, 13),
           child = g.spawnEnemy(pos.x, pos.z, [2, 5, 3][i % 3], {
             minion: true,
           });

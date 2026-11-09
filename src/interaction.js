@@ -11,6 +11,7 @@ export function interactionTarget(game) {
       : null;
   }
   if (phase !== "playing" || game.camp.active) return null;
+  if(game.bossArena?.active)return game.bossArena.interactionTarget();
   const side = game.sideAreas,
     p = game.player.position,
     a = side.active;

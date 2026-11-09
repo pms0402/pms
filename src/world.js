@@ -70,11 +70,11 @@ export function createTerrainWorld(game) {
  const world={ground,tint,white,art,setQuality:art.setQuality,structures:STRUCTURES,hills:HILLS,legacyResolve:resolveTerrainMovement};
  const topology=new ExplorableTerrain(game,world);world.topology=topology;
  world.height=(x,z,y)=>topology.height(x,z,y);world.isWalkable=(x,z,r,y)=>topology.isWalkable(x,z,r,y);
- world.resolve=(p,r,h)=>topology.resolve(p,r,h);world.steer=(...args)=>topology.steer(...args);
+ world.resolve=(p,r,h)=>topology.resolve(p,r,h);world.steer=(...args)=>(game.bossArena?.active?game.bossArena.terrain:topology).steer(...args);
  world.updateNavigation=(p,time)=>topology.updateNavigation(p,time);
  world.setRegion=(id,variant)=>topology.activate(id,variant);
  world.projectReachable=(p,r,h)=>topology.project(p,r,h);
  Object.defineProperty(world,'colliders',{get:()=>topology.layout.walls()});
- world.updateOcclusion=(p,c,dt,fade=true)=>{updateOcclusion(p,c,dt,fade);topology.renderer.fade(p,game.view?.mode,dt);};
+ world.updateOcclusion=(p,c,dt,fade=true)=>{if(game.bossArena?.active){game.bossArena.renderer.fade(p,game.view?.mode,dt);return;}updateOcclusion(p,c,dt,fade);topology.renderer.fade(p,game.view?.mode,dt);};
  return world;
 }

@@ -39,7 +39,7 @@ export class TacticalAI {
       dz = z - e.group.position.z,
       d = Math.hypot(dx, dz);
     if ((d > 0.1||Math.abs((g.objectives?.targetFor(e)?.y??g.player.position.y??0)-(e.group.position.y||0))>1.5) && e.speed > 0) {
-      if (g.world && !g.sideAreas.active && !g.training?.active) {
+      if (g.world && (!g.sideAreas.active||g.bossArena?.active) && !g.training?.active) {
         const steer = g.world.steer(
           e.group.position,
           dx,

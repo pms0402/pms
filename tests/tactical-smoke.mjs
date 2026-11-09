@@ -380,6 +380,7 @@ try {
       g.tick(0.01);
       const summoned = g.bossSpawned;
       g.hitEnemy(g.boss, g.boss.maxHp * 1000);
+      g.bossArena.skip(); // Skip the short victory cue before reward assertions.
       g.equipment.nextReward();
       document.querySelector('[data-equipment-choice="skip"]')?.click();
       const advanced =

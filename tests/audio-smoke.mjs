@@ -111,6 +111,7 @@ try {
       result.mutedBlocked &&
       result.effectsZero,
   );
+  await p.evaluate(()=>window.__game.view.release()); // Native audio fixture ends pointer capture before settings clicks.
   await p.locator("#pause-button").click();
   await p.locator("#pause-settings").click();
   for (const [id, v] of [

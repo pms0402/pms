@@ -297,8 +297,8 @@ export class ViewController {
     const t = cameraArmFraction(
       this.anchor,
       position,
-      training?g.training.cameraSolids:room ? ROOM_SOLIDS : camp ? CAMP_SOLIDS : g.world?.topology?.cameraSolids()||CAMERA_SOLIDS,
-      (x, z) => training||room||camp?0:g.world?.topology?.layout.ground(x,z)??g.groundHeight(x,z),
+      g.bossArena?.active?g.bossArena.terrain.cameraSolids():training?g.training.cameraSolids:room ? ROOM_SOLIDS : camp ? CAMP_SOLIDS : g.world?.topology?.cameraSolids()||CAMERA_SOLIDS,
+      (x, z) => g.bossArena?.active?g.bossArena.layout.ground(x,z):training||room||camp?0:g.world?.topology?.layout.ground(x,z)??g.groundHeight(x,z),
       0.24,
       training?17:room ? 12 : camp ? 18 : Infinity,
     );

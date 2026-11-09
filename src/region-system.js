@@ -150,14 +150,17 @@ export class RegionSystem {
     return !!this.spawnHazard('blink', destination, enemy);
   }
 
-  update(dt) {
-    if (this.disposed || this.game._state.phase !== 'playing') return;
-    dt = Math.max(0, Math.min(.1, Number(dt) || 0)); this.time += dt;
+  updateStatuses(dt) {
     this.slowRemaining = Math.max(0, this.slowRemaining - dt);
     if (this.poisonRemaining > 0) {
       this.poisonRemaining = Math.max(0, this.poisonRemaining - dt); this.poisonTick -= dt;
       if (this.poisonTick <= 0) { this.poisonTick += .9; this.hurt(.14, this.game.player.position, '오염된 숲 · 잔류 독'); }
     }
+  }
+  update(dt) {
+    if (this.disposed || this.game._state.phase !== 'playing') return;
+    dt = Math.max(0, Math.min(.1, Number(dt) || 0)); this.time += dt;
+    this.updateStatuses(dt);
     if (['volcano', 'forest'].includes(this.region.id)) {
       this.hazardTimer -= dt * (this.game.abyssConstraint?.hazards || 1);
       if (this.hazardTimer <= 0) { this.hazardTimer = this.region.id === 'volcano' ? 14 : 18; this.spawnHazard(this.region.id === 'volcano' ? 'lava' : 'poison', this.game.player.position); }

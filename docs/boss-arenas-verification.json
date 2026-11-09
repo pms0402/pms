@@ -1,0 +1,1548 @@
+{
+  "version": "0.24.0",
+  "baseCommit": "f07193ead7b3aee869479efa06e475f52d0a1628",
+  "unit": {
+    "passed": 281,
+    "failed": 0
+  },
+  "browserSuites": [
+    {
+      "suite": "action",
+      "exitCode": 0,
+      "seconds": 63.094,
+      "pass": "regressions"
+    },
+    {
+      "suite": "action-encounters",
+      "exitCode": 0,
+      "seconds": 33.627,
+      "pass": "regressions"
+    },
+    {
+      "suite": "articulation",
+      "exitCode": 0,
+      "seconds": 60.864,
+      "pass": "regressions"
+    },
+    {
+      "suite": "audio",
+      "exitCode": 0,
+      "seconds": 30.152,
+      "pass": "final"
+    },
+    {
+      "suite": "boss-arena",
+      "exitCode": 0,
+      "seconds": 101.831,
+      "pass": "release"
+    },
+    {
+      "suite": "boss-arena-mobile",
+      "exitCode": 0,
+      "pass": "completion"
+    },
+    {
+      "suite": "builds",
+      "exitCode": 0,
+      "seconds": 223.402,
+      "pass": "final"
+    },
+    {
+      "suite": "characters",
+      "exitCode": 0,
+      "seconds": 24.732,
+      "pass": "regressions"
+    },
+    {
+      "suite": "endgame",
+      "exitCode": 0,
+      "seconds": 151.901,
+      "pass": "final"
+    },
+    {
+      "suite": "follow-interaction",
+      "exitCode": 0,
+      "seconds": 54.308,
+      "pass": "regressions"
+    },
+    {
+      "suite": "live-sword",
+      "exitCode": 0,
+      "seconds": 60.913,
+      "pass": "regressions"
+    },
+    {
+      "suite": "motion",
+      "exitCode": 0,
+      "seconds": 21.519,
+      "pass": "regressions"
+    },
+    {
+      "suite": "mouse-controls",
+      "exitCode": 0,
+      "seconds": 66.503,
+      "pass": "release"
+    },
+    {
+      "suite": "parry",
+      "exitCode": 0,
+      "pass": "completion"
+    },
+    {
+      "suite": "permanent",
+      "exitCode": 0,
+      "seconds": 93.715,
+      "pass": "regressions"
+    },
+    {
+      "suite": "presentation",
+      "exitCode": 0,
+      "seconds": 51.152,
+      "pass": "regressions"
+    },
+    {
+      "suite": "quality",
+      "exitCode": 0,
+      "seconds": 35.26,
+      "pass": "regressions"
+    },
+    {
+      "suite": "resources",
+      "exitCode": 0,
+      "pass": "completion"
+    },
+    {
+      "suite": "silhouettes",
+      "exitCode": 0,
+      "seconds": 70.969,
+      "pass": "final"
+    },
+    {
+      "suite": "standalone",
+      "exitCode": 0,
+      "seconds": 72.535,
+      "pass": "regressions"
+    },
+    {
+      "suite": "tactical",
+      "exitCode": 0,
+      "seconds": 73.788,
+      "pass": "release"
+    },
+    {
+      "suite": "topology",
+      "exitCode": 0,
+      "seconds": 92.561,
+      "pass": "regressions"
+    },
+    {
+      "suite": "topology-mobile",
+      "exitCode": 0,
+      "seconds": 27.825,
+      "pass": "regressions"
+    },
+    {
+      "suite": "trackpad",
+      "exitCode": 0,
+      "seconds": 103.213,
+      "pass": "regressions"
+    },
+    {
+      "suite": "view",
+      "exitCode": 0,
+      "seconds": 66.027,
+      "pass": "regressions"
+    },
+    {
+      "suite": "world",
+      "exitCode": 0,
+      "seconds": 26.491,
+      "pass": "regressions"
+    },
+    {
+      "suite": "world-expansion",
+      "exitCode": 0,
+      "pass": "completion"
+    }
+  ],
+  "finalBuildRechecks": [
+    "boss-arena",
+    "boss-arena-mobile",
+    "parry",
+    "resources",
+    "world-expansion",
+    "mouse-controls",
+    "tactical",
+    "standalone",
+    "presentation-capture"
+  ],
+  "bosses": {
+    "arenas": [
+      {
+        "id": "warden",
+        "route": {
+          "ok": true,
+          "steps": 233,
+          "maxStep": 0.5249999999999999,
+          "y": 2.1
+        },
+        "phaseWarning": true,
+        "phase2": 2,
+        "phase3": 3,
+        "state": {
+          "id": "warden",
+          "title": "무너진 왕성 투기장",
+          "epithet": "성벽의 마지막 파수꾼",
+          "rule": "기둥 뒤로 돌진을 유도하면 수호자의 자세가 무너집니다.",
+          "phase": 3,
+          "changing": null,
+          "won": false,
+          "hazards": 0,
+          "hazardsTriggered": 1,
+          "broken": 2,
+          "cue": null
+        },
+        "events": [
+          {
+            "kind": "cover",
+            "id": "collapsed-wall:-1",
+            "time": 3.566666666666659
+          },
+          {
+            "kind": "phase",
+            "phase": 2,
+            "removed": [
+              "collapsed-wall:1"
+            ],
+            "time": 5.13333333333332
+          },
+          {
+            "kind": "phase",
+            "phase": 3,
+            "removed": [],
+            "time": 6.5333333333333155
+          }
+        ],
+        "actions": 0,
+        "pose": [
+          3.2524142265319824,
+          3.906577362625509e-15,
+          8.407790785948902e-45,
+          1,
+          0,
+          3,
+          0,
+          0.18790790438652039,
+          0.2996532618999481,
+          -0.29965582489967346,
+          0,
+          0,
+          1,
+          0,
+          0,
+          1
+        ],
+        "groups": 1,
+        "hazards": 0,
+        "finite": true,
+        "render": {
+          "frame": 25,
+          "calls": 102,
+          "triangles": 57672,
+          "points": 0,
+          "lines": 0
+        },
+        "memory": {
+          "geometries": 131,
+          "textures": 18
+        }
+      },
+      {
+        "id": "artillery",
+        "route": {
+          "ok": true,
+          "steps": 229,
+          "maxStep": 0.6000000000000001,
+          "y": 2.4
+        },
+        "phaseWarning": true,
+        "phase2": 2,
+        "phase3": 3,
+        "state": {
+          "id": "artillery",
+          "title": "검은 포격 요새",
+          "epithet": "왕국을 침묵시킨 포수",
+          "rule": "엄폐물은 포탄을 막지만 두 차례 포격에 무너집니다. 계단으로 고지를 바꾸세요.",
+          "phase": 3,
+          "changing": null,
+          "won": false,
+          "hazards": 0,
+          "hazardsTriggered": 1,
+          "broken": 2,
+          "cue": null
+        },
+        "events": [
+          {
+            "kind": "phase",
+            "phase": 2,
+            "removed": [
+              "siege-gate:-1",
+              "siege-gate:1"
+            ],
+            "time": 5.066666666666654
+          },
+          {
+            "kind": "phase",
+            "phase": 3,
+            "removed": [],
+            "time": 6.466666666666649
+          }
+        ],
+        "actions": 3,
+        "pose": [
+          2.129437208175659,
+          2.8485343180453705e-31,
+          1.401298464324817e-45,
+          0.6558462381362915,
+          3.092457048412402e-20,
+          3,
+          0,
+          -0.9648969173431396,
+          0,
+          0,
+          0,
+          0,
+          2,
+          0,
+          0,
+          1
+        ],
+        "groups": 1,
+        "hazards": 0,
+        "finite": true,
+        "render": {
+          "frame": 26,
+          "calls": 117,
+          "triangles": 59746,
+          "points": 0,
+          "lines": 0
+        },
+        "memory": {
+          "geometries": 143,
+          "textures": 18
+        }
+      },
+      {
+        "id": "plague",
+        "route": {
+          "ok": true,
+          "steps": 275,
+          "maxStep": 0.2625000000000002,
+          "y": 2.1
+        },
+        "phaseWarning": true,
+        "phase2": 2,
+        "phase3": 3,
+        "state": {
+          "id": "plague",
+          "title": "침수된 역병 신전",
+          "epithet": "썩어가는 성소의 주인",
+          "rule": "늪 분출을 피해 높은 제단과 십자 회랑으로 이동하세요.",
+          "phase": 3,
+          "changing": null,
+          "won": false,
+          "hazards": 0,
+          "hazardsTriggered": 1,
+          "broken": 2,
+          "cue": null
+        },
+        "events": [
+          {
+            "kind": "phase",
+            "phase": 2,
+            "removed": [
+              "sluice:-1",
+              "sluice:1"
+            ],
+            "time": 5.833333333333318
+          },
+          {
+            "kind": "phase",
+            "phase": 3,
+            "removed": [],
+            "time": 7.233333333333313
+          }
+        ],
+        "actions": 3,
+        "pose": [
+          4.520994663238525,
+          3.672301610145117e-39,
+          9.528829557408756e-44,
+          0.6558462381362915,
+          1.0930128021733573e-43,
+          3,
+          0,
+          0.5248917937278748,
+          0.2999999523162842,
+          0,
+          0,
+          0,
+          3,
+          0,
+          0,
+          1
+        ],
+        "groups": 1,
+        "hazards": 0,
+        "finite": true,
+        "render": {
+          "frame": 27,
+          "calls": 144,
+          "triangles": 120782,
+          "points": 0,
+          "lines": 0
+        },
+        "memory": {
+          "geometries": 154,
+          "textures": 18
+        }
+      },
+      {
+        "id": "brood",
+        "route": {
+          "ok": true,
+          "steps": 179,
+          "maxStep": 0.30000000000000004,
+          "y": 1.2
+        },
+        "phaseWarning": true,
+        "phase2": 2,
+        "phase3": 3,
+        "state": {
+          "id": "brood",
+          "title": "사방의 군단 제단",
+          "epithet": "이름 없는 군세의 목소리",
+          "rule": "빛나는 소환문에서 군단이 출현합니다. 중앙과 외곽 회랑이 연결됩니다.",
+          "phase": 3,
+          "changing": null,
+          "won": false,
+          "hazards": 0,
+          "hazardsTriggered": 1,
+          "broken": 4,
+          "cue": null
+        },
+        "events": [
+          {
+            "kind": "phase",
+            "phase": 2,
+            "removed": [
+              "altar-seal:0",
+              "altar-seal:1"
+            ],
+            "time": 4.233333333333324
+          },
+          {
+            "kind": "phase",
+            "phase": 3,
+            "removed": [
+              "altar-seal:2",
+              "altar-seal:3"
+            ],
+            "time": 5.633333333333319
+          }
+        ],
+        "actions": 3,
+        "pose": [
+          4.978216648101807,
+          3.188961488367025e-35,
+          2.802596928649634e-44,
+          0.6558462381362915,
+          0,
+          3,
+          0,
+          0.23467524349689484,
+          2.802596928649634e-45,
+          0,
+          0,
+          0,
+          4,
+          0,
+          0,
+          1
+        ],
+        "groups": 13,
+        "hazards": 0,
+        "finite": true,
+        "render": {
+          "frame": 28,
+          "calls": 129,
+          "triangles": 74430,
+          "points": 0,
+          "lines": 0
+        },
+        "memory": {
+          "geometries": 149,
+          "textures": 18
+        }
+      },
+      {
+        "id": "storm",
+        "route": {
+          "ok": true,
+          "steps": 283,
+          "maxStep": 0.30000000000000027,
+          "y": 2.4
+        },
+        "phaseWarning": true,
+        "phase2": 2,
+        "phase3": 3,
+        "state": {
+          "id": "storm",
+          "title": "뇌명의 첨탑 정상",
+          "epithet": "벼락을 왕관으로 쓴 자",
+          "rule": "도체 옆의 푸른 원은 전장 낙뢰를 흘려보냅니다. 붉은 예고 원을 피하세요.",
+          "phase": 3,
+          "changing": null,
+          "won": false,
+          "hazards": 0,
+          "hazardsTriggered": 2,
+          "broken": 2,
+          "cue": null
+        },
+        "events": [
+          {
+            "kind": "phase",
+            "phase": 2,
+            "removed": [
+              "spire-gate:-1",
+              "spire-gate:1"
+            ],
+            "time": 5.966666666666651
+          },
+          {
+            "kind": "phase",
+            "phase": 3,
+            "removed": [],
+            "time": 7.366666666666646
+          }
+        ],
+        "actions": 2,
+        "pose": [
+          0.34928056597709656,
+          3.0292073389729706e-29,
+          8.407790785948902e-45,
+          4.120836800003215e-32,
+          1.1086188217435122e-10,
+          3,
+          0,
+          -0.2056140899658203,
+          0.2999999523162842,
+          0,
+          0,
+          0,
+          5,
+          0,
+          0,
+          1
+        ],
+        "groups": 1,
+        "hazards": 0,
+        "finite": true,
+        "render": {
+          "frame": 29,
+          "calls": 140,
+          "triangles": 59288,
+          "points": 0,
+          "lines": 0
+        },
+        "memory": {
+          "geometries": 162,
+          "textures": 18
+        }
+      },
+      {
+        "id": "reaper",
+        "route": {
+          "ok": true,
+          "steps": 216,
+          "maxStep": 0.5249999999999999,
+          "y": 2.1
+        },
+        "phaseWarning": true,
+        "phase2": 2,
+        "phase3": 3,
+        "state": {
+          "id": "reaper",
+          "title": "뒤틀린 폐허 궁전",
+          "epithet": "공간의 틈에서 거두는 자",
+          "rule": "망령은 빛나는 균열로 도약합니다. C로 균열을 사용해 추적하거나 이탈하세요.",
+          "phase": 3,
+          "changing": null,
+          "won": false,
+          "hazards": 0,
+          "hazardsTriggered": 1,
+          "broken": 2,
+          "cue": null
+        },
+        "events": [
+          {
+            "kind": "phase",
+            "phase": 2,
+            "removed": [
+              "palace-shutter:-1",
+              "palace-shutter:1"
+            ],
+            "time": 4.849999999999988
+          },
+          {
+            "kind": "phase",
+            "phase": 3,
+            "removed": [],
+            "time": 6.249999999999983
+          }
+        ],
+        "actions": 2,
+        "pose": [
+          0.6692176461219788,
+          1,
+          6.211077825736802e-36,
+          3.3219293252942396e-26,
+          7.173024514469583e-36,
+          3,
+          -0.8908788561820984,
+          0.5155751705169678,
+          2.085641296144193e-28,
+          -0.18202778697013855,
+          0,
+          0,
+          6,
+          0,
+          0,
+          1
+        ],
+        "groups": 1,
+        "hazards": 0,
+        "finite": true,
+        "render": {
+          "frame": 30,
+          "calls": 119,
+          "triangles": 54119,
+          "points": 0,
+          "lines": 0
+        },
+        "memory": {
+          "geometries": 168,
+          "textures": 18
+        }
+      },
+      {
+        "id": "king",
+        "route": {
+          "ok": true,
+          "steps": 283,
+          "maxStep": 0.27000000000000024,
+          "y": 2.7
+        },
+        "phaseWarning": true,
+        "phase2": 2,
+        "phase3": 3,
+        "state": {
+          "id": "king",
+          "title": "잿빛 왕의 왕좌",
+          "epithet": "왕관을 버리지 못한 검",
+          "rule": "계단 양쪽으로 왕좌를 우회하세요. 검격은 파란 예고, 지형 공격은 붉은 예고입니다.",
+          "phase": 3,
+          "changing": null,
+          "won": false,
+          "hazards": 0,
+          "hazardsTriggered": 1,
+          "broken": 2,
+          "cue": null
+        },
+        "events": [
+          {
+            "kind": "phase",
+            "phase": 2,
+            "removed": [
+              "royal-seal:-1",
+              "royal-seal:1"
+            ],
+            "time": 5.966666666666651
+          },
+          {
+            "kind": "phase",
+            "phase": 3,
+            "removed": [],
+            "time": 7.366666666666646
+          }
+        ],
+        "actions": 0,
+        "pose": [
+          0.9198002219200134,
+          5.503703724452644e-15,
+          9.800053326494966e-19,
+          0.9305165410041809,
+          0.8813345432281494,
+          3,
+          0,
+          0.6788859367370605,
+          3.093432842846434e-22,
+          0,
+          0,
+          0,
+          7,
+          0,
+          0,
+          1
+        ],
+        "groups": 1,
+        "hazards": 0,
+        "finite": true,
+        "render": {
+          "frame": 31,
+          "calls": 167,
+          "triangles": 79444,
+          "points": 0,
+          "lines": 0
+        },
+        "memory": {
+          "geometries": 148,
+          "textures": 18
+        }
+      },
+      {
+        "id": "observer",
+        "route": {
+          "ok": true,
+          "steps": 216,
+          "maxStep": 0.5249999999999999,
+          "y": 2.1
+        },
+        "phaseWarning": true,
+        "phase2": 2,
+        "phase3": 3,
+        "state": {
+          "id": "observer",
+          "title": "공허 관측 성환",
+          "epithet": "모든 결말을 지켜본 눈",
+          "rule": "관측 오벨리스크를 엄폐로 활용하고 도약 지점의 예고를 확인하세요.",
+          "phase": 3,
+          "changing": null,
+          "won": false,
+          "hazards": 0,
+          "hazardsTriggered": 1,
+          "broken": 2,
+          "cue": null
+        },
+        "events": [
+          {
+            "kind": "phase",
+            "phase": 2,
+            "removed": [
+              "palace-shutter:-1",
+              "palace-shutter:1"
+            ],
+            "time": 4.849999999999988
+          },
+          {
+            "kind": "phase",
+            "phase": 3,
+            "removed": [],
+            "time": 6.249999999999983
+          }
+        ],
+        "actions": 0,
+        "pose": [
+          4.459304332733154,
+          0,
+          1.938098119491638e-11,
+          7.093537979230291e-10,
+          2.238262873655028e-11,
+          3,
+          0,
+          -0.9080479145050049,
+          0,
+          0,
+          0,
+          0,
+          8,
+          0,
+          0,
+          1
+        ],
+        "groups": 1,
+        "hazards": 0,
+        "finite": true,
+        "render": {
+          "frame": 32,
+          "calls": 130,
+          "triangles": 54430,
+          "points": 0,
+          "lines": 0
+        },
+        "memory": {
+          "geometries": 171,
+          "textures": 18
+        }
+      },
+      {
+        "id": "primordial",
+        "route": {
+          "ok": true,
+          "steps": 220,
+          "maxStep": 0.6000000000000001,
+          "y": 1.8
+        },
+        "phaseWarning": true,
+        "phase2": 2,
+        "phase3": 3,
+        "state": {
+          "id": "primordial",
+          "title": "태초의 심연 성소",
+          "epithet": "빛 이전에 깨어 있던 것",
+          "rule": "거대한 고리 공격은 중앙 안전 원으로 피하세요. 방사형 회랑으로 복귀할 수 있습니다.",
+          "phase": 3,
+          "changing": null,
+          "won": false,
+          "hazards": 0,
+          "hazardsTriggered": 1,
+          "broken": 4,
+          "cue": null
+        },
+        "events": [
+          {
+            "kind": "phase",
+            "phase": 2,
+            "removed": [
+              "primordial-seal:-1:-1",
+              "primordial-seal:-1:1",
+              "primordial-seal:1:-1",
+              "primordial-seal:1:1"
+            ],
+            "time": 4.9166666666666545
+          },
+          {
+            "kind": "phase",
+            "phase": 3,
+            "removed": [],
+            "time": 6.3166666666666496
+          }
+        ],
+        "actions": 0,
+        "pose": [
+          1.6068270206451416,
+          0,
+          0.10365067422389984,
+          0.002169337822124362,
+          5.085436095623947e-19,
+          3,
+          0,
+          0.9990503191947937,
+          0,
+          0,
+          0,
+          0,
+          9,
+          0,
+          0,
+          1
+        ],
+        "groups": 1,
+        "hazards": 0,
+        "finite": true,
+        "render": {
+          "frame": 33,
+          "calls": 113,
+          "triangles": 62104,
+          "points": 0,
+          "lines": 0
+        },
+        "memory": {
+          "geometries": 173,
+          "textures": 18
+        }
+      }
+    ],
+    "cover": {
+      "blocked": true,
+      "hp": 100,
+      "first": {
+        "disabled": false,
+        "hp": 100
+      },
+      "second": {
+        "disabled": true,
+        "clear": true,
+        "hp": 100
+      }
+    },
+    "charge": {
+      "broken": true,
+      "mode": "recovery",
+      "recovery": 1.3666666666666676
+    },
+    "hazard": {
+      "warningHp": 100,
+      "hp": 100,
+      "damaged": true,
+      "paused": true
+    },
+    "rift": {
+      "prompt": {
+        "kind": "bossArena",
+        "id": "rift:0",
+        "name": "궁전의 공간 균열",
+        "verb": "반대편 균열로 이동"
+      },
+      "used": true,
+      "distance": 25.45584412271571,
+      "legal": true
+    },
+    "damage": {
+      "sword": 39.59999999962747,
+      "noAuto": true,
+      "spell": 152.92799999937415
+    },
+    "parry": {
+      "hp": 100,
+      "expected": 100,
+      "successes": 1,
+      "stun": 0.6,
+      "hitStop": 0.1
+    },
+    "lock": {
+      "was": true,
+      "retained": true,
+      "finite": true
+    },
+    "views": [
+      {
+        "mode": "first",
+        "camera": [
+          -0.5184685790110655,
+          3.26275,
+          0.113325631308244
+        ],
+        "player": [
+          -0.5246999142291864,
+          0,
+          0.013519967834674488
+        ],
+        "solids": 34,
+        "locked": {
+          "active": true,
+          "name": "초원의 파수꾼",
+          "serial": 1,
+          "distance": 3.032222449378396,
+          "boss": true
+        }
+      },
+      {
+        "mode": "third",
+        "camera": [
+          -1.0815513071174025,
+          5.829364163129638,
+          -8.905422887585901
+        ],
+        "player": [
+          -0.5246999142291864,
+          0,
+          0.013519967834674488
+        ],
+        "solids": 34,
+        "locked": {
+          "active": true,
+          "name": "초원의 파수꾼",
+          "serial": 1,
+          "distance": 3.032222449378396,
+          "boss": true
+        }
+      },
+      {
+        "mode": "overhead",
+        "camera": [
+          19.606475064328112,
+          26,
+          25.760139975876008
+        ],
+        "player": [
+          -0.5246999142291864,
+          0,
+          0.013519967834674488
+        ],
+        "solids": 34,
+        "locked": {
+          "active": true,
+          "name": "초원의 파수꾼",
+          "serial": 1,
+          "distance": 3.032222449378396,
+          "boss": true
+        }
+      }
+    ],
+    "restore": {
+      "suspended": true,
+      "enemy": true,
+      "pickup": true,
+      "spell": true,
+      "cooldown": true,
+      "casts": true,
+      "blast": true,
+      "position": 0
+    },
+    "victory": {
+      "initial": {
+        "won": true,
+        "blocked": true,
+        "complete": true
+      },
+      "roomRestored": true,
+      "claimed": true,
+      "mainRestored": true,
+      "finite": true
+    },
+    "memory": [
+      {
+        "geometries": 156,
+        "textures": 18
+      },
+      {
+        "geometries": 160,
+        "textures": 18
+      },
+      {
+        "geometries": 160,
+        "textures": 18
+      },
+      {
+        "geometries": 160,
+        "textures": 18
+      },
+      {
+        "geometries": 160,
+        "textures": 18
+      },
+      {
+        "geometries": 160,
+        "textures": 18
+      },
+      {
+        "geometries": 166,
+        "textures": 18
+      },
+      {
+        "geometries": 166,
+        "textures": 18
+      },
+      {
+        "geometries": 166,
+        "textures": 18
+      },
+      {
+        "geometries": 166,
+        "textures": 18
+      }
+    ],
+    "performance": {
+      "actors": 19,
+      "meanMs": 2.4791666666666665,
+      "p95Ms": 8.5,
+      "render": {
+        "frame": 58,
+        "calls": 143,
+        "triangles": 89244,
+        "points": 0,
+        "lines": 0
+      },
+      "projectiles": 0
+    },
+    "errors": []
+  },
+  "mobile": {
+    "setup": {
+      "attempts": 0,
+      "commands": 0,
+      "cue": true
+    },
+    "attack": {
+      "commands": 1,
+      "finite": true
+    },
+    "riftBefore": [
+      12,
+      0,
+      12
+    ],
+    "riftAfter": [
+      12.727922061357857,
+      0,
+      -12.727922061357855
+    ],
+    "views": [
+      {
+        "mode": "first",
+        "finite": true,
+        "render": {
+          "frame": 29,
+          "calls": 21,
+          "triangles": 11654,
+          "points": 0,
+          "lines": 0
+        }
+      },
+      {
+        "mode": "third",
+        "finite": true,
+        "render": {
+          "frame": 30,
+          "calls": 82,
+          "triangles": 41932,
+          "points": 0,
+          "lines": 0
+        }
+      },
+      {
+        "mode": "overhead",
+        "finite": true,
+        "render": {
+          "frame": 31,
+          "calls": 89,
+          "triangles": 43724,
+          "points": 0,
+          "lines": 0
+        }
+      }
+    ],
+    "layout": [
+      {
+        "w": 390,
+        "h": 844,
+        "scrollW": 390,
+        "scrollH": 844,
+        "rule": {
+          "x": 54.40625,
+          "y": 175,
+          "width": 281.1875,
+          "height": 31.578125,
+          "top": 175,
+          "right": 335.59375,
+          "bottom": 206.578125,
+          "left": 54.40625
+        },
+        "light": {
+          "x": 166,
+          "y": 714,
+          "width": 46,
+          "height": 50,
+          "top": 714,
+          "right": 212,
+          "bottom": 764,
+          "left": 166
+        }
+      },
+      {
+        "w": 844,
+        "h": 390,
+        "scrollW": 844,
+        "scrollH": 390,
+        "rule": {
+          "x": 106.6015625,
+          "y": 115,
+          "width": 630.796875,
+          "height": 31.578125,
+          "top": 115,
+          "right": 737.3984375,
+          "bottom": 146.578125,
+          "left": 106.6015625
+        },
+        "light": {
+          "x": 599,
+          "y": 291,
+          "width": 50,
+          "height": 44,
+          "top": 291,
+          "right": 649,
+          "bottom": 335,
+          "left": 599
+        }
+      }
+    ],
+    "setting": {
+      "enabled": false,
+      "saved": false
+    },
+    "errors": []
+  },
+  "resources": {
+    "cycles": 16,
+    "samples": [
+      {
+        "heap": 31918696,
+        "backing": 39163709,
+        "reportedHeap": 71094541,
+        "geometries": 169,
+        "textures": 18,
+        "batches": 38,
+        "lodSources": 38,
+        "owned": 435,
+        "cpuParts": 0,
+        "terrainCache": 3,
+        "terrainKeys": [
+          "forest:0",
+          "ruins:0",
+          "volcano:0"
+        ],
+        "terrainBossKeys": [
+          "forest:0",
+          "ruins:0",
+          "volcano:0"
+        ]
+      },
+      {
+        "heap": 31895928,
+        "backing": 39157829,
+        "reportedHeap": 71065873,
+        "geometries": 171,
+        "textures": 18,
+        "batches": 38,
+        "lodSources": 38,
+        "owned": 435,
+        "cpuParts": 0,
+        "terrainCache": 3,
+        "terrainKeys": [
+          "forest:0",
+          "ruins:0",
+          "volcano:0"
+        ],
+        "terrainBossKeys": [
+          "forest:0",
+          "ruins:0",
+          "volcano:0"
+        ]
+      },
+      {
+        "heap": 32139480,
+        "backing": 38999165,
+        "reportedHeap": 71150761,
+        "geometries": 172,
+        "textures": 18,
+        "batches": 38,
+        "lodSources": 38,
+        "owned": 435,
+        "cpuParts": 0,
+        "terrainCache": 3,
+        "terrainKeys": [
+          "forest:0",
+          "ruins:0",
+          "volcano:0"
+        ],
+        "terrainBossKeys": [
+          "forest:0",
+          "ruins:0",
+          "volcano:0"
+        ]
+      },
+      {
+        "heap": 32383444,
+        "backing": 39168749,
+        "reportedHeap": 71564325,
+        "geometries": 175,
+        "textures": 18,
+        "batches": 38,
+        "lodSources": 38,
+        "owned": 435,
+        "cpuParts": 0,
+        "terrainCache": 3,
+        "terrainKeys": [
+          "forest:0",
+          "ruins:0",
+          "volcano:0"
+        ],
+        "terrainBossKeys": [
+          "forest:0",
+          "ruins:0",
+          "volcano:0"
+        ]
+      },
+      {
+        "heap": 32377084,
+        "backing": 39168749,
+        "reportedHeap": 71557973,
+        "geometries": 176,
+        "textures": 18,
+        "batches": 38,
+        "lodSources": 38,
+        "owned": 435,
+        "cpuParts": 0,
+        "terrainCache": 3,
+        "terrainKeys": [
+          "forest:0",
+          "ruins:0",
+          "volcano:0"
+        ],
+        "terrainBossKeys": [
+          "forest:0",
+          "ruins:0",
+          "volcano:0"
+        ]
+      },
+      {
+        "heap": 32505216,
+        "backing": 38999165,
+        "reportedHeap": 71516521,
+        "geometries": 176,
+        "textures": 18,
+        "batches": 38,
+        "lodSources": 38,
+        "owned": 435,
+        "cpuParts": 0,
+        "terrainCache": 3,
+        "terrainKeys": [
+          "forest:0",
+          "ruins:0",
+          "volcano:0"
+        ],
+        "terrainBossKeys": [
+          "forest:0",
+          "ruins:0",
+          "volcano:0"
+        ]
+      },
+      {
+        "heap": 32400724,
+        "backing": 39168749,
+        "reportedHeap": 71581613,
+        "geometries": 176,
+        "textures": 18,
+        "batches": 38,
+        "lodSources": 38,
+        "owned": 435,
+        "cpuParts": 0,
+        "terrainCache": 3,
+        "terrainKeys": [
+          "forest:0",
+          "ruins:0",
+          "volcano:0"
+        ],
+        "terrainBossKeys": [
+          "forest:0",
+          "ruins:0",
+          "volcano:0"
+        ]
+      },
+      {
+        "heap": 32665268,
+        "backing": 39157829,
+        "reportedHeap": 71835237,
+        "geometries": 176,
+        "textures": 18,
+        "batches": 38,
+        "lodSources": 38,
+        "owned": 435,
+        "cpuParts": 0,
+        "terrainCache": 3,
+        "terrainKeys": [
+          "forest:0",
+          "ruins:0",
+          "volcano:0"
+        ],
+        "terrainBossKeys": [
+          "forest:0",
+          "ruins:0",
+          "volcano:0"
+        ]
+      },
+      {
+        "heap": 32688508,
+        "backing": 39157829,
+        "reportedHeap": 71858477,
+        "geometries": 176,
+        "textures": 18,
+        "batches": 38,
+        "lodSources": 38,
+        "owned": 435,
+        "cpuParts": 0,
+        "terrainCache": 3,
+        "terrainKeys": [
+          "forest:0",
+          "ruins:0",
+          "volcano:0"
+        ],
+        "terrainBossKeys": [
+          "forest:0",
+          "ruins:0",
+          "volcano:0"
+        ]
+      },
+      {
+        "heap": 32672556,
+        "backing": 39163709,
+        "reportedHeap": 71848405,
+        "geometries": 176,
+        "textures": 18,
+        "batches": 38,
+        "lodSources": 38,
+        "owned": 435,
+        "cpuParts": 0,
+        "terrainCache": 3,
+        "terrainKeys": [
+          "forest:0",
+          "ruins:0",
+          "volcano:0"
+        ],
+        "terrainBossKeys": [
+          "forest:0",
+          "ruins:0",
+          "volcano:0"
+        ]
+      },
+      {
+        "heap": 32706412,
+        "backing": 38999165,
+        "reportedHeap": 71717725,
+        "geometries": 176,
+        "textures": 18,
+        "batches": 38,
+        "lodSources": 38,
+        "owned": 435,
+        "cpuParts": 0,
+        "terrainCache": 3,
+        "terrainKeys": [
+          "forest:0",
+          "ruins:0",
+          "volcano:0"
+        ],
+        "terrainBossKeys": [
+          "forest:0",
+          "ruins:0",
+          "volcano:0"
+        ]
+      },
+      {
+        "heap": 32616636,
+        "backing": 39157829,
+        "reportedHeap": 71786613,
+        "geometries": 176,
+        "textures": 18,
+        "batches": 38,
+        "lodSources": 38,
+        "owned": 435,
+        "cpuParts": 0,
+        "terrainCache": 3,
+        "terrainKeys": [
+          "forest:0",
+          "ruins:0",
+          "volcano:0"
+        ],
+        "terrainBossKeys": [
+          "forest:0",
+          "ruins:0",
+          "volcano:0"
+        ]
+      },
+      {
+        "heap": 32718952,
+        "backing": 38999165,
+        "reportedHeap": 71730265,
+        "geometries": 176,
+        "textures": 18,
+        "batches": 38,
+        "lodSources": 38,
+        "owned": 435,
+        "cpuParts": 0,
+        "terrainCache": 3,
+        "terrainKeys": [
+          "forest:0",
+          "ruins:0",
+          "volcano:0"
+        ],
+        "terrainBossKeys": [
+          "forest:0",
+          "ruins:0",
+          "volcano:0"
+        ]
+      },
+      {
+        "heap": 32792132,
+        "backing": 39168749,
+        "reportedHeap": 71973029,
+        "geometries": 176,
+        "textures": 18,
+        "batches": 38,
+        "lodSources": 38,
+        "owned": 435,
+        "cpuParts": 0,
+        "terrainCache": 3,
+        "terrainKeys": [
+          "forest:0",
+          "ruins:0",
+          "volcano:0"
+        ],
+        "terrainBossKeys": [
+          "forest:0",
+          "ruins:0",
+          "volcano:0"
+        ]
+      },
+      {
+        "heap": 32752568,
+        "backing": 39157829,
+        "reportedHeap": 71922545,
+        "geometries": 176,
+        "textures": 18,
+        "batches": 38,
+        "lodSources": 38,
+        "owned": 435,
+        "cpuParts": 0,
+        "terrainCache": 3,
+        "terrainKeys": [
+          "forest:0",
+          "ruins:0",
+          "volcano:0"
+        ],
+        "terrainBossKeys": [
+          "forest:0",
+          "ruins:0",
+          "volcano:0"
+        ]
+      },
+      {
+        "heap": 32813980,
+        "backing": 39168749,
+        "reportedHeap": 71994877,
+        "geometries": 176,
+        "textures": 18,
+        "batches": 38,
+        "lodSources": 38,
+        "owned": 435,
+        "cpuParts": 0,
+        "terrainCache": 3,
+        "terrainKeys": [
+          "forest:0",
+          "ruins:0",
+          "volcano:0"
+        ],
+        "terrainBossKeys": [
+          "forest:0",
+          "ruins:0",
+          "volcano:0"
+        ]
+      }
+    ],
+    "errors": [],
+    "method": "Chromium/SwiftShader, rotate all five regions, spawn 24 mixed species including bosses and all forced mutation marker types, render then restart, normalize BOTH player and boss navigation caches for volcano/forest/ruins variant-0, drain renderer work and force test-only GC twice; CDP Runtime.getHeapUsage retained heap/backing storage plus performance.memory; verify geometry/texture/heap plateau and cache cap after 8 warmup cycles"
+  },
+  "presentation": {
+    "intro": true,
+    "phase": true,
+    "warning": true,
+    "victory": true,
+    "errors": []
+  },
+  "assets": {
+    "bundle": "assets/index-w7wr4PgG.js",
+    "jsSha256": "b7c29216af111e7715a9b0d145e5dd071ce8da36367c322a34da8abb71c07e1e",
+    "standaloneSha256": "6eeac019551330be0f2592040169250b921698e9ed0c8aec60de99f941f66065",
+    "archiveSha256": "e8867949d23b1319d9f111432b4ce02f6982fca30ea40d564bc76b1d31b019aa"
+  }
+}

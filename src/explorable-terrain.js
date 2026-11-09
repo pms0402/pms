@@ -7,7 +7,7 @@ import {terrainHeight} from './terrain.js';
 /** Three cached districts; all movement, goals and attacks share their surfaces. */
 export class ExplorableTerrain {
   constructor(game,world){this.game=game;this.world=world;this.cache=new Map();this.history=new WeakMap();this.legacyHeight=terrainHeight;this.teleportCooldown=0;this.activate('sanctum',0);}
-  enabled(){const g=this.game;return !g.camp?.active&&!g.sideAreas?.active&&!g.training?.active;}
+  enabled(){const g=this.game;return !g.bossArena?.active&&!g.camp?.active&&!g.sideAreas?.active&&!g.training?.active;}
   activate(region,variant){
     const key=region+':'+((variant%3+3)%3),owner=this.game._state.runId+':'+this.game._state.stage;if(this.current?.key===key&&this.current.owner===owner)return;
     for(const c of this.cache.values())c.renderer.root.visible=false;

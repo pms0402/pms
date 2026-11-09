@@ -315,7 +315,7 @@ export class MagicSystem {
   }
 
   explode(position, radius, damage, evolved, secondary = false) {
-    this.game.world?.topology?.damage(position,radius,damage);
+    (this.game.bossArena?.active?this.game.bossArena.terrain:this.game.world?.topology)?.damage(position,radius,damage);
     this.game.sound?.('fire-impact',position);this.ring(position, radius, 'fireball', 0.4, 0.55);
     this.particles(position, 'fireball', evolved ? 10 : 6);
     // Select the nearest capped targets in one pass instead of sorting the horde.
@@ -376,7 +376,7 @@ export class MagicSystem {
   castFrost() {
     if(!this.rank('frost'))return false;
     const rank=this.rank('frost'),evolved=this.evolved('frost'),radius=this.radius('frost'),origin=this.game.player.position.clone(),damage=this.damage('frost')*5.5*(1+.14*(rank-1));
-    this.game.world?.topology?.damage(origin,radius,damage);
+    (this.game.bossArena?.active?this.game.bossArena.terrain:this.game.world?.topology)?.damage(origin,radius,damage);
     this.ring(origin,radius,'frost',.65,.8);this.particles(origin,'frost',12,radius*.5);
     for(const enemy of this.query(origin,radius))if(this.isAlive(enemy)&&this.distanceSquared(origin,enemy.group.position)<=radius**2&&(!this.game.combatLineClear||this.game.combatLineClear(origin,enemy.group.position))){this.hit(enemy,damage,origin,2.2*(1+(this.game.stats.statusBonus||0)),.5,'magic','frost');if(enemy.kind!==4&&(enemy.nextManualFreeze||0)<=this.time){enemy.freezeTime=Math.max(enemy.freezeTime||0,Math.min(.6,.35*(1+(this.game.stats.statusBonus||0))));enemy.nextManualFreeze=this.time+6;}}
     if(evolved&&this.zones.length<12){const marker=new THREE.Mesh(this.geometry.ring,this.material.frost);marker.rotation.x=-Math.PI/2;marker.position.copy(origin);marker.position.y+=.15;marker.scale.setScalar(radius);this.scene.add(marker);this.zones.push({type:'blizzard',position:origin,radius,damage:damage*.14,life:4,tick:.8,marker});}
@@ -564,12 +564,15 @@ export class MagicSystem {
     });
   }
   getDebugState() { return { spellsCast: { ...this.spellsCast }, hits: this.hits, synergyHits: this.synergyHits, comboTriggers: { ...this.comboTriggers }, unlockedSynergies: [...this.unlockedSynergies], hiddenCooldowns: Object.fromEntries(Object.entries(this.hiddenCooldowns).map(([id, until]) => [id, Math.max(0, until - this.time)])), voidHitCount: this.voidHitCount, projectiles: this.projectiles.length, activeOrbit: this.orbs.length, effects: this.effects.length, zones: this.zones.length, pooledEffects: [...this.meshPools.values()].reduce((count, meshes) => count + meshes.length, 0), pooledProjectiles: this.projectilePool.length }; }
-  reset({ preserveUnlocks = false } = {}) {
+  clearActive() {
     for (const projectile of this.projectiles) this.releaseProjectile(projectile);
     while (this.effects.length) this.removeEffect(0);
     for (const zone of this.zones) zone.marker?.removeFromParent();
     for (const orb of this.orbs) orb.removeFromParent();
     this.projectiles.length = 0; this.zones.length = 0; this.orbs.length = 0;
+  }
+  reset({ preserveUnlocks = false } = {}) {
+    this.clearActive();
     this.cooldowns = { fireball: 0, frost: 0, lightning: 0, orbit: 0 };
     this.spellsCast = { fireball: 0, frost: 0, lightning: 0, orbit: 0 };
     this.hits = 0; this.synergyHits = 0; this.synergyCooldown = 0; this.time = 0; this.orbitSignature = ''; this.orbitHitTimes = new WeakMap();

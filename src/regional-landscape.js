@@ -134,7 +134,7 @@ export class RegionalLandscape {
   }
   update(dt) {
     this.time += dt;
-    this.root.visible = !this.game.camp?.active && !this.game.sideAreas?.active;
+    this.root.visible = !this.game.bossArena?.active&&!this.game.camp?.active && !this.game.sideAreas?.active;
     for (const b of this.batches) {
       if (b.region !== this.region || (!b.floating && dt !== 0)) continue;
       for (let i = 0; i < b.mesh.count; i++) {

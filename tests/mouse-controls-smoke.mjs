@@ -152,6 +152,7 @@ try {
     const g = window.__game;
     const b = g.spawnBoss();
     g.hitEnemy(b, b.maxHp * 1000);
+    g.bossArena.skip(); // Explicitly skip the short victory presentation.
     g.equipment.nextReward();
   });
   await unlocked(p);

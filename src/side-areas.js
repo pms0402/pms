@@ -183,6 +183,7 @@ export class SideAreaSystem {
   }
   enter(type) {
     const g = this.game;
+    if(g.bossArena?.active)return false;
     if (
       this.active ||
       g._state.phase !== "playing" ||
@@ -415,6 +416,7 @@ export class SideAreaSystem {
   }
   leave({ silent = false } = {}) {
     if (!this.active) return false;
+    this.game.bossArena?.close({collect:true});
     const g = this.game,
       s = this.snapshot,
       phase = g._state.phase,

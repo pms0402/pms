@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import {BOSS_STYLES} from './boss-joints.js';
+import {animateHiddenAnatomy} from './boss-motion.js';
 import { monsterJoint } from './monster-motion.js';
 import { damp,dampAngle, angleDelta, createActorMotion, advanceActorMotion, swordSwing } from './motion.js';
 import { swordPoseProgress } from './action-combat.js';
@@ -86,7 +88,7 @@ export function animateEnemyModel(enemy,time,dt,game=null) {
  const down=enemy.kind!==4&&enemy.visualDown>0?Math.sin(Math.PI*(1-enemy.visualDown/.55))**.7:0;
  enemy.impactTime=Math.max(0,(enemy.impactTime||0)-dt);
  const travelX=enemy.group.position.x-state.x,travelZ=enemy.group.position.z-state.z,priorFacing=state.facing;
- const locked=action.includes('warning')||(enemy.windup||0)>0;
+ const locked=action.includes('warning')||!!enemy.hiddenPending||(enemy.windup||0)>0;
  advanceActorMotion(state,enemy.group,dt,enemy.speed,!locked&&!(enemy.parryStun>0),(isBoss?3.3:kind===6?7.4:kind===1||kind===5?5.4:5.9)/Math.max(.7,enemy.size));
  state.facing=dampAngle(priorFacing,enemy.group.rotation.y,isBoss?6:enemy.elite?9:14,dt);
  enemy.visualAttack=Math.max(0,(enemy.visualAttack||0)-dt);enemy.visualCast=Math.max(0,(enemy.visualCast||0)-dt);enemy.visualAttackCooldown=Math.max(0,(enemy.visualAttackCooldown||0)-dt);
@@ -101,7 +103,9 @@ export function animateEnemyModel(enemy,time,dt,game=null) {
  state.pose[8]=damp(state.pose[8],state.slopeX,14,dt);state.pose[9]=damp(state.pose[9],state.slopeZ,14,dt);
  state.pose[10]=enemy.impactDirection?Math.atan2(enemy.impactDirection.x,enemy.impactDirection.z)-yaw:0;
  state.pose[11]=Math.max(0,enemy.impactTime||0)/.16*(isBoss?.25:1);
- state.pose[12]=({warden:1,artillery:2,plague:3,brood:4,storm:5,reaper:6})[enemy.archetype]||0;
+ state.pose[12]=BOSS_STYLES[enemy.archetype]||0;
+ if(isBoss)state.pose[5]=enemy.combatPhase||1;
+ if(enemy.specialModel)animateHiddenAnatomy(enemy,dt);
  state.pose[13]=Math.min(1,Math.max(enemy.parryStun||0,enemy.controlStun||0)*3);state.pose[14]=down*.7;state.pose[15]=1;
  const stride=state.stride,beat=Math.sin(state.phase),bounce=(1-Math.cos(state.phase*2))*.5*stride,slime=kind===7,beast=kind===1||kind===5;
  const height=isBoss?.025:beast?.045:slime?.11:.045;

@@ -198,7 +198,8 @@ export class BossSystem {
         boss.blinkTarget.copy(target).add(new THREE.Vector3(Math.sin(angle) * 6.5, 0, Math.cos(angle) * 6.5));
         const radius = Math.hypot(boss.blinkTarget.x, boss.blinkTarget.z);
         if (radius > ARENA_RADIUS - 4) boss.blinkTarget.multiplyScalar((ARENA_RADIUS - 4) / radius);
-        this.game.resolvePosition?.(boss.blinkTarget,1.4);
+        const rift=this.game.bossArena?.blinkTarget();if(rift)boss.blinkTarget.copy(rift);
+        this.game.resolvePosition?.(boss.blinkTarget,1.4,7.5);
         this.zone(boss.blinkTarget, 4.8, 1.05, .05, 0, 'blink'); break;
       }
     }
@@ -206,7 +207,7 @@ export class BossSystem {
   }
 
   resolve(boss) {
-    boss.visualAttack=.36;
+    boss.visualAttack=.36;this.game.bossArena?.attack(boss.mode);
     const mode = boss.mode, enraged = boss.hp < boss.maxHp * .5;
     if (mode === 'barrage-warning') {
       for (let i = 0; i < (boss.variant > 1 ? 4 : 3); i++) this.schedule(boss, i * .26, boss.aimDirection, { count: 3, spread: .11, speed: 11 });
@@ -216,9 +217,9 @@ export class BossSystem {
       const wanted = Math.min(enraged ? 6 : 4, MAX_SUMMONS - this.summoned, Math.max(0, 160 - this.game.enemies.length));
       for (let i = 0; i < wanted; i++) {
         const angle = i / Math.max(1, wanted) * TAU + boss.actionIndex;
-        const pos = boss.group.position;
+        const pos = this.game.bossArena?.minionPosition(i)||boss.group.position;
         const kind = boss.variant > 1 ? [2, 3, 5, 1][i % 4] : i % 2 ? 1 : 0;
-        const minion = this.game.spawnEnemy(pos.x + Math.sin(angle) * 4.2, pos.z + Math.cos(angle) * 4.2, kind, { minion: true,surfaceY:pos.y });
+        const minion = this.game.spawnEnemy(pos.x + Math.sin(angle) * (this.game.bossArena?.active?1:4.2), pos.z + Math.cos(angle) * (this.game.bossArena?.active?1:4.2), kind, { minion: true,surfaceY:pos.y });
         if (minion) this.summoned++;
       }
       this.game.burst?.(boss.group.position, this.color, 10);
@@ -257,13 +258,13 @@ export class BossSystem {
     if (boss.mode === 'chase' && (distance > .01||Math.abs(target.y-pos.y)>1.5)) {
       const movement = this.game.combatLineClear&&!this.game.combatLineClear(pos,target)?1:distance < wanted - 2 ? -.65 : distance > wanted + 1 ? 1 : 0;
       const speed = (boss.speed || 2.6) * slow * movement * dt;
-      const steer = movement > 0 && this.game.world && !this.game.sideAreas?.active && !this.game.training?.active ? this.game.world.steer(pos, dx, dz, 1.4, 0) : { x: dx / distance, z: dz / distance };
+      const steer = movement > 0 && this.game.world && (!this.game.sideAreas?.active||this.game.bossArena?.active) && !this.game.training?.active ? this.game.world.steer(pos, dx, dz, 1.4, 0) : { x: dx / distance, z: dz / distance };
       pos.x += steer.x * speed; pos.z += steer.z * speed;
     }
     boss.group.rotation.y = Math.atan2(dx, dz);
     boss.actionTimer -= dt;
     if (boss.actionTimer <= 0) {
-      if (boss.mode === 'chase') {if(!this.game.combatLineClear||this.game.combatLineClear(pos,target))this.prepare(boss);else boss.actionTimer=.25;}
+      if (boss.mode === 'chase') {if(!this.game.combatLineClear||this.game.combatLineClear(pos,target)||this.game.bossArena?.active&&boss.archetype==='artillery')this.prepare(boss);else boss.actionTimer=.25;}
       else this.resolve(boss);
     }
     const radius = Math.hypot(pos.x, pos.z);

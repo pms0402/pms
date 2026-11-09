@@ -92,7 +92,7 @@ export class TerrainRenderer {
       }
     }
     for(const d of layout.dangers){
-      const mat=new THREE.MeshBasicMaterial({color:'#ee5e20',transparent:true,opacity:.25,depthWrite:false,side:THREE.DoubleSide});this.materials.push(mat);
+      const mat=new THREE.MeshBasicMaterial({color:layout.region==='forest'?'#89b34d':'#ee5e20',transparent:true,opacity:.25,depthWrite:false,side:THREE.DoubleSide});this.materials.push(mat);
       const m=mesh(own(new THREE.PlaneGeometry(d.hx*2,d.hz*2)),mat,d.x,d.y+.07,d.z);m.rotation.x=-Math.PI/2;m.castShadow=false;this.lava.push(m);
     }
     for(const s of layout.surfaces.filter(s=>s.root)){
@@ -116,12 +116,12 @@ export class TerrainRenderer {
     game.scene.add(this.root);this.groundGeometry=this.makeGround(layout);
   }
   makeGround(layout){
-    const size=131,step=1.5,extent=97.5,p=[],uv=[],colors=[],indices=[];
+    const size=layout.arena?65:131,extent=layout.arena?layout.radius:97.5,step=extent*2/(size-1),p=[],uv=[],colors=[],indices=[];
     for(let z=0;z<size;z++)for(let x=0;x<size;x++){
       const wx=x*step-extent,wz=z*step-extent,h=layout.ground(wx,wz);p.push(wx,h,wz);uv.push(wx/195+.5,wz/195+.5);
       const v=.78+.025*Math.sin(wx*.23)*Math.cos(wz*.3);colors.push(v,v+.015,v-.035);
     }
-    for(let z=0;z<size-1;z++)for(let x=0;x<size-1;x++){if(Math.hypot((x+.5)*step-extent,(z+.5)*step-extent)>98)continue;const a=z*size+x,b=a+1,c=a+size,d=c+1;indices.push(a,c,b,b,c,d);}
+    for(let z=0;z<size-1;z++)for(let x=0;x<size-1;x++){if(Math.hypot((x+.5)*step-extent,(z+.5)*step-extent)>(layout.arena?layout.radius+.1:98))continue;const a=z*size+x,b=a+1,c=a+size,d=c+1;indices.push(a,c,b,b,c,d);}
     const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(p,3));g.setAttribute('normal',new THREE.Float32BufferAttribute(new Float32Array(p.length),3));g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));g.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));g.setIndex(indices);g.computeVertexNormals();this.geometries.push(g);return g;
   }
   sync(){
