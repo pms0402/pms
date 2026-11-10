@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import {BOSS_COMBAT,chargeTravel} from "./boss-combat.js";
 export const bossPhase = (hp, maxHp) =>
   hp / Math.max(1, maxHp) < 0.35 ? 3 : hp / Math.max(1, maxHp) < 0.7 ? 2 : 1;
 export const PHASE_PATTERNS = Object.freeze({
@@ -47,14 +48,14 @@ export class BossPhases {
     for (let next = boss.combatPhase + 1; next <= phase; next++)
       this.transitions.push(next);
     this.game.bossArena?.phase(boss,phase);
-    boss.combatPhase = phase;boss.recoveryTime=0;boss.chainRemaining=0;
+    boss.combatPhase = phase;boss.recoveryTime=0;boss.chainRemaining=0;boss.transitionTime=BOSS_COMBAT.transition;boss.comboPlan=[];boss.comboPattern=null;boss.attackCue="페이즈 전환 · 보호 해제 후 공격";
     boss.phaseCooldown = 2;
-    if (boss.hiddenBoss) { boss.hiddenPending = null; boss.hiddenTimer = 1.5; }
+    if (boss.hiddenBoss) { boss.hiddenPending = null; boss.hiddenRush=null;boss.hiddenComboRemaining=0; boss.hiddenTimer = .5; }
     this.game.clearTelegraph?.(boss);
     this.game.bossSystem.cancelAttacks();
     this.rush = null;
     boss.mode = "chase";
-    boss.actionTimer = 1.5;
+    boss.actionTimer = .4;
     this.aura.visible = true;
     this.aura.children[1].visible = phase === 3;
     this.aura.scale.setScalar(phase === 3 ? 1.18 : 1);
@@ -78,8 +79,8 @@ export class BossPhases {
       if (r.warning) {
         if (r.time <= 0) {
           this.game.clearTelegraph(boss);
-          r.warning = false;
-          r.time = 0.45;
+          r.warning = false;boss.mode="phase-charge";boss.visualAttack=.36;this.game.bossArena?.attack("charge");
+          r.time = r.duration;
         }
       } else {
         const before=boss.group.position.clone();boss.group.position.addScaledVector(r.direction, dt * 24);
@@ -97,7 +98,7 @@ export class BossPhases {
           if (--r.left > 0) this.startRush(boss, r.left);
           else {
             this.rush = null;
-            boss.mode = "recovery";boss.recoveryTime=1.3;
+            boss.mode = "recovery";boss.chainRemaining=1.1;boss.recoveryTime=1.1+BOSS_COMBAT.recovery;boss.attackCue="마지막 충격파 · 예고 종료 뒤 반격";
             boss.actionTimer = 2;
             this.game.bossSystem.zone(
               boss.group.position,
@@ -121,9 +122,9 @@ export class BossPhases {
       !this.game.bossSystem.pendingShots.length
     ) {
       this.special(boss);
-      boss.phaseCooldown = boss.combatPhase === 3 ? 8 : 11;
+      boss.phaseCooldown = boss.combatPhase === 3 ? 6.5 : 8.5;
       boss.actionTimer = Math.max(boss.actionTimer, 3.2);
-      return !!this.rush;
+      return true;
     }
     return false;
   }
@@ -135,9 +136,10 @@ export class BossPhases {
       .normalize();
     if (!direction.lengthSq()) direction.set(0, 0, 1);
     boss.chargeDirection = direction;
-    boss.mode = "phase-charge-warning";
+    const distance=boss.group.position.distanceTo(this.game.player.position);boss.chargeTravel=chargeTravel(distance);
+    boss.mode = "phase-charge-warning";boss.attackCue=`연속 돌진 ${left}회 · 마지막 타격 뒤 반격`;
     this.game.createBossTelegraph(boss, "charge");
-    this.rush = { left, direction, time: 0.95, warning: true };
+    this.rush = { left, direction, time: .9, duration:boss.chargeTravel/24, warning: true };
   }
   special(boss) {
     const g = this.game,
@@ -146,6 +148,7 @@ export class BossPhases {
       target = g.player.position.clone(),
       final = boss.combatPhase === 3;
     this.patterns++;
+    boss.comboPlan=[];boss.comboPattern=null;boss.attackCue=PHASE_PATTERNS[boss.archetype]||'특수 연계 · 예고 확인';
     sys.color = final ? "#ff655e" : "#f5ba74";
     if (boss.archetype === "warden") {
       this.startRush(boss, final ? 3 : 2);
@@ -203,7 +206,7 @@ export class BossPhases {
     } else if (boss.archetype === "brood") {
       for (
         let i = 0;
-        i < (final ? 6 : 4) && g.enemies.length < 160 && sys.summoned < 18;
+        i < (final ? 6 : 4) && g.enemies.length < 160 && (sys.summonCapacity?sys.summonCapacity(boss)>0:sys.summoned<18);
         i++
       ) {
         const pos = g.bossArena?.minionPosition(i)||g.spawnPosition(9, 13),
@@ -213,7 +216,7 @@ export class BossPhases {
         if (child) {
           child.hp *= 1.25;
           child.maxHp *= 1.25;
-          sys.summoned++;
+          if(sys.registerSummon)sys.registerSummon(child,boss);else sys.summoned++;
         }
       }
       for (const side of [-1, 1])
@@ -260,6 +263,7 @@ export class BossPhases {
           "echo",
         );
     }
+    if(!this.rush){const warning=Math.max(0,...(sys.pendingShots||[]).map(s=>s.delay||0),...(sys.zones||[]).map(z=>z.warning||z.w||0));boss.chainRemaining=warning;boss.recoveryTime=warning+BOSS_COMBAT.recovery;boss.mode='recovery';}
   }
   clear() {
     this.aura?.removeFromParent();

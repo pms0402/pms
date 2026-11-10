@@ -4,6 +4,8 @@ import { STAGE_DURATION, BOSS_SPAWN_TIME, MAX_STAGES, ARENA_RADIUS, getStageStat
 import { MagicSystem } from './magic.js';
 import { BossSystem } from './bosses.js';
 import {BossArenaSystem} from './boss-arena.js';
+import {RenderBudget} from './render-budget.js';
+import {BOSS_COMBAT,bossDamageState,limitBossDamage,chargeTravel} from './boss-combat.js';
 import {releaseHiddenAnatomy} from './boss-motion.js';
 import { ENEMY_TYPES, getEnemyDefinition, getStageDefinition, getBossDefinition } from './encounters.js';
 import { RISK_PACTS, getThreatModifiers, applyRelic, getBossReward, applyBossReward } from './content.js';
@@ -128,6 +130,7 @@ export class Game {
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.6));
     this.renderer.setSize(container.clientWidth || 900, container.clientHeight || 650);
+    this.renderBudget=new RenderBudget();
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -227,7 +230,7 @@ export class Game {
   get state() {
     const enemyKinds = Object.fromEntries(ENEMY_TYPES.map(type => [type.id, 0]));
     for (const enemy of this.enemies) if (enemy.definition) enemyKinds[enemy.definition.id]++;
-    return { ...this._state, bossArena:this.bossArena?.state(), action:this.actions?.state(),lockOn:this.lockOn?.state(),objective:this.objectives?.state(),training:this.training?.state(),combatLinks:this.links?.state(),bindings:{...this.bindings}, invulnerability:Math.max(0,this.invulnerable||0), view: this.view?.getState(), mode: this.mode, camp: this.camp?.state(), sideArea: this.sideAreas?.state(), story: this.story?.state(), analytics: this.analytics?.snapshot(this), stageStats: this.stageStats(), abyssConstraint: this.abyssConstraint, playbackSpeed: this.playbackSpeed, world: { hills: this.world?.hills.length || 0, structures: this.world?.structures.length || 0, elevation: this.player?.position.y || 0,terrain:this.bossArena?.active?{title:this.bossArena.layout.title,district:this.bossArena.layout.title,height:this.player.position.y}:this.world?.topology?.state() }, enemyKinds, sword: getSwordProfile(this.stats), activeSynergies: getActiveSynergies(this.stats), activeCurses: [...this.activeCurses], equipment: this.equipment?.getState(), sets: this.setSystem?.state(), job: this.classes?.state(), parry: this.parry?.getState(), exploration: this.exploration?.getState(), routeId: this.routeId, regionId: this.regionId, region: getRegion(this.regionId), mutations: this.mutationSystem?.getDebugState(), runModifiers: this.getFloorModifiers(), runReport: this.runReport ? structuredClone(this.runReport) : this.freshRunReport(), pendingChests: this.pendingChestRewards?.length || 0, altar: this.altar ? { x: this.altar.group.position.x, z: this.altar.group.position.z, opened: this.altar.opened } : null, rewardTokens: this.pendingRelicSources?.length || 0, pendingBossRewards: (this.pendingBossRewards || []).map(reward => ({ ...reward })), maxHp: this.combatStats.maxHp, damage: this.combatStats.damage, attackRate: this.combatStats.attackRate, spellDamage: this.combatStats.spellDamage, spellRate: this.stats.spellRate, speed: this.combatStats.speed, risk: this.getThreat(), selectedRisk: this.selectedRisk, chests: this.chests.map(chest => ({ x: chest.group.position.x, z: chest.group.position.z, remaining: chest.guards.filter(guard => guard.hp > 0).length, opened: chest.opened })), eliteEnemies: this.enemies.filter(enemy => enemy.elite).length, goldenEnemies: this.enemies.filter(enemy => enemy.golden).length, dashCooldown: Math.max(0, this.dashCooldown || 0), dashReady: !(this.dashCooldown > 0), enemyCount: this.enemies.length, arenaRadius: ARENA_RADIUS, stageDuration: STAGE_DURATION, bossSpawnTime: BOSS_SPAWN_TIME, bossSpawned: this.bossSpawned, bossDefeated: this.bossDefeated, boss: this.boss ? { archetype: this.boss.archetype, hint: this.boss.hint, name: this.boss.name, hp: Math.max(0, this.boss.hp), maxHp: this.boss.maxHp, alive: this.boss.hp > 0, spawned: this.bossSpawned, defeated: this.bossDefeated, phase: this.boss.mode, combatPhase: this.boss.combatPhase || 1, parryStun: Math.max(0,this.boss.parryStun||0), parryResist: Math.max(0,(this.boss.nextParryStun||0)-this._state.elapsed),recoveryTime:Math.max(0,this.boss.recoveryTime||0),chainRemaining:Math.max(0,this.boss.chainRemaining||0) } : null, spellState: this.magic?.getState() || [], playerStats: { ...this.stats, relics: [...(this.stats.relics || [])], bossRewards: [...(this.stats.bossRewards || [])], spells: { ...this.stats.spells }, evolutions: { ...this.stats.evolutions }, passiveLevels: { ...this.stats.passiveLevels } } };
+    return { ...this._state, bossArena:this.bossArena?.state(), action:this.actions?.state(),lockOn:this.lockOn?.state(),objective:this.objectives?.state(),training:this.training?.state(),combatLinks:this.links?.state(),bindings:{...this.bindings}, invulnerability:Math.max(0,this.invulnerable||0), view: this.view?.getState(), mode: this.mode, camp: this.camp?.state(), sideArea: this.sideAreas?.state(), story: this.story?.state(), analytics: this.analytics?.snapshot(this), stageStats: this.stageStats(), abyssConstraint: this.abyssConstraint, playbackSpeed: this.playbackSpeed, world: { hills: this.world?.hills.length || 0, structures: this.world?.structures.length || 0, elevation: this.player?.position.y || 0,terrain:this.bossArena?.active?{title:this.bossArena.layout.title,district:this.bossArena.layout.title,height:this.player.position.y}:this.world?.topology?.state() }, enemyKinds, sword: getSwordProfile(this.stats), activeSynergies: getActiveSynergies(this.stats), activeCurses: [...this.activeCurses], equipment: this.equipment?.getState(), sets: this.setSystem?.state(), job: this.classes?.state(), parry: this.parry?.getState(), exploration: this.exploration?.getState(), routeId: this.routeId, regionId: this.regionId, region: getRegion(this.regionId), mutations: this.mutationSystem?.getDebugState(), runModifiers: this.getFloorModifiers(), runReport: this.runReport ? structuredClone(this.runReport) : this.freshRunReport(), pendingChests: this.pendingChestRewards?.length || 0, altar: this.altar ? { x: this.altar.group.position.x, z: this.altar.group.position.z, opened: this.altar.opened } : null, rewardTokens: this.pendingRelicSources?.length || 0, pendingBossRewards: (this.pendingBossRewards || []).map(reward => ({ ...reward })), maxHp: this.combatStats.maxHp, damage: this.combatStats.damage, attackRate: this.combatStats.attackRate, spellDamage: this.combatStats.spellDamage, spellRate: this.stats.spellRate, speed: this.combatStats.speed, risk: this.getThreat(), selectedRisk: this.selectedRisk, chests: this.chests.map(chest => ({ x: chest.group.position.x, z: chest.group.position.z, remaining: chest.guards.filter(guard => guard.hp > 0).length, opened: chest.opened })), eliteEnemies: this.enemies.filter(enemy => enemy.elite).length, goldenEnemies: this.enemies.filter(enemy => enemy.golden).length, dashCooldown: Math.max(0, this.dashCooldown || 0), dashReady: !(this.dashCooldown > 0), enemyCount: this.enemies.length, arenaRadius: ARENA_RADIUS, stageDuration: STAGE_DURATION, bossSpawnTime: BOSS_SPAWN_TIME, bossSpawned: this.bossSpawned, bossDefeated: this.bossDefeated, boss: this.boss ? { archetype: this.boss.archetype, hint: this.boss.hint, name: this.boss.name, hp: Math.max(0, this.boss.hp), maxHp: this.boss.maxHp, alive: this.boss.hp > 0, spawned: this.bossSpawned, defeated: this.bossDefeated, phase: this.boss.mode, combatPhase: this.boss.combatPhase || 1, transitionTime:this.boss.transitionTime||0,defenseState:bossDamageState(this.boss),attackCue:this.boss.attackCue||'',comboStep:this.boss.comboStep||0,comboTotal:this.boss.comboTotal||0, parryStun: Math.max(0,this.boss.parryStun||0), parryResist: Math.max(0,(this.boss.nextParryStun||0)-this._state.elapsed),recoveryTime:Math.max(0,this.boss.recoveryTime||0),chainRemaining:Math.max(0,this.boss.chainRemaining||0) } : null, spellState: this.magic?.getState() || [], playerStats: { ...this.stats, relics: [...(this.stats.relics || [])], bossRewards: [...(this.stats.bossRewards || [])], spells: { ...this.stats.spells }, evolutions: { ...this.stats.evolutions }, passiveLevels: { ...this.stats.passiveLevels } } };
   }
   emit() { this.callbacks.onUpdate?.(this.state); }
 
@@ -582,7 +585,7 @@ export class Game {
 
   createBossTelegraph(boss, kind) {
     this.clearTelegraph(boss);
-    const travel = boss.mode === 'phase-charge-warning' ? 11.2 : (boss.hp / boss.maxHp < .5 ? 30 : 25) * .65;
+    const travel = boss.chargeTravel || (boss.mode === 'phase-charge-warning' ? 11.2 : (boss.hp / boss.maxHp < .5 ? 30 : 25) * .65);
     const geometry = kind === 'charge' ? new THREE.PlaneGeometry(4.8, travel + 4.8, 1, 20) : new THREE.RingGeometry(0.1, 7.5, 48, 6);
     const material = new THREE.MeshBasicMaterial({ color: kind === 'charge' ? '#8bdcff' : '#ff725d', transparent: true, opacity: 0.24, side: THREE.DoubleSide, depthWrite: false });
     const mesh = new THREE.Mesh(geometry, material); mesh.rotation.x = -Math.PI / 2;
@@ -931,7 +934,8 @@ export class Game {
   setAudioVolumes(effects,background){this.soundscape.setVolumes(effects,background);}
   setAccessibility({cameraShake = this.cameraShake, effectIntensity = this.effectIntensity} = {}) { this.cameraShake = [0,.5,1].includes(cameraShake) ? cameraShake : 1; this.effectIntensity = [0,.35,1].includes(effectIntensity) ? effectIntensity : 1; }
   setViewMode(mode) { return this.view.setMode(mode); }
-  setQuality(value) {this.quality=graphicsQuality(value);if(this.enemyRenderer)this.enemyRenderer.lod.quality=this.quality;const q=GRAPHICS[this.quality];this.renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,q.pixelRatio));this.renderer.shadowMap.enabled=q.shadows;if(this.sunlight.shadow.mapSize.x!==q.shadowSize){this.sunlight.shadow.map?.dispose();this.sunlight.shadow.map=null;this.sunlight.shadow.mapSize.set(q.shadowSize,q.shadowSize);}this.combatArt.limit=q.particles;this.combatArt.count=Math.min(this.combatArt.count,q.particles);this.combatArt.density=q.density;this.defeats.setLimit(q.corpses);this.world?.setQuality(this.quality);this.landscape?.setQuality(q.detail);this.resize();}
+  setAutoPerformance(enabled){this.renderBudget.enabled=!!enabled;this.renderBudget.scale=1;this.renderBudget.averageMs=1000/60;this.resize();}
+  setQuality(value) {this.quality=graphicsQuality(value);if(this.enemyRenderer)this.enemyRenderer.lod.quality=this.quality;const q=GRAPHICS[this.quality];this.renderer.shadowMap.enabled=q.shadows;if(this.sunlight.shadow.mapSize.x!==q.shadowSize){this.sunlight.shadow.map?.dispose();this.sunlight.shadow.map=null;this.sunlight.shadow.mapSize.set(q.shadowSize,q.shadowSize);}this.combatArt.limit=q.particles;this.combatArt.count=Math.min(this.combatArt.count,q.particles);this.combatArt.density=q.density;this.defeats.setLimit(q.corpses);this.world?.setQuality(this.quality);this.landscape?.setQuality(q.detail);this.resize();}
 
   setPlaybackSpeed(value) {
     if (![1, 2, 3].includes(value)) return false;
@@ -956,6 +960,8 @@ export class Game {
   loop(time) {
     if (this.disposed) return;
     if (!this.artReady) { this.lastTime = time; this.frames++; this.raf = requestAnimationFrame(this.loop); return; }
+    if(!this.renderBudget.shouldRender(time,this._state.phase)){this.raf=requestAnimationFrame(this.loop);return;}
+    if(this.renderBudget.needsResize){this.renderBudget.needsResize=false;this.resize();}
     const dt = Math.min(Math.max((time - this.lastTime) / 1000, 0), 0.05); this.lastTime = time; this.frames++;
     if (this._state.phase === 'playing') this.advanceSimulation(dt);
     else { if (this._state.phase === 'camp') { this.camp.update(dt); animatePlayerModel(this, time / 1000, this.inputDirection().lengthSq() > .01 && !this.camp.suspended, dt); } else if (this._state.phase === 'menu') this.animateAttract(time / 1000, dt); this.animateEffects(dt); }
@@ -966,6 +972,7 @@ export class Game {
     this.world?.art.update(dt);
     this.atmosphere?.update(dt);this.landscape?.update(dt);this.aimVisual?.update();
     this.soundscape?.update();
+    const shadowInterval=this.renderBudget.shadowInterval();this.renderer.shadowMap.autoUpdate=shadowInterval===1;this.renderer.shadowMap.needsUpdate=shadowInterval===1||this.frames%shadowInterval===0||this.view.snap;
     this.renderer.render(this.scene, this.camera);
     if (time - this.lastUpdate > 100) { this.lastUpdate = time; this.emit(); }
     this.raf = requestAnimationFrame(this.loop);
@@ -1287,8 +1294,9 @@ export class Game {
   }
 
   updateBoss(boss, dt) {
+    if(boss.transitionTime>0){boss.transitionTime=Math.max(0,boss.transitionTime-dt);return;}
     if (boss.parryStun > 0) { boss.parryStun = Math.max(0,boss.parryStun-dt); return; }
-    if(boss.recoveryTime>0){boss.chainRemaining=Math.max(0,(boss.chainRemaining||0)-dt);boss.recoveryTime=Math.max(0,boss.recoveryTime-dt);boss.mode='recovery';if(!boss.recoveryTime){boss.mode='chase';boss.actionTimer=1.2;}return;}
+    if(boss.recoveryTime>0){boss.chainRemaining=Math.max(0,(boss.chainRemaining||0)-dt);boss.recoveryTime=Math.max(0,boss.recoveryTime-dt);boss.mode='recovery';if(!boss.recoveryTime){boss.mode='chase';boss.actionTimer=BOSS_COMBAT.chase;}return;}
     if (boss.hiddenBoss) { (this.training.active?this.training.hidden:this.sideAreas.hidden).update(boss, dt); return; }
     if (this.bossPhases.update(boss, dt)) return;
     if (boss.archetype && boss.archetype !== 'warden') { this.bossSystem.update(boss, dt); return; }
@@ -1303,16 +1311,16 @@ export class Game {
       if (boss.actionTimer <= 0&&sight) {
         boss.actionIndex++;
         if (distance>6||boss.lastWardenAttack==='pulse') {
-          boss.lastWardenAttack='charge';boss.mode = 'charge-warning'; boss.actionTimer = 0.95; boss.chargeDirection.set(dx, 0, dz).normalize(); this.createBossTelegraph(boss, 'charge');
-        } else {boss.lastWardenAttack='pulse'; boss.mode = 'pulse-warning'; boss.actionTimer = 1.05; this.createBossTelegraph(boss, 'pulse'); }
+          boss.chargeTravel=chargeTravel(distance);boss.attackCue='돌진 예고 · 옆으로 피하거나 패링';boss.lastWardenAttack='charge';boss.mode = 'charge-warning'; boss.actionTimer = 0.95; boss.chargeDirection.set(dx, 0, dz).normalize(); this.createBossTelegraph(boss, 'charge');
+        } else {boss.attackCue='지면 파열 · 붉은 원 밖으로';boss.lastWardenAttack='pulse'; boss.mode = 'pulse-warning'; boss.actionTimer = 1.05; this.createBossTelegraph(boss, 'pulse'); }
       }
     } else if (boss.mode === 'charge-warning') {
       if (boss.telegraph) boss.telegraph.material.opacity = 0.15 + (0.95 - boss.actionTimer) * 0.28;
-      if (boss.actionTimer <= 0) { this.clearTelegraph(boss); boss.mode = 'charge'; boss.actionTimer = 0.65;boss.visualAttack=.36;this.bossArena.attack('charge'); }
+      if (boss.actionTimer <= 0) { this.clearTelegraph(boss); boss.mode = 'charge'; boss.actionTimer = (boss.chargeTravel||16.25)/(enraged?30:25);boss.visualAttack=.36;this.bossArena.attack('charge'); }
     } else if (boss.mode === 'charge') {
       const before=boss.group.position.clone();boss.group.position.addScaledVector(boss.chargeDirection, dt * (enraged ? 30 : 25));
       if(this.bossArena.crush(before,boss.group.position,boss))return;
-      if (boss.actionTimer <= 0) { boss.mode='recovery';boss.recoveryTime=enraged?.8:1.1; }
+      if (boss.actionTimer <= 0) { if((boss.combatPhase||1)>=2){boss.mode='pulse-warning';boss.actionTimer=.9;boss.attackCue='돌진 후 지면 파열 · 연계가 끝난 뒤 반격';this.createBossTelegraph(boss,'pulse');}else{boss.mode='recovery';boss.recoveryTime=1.1;boss.attackCue='돌진 종료 · 반격 기회';} }
     } else if (boss.mode === 'pulse-warning') {
       if (boss.telegraph) boss.telegraph.material.opacity = 0.12 + (1.05 - boss.actionTimer) * 0.32;
       if (boss.actionTimer <= 0) {
@@ -1321,7 +1329,7 @@ export class Game {
         const wave = new THREE.Mesh(new THREE.RingGeometry(6.9, 7.5, 48), new THREE.MeshBasicMaterial({ color: '#ff876c', transparent: true, opacity: 0.85, side: THREE.DoubleSide, depthWrite: false }));
         wave.position.copy(boss.group.position); wave.position.y = 0.2; wave.rotation.x = -Math.PI / 2; this.scene.add(wave); this.effects.push({ mesh: wave, life: 0.5, total: 0.5, type: 'slash' });
         if (this._state.stage >= 3) this.shootEnemyProjectile(boss, new THREE.Vector3(dx, 0, dz).normalize(), { count: enraged ? 9 : 7, spread: 0.27, damage: this.bossStats().damage });
-        boss.mode='recovery';boss.recoveryTime=enraged?.85:1.25;
+        boss.mode='recovery';boss.recoveryTime=enraged?1:1.25;boss.attackCue='연계 종료 · 반격 기회';
       }
     }
     const radius = Math.hypot(boss.group.position.x, boss.group.position.z);
@@ -1412,9 +1420,10 @@ export class Game {
       const stop=this.projectileTarget(p.previous,p.mesh.position),blocked=stop.distanceTo(p.mesh.position)>.001;
       p.mesh.position.copy(stop);const actual=Math.hypot(p.previous.x-p.mesh.position.x,p.previous.z-p.mesh.position.z);
       for(const e of [...this.enemies]){
-        if(e.hp<=0||p.hit.has(e)||p.mesh.position.y<e.group.position.y-.2||p.mesh.position.y>e.group.position.y+bodyHeight(e)+.3||!this.combatLineClear(p.previous,e.group.position))continue;
+        if(e.hp<=0||p.hit.has(e)||p.mesh.position.y<e.group.position.y-.2||p.mesh.position.y>e.group.position.y+bodyHeight(e)+.3)continue;
         const along=clamp((e.group.position.x-p.previous.x)*p.direction.x+(e.group.position.z-p.previous.z)*p.direction.z,0,actual),x=p.previous.x+p.direction.x*along-e.group.position.x,z=p.previous.z+p.direction.z*along-e.group.position.z;
-        if(x*x+z*z>((p.width||.75)+hurtRadius(e))**2)continue;
+        // Reject distant bodies before walking every wall along the sight line.
+        if(x*x+z*z>((p.width||.75)+hurtRadius(e))**2||!this.combatLineClear(p.previous,e.group.position))continue;
         const position=e.group.position.clone(),multiplier=this.links?.swordMultiplier(p.action||{},e)||1;
         this.hitEnemy(e,p.damage*multiplier,p.direction);this.links?.afterSword(e,p.damage,position);p.hit.add(e);
         if(--p.pierce<=0){p.life=0;break;}
@@ -1430,7 +1439,8 @@ export class Game {
     const critical = source !== 'explosion' && Math.random() < Math.min(0.65, this.combatStats.critChance + comboBonus);
     const lowHealth = this._state.hp <= this.combatStats.maxHp * 0.35 ? 1 + (this.stats.lowHealthDamageBonus || 0) : 1;
     const eliteBonus = enemy.elite || enemy.mutationElite || enemy.kind === 4 ? 1 + Math.max(0, this.stats.eliteDamageBonus || 0) : 1;
-    const dealt = this.mutationSystem.mitigateDamage(enemy, Math.max(0, damage) * this.classes.spellBonus(source) * (critical ? this.combatStats.criticalMultiplier : 1) * lowHealth * eliteBonus * (enemy.kind === 4 ? 1 + this.combatStats.bossDamage : 1) * (source === 'combo' ? this.combatStats.comboMultiplier : 1) * (enemy.action==='melee-recovery'||enemy.recoveryTime>0&&!(enemy.chainRemaining>0)?1.2:1) * this.regionSystem.damageMultiplier(enemy, spellId));
+    let dealt = this.mutationSystem.mitigateDamage(enemy, Math.max(0, damage) * this.classes.spellBonus(source) * (critical ? this.combatStats.criticalMultiplier : 1) * lowHealth * eliteBonus * (enemy.kind === 4 ? 1 + this.combatStats.bossDamage : 1) * (source === 'combo' ? this.combatStats.comboMultiplier : 1) * (enemy.kind!==4&&(enemy.action==='melee-recovery'||enemy.recoveryTime>0&&!(enemy.chainRemaining>0))?1.2:1) * this.regionSystem.damageMultiplier(enemy, spellId));
+    if(enemy.kind===4&&enemy===this.bossPhases.boss){dealt=limitBossDamage(enemy,dealt,impact?.analyticsSource==='counter');if(!(dealt>0))return false;}
     this.floatText(`${critical ? '✦ ' : ''}${Math.round(dealt).toLocaleString('en-US')}`, enemy.group.position, critical ? '#eeffad' : '#f1f4dc', critical ? 1.35 : 1, 1.65);
     const bucket = ['fireball', 'frost', 'lightning', 'orbit'].includes(spellId) ? spellId : ['sword', 'combo'].includes(source) ? source : 'other';
     this.runReport.damageBySource[bucket] += Math.min(enemy.hp, dealt);
@@ -1459,8 +1469,8 @@ export class Game {
     const bossReward = enemy.kind === 4 ? this.bossStats() : null;
     const rewardMultiplier = enemy.rewardMultiplier || 1;
     const definition = enemy.definition || getEnemyDefinition(enemy.kind);
-    this.dropPickup(position, 'xp', (bossReward ? bossReward.xpValue : definition?.xp || 1) * (enemy.elite ? 2 : 1) * (enemy.minion ? .25 : 1) * (enemy.mutationXpMultiplier || 1) * getXpDropMultiplier(this._state.stage)*3);
-    this.dropPickup(position, 'gold', (bossReward ? bossReward.coinValue : this.stageStats().coinValue * (definition?.goldMultiplier || 1)) * rewardMultiplier*2.5);
+    if(!enemy.noReward){this.dropPickup(position, 'xp', (bossReward ? bossReward.xpValue : definition?.xp || 1) * (enemy.elite ? 2 : 1) * (enemy.minion ? .25 : 1) * (enemy.mutationXpMultiplier || 1) * getXpDropMultiplier(this._state.stage)*3);
+    this.dropPickup(position, 'gold', (bossReward ? bossReward.coinValue : this.stageStats().coinValue * (definition?.goldMultiplier || 1)) * rewardMultiplier*2.5);}
     if (enemy.kind === 4) {
       this.bossArena.defeat(enemy);this.bossDefeated = true; this.clearTelegraph(enemy); this.bossSystem.clear(); this.bossPhases.clear(); this.sound('win');
       this.floatText('BOSS DEFEATED', position, '#ffcf86', 1.8, 5);
@@ -1522,7 +1532,10 @@ export class Game {
       const p = this.pickups[i]; p.age += dt; p.mesh.rotation.y += dt * 2;
       p.mesh.position.y = this.groundHeight(p.mesh.position.x, p.mesh.position.z,p.mesh.position.y-.35) + 0.35 + Math.sin(p.age * 4 + p.seed) * 0.09;
       const dx = this.player.position.x - p.mesh.position.x, dz = this.player.position.z - p.mesh.position.z, distance = Math.hypot(dx, dz);
-      const sameLayer=Math.abs(this.player.position.y-(p.mesh.position.y-.35))<1.4&&this.combatLineClear(this.player.position,p.mesh.position);
+      // A distant idle pickup cannot be attracted or collected this frame. Keep
+      // checking active attraction even after the player leaves magnet range.
+      const canCollect=p.collecting||distance<Math.max(this.stats.magnet,.7);
+      const sameLayer=canCollect&&Math.abs(this.player.position.y-(p.mesh.position.y-.35))<1.4&&this.combatLineClear(this.player.position,p.mesh.position);
       if(distance<this.stats.magnet&&sameLayer)p.collecting=true;else if(!sameLayer)p.collecting=false;
       if (p.collecting && distance > 0) {
         const amount = Math.min(distance, (12 + p.age * 0.3) * dt);
@@ -1667,8 +1680,12 @@ export class Game {
   lerpAngle(a, b, t) { let difference = ((b - a + Math.PI) % TAU + TAU) % TAU - Math.PI; return a + difference * Math.min(1, t); }
   resize() {
     const width = Math.max(1, this.container.clientWidth), height = Math.max(1, this.container.clientHeight);
-    this.renderer.setSize(width, height); this.camera.aspect = width / height;
-    this.camera.fov = this.view?.fov() || (width / height < 0.9 ? 56 : 43); this.camera.updateProjectionMatrix();
+    const ratio=this.renderBudget.pixelRatio(width,height,window.devicePixelRatio||1,GRAPHICS[this.quality]||GRAPHICS.high,this.view?.touchSteering()||false);
+    if(Math.abs(this.renderer.getPixelRatio()-ratio)>.005)this.renderer.setPixelRatio(ratio);
+    if(this.renderer.domElement.width!==Math.floor(width*ratio)||this.renderer.domElement.height!==Math.floor(height*ratio))this.renderer.setSize(width,height);
+    const fov=this.view?.fov()||(width/height<.9?56:43),aspect=width/height;
+    if(this.camera.aspect!==aspect||this.camera.fov!==fov){this.camera.aspect=aspect;this.camera.fov=fov;this.camera.updateProjectionMatrix();}
+    this.renderBudget.force();
   }
   removeGroup(group) { if (!group) return; group.parent?.remove(group); }
   clearDynamic() {
@@ -1698,7 +1715,7 @@ export class Game {
   initAudio() { if(!this.muted&&this.soundscape?.unlock())this.audio=this.soundscape.context; }
   sound(type,position=null,options={}) { return this.soundscape?.play(type,position,options); }
 
-  getDebugState() { return { ...this.state, presentation: { ready: this.artReady, ...this.presentation.status, particles: this.combatArt?.count || 0, actorShadows: this.actorShadows?.mesh.count || 0, grass: this.world?.art.grass.count || 0 }, enemyRender: this.enemyRenderer?.getDebugState(), permanentBonuses: { ...this.permanentBonuses }, player: this.player.position.toArray(), enemies: this.enemies.length, pickups: this.pickups.length, floatingTexts: this.floatingTexts.length, effects: this.effects.length, pools: { enemies: [...this.enemyPools.values()].reduce((sum, pool) => sum + pool.length, 0), effects: this.effectPool.length, texts: this.textPool.length }, resources: { geometries: this.renderer.info.memory.geometries, textures: this.renderer.info.memory.textures }, projectiles: this.projectiles.length, enemyProjectiles: this.enemyProjectiles.length, rangedEnemies: this.enemies.filter(e => e.kind === 3 || e.kind === 8).length, bossSystem: this.bossSystem?.getDebugState(), regionSystem: this.regionSystem?.getDebugState(), mutationSystem: this.mutationSystem?.getDebugState(), magic: this.magic?.getDebugState?.(), frames: this.frames, drawCalls: this.renderer.info.render.calls, triangles: this.renderer.info.render.triangles, renderer: this.renderer.capabilities.isWebGL2 ? 'WebGL2' : 'WebGL', canvas: { width: this.renderer.domElement.width, height: this.renderer.domElement.height } }; }
+  getDebugState() { return { ...this.state, performance:this.renderBudget.state(), presentation: { ready: this.artReady, ...this.presentation.status, particles: this.combatArt?.count || 0, actorShadows: this.actorShadows?.mesh.count || 0, grass: this.world?.art.grass.count || 0 }, enemyRender: this.enemyRenderer?.getDebugState(), permanentBonuses: { ...this.permanentBonuses }, player: this.player.position.toArray(), enemies: this.enemies.length, pickups: this.pickups.length, floatingTexts: this.floatingTexts.length, effects: this.effects.length, pools: { enemies: [...this.enemyPools.values()].reduce((sum, pool) => sum + pool.length, 0), effects: this.effectPool.length, texts: this.textPool.length }, resources: { geometries: this.renderer.info.memory.geometries, textures: this.renderer.info.memory.textures }, projectiles: this.projectiles.length, enemyProjectiles: this.enemyProjectiles.length, rangedEnemies: this.enemies.filter(e => e.kind === 3 || e.kind === 8).length, bossSystem: this.bossSystem?.getDebugState(), regionSystem: this.regionSystem?.getDebugState(), mutationSystem: this.mutationSystem?.getDebugState(), magic: this.magic?.getDebugState?.(), frames: this.frames, drawCalls: this.renderer.info.render.calls, triangles: this.renderer.info.render.triangles, renderer: this.renderer.capabilities.isWebGL2 ? 'WebGL2' : 'WebGL', canvas: { width: this.renderer.domElement.width, height: this.renderer.domElement.height } }; }
   /** Deterministic-time simulation hook for smoke tests; respects pause and choices. */
   stepForTest(seconds) { for (let t = 0; t < seconds && this._state.phase === 'playing'; t += 1 / 60) { this.frames++; this.advanceSimulation(1 / 60); } this.emit(); return this.getDebugState(); }
   dispose() {

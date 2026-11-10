@@ -100,10 +100,10 @@ export class BossArenaSystem {
     if(this.hazardTimer<=0&&!this.pendingPhase){this.environmentAttack();this.hazardTimer=this.layout.phase===3?6:8;}
     this.musicTimer-=dt;if(this.musicTimer<=0){this.game.sound('boss-motif',null,{note:this.definition.motif[this.beat++%4],phase:this.layout.phase});this.musicTimer=this.layout.phase===3?.56:.82;}
   }
-  phase(boss,phase){if(!this.active||boss!==this.boss||this.won)return;this.pendingPhase={phase,time:1.25};this.cue('phase',.7);this.game.sound('boss-phase',boss.group.position);this.game.callbacks.onLoot?.(this.definition.change+' · 1.2초 후');}
+  phase(boss,phase){if(!this.active||boss!==this.boss||this.won)return;this.pendingPhase={phase,time:.85};this.cue('phase',.7);this.game.sound('boss-phase',boss.group.position);this.game.callbacks.onLoot?.(this.definition.change+' · 잠시 후');}
   applyPhase(phase){
     const removed=this.layout.advance(phase);for(const s of removed)this.debris(s);this.renderer.sync();this.syncDecor();this.events.push({kind:'phase',phase,removed:removed.map(s=>s.id),time:this.time});
-    this.hazardTimer=Math.max(this.hazardTimer,2);this.game.bossSystem.cancelAttacks();this.boss.actionTimer=Math.max(1.6,this.boss.actionTimer||0);this.boss.hiddenTimer=Math.max(1.6,this.boss.hiddenTimer||0);this.boss.phaseCooldown=Math.max(3,this.boss.phaseCooldown||0);
+    this.hazardTimer=Math.max(this.hazardTimer,2);this.game.bossSystem.cancelAttacks();this.boss.actionTimer=Math.max(.4,this.boss.actionTimer||0);this.boss.hiddenTimer=Math.max(.5,this.boss.hiddenTimer||0);this.boss.phaseCooldown=Math.max(1.5,this.boss.phaseCooldown||0);
     const colors=[...COLORS[this.definition.region],this.definition.color];this.game.moodTarget=colors.map((c,i)=>new THREE.Color(c).multiplyScalar(phase===3&&i<2?.75:1));this.game.sound('arena-collapse');
   }
   debris(s){this.game.puff(new THREE.Vector3(s.x,s.minY+1,s.z),this.definition.color,2,.5);}
@@ -117,7 +117,7 @@ export class BossArenaSystem {
   crush(a,b,boss){
     if(!this.active||boss!==this.boss)return false;
     const hit=this.layout.breakables.find(s=>!s.disabled&&volumeEntry(a,b,s,1.5)<=1);if(!hit)return false;
-    hit.bossHits=1;this.impact(hit,boss);boss.mode='recovery';boss.recoveryTime=1.65;boss.actionTimer=2.5;this.game.bossPhases.rush=null;this.game.clearTelegraph(boss);this.game.callbacks.onLoot?.('돌진 유도 성공 · 수호자 자세 붕괴');return true;
+    hit.bossHits=1;this.impact(hit,boss);boss.mode='recovery';boss.recoveryTime=1.65;boss.comboPlan=[];boss.comboPattern=null;boss.actionTimer=2.5;this.game.bossPhases.rush=null;this.game.clearTelegraph(boss);this.game.callbacks.onLoot?.('돌진 유도 성공 · 수호자 자세 붕괴');return true;
   }
   attack(type){if(!this.active||this.won)return;this.game.sound('boss-'+({warden:'stone',artillery:'cannon',plague:'venom',brood:'summon',storm:'thunder',reaper:'rift',king:'stone',observer:'rift',primordial:'abyss'}[this.layout.id]),this.boss.group.position);}
   minionPosition(n){if(!this.active)return null;const gates=this.layout.spawnGates;if(!gates.length)return null;const gate=gates[n%gates.length];const p=new THREE.Vector3(gate.x*.85,0,gate.z*.85);this.terrain.project(p,.6,3.6);return p;}

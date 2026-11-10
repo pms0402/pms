@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { HIDDEN_BOSSES } from "./story.js";
 import { buildSculptedMonster, sculptedGeometry } from './sculpted-models.js';
+import {annulusWarning,BOSS_COMBAT} from './boss-combat.js';
 export class HiddenBossSystem {
   constructor(game) {
     this.game = game;
@@ -131,6 +132,7 @@ export class HiddenBossSystem {
     e.mode = "chase";
     e.hiddenTimer = 1.5;
     e.hiddenAction = 0;
+    e.hiddenComboRemaining=0;
     e.aimDirection = new THREE.Vector3(0, 0, 1);
     g.boss = e;
     g.bossSpawned = true;
@@ -146,6 +148,7 @@ export class HiddenBossSystem {
     const g = this.game,
       z = g.bossSystem.zone(p, r, w, l, d, type);
     if (z && inner) {
+      z.terrainPulse=true;
       z.innerRadius = inner;
       const mesh = z.marker.children[0];
       mesh.geometry.dispose();
@@ -173,6 +176,7 @@ export class HiddenBossSystem {
       e.hiddenTimer = 1.5;
     }
     e.hiddenTimer -= dt;
+    if(e.hiddenBoss==='king'&&g.bossPhases.rush){g.bossPhases.update(e,dt);return;}
     e.slowTime = Math.max(0, (e.slowTime || 0) - dt);
     const phase = e.combatPhase,
       t = g._state.elapsed;
@@ -216,6 +220,10 @@ export class HiddenBossSystem {
     const dir = p.clone().sub(e.group.position).setY(0).normalize();
     e.aimDirection.copy(dir);
     if (e.hiddenBoss === "king") {
+      const distance=e.group.position.distanceTo(p);
+      if(distance>9&&!e.hiddenComboRemaining){g.bossPhases.startRush(e,phase===3?2:1);e.attackCue='왕의 돌진 · 푸른 직선에서 이탈/패링';e.hiddenTimer=.5;return;}
+      if(!e.hiddenComboRemaining){e.hiddenComboRemaining=phase===3?3:phase===2?2:1;e.comboTotal=e.hiddenComboRemaining;}
+      e.comboStep=e.comboTotal-e.hiddenComboRemaining+1;e.attackCue=`왕의 검격 ${e.comboStep}/${e.comboTotal} · 마지막 베기 뒤 반격`;
       const z = this.zone(
         e.group.position,
         6,
@@ -248,6 +256,7 @@ export class HiddenBossSystem {
       };
       e.hiddenTimer = phase === 3 ? 0.85 : 1.1;
     } else if (e.hiddenBoss === "observer") {
+      e.attackCue='균열 도약 → 부채꼴 탄막 · 조준선 옆으로';
       const dest = p
         .clone()
         .add(
@@ -264,23 +273,29 @@ export class HiddenBossSystem {
       e.hiddenPending = { type: "blink", destination: dest };
       e.hiddenTimer = 1.2;
     } else {
-      if (e.hiddenAction % 2 === 0 || phase === 3) {
+      if (e.hiddenAction % 3 === 1) {
+        const inner=g.bossArena?.active?7:4,outer=g.bossArena?.active?28:12,warning=annulusWarning(Math.hypot(p.x,p.z),g.combatStats?.speed,inner);
+        e.attackCue=`외곽 파문 · 중앙 ${inner}m 안전`;
         this.zone(
           new THREE.Vector3(),
-          g.bossArena?.active ? 18 : 12,
-          g.bossArena?.active ? 1.65 : 1.35,
+          outer,
+          warning,
           0.18,
           d * 1.1,
           "primordial",
-          4,
+          inner,
         );
         e.hiddenPending = { type: "annulus" };
-        e.hiddenTimer = g.bossArena?.active ? 1.65 : 1.35;
+        e.hiddenTimer = warning;
+      } else if(e.hiddenAction%3===2){
+        const radius=g.bossArena?.active?9:6,warning=Math.max(1.25,(radius-Math.hypot(p.x,p.z)+1)/Math.max(3,g.combatStats?.speed||7.5)+.5);
+        const z=this.zone(new THREE.Vector3(),radius,warning,.2,d*1.05,'core');if(z)z.terrainPulse=true;e.hiddenPending={type:'core'};e.hiddenTimer=warning;e.attackCue=`중앙 붕괴 · ${radius}m 밖으로 이동`;
       } else {
-        for (const side of [-1, 1])
+        e.attackCue='추적 손아귀 · 붉은 표식에서 이동';
+        for (const side of [0, 1])
           this.zone(
             p.clone().add(new THREE.Vector3(side * 4, 0, 0)),
-            2.8,
+            3.4,
             1.2,
             0.2,
             d * 0.8,
@@ -325,16 +340,19 @@ export class HiddenBossSystem {
         .sub(e.group.position)
         .setY(0)
         .normalize();
-      g.bossSystem.fire(e, dir, {
+      g.bossSystem.warningLine({...e,aimDirection:dir},.45);
+      g.bossSystem.schedule(e,.45,dir,{
         count: phase === 3 ? 9 : phase === 2 ? 7 : 5,
         spread: 0.22,
-        speed: 6.8,
+        speed: 8.5,
       });
+      if(phase===3){const follow=dir.clone().applyAxisAngle(new THREE.Vector3(0,1,0),e.hiddenAction%2?.28:-.28);g.bossSystem.warningLine({...e,aimDirection:follow},.9);g.bossSystem.schedule(e,.9,follow,{count:5,spread:.18,speed:8.5});}
       if (phase >= 2)
         this.zone(g.player.position, 2.5, 1.3, 0.18, d * 0.75, "rift");
     } else if (a.type === "grasp" && phase >= 2)
       g.bossSystem.radial(e, e.hiddenAction * 0.6, 12, 3);
-    e.recoveryTime=phase===3?.65:1; e.hiddenTimer = phase === 3 ? 1.2 : phase === 2 ? 1.6 : 2.2;
+    if(e.hiddenBoss==='king'&&a.type==='blade'&&--e.hiddenComboRemaining>0){e.recoveryTime=0;e.hiddenTimer=BOSS_COMBAT.link;return;}
+    e.chainRemaining=Math.max(0,...g.bossSystem.pendingShots.map(s=>s.delay||0),...g.bossSystem.zones.filter(z=>z.damage>0).map(z=>z.warning||0));e.recoveryTime=e.chainRemaining+(phase===3?.9:1.1);e.hiddenTimer=phase===3?.5:.75;e.attackCue=e.chainRemaining>0?'후속 공격 · 예고 종료 뒤 반격':'공격 종료 · 반격 기회';
   }
   clear() {
     this.boss = null;

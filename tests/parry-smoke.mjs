@@ -60,7 +60,7 @@ try {
     attempts: window.__game.analytics.parryAttempts,
   }));
   assert.ok(input.active > 0 && input.pose <= -1);
-  assert.equal(input.fullscreen, false);
+  assert.equal(input.fullscreen, true);
   assert.equal(input.attempts, 1);
   const koreanKeys=await p.evaluate(()=>{
     const samples=[];
@@ -85,7 +85,7 @@ try {
   await p.keyboard.press("F10");
   assert.equal(
     await p.evaluate(() => document.body.classList.contains("theater-mode")),
-    true,
+    false,
   );
   await p.keyboard.press("F10");
   const defend = await p.evaluate(() => {

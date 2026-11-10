@@ -883,3 +883,10 @@ body.theater-mode .boss-hud { top:max(8px,env(safe-area-inset-top)); }
 @media(max-height:520px){#view-hint{top:145px;font-size:8px;max-width:140px}}
 
 #terrain-hint{position:absolute;left:50%;top:82px;transform:translateX(-50%);padding:5px 12px;border:1px solid #9ab0a122;border-radius:20px;background:#101817aa;color:#c1cdc4;font:11px/1.3 sans-serif;pointer-events:none;white-space:nowrap;max-width:90%;overflow:hidden;text-overflow:ellipsis} @media(max-width:700px){#terrain-hint{top:106px;font-size:10px;padding:4px 8px;max-width:80%}}
+
+/* Full-viewport play keeps site controls reachable without native fullscreen prompts. */
+body.theater-mode .arena-top-actions .icon-button{display:inline-flex;align-items:center;justify-content:center;width:34px;height:32px;padding:7px;border:1px solid #b5d18b4a;border-radius:6px;background:#18231dc9;color:#d6e8bd;flex-shrink:0}
+body.theater-mode .arena-top-actions .icon-button .icon{width:16px;height:16px}
+@media(max-width:640px){body.theater-mode .arena-top-actions .icon-button{width:28px;height:30px;padding:5px}body.theater-mode .arena-top-actions{gap:4px}body.theater-mode .area-label{max-width:105px}body.theater-mode .arena-top{left:12px;right:12px}}
+/* The boss replaces the region caption on narrow screens, leaving controls clear. */
+@media(max-width:640px){body.theater-mode .has-boss .boss-hud{left:12px;transform:none;width:min(160px,calc(100% - 278px))}body.theater-mode .has-boss .area-label{visibility:hidden}}

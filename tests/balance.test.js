@@ -26,8 +26,8 @@ test('monster curves remain independent of player stats with earned gold x10 per
   assert.equal(getStageStats(1).enemyHealth, 50);
   assert.equal(getStageStats(1).enemyDamage, 11);
   assert.equal(getStageStats(1).coinValue, 5);
-  assert.equal(ENEMY_HEALTH_GROWTH, 1.7);
-  assert.equal(ENEMY_DAMAGE_GROWTH, 1.35);
+  assert.equal(ENEMY_HEALTH_GROWTH, 1.15);
+  assert.equal(ENEMY_DAMAGE_GROWTH, 1.075);
   for (let stage = 2; stage <= MAX_STAGES; stage++) {
     const previous = getStageStats(stage - 1), current = getStageStats(stage);
     assert.equal(current.coinValue / previous.coinValue, 10);
@@ -92,13 +92,13 @@ test('every level offers a real spell and small passive with three distinct choi
   }
 });
 
-test('passives give meaningful compound improvements and caps reject additional purchases', () => {
+test('passives give small linear improvements and caps reject additional purchases', () => {
   const effects = {
-    power: ['damage', 18 * 1.2], haste: ['attackRate', 1.5 * 1.08],
-    spell_power: ['spellDamage', 18 * 1.2], spell_haste: ['spellRate', 1.5 * 1.08],
-    vitality: ['maxHp', 115], magnet: ['magnet', 5.5 * 1.08],
-    critical: ['critChance', 0.10], armor: ['armor', 0.02],
-    regen: ['regen', 0.2], speed: ['speed', 7.5 * 1.03],
+    power: ['damage', 18 * 1.03], haste: ['attackRate', 1.5 * 1.02],
+    spell_power: ['spellDamage', 18 * 1.03], spell_haste: ['spellRate', 1.5 * 1.02],
+    vitality: ['maxHp', 102], magnet: ['magnet', 5.5 * 1.08],
+    critical: ['critChance', 0.0875], armor: ['armor', 0.005],
+    regen: ['regen', 0.05], speed: ['speed', 7.5 * 1.01],
   };
   for (const [id, [key, expected]] of Object.entries(effects)) {
     const stats = fresh();

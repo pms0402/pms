@@ -97,7 +97,7 @@ try {
   assert.equal(await page.locator('[data-chest-relic]').count(), 3);
   await page.locator('[data-chest-relic="whetstone"]').click();
   const chosenChest = await page.evaluate(() => ({ stats: structuredClone(window.__game.stats), hp: window.__game.state.hp, level: window.__game.state.level, xp: window.__game.state.xp, phase: window.__game.state.phase, repeated: window.__game.chooseChestReward('whetstone') }));
-  const chestExpected = structuredClone(chestReward.before); chestExpected.damage *= 1.4; chestExpected.relics.push('whetstone');
+  const chestExpected = structuredClone(chestReward.before); chestExpected.damage *= 1.1; chestExpected.relics.push('whetstone');
   assert.deepEqual(chosenChest.stats, chestExpected, 'exactly the selected chest relic applies');
   assert.equal(chosenChest.hp, chestReward.hp); assert.equal(chosenChest.phase, 'playing'); assert.equal(chosenChest.repeated, false);
   assert.equal(chosenChest.level, chestReward.level); assert.equal(chosenChest.xp, chestReward.xp);
@@ -129,7 +129,8 @@ try {
         const before = structuredClone(game.stats), beforeHp = game.state.hp;
         const boss = game.spawnBoss();
         const afterSpawn = structuredClone(game.stats);
-        game.hitEnemy(boss, boss.hp + 1); if (game.equipment?.rewardQueue.length) { game.equipment.nextReward(); document.querySelector('[data-equipment-choice="skip"]')?.click(); }
+        boss.combatPhase=3;boss.transitionTime=0;boss.recoveryTime=1;boss.chainRemaining=0; /* Terminal-phase reward fixture. */ game.hitEnemy(boss, boss.hp + 1); game.bossArena.skip(); if (game.equipment?.rewardQueue.length) { game.equipment.nextReward(); document.querySelector('[data-equipment-choice="skip"]')?.click(); }
+        game.bossArena.skip(); // Skip the victory cinematic before testing the route transition.
         const afterKill = structuredClone(game.stats), killHp = game.state.hp;
         game.dropPickup(game.player.position.clone().set(30, 0, 30), 'heal', 30);
         game._state.stageTime = game.state.stageDuration;
@@ -174,9 +175,9 @@ try {
   assert.equal(await page.evaluate(() => window.__game.state.phase), 'upgrade', 'mandatory choice stays open until a card is selected');
   await page.locator('[data-upgrade="power"]').click();
   const sword = await page.evaluate(() => ({ stats: structuredClone(window.__game.stats), hp: window.__game.state.hp, phase: window.__game.state.phase, rejected: window.__game.chooseUpgrade('power') }));
-  near(sword.stats.damage, ordinary.before.damage * 1.2, 'selected sword power grants exactly20%');
+  near(sword.stats.damage, ordinary.before.damage * 1.03, 'selected sword power grants exactly 3%');
   assert.equal(sword.stats.spellDamage, ordinary.before.spellDamage); assert.equal(sword.hp, ordinary.hp); assert.equal(sword.phase, 'playing'); assert.equal(sword.rejected, false);
-  const swordExpected = structuredClone(ordinary.before); swordExpected.damage *= 1.2; swordExpected.passiveLevels.power = 1;
+  const swordExpected = structuredClone(ordinary.before); swordExpected.damage *= 1.03; swordExpected.passiveLevels.power = 1;
   assert.deepEqual(sword.stats, swordExpected, 'a sword card changes only its specified stat and purchase counter');
   console.log('PASS explicit level choice: opening a level-up changes no stat; selecting sword power changes only sword damage and cannot be replayed');
 
@@ -202,9 +203,9 @@ try {
   assert.deepEqual(nextRelicOffer.before, nextRelicOffer.after);
   await page.locator('[data-upgrade="relic_giantsHeart"]').click();
   const giant = await page.evaluate(() => ({ stats: structuredClone(window.__game.stats), hp: window.__game.state.hp, tokens: window.__game.state.rewardTokens, direct: window.__game.chooseRelic('giantsHeart') }));
-  near(giant.stats.maxHp, 140, 'giant heart applies only after choosing its level-up card'); near(giant.hp, 101, 'the chosen health increase heals only its added40capacity');
+  near(giant.stats.maxHp, 112, 'giant heart applies only after choosing its level-up card'); near(giant.hp, 73, 'the chosen health increase heals only its added 12 capacity');
   assert.equal(giant.tokens, 0); assert.equal(giant.direct, false);
-  const giantExpected = structuredClone(nextRelicOffer.before); giantExpected.maxHp *= 1.4; giantExpected.relics.push('giantsHeart');
+  const giantExpected = structuredClone(nextRelicOffer.before); giantExpected.maxHp *= 1.12; giantExpected.relics.push('giantsHeart');
   assert.deepEqual(giant.stats, giantExpected);
   console.log('PASS elite relic choice: optional fourth card must be chosen, survives a skipped level and consumes one token');
 
@@ -214,7 +215,7 @@ try {
     const random = Math.random;
     try {
       Math.random = () => .5;
-      const boss = game.spawnBoss(); game.hitEnemy(boss, boss.hp + 1); if (game.equipment?.rewardQueue.length) { game.equipment.nextReward(); document.querySelector('[data-equipment-choice="skip"]')?.click(); }
+      const boss = game.spawnBoss(); boss.combatPhase=3;boss.transitionTime=0;boss.recoveryTime=1;boss.chainRemaining=0; /* Terminal-phase reward fixture. */ game.hitEnemy(boss, boss.hp + 1); game.bossArena.skip(); if (game.equipment?.rewardQueue.length) { game.equipment.nextReward(); document.querySelector('[data-equipment-choice="skip"]')?.click(); }
     } finally { Math.random = random; }
     const direct = game.chooseUpgrade('boss_warden');
     return { before, after: structuredClone(game.stats), hp, afterHp: game.state.hp, direct, pending: game.state.pendingBossRewards.map(reward => reward.id) };
@@ -224,7 +225,7 @@ try {
   assert.deepEqual(bossOffer.before, bossOffer.after); assert.equal(bossOffer.choices.length, 4); assert.equal(bossOffer.choices.at(-1).id, 'boss_warden');
   await page.locator('[data-upgrade="boss_warden"]').click();
   const legacy = await page.evaluate(() => ({ stats: structuredClone(window.__game.stats), hp: window.__game.state.hp, pending: window.__game.state.pendingBossRewards.length, invalid: window.__game.chooseUpgrade('boss_warden') }));
-  const bossExpected = structuredClone(bossOffer.before); bossExpected.swordRangeMultiplier *= 1.1; bossExpected.bossRewards.push('warden');
+  const bossExpected = structuredClone(bossOffer.before); bossExpected.swordRangeMultiplier *= 1.05; bossExpected.bossRewards.push('warden');
   assert.deepEqual(legacy.stats, bossExpected); assert.equal(legacy.hp, bossToken.hp); assert.equal(legacy.pending, 0); assert.equal(legacy.invalid, false);
   console.log('PASS boss legacy: defeat grants no stats; choosing the earned fourth card applies its one effect exactly once');
 
@@ -241,7 +242,7 @@ try {
   assert.equal(await page.evaluate(() => window.__game.stats.damage), endedDamage, 'between-run purchase configures the next run without rewriting an ended run');
   await page.locator('#camp-start').click();
   await page.evaluate(() => cancelAnimationFrame(window.__game.raf));
-  near(await page.evaluate(() => window.__game.stats.damage), 18 * 1.12, 'only purchased permanent bonuses change the next starting sword damage');
+  near(await page.evaluate(() => window.__game.stats.damage), 18 * 1.006, 'only purchased permanent bonuses change the next starting sword damage');
   assert.equal(await page.evaluate(() => window.__game.stats.spellDamage), 18);
   assert.equal(await page.evaluate(() => window.__game.setPermanentBonuses({ damageMultiplier: 4 })), false);
   console.log('PASS permanent choice: contact death settles12G, purchased12G power applies next start and cannot be changed during a live run');
@@ -263,7 +264,7 @@ try {
     assert.ok(scroll.height <= scroll.innerHeight + 1 && scroll.width <= scroll.innerWidth + 1, 'four choices never enable document scrolling');
     assert.equal(await page.evaluate(() => window.__game.state.phase), 'upgrade');
     await page.locator('[data-upgrade="relic_giantsHeart"]').click();
-    near(await page.evaluate(() => window.__game.stats.maxHp), 140, 'mobile selects the same manual relic effect');
+    near(await page.evaluate(() => window.__game.stats.maxHp), 112, 'mobile selects the same manual relic effect');
   }
   assert.deepEqual(errors, [], 'no uncaught browser exceptions');
   console.log('PASS mobile manual growth: four reachable cards, one selected upgrade and no page overflow in portrait/landscape');

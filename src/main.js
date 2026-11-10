@@ -2,6 +2,7 @@ import {attr as writeAttr,style as writeStyle,text as writeText} from './dom-upd
 import {createInteractionUi} from './interaction-ui.js';
 import './interaction-ui.css';
 import './style.css';
+import {ViewportMode} from './fullscreen.js';
 import {updateBossArenaUI} from './boss-arena-ui.js';
 import './quality-ui.css';
 import './action-ui.css';
@@ -60,7 +61,7 @@ const accessibility = () => ({cameraShake:prefs.cameraShake ?? (reducedMotion ? 
 let lastBuildSignature = '';
 let lastRouteStage = 0;
 let campTab = 'tree';
-let theaterMode = false;
+let theaterMode = false,viewportMode;
 const hudElements = new Map();
 const hudValues = new Map();
 const choiceDialogs = new Set(['upgrade', 'skill-swap', 'relic', 'route', 'region', 'curse', 'equipment', 'npc', 'portal', 'room-choice']);
@@ -89,7 +90,7 @@ $('#app').innerHTML = `
       <button class="nav-link" data-nav="history">런 기록 <span class="nav-count" id="history-count">${history.length.toString().padStart(2, '0')}</span></button>
       <button class="nav-link" data-nav="permanent">영구 강화</button>
     </nav>
-    <div class="header-actions"><span class="build-label"><i></i> BUILD YOUR LEGEND <b>v0.24.0</b></span><span class="header-divider"></span><button id="sound-toggle" class="icon-button" title="사운드 켜기" aria-label="사운드 켜기">${icon('muted')}</button><button id="settings" class="icon-button" title="설정" aria-label="설정">${icon('settings')}</button></div>
+    <div class="header-actions"><span class="build-label"><i></i> BUILD YOUR LEGEND <b>v0.25.0</b></span><span class="header-divider"></span><button id="sound-toggle" class="icon-button" title="사운드 켜기" aria-label="사운드 켜기">${icon('muted')}</button><button id="settings" class="icon-button" title="설정" aria-label="설정">${icon('settings')}</button></div>
   </header>
   <main class="page">
     <section class="page-intro">
@@ -125,7 +126,7 @@ $('#app').innerHTML = `
         <div class="combo-display hidden" id="combo-display"><strong id="combo-value"></strong><span>CHAIN KILLS</span></div>
         <div class="parry-callout hidden" id="parry-callout" role="status" aria-live="polite"><strong>PERFECT PARRY</strong><small>2초 안 직접 공격 · 광역 반격</small></div>
         <div class="game-toast hidden" id="game-toast" role="status"></div>
-        <div class="stage-banner hidden" id="stage-banner"><span id="banner-kicker">NEXT STAGE</span><strong id="banner-title"></strong><p>보상 ×10 <span>적 체력 ×1.7 · 피해 ×1.35</span></p></div>
+        <div class="stage-banner hidden" id="stage-banner"><span id="banner-kicker">NEXT STAGE</span><strong id="banner-title"></strong><p>보상 ×10 <span>적 체력 ×1.15 · 피해 ×1.075</span></p></div>
         <div class="arena-bottom">
           <div class="character-loadout"><div class="weapon-icon">${icon('sword')}</div><div><span class="loadout-label">시작 무기</span><strong id="weapon-name">공허의 검 <span>I</span></strong></div><span class="loadout-divider"></span><div class="attack-type">${icon('target')} 수동 공격</div></div>
           <div class="dash-indicator hidden" id="dash-indicator"><kbd>SHIFT</kbd><div><strong id="dash-status">대시 준비</strong><div class="dash-track"><div id="dash-fill"></div></div></div>${icon('bolt')}</div>
@@ -403,8 +404,8 @@ function showGuide() {
     ['장비·탐험·정밀 방어', '장비는 <kbd>TAB</kbd> / 장비 버튼에서 비교·교체·버릴 수 있습니다. NPC 가까이에서 <kbd>C</kbd> / 교류로 대화하세요. <kbd>F</kbd> (한/영 무관) 패링은 전방 120°를 0.45초 방어하며 처음 0.16초는 완벽한 패링입니다. 성공하면 4m 충격파·0.1초 히트 스톱·공격한 보스 경직, 2초 안 다음 직접 검 공격은 180° 광역 250% 반격입니다. 재사용 4초, 보스 경직 저항 5초. 붉은 지면 공격은 방어 불가, 청색 직선·일반 탄환은 방어 가능.'],
     ['세 단계 수호자와 끝없는 심연', '보스 체력 70% 미만·35% 미만에서 새로운 패턴과 연계가 열립니다. 보스 장비는 하나 선택하거나 넘길 수 있습니다. 일반 10층 승리 후 모드 선택에서 11층부터 무한 심연을 탐험하세요. 5층마다 재앙 보스, 20층부터 10층마다 교대 제약이 등장합니다. 기록·업적은 이 브라우저에 저장됩니다.'],
     ['전장을 움직이고, 짧게 공격 · 길게 강공격', '<kbd>W A S D</kbd> / 방향키로 이동, <kbd>SHIFT</kbd>로 무적 대시. 모바일은 방향 버튼이나 전장 드래그를 사용합니다. 공격 버튼 또는 좌클릭을 짧게 눌렀다 놓으면 3/5타 일반 콤보, 0.28초 이상 누른 뒤 놓으면 강공격입니다. 대검은 길게 눌러 추가 충전합니다. 우클릭 강공격도 유지합니다. 터치패드는 시작 화면의 화면 조작 버튼 또는 설정 → 전투 조작 방식에서 화면 조작을 켜세요. 커서를 풀고 오른쪽 공격·마법 버튼으로 사용하며 전장을 드래그해 회전합니다. <kbd>Q/E/R</kbd> 배치 스킬, <kbd>X</kbd> 궁극기, <kbd>F</kbd> 패링. 공격 중에도 시점을 돌릴 수 있고 검격은 현재 바라보는 방향을 따릅니다. 런 시작과 선택 완료 후에는 마우스가 자동으로 잠깁니다. ESC로 일시정지하고 커서를 풀 수 있습니다. 잠금을 지원하지 않는 환경은 휠 버튼 드래그로 시점을 바꿉니다.'],
-    ['검 범위도 선택으로 성장합니다', '기본 검은 가까운 적을 베는 무기입니다. <b>검 범위 강화</b>를 고르면 거리 +12%, 최대 8단계까지 늘어납니다. 검 공격력·속도·범위 강화 합계 <b>3단계</b>부터 대검 / 쌍검 / 검기 진화가 등장합니다. 한 런에는 하나의 검 진화를 고릅니다.'],
-    ['마법을 키우고 조합을 완성하세요', '레벨업마다 강화 하나를 고릅니다. 검·마법 공격력은 각각 <b>20%</b>, 모션·시전 가속 능력치는 <b>8%</b> (실제 가속 상한 적용), 최대 체력은 <b>15%</b>씩 곱해 성장합니다. 마법은 5단계 뒤 진화합니다. <b>서리 + 검 범위 2단계</b>, <b>화염구 + 검기</b>, <b>번개 + 궤도 룬</b> 조합은 추가 공격을 발동합니다. <kbd>B</kbd>에서 스킬을 배치하고, 이번 런 빌드 버튼에서 조합 조건을 확인하세요.'],
+    ['검 범위도 선택으로 성장합니다', '기본 검은 가까운 적을 베는 무기입니다. <b>검 범위 강화</b>를 고르면 거리 +3%p, 최대 8단계까지 늘어납니다. 검 공격력·속도·범위 강화 합계 <b>3단계</b>부터 대검 / 쌍검 / 검기 진화가 등장합니다. 한 런에는 하나의 검 진화를 고릅니다.'],
+    ['마법을 키우고 조합을 완성하세요', '레벨업마다 강화 하나를 고릅니다. 검·마법 공격력은 각각 <b>3%p</b>, 모션·시전 가속 능력치는 <b>2%p</b> (실제 가속 상한 적용), 최대 체력은 단계당 <b>2%p</b>씩 선형으로 성장합니다. 마법은 5단계 뒤 진화합니다. <b>서리 + 검 범위 2단계</b>, <b>화염구 + 검기</b>, <b>번개 + 궤도 룬</b> 조합은 추가 공격을 발동합니다. <kbd>B</kbd>에서 스킬을 배치하고, 이번 런 빌드 버튼에서 조합 조건을 확인하세요.'],
     ['순서와 타이밍으로 전투 연계', '서리로 둔화시킨 적에게 강공격은 추가 피해, 화염 적중 뒤 검격은 작은 폭발, 대시 후 0.8초 안 번개는 직선 관통, 완벽한 패링 후 2초 안 마법은 25% 강화됩니다. 연계는 별도 재사용 제한이 있고 숨겨진 진화 조합과 구분됩니다. B에서 조건과 정확한 수치를 확인하세요.'],
     ['야영지에서 부담 없이 연습하세요', '성역 훈련장에서 무기·마법 단계·몬스터를 골라 실제 전투를 연습하세요. 이미 만난 보스의 패턴도 연습할 수 있습니다. 훈련의 체력·스킬 대기시간·재화·통계는 모험과 분리되며 종료하면 원래 상태가 복원됩니다.'],
     ['언덕과 폐허를 탐험하세요', '넓어진 전장에 언덕과 성당·집·감시탑·관문이 있습니다. 언덕을 오르고 폐허의 문으로 들어갈 수 있습니다. 벽과 탑은 돌아가야 하며, 시야를 가리는 가까운 건물은 흐려집니다.'],
@@ -531,6 +532,9 @@ function showSettings() {
   for(const [id,key] of [['effects-volume','effectsVolume'],['background-volume','backgroundVolume']]) $('#'+id).addEventListener('input',e=>{prefs[key]=Number(e.target.value);$('#'+id+'-value').textContent=Math.round(prefs[key]*100)+'%';game.setAudioVolumes(prefs.effectsVolume??.7,prefs.backgroundVolume??.3);store('voidrun.preferences',prefs);});
   $('#modal').insertAdjacentHTML('beforeend',`<div class="setting-row"><div><h3>보스 등장 · 전환 연출</h3><p>짧은 이름·카메라 연출. 이동·공격·Enter로 건너뜁니다.</p></div><button id="setting-boss-cinematics" class="toggle ${prefs.bossCinematics!==false?'on':''}" role="switch" aria-label="보스 연출" aria-checked="${prefs.bossCinematics!==false}"><span></span></button></div>`);
   $('#setting-boss-cinematics').onclick=()=>{prefs.bossCinematics=prefs.bossCinematics===false;game.bossArena.cinematics=prefs.bossCinematics;store('voidrun.preferences',prefs);$('#setting-boss-cinematics').classList.toggle('on',prefs.bossCinematics);$('#setting-boss-cinematics').setAttribute('aria-checked',String(prefs.bossCinematics));};
+  $('#modal').insertAdjacentHTML('beforeend',`<div class="setting-row"><div><h3>자동 성능 조절</h3><p>모델·재질을 유지하고 고부하 시 해상도와 그림자 갱신 빈도를 조절합니다.</p></div><button id="setting-auto-performance" class="toggle ${prefs.autoPerformance!==false?'on':''}" role="switch" aria-label="자동 성능 조절" aria-checked="${prefs.autoPerformance!==false}"><span></span></button></div><div class="setting-row"><div><h3>브라우저 전체화면</h3><p>선택 기능입니다. 기본 게임 화면 채우기는 종료 안내를 표시하지 않습니다.</p></div><button id="browser-fullscreen" class="secondary-button">브라우저 전체화면 전환</button></div>`);
+  $('#setting-auto-performance').onclick=()=>{prefs.autoPerformance=prefs.autoPerformance===false;game.setAutoPerformance(prefs.autoPerformance);store('voidrun.preferences',prefs);$('#setting-auto-performance').classList.toggle('on',prefs.autoPerformance);$('#setting-auto-performance').setAttribute('aria-checked',String(prefs.autoPerformance));};
+  $('#browser-fullscreen').onclick=()=>{setTheaterMode(true);viewportMode?.requestNative();};
   actionUi?.settings();
   const canReset = ['menu', 'over', 'won', 'camp'].includes(game.state.phase);
   $('#modal').insertAdjacentHTML('beforeend', `<div class="reset-settings"><h3>게임 저장 데이터 초기화</h3><p>보유 골드·영구 강화·캐릭터와 무기 해금·런 기록을 모두 삭제합니다. 사운드와 그래픽 설정은 유지됩니다.</p><button class="secondary-button reset-danger" id="reset-save" ${canReset ? '' : 'disabled'}>저장 데이터 초기화</button>${canReset ? '' : '<p>진행 중인 런을 종료한 뒤 초기화할 수 있습니다.</p>'}</div>`);
@@ -679,7 +683,7 @@ function showResult() {
 }
 try {
   game = new Game($('#game-canvas'), {
-    onRunStart:()=>forceCloseModal(),onUpdate: update,isUIBlocked:()=>!!dialogName,onControlAction:handleControlAction,onSkillSwap:()=>actionUi?.replacement(),onJoystick:data=>actionUi?.joystick(data),onSkillReady:id=>{const b=document.querySelector(`[data-spell="${id}"]`);if(b){b.classList.add('just-ready');setTimeout(()=>b.classList.remove('just-ready'),600);}},
+    onRunStart:()=>{forceCloseModal();setTheaterMode(true);},onUpdate: update,isUIBlocked:()=>!!dialogName,onControlAction:handleControlAction,onSkillSwap:()=>actionUi?.replacement(),onJoystick:data=>actionUi?.joystick(data),onSkillReady:id=>{const b=document.querySelector(`[data-spell="${id}"]`);if(b){b.classList.add('just-ready');setTimeout(()=>b.classList.remove('just-ready'),600);}},
     onPlayerImpact: ({source})=>{const angle=source?Math.atan2(-(source.x-game.player.position.x)*Math.cos(game.view.yaw)+(source.z-game.player.position.z)*Math.sin(game.view.yaw),(source.x-game.player.position.x)*Math.sin(game.view.yaw)+(source.z-game.player.position.z)*Math.cos(game.view.yaw)):0;const el=$('#hit-direction');el.style.setProperty('--hit-angle',`${angle*180/Math.PI}deg`);el.classList.add('active');clearTimeout(impactTimeout);impactTimeout=setTimeout(()=>el.classList.remove('active'),250);},
     onViewChange: view => {prefs.viewMode=view.mode;store('voidrun.preferences',prefs);syncView(view);},
     onLevelUp,
@@ -708,7 +712,7 @@ try {
       const num = typeof stage === 'number' ? stage : stage.stage;
       $('#banner-title').textContent = getRegion(game?.regionId || (num === MAX_STAGES ? 'throne' : 'sanctum')).title;
       $('#banner-kicker').textContent = `STAGE ${String(num).padStart(2, '0')} / ${game?.mode === 'abyss' ? 'ABYSS · REWARD ' + formatGold(game.stageStats().coinValue) + ' G' : 'REWARD ×' + formatGold(10 ** (num - 1))}`;
-      $('#stage-banner p').innerHTML = game?.mode === 'abyss' ? '심연의 깊이가 증가합니다 <span>적 체력 ×1.16 · 피해 ×1.09 · 기본 골드 ×1.22 (상한 적용)</span>' : '보상 ×10 <span>적 체력 ×1.7 · 피해 ×1.35</span>';
+      $('#stage-banner p').innerHTML = game?.mode === 'abyss' ? '심연의 깊이가 증가합니다 <span>적 체력·피해 완만한 증가 · 골드 ×1.22 (상한 적용)</span>' : '보상 ×10 <span>적 체력 ×1.15 · 피해 ×1.075</span>';
       $('#stage-banner').classList.remove('hidden');
       setTimeout(() => $('#stage-banner').classList.add('hidden'), 2600);
       sound(660, .35, .07);
@@ -730,7 +734,7 @@ try {
   game.setPlaybackSpeed([1, 2, 3].includes(prefs.speed) ? prefs.speed : 1);
   game.setAccessibility(accessibility());game.bossArena.cinematics=prefs.bossCinematics!==false;
   game.setAudioVolumes(Number.isFinite(prefs.effectsVolume)?prefs.effectsVolume:.7,Number.isFinite(prefs.backgroundVolume)?prefs.backgroundVolume:.3);
-  game.setQuality(prefs.quality); syncSound(); syncRisk(); syncLoadout();
+  game.setAutoPerformance(prefs.autoPerformance!==false);game.setQuality(prefs.quality); syncSound(); syncRisk(); syncLoadout();
   game.setRiskPact?.(prefs.risk);
   if (game.state) update(game.state);
 } catch (error) {
@@ -789,33 +793,12 @@ $('#region-info').addEventListener('click', showBuild);
 $('#synergy-status').addEventListener('click', event => { if (event.target.closest('[data-open-build]')) showBuild(); });
 
 function setTheaterMode(active) {
-  theaterMode = active;
-  document.body.classList.toggle('theater-mode', active);
-  $('#fullscreen').setAttribute('aria-pressed', String(active));
-  $('#fullscreen').ariaLabel = active ? '전체 화면 닫기' : '전체 화면';
-  $('#fullscreen').title = active ? '전체 화면 닫기 (F10)' : '전체 화면 (F10)';
-  requestAnimationFrame(() => game?.resize());
+  viewportMode ||= new ViewportMode({document,button:$('#fullscreen'),root:document.querySelector('.arena-top-actions'),controls:[$('#sound-toggle'),$('#settings')],home:document.querySelector('.header-actions'),resize:()=>requestAnimationFrame(()=>game?.resize())});
+  theaterMode=viewportMode.set(active);document.querySelector('.site-header').inert=theaterMode;
 }
-async function toggleFullscreen() {
-  if (theaterMode) {
-    setTheaterMode(false);
-    try {
-      if (document.fullscreenElement) await document.exitFullscreen();
-      else if (document.webkitFullscreenElement) document.webkitExitFullscreen?.();
-    } catch { /* The viewport layout can always be closed without native support. */ }
-    return;
-  }
-  setTheaterMode(true);
-  try {
-    const root = document.documentElement;
-    if (root.requestFullscreen) await root.requestFullscreen();
-    else root.webkitRequestFullscreen?.();
-  } catch { /* Safari and embedded browsers retain the full viewport layout. */ }
-}
-$('#fullscreen').addEventListener('click', toggleFullscreen);
-for (const eventName of ['fullscreenchange', 'webkitfullscreenchange']) document.addEventListener(eventName, () => {
-  if (!document.fullscreenElement && !document.webkitFullscreenElement) setTheaterMode(false);
-});
+function toggleFullscreen(){setTheaterMode(!viewportMode?.active);}
+$('#fullscreen').addEventListener('click',toggleFullscreen);
+setTheaterMode(true);
 window.visualViewport?.addEventListener('resize', () => game?.resize());
 for (const button of document.querySelectorAll('[data-nav]')) button.addEventListener('click', () => {
   if (button.dataset.nav === 'guide') showGuide();

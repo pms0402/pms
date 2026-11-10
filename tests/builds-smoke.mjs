@@ -62,7 +62,7 @@ async function noPageScroll() {
 async function assertChoiceLocked(selector, phase) {
   const before = await page.evaluate(() => window.__game.state.elapsed);
   await page.keyboard.press('Escape');
-  await page.locator('[data-nav="guide"]').first().click({ force: true });
+  await page.locator('[data-nav="guide"]').first().dispatchEvent('click'); // Attempt navigation through its real handler while the mandatory modal owns focus.
   await page.evaluate(() => window.__game.stepForTest(2));
   assert.equal(await page.evaluate(() => window.__game.state.phase), phase);
   assert.ok(await page.locator(selector).count() > 0, 'navigation cannot replace a mandatory choice');
@@ -109,20 +109,22 @@ try {
 
   await fresh();
   const beforeRange = await page.evaluate(() => window.__game.state.sword.range);
+  const beforeReach = await page.evaluate(() => {const g=window.__game,e=g.spawnEnemy(0,4.04,0,{mutations:[]});e.hp=e.maxHp=1000;e.speed=0;window.rangeTarget=e;window.testStrike(g);return e.hp;});
+  assert.equal(beforeReach,1000,'the target lies beyond the original blade plus its body radius');
   await earnChoice('blade_range');
   const upgraded = await page.evaluate(() => {
     const game = window.__game;
-    const enemy = game.spawnEnemy(0, 3.2, 0); enemy.hp = enemy.maxHp = 1000; enemy.speed = 0;
+    const enemy = window.rangeTarget;
     window.testStrike(game);
     return { range: game.state.sword.range, hp: enemy.hp, damage: game.stats.damage, spellDamage: game.stats.spellDamage, rank: game.stats.passiveLevels.blade_range };
   });
-  near(upgraded.range, beforeRange * 1.12, 'only selected range upgrade increases reach');
+  near(upgraded.range, beforeRange * 1.03, 'only selected range upgrade increases reach');
   assert.ok(upgraded.hp < 1000, 'a previously unreachable target is now actually hit');
   assert.equal(upgraded.rank, 1); assert.equal(upgraded.damage, 18); assert.equal(upgraded.spellDamage, 18);
   await earnChoice('blade_range'); await earnChoice('power'); await earnChoice('blade_wave');
   const evolution = await page.evaluate(() => ({ mode: window.__game.state.sword.mode, multiplier: window.__game.state.sword.range, rejected: window.__game.chooseUpgrade('blade_broadsword') }));
   assert.equal(evolution.mode, 'wave'); assert.equal(evolution.rejected, false);
-  near(evolution.multiplier, 3.6 * 1.12 ** 2 * 1.8, 'earned wave evolution combines with chosen range ranks');
+  near(evolution.multiplier, 3.6 * 1.06 * 1.8, 'earned wave evolution combines with chosen range ranks');
   console.log('PASS chosen growth: range rank reaches new targets; three sword ranks unlock one mutually exclusive evolution');
 
   await fresh();
@@ -199,7 +201,7 @@ try {
   await fresh();
   const routeBaseline = await page.evaluate(() => {
     const game = window.__game, random = Math.random; const before = JSON.stringify(game.stats), hp = game.state.hp;
-    try { Math.random = () => .5; const boss = game.spawnBoss(); game.hitEnemy(boss, boss.hp + 1); if (game.equipment?.rewardQueue.length) { game.bossArena.skip(); game.equipment.nextReward(); document.querySelector('[data-equipment-choice="skip"]')?.click(); } } finally { Math.random = random; }
+    try { Math.random = () => .5; const boss = game.spawnBoss(); boss.combatPhase=3;boss.transitionTime=0;boss.recoveryTime=1;boss.chainRemaining=0; /* Terminal-phase reward fixture. */ game.hitEnemy(boss, boss.hp + 1); if (game.equipment?.rewardQueue.length) { game.bossArena.skip(); game.equipment.nextReward(); document.querySelector('[data-equipment-choice="skip"]')?.click(); } } finally { Math.random = random; }
     game._state.stageTime = game.state.stageDuration;
     if (!game.nextStage()) throw new Error('A cleared completed floor should offer a route');
     return { before, hp, stage: game.state.stage, phase: game.state.phase };
@@ -246,7 +248,7 @@ try {
   await fresh();
   const boundary = await page.evaluate(() => {
     const game = window.__game;
-    const boss = game.spawnBoss(); game.hitEnemy(boss, boss.hp + 1); if (game.equipment?.rewardQueue.length) { game.bossArena.skip(); game.equipment.nextReward(); document.querySelector('[data-equipment-choice="skip"]')?.click(); }
+    const boss = game.spawnBoss(); boss.combatPhase=3;boss.transitionTime=0;boss.recoveryTime=1;boss.chainRemaining=0; /* Terminal-phase reward fixture. */ game.hitEnemy(boss, boss.hp + 1); if (game.equipment?.rewardQueue.length) { game.bossArena.skip(); game.equipment.nextReward(); document.querySelector('[data-equipment-choice="skip"]')?.click(); }
     game.bossArena.close({collect:true}); // Resume the original chest/level boundary fixture.
     const chest = game.spawnChest(0, 0); for (const guard of chest.guards) game.hitEnemy(guard, guard.hp + 1);
     game._state.xp = game._state.xpNeeded; game._state.stageTime = game.state.stageDuration;

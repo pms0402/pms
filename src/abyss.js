@@ -56,11 +56,11 @@ export function abyssStats(floor = 11) {
     ...base,
     enemyHealth: Math.min(
       1e12,
-      base.enemyHealth * Math.exp(Math.min(25, depth * Math.log(1.16))),
+      base.enemyHealth * (1 + .06 * depth / (1 + depth / 100)),
     ),
     enemyDamage: Math.min(
       1e8,
-      base.enemyDamage * Math.exp(Math.min(20, depth * Math.log(1.09))),
+      base.enemyDamage * (1 + .025 * depth / (1 + depth / 120)),
     ),
     coinValue: Math.min(
       1e12,

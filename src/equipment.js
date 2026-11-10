@@ -14,17 +14,17 @@ export const EQUIPMENT_GRADES = Object.freeze([
   { id: "legendary", name: "전설", color: "#ffb266", options: 3, power: 1.9 },
 ]);
 export const EQUIPMENT_OPTIONS = Object.freeze([
-  { id: "crit", name: "치명타 확률 +4%p" },
-  { id: "criticalDamage", name: "치명타 배율 +0.2" },
-  { id: "haste", name: "검 모션 가속 +8%" },
-  { id: "arcane", name: "마법 공격력 +12%" },
-  { id: "guard", name: "피해 감소 +3%p" },
-  { id: "vital", name: "최대 체력 +10%" },
+  { id: "crit", name: "치명타 확률 +1.5%p" },
+  { id: "criticalDamage", name: "치명타 배율 +0.08" },
+  { id: "haste", name: "검 모션 가속 +2.5%" },
+  { id: "arcane", name: "마법 공격력 +4%" },
+  { id: "guard", name: "피해 감소 +1%p" },
+  { id: "vital", name: "최대 체력 +2.5%" },
   { id: "blast", name: "직접 처치 시 15% 폭발 · 2초 간격 · 5명" },
   { id: "dash", name: "대시 후 3초 안 다음 검격 +25%" },
-  { id: "desperate", name: "체력 35% 이하 피해 감소 +6%p" },
-  { id: "boss", name: "보스 피해 +12%" },
-  { id: "element", name: "지정 속성 마법 +18%" },
+  { id: "desperate", name: "체력 35% 이하 피해 감소 +3%p" },
+  { id: "boss", name: "보스 피해 +4%" },
+  { id: "element", name: "지정 속성 마법 +6%" },
   { id: "bolt", name: "직접 처치 시 12% 추적 파편 · 3초 간격 · 1명" },
 ]);
 const roll = (random) =>
@@ -70,7 +70,7 @@ export function rollEquipment(
     slot,
     grade: grade.id,
     title: `${{ volcano: "잿불", tundra: "서리", forest: "고목", ruins: "고대", void: "공허" }[region] || "별철"} ${EQUIPMENT_SLOTS[slot]}`,
-    power: (0.06 + Math.min(20, floor) * 0.008) * grade.power,
+    power: (0.03 + Math.min(20, floor) * 0.002) * grade.power,
     options,
     element,
     level: 0, setId: rollSet(region,random),
@@ -95,7 +95,7 @@ export function equipmentBonuses(items = []) {
     element: {},
   };
   for (const item of items.filter(Boolean)) {
-    const power = item.power * (1 + 0.12 * Math.min(5, item.level || 0));
+    const power = item.power * (1 + 0.08 * Math.min(5, item.level || 0));
     const key = {
       weapon: "damage",
       armor: "maxHp",
@@ -104,19 +104,19 @@ export function equipmentBonuses(items = []) {
     }[item.slot];
     if (key) b[key] *= 1 + power;
     for (const id of item.options) {
-      if (id === "crit") b.crit += 0.04;
-      if (id === "criticalDamage") b.criticalDamage += 0.2;
-      if (id === "haste") b.attackRate *= 1.08;
-      if (id === "arcane") b.spellDamage *= 1.12;
-      if (id === "guard") b.armor += 0.03;
-      if (id === "vital") b.maxHp *= 1.1;
-      if (id === "desperate") b.desperate += 0.06;
-      if (id === "boss") b.boss += 0.12;
+      if (id === "crit") b.crit += 0.015;
+      if (id === "criticalDamage") b.criticalDamage += 0.08;
+      if (id === "haste") b.attackRate *= 1.025;
+      if (id === "arcane") b.spellDamage *= 1.04;
+      if (id === "guard") b.armor += 0.01;
+      if (id === "vital") b.maxHp *= 1.025;
+      if (id === "desperate") b.desperate += 0.03;
+      if (id === "boss") b.boss += 0.04;
       if (["dash", "blast", "bolt"].includes(id)) b[id]++;
       if (id === "element")
-        b.element[item.element] = (b.element[item.element] || 0) + 0.18;
+        b.element[item.element] = (b.element[item.element] || 0) + 0.06;
     }
-    if (item.unique === "resonance") b.combo += 0.12;
+    if (item.unique === "resonance") b.combo += 0.03;
   }
   b.sets = activeSets(items);
   return b;

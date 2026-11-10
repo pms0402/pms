@@ -151,7 +151,7 @@ try {
   await p.evaluate(() => {
     const g = window.__game;
     const b = g.spawnBoss();
-    g.hitEnemy(b, b.maxHp * 1000);
+    b.combatPhase=3;b.transitionTime=0;b.recoveryTime=1;b.chainRemaining=0;g.hitEnemy(b, b.maxHp * 1000);
     g.bossArena.skip(); // Explicitly skip the short victory presentation.
     g.equipment.nextReward();
   });

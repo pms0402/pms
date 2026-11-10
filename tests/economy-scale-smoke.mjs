@@ -17,6 +17,7 @@ const readProgress = () => page.evaluate(() => JSON.parse(localStorage.getItem('
 async function load(seed) {
   await context?.close();
   context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+  await context.addInitScript(() => localStorage.setItem('voidrun.preferences', JSON.stringify({screenControls:true})));
   if (seed) await context.addInitScript(value => {
     if (!localStorage.getItem('voidrun.economy.scale.seeded')) {
       localStorage.setItem('voidrun.progression', JSON.stringify(value));
@@ -67,6 +68,7 @@ try {
   assert.equal(saved.bank, oldSave.bank); assert.equal(saved.lifetimeGold, oldSave.lifetimeGold);
   for (const [id, level] of Object.entries(oldSave.upgrades)) assert.equal(saved.upgrades[id], level, `old ${id} levels survive repricing`);
   assert.deepEqual(saved.settledRunIds, oldSave.settledRunIds);
+  if (await page.locator('#fullscreen').getAttribute('aria-pressed') === 'true') await page.locator('#fullscreen').click();
   await page.locator('[data-nav="permanent"]').first().click();
   const unaffordable = page.locator('[data-permanent-buy="power"]');
   assert.equal(await unaffordable.isDisabled(), true, 'one hundred million gold cannot buy the final three-hundred-billion upgrade');
@@ -83,7 +85,7 @@ try {
   const wealthySave = { ...oldSave, bank: 1_000_000_000_000, lifetimeGold: 1_000_000_000_000 };
   await load(wealthySave); await startRun();
   const beforeDamage = await page.evaluate(() => window.__game.state.damage);
-  near(beforeDamage, 18 * 1.12 ** 49, 'existing paid sword levels still apply before another purchase');
+  near(beforeDamage, 18 * (1 + .006 * 49), 'existing paid sword levels still apply before another purchase');
   await endRunAtCamp();
   const beforePurchase = await readProgress();
   assert.equal(beforePurchase.bank, 1_000_000_000_000);
@@ -105,9 +107,9 @@ try {
   assert.equal(saved.bank, 700_000_000_000); assert.equal(saved.upgrades.power, 50);
   assert.deepEqual(saved.settledRunIds, beforePurchase.settledRunIds, 'reloading cannot settle the finished run twice');
   await startRun();
-  near(await page.evaluate(() => window.__game.state.damage), 18 * 1.12 ** 50, 'the new run receives the complete paid maximum exactly once');
+  near(await page.evaluate(() => window.__game.state.damage), 18 * 1.3, 'the new run receives the complete paid maximum exactly once');
   assert.equal((await readProgress()).bank, 700_000_000_000);
-  console.log('PASS late purchase: exact 3000억 debit, max-level guard, retained receipts, reload and next-run compounded power');
+  console.log('PASS late purchase: exact 3000억 debit, max-level guard, retained receipts, reload and next-run linear power');
 
   await load();
   assert.equal((await readProgress()).bank, 0);

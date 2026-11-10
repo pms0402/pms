@@ -50,7 +50,7 @@ test('evolved frost remains a stronger damage wave without adding a push or stun
   const edge = enemy(12.1), outside = enemy(12.101);
   assert.equal(magic.castFrost(), true);
   assert.equal(hits.length, 1); assert.equal(hits[0].enemy, edge);
-  near(hits[0].damage,858); noImpact(hits[0]);
+  near(hits[0].damage,638); noImpact(hits[0]);
   near(edge.slowTime,2.2);near(edge.slowFactor,.5);
   assert.equal(outside.hp, 1e6); assert.equal(magic.zones.length, 1);
 });
@@ -69,7 +69,7 @@ test('a lingering blizzard has finite ticks and cannot prolong the pulse slow or
   magic.updateZones(.9);
   near(target.slowTime, .7); near(target.slowFactor, .7);
   assert.equal(hits.length, 3);
-  for (const hit of hits) { near(hit.damage,120.12); noImpact(hit); }
+  for (const hit of hits) { near(hit.damage,89.32); noImpact(hit); }
   magic.updateZones(.9);magic.updateZones(.6);
   assert.equal(magic.zones.length, 0);
   assert.equal(hits.length, 4, 'expired ground effects cannot keep hitting');

@@ -99,25 +99,25 @@ test('late purchases charge the announced large price without changing saved lev
   assert.deepEqual(saved, snapshot, 'neither blocked nor successful purchases mutate the original save');
 });
 
-test('permanent bonuses compound and independently affect the intended starting stat', () => {
+test('permanent bonuses add small linear ranks and independently affect the intended starting stat', () => {
   assert.deepEqual(getPermanentBonuses(createProgress()), { damageMultiplier: 1, spellDamageMultiplier: 1, maxHpMultiplier: 1, attackRateMultiplier: 1, spellRateMultiplier: 1, swordRangeMultiplier: 1, spellAreaMultiplier: 1, armorBonus: 0, magnetMultiplier: 1, goldMultiplier: 1, characterId: 'wanderer', weaponId: 'voidblade' });
   assert.deepEqual(getPermanentBonuses({ upgrades: { power: 2, vitality: 2, haste: 2, armor: 2, magnet: 2, fortune: 2 } }), {
-    damageMultiplier: 1.12 ** 2,
+    damageMultiplier: 1.012,
     spellDamageMultiplier: 1,
-    maxHpMultiplier: 1.1 ** 2,
-    attackRateMultiplier: 1.025 ** 2,
+    maxHpMultiplier: 1.01,
+    attackRateMultiplier: 1.007,
     spellRateMultiplier: 1,
     swordRangeMultiplier: 1,
     spellAreaMultiplier: 1,
-    armorBonus: 0.015,
+    armorBonus: 0.003,
     magnetMultiplier: 1.06,
     goldMultiplier: 1.1,
     characterId: 'wanderer',
     weaponId: 'voidblade',
   });
   const offer = getPermanentUpgradeOffers({ upgrades: { armor: 2 } }).find(item => item.id === 'armor');
-  assert.equal(offer.currentBonus, 1.5, 'armor is displayed in percentage points');
-  assert.equal(offer.nextBonus, 2.25);
+  assert.equal(offer.currentBonus, 0.3, 'armor is displayed in percentage points');
+  assert.ok(Math.abs(offer.nextBonus - 0.45) < 1e-12);
 });
 
 test('old completed-run history is imported only by the initial factory', () => {

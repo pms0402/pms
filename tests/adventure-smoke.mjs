@@ -42,7 +42,7 @@ async function stopClock() {
   });
 }
 async function start() {
-  await page.locator('#start-button').click(); await stopClock();
+  if(await page.evaluate(()=>matchMedia('(pointer:coarse)').matches))await page.locator('#start-button').tap();else await page.locator('#start-button').click(); await stopClock();
   assert.equal(await page.evaluate(() => window.__game.state.phase), 'playing');
 }
 async function rewardLevel({ id, category = 'relic' } = {}) {
@@ -74,6 +74,7 @@ async function assertNoPageScroll() {
 
 try {
   await load({ seed: { bank: 2000, lifetimeGold: 2000, upgrades: {}, importedHistory: true } });
+  await page.locator('#fullscreen').click();
   await page.locator('[data-nav="permanent"]').first().click();
   assert.ok(await page.locator('.skill-tree').isVisible(), 'camp presents a connected branch tree');
   assert.equal(await page.locator('[data-permanent-buy="haste"]').isDisabled(), true);
@@ -102,10 +103,10 @@ try {
   await page.evaluate(() => cancelAnimationFrame(window.__game.raf)); // Domain fixtures advance time explicitly; keep menu rendering out of UI waits.
   await start();
   const built = await page.evaluate(() => window.__game.state.playerStats);
-  near(built.damage, 18 * 1.12 * .85 * 1.3, 'sword bonuses combine with the chosen sidegrades');
-  near(built.spellDamage, 18 * 1.12 * 1.16, 'magic damage grows separately');
+  near(built.damage, 18 * 1.006 * .85 * 1.3, 'sword bonuses combine with the chosen sidegrades');
+  near(built.spellDamage, 18 * 1.006 * 1.16, 'magic damage grows separately');
   near(built.attackRate, 1.5 * .72, 'heavy weapon affects only sword speed');
-  near(built.spellRate, 1.5 * 1.025, 'magic branch affects only casting speed');
+  near(built.spellRate, 1.5 * 1.0035, 'magic branch affects only casting speed');
   near(built.maxHp, 90, 'character weakness is retained');
   await page.evaluate(() => {
     const game = window.__game; game.dropPickup(game.player.position, 'gold', 25);
@@ -214,7 +215,7 @@ try {
   const boss = await page.evaluate(() => {
     const game = window.__game, boss = game.spawnBoss();
     const before = JSON.stringify(game.stats), range = game.stats.swordRangeMultiplier;
-    game.hitEnemy(boss, boss.hp + 1); if (game.equipment?.rewardQueue.length) { game.equipment.nextReward(); document.querySelector('[data-equipment-choice="skip"]')?.click(); }
+    boss.combatPhase=3;boss.transitionTime=0;boss.recoveryTime=1;boss.chainRemaining=0;game.hitEnemy(boss, boss.hp + 1); game.bossArena.skip(); if (game.equipment?.rewardQueue.length) { game.equipment.nextReward(); document.querySelector('[data-equipment-choice="skip"]')?.click(); }
     game.hitEnemy(boss, 1e6);
     return { range, unchanged: JSON.stringify(game.stats) === before, pending: game.pendingBossRewards.length, rewards: game.stats.bossRewards };
   });
@@ -224,7 +225,7 @@ try {
   assert.equal(bossOffer.count, 4);
   await page.locator('[data-upgrade="boss_warden"]').click();
   const chosenBoss = await page.evaluate(() => ({ range: window.__game.stats.swordRangeMultiplier, rewards: window.__game.stats.bossRewards, pending: window.__game.pendingBossRewards.length, repeat: window.__game.chooseUpgrade('boss_warden') }));
-  near(chosenBoss.range, boss.range * 1.1, 'choosing the earned boss card applies its described range bonus');
+  near(chosenBoss.range, boss.range * 1.05, 'choosing the earned boss card applies its described range bonus');
   assert.deepEqual(chosenBoss.rewards, ['warden']); assert.equal(chosenBoss.pending, 0); assert.equal(chosenBoss.repeat, false);
   console.log('PASS boss reward: defeat queues eligibility; an actual level-up selection grants the ability exactly once');
 
@@ -239,10 +240,10 @@ try {
     game.magic.explode(slowed.group.position.clone(), 2, 10, false);
     return { slowed: 1000 - slowed.hp, ordinary: 1000 - ordinary.hp, hits: game.magic.getDebugState().synergyHits };
   });
-  near(synergy.slowed, 12, 'frostfire gives its damage bonus to a slowed target');
+  near(synergy.slowed, 11, 'frostfire gives its damage bonus to a slowed target');
   near(synergy.ordinary, 10, 'an un-slowed target receives ordinary explosion damage');
   assert.ok(synergy.hits >= 1);
-  console.log('PASS relic synergy: actual fire explosion gains 20% against a frost-slowed enemy');
+  console.log('PASS relic synergy: actual fire explosion gains 10% against a frost-slowed enemy');
 
   await load(); await start();
   const stress = await page.evaluate(() => {
@@ -282,7 +283,6 @@ try {
     await load({ viewport, mobile: true, fallback: true });
     await start();
     await assertNoPageScroll();
-    await page.locator('#fullscreen').click();
     assert.equal(await page.locator('#fullscreen').getAttribute('aria-pressed'), 'true');
     assert.ok(await page.locator('body').evaluate(body => body.classList.contains('theater-mode')));
     await assertNoPageScroll();
@@ -291,7 +291,7 @@ try {
       assert.ok(bounds && bounds.width > 0 && bounds.height > 0, `${selector} visible on ${viewport.width}×${viewport.height}`);
       assert.ok(bounds.x >= -1 && bounds.y >= -1 && bounds.x + bounds.width <= viewport.width + 1 && bounds.y + bounds.height <= viewport.height + 1, `${selector} remains within the viewport`);
     }
-    await page.locator('#fullscreen').click();
+    await page.locator('#fullscreen').tap();
     assert.equal(await page.locator('#fullscreen').getAttribute('aria-pressed'), 'false');
     await assertNoPageScroll();
   }

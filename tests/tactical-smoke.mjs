@@ -379,7 +379,7 @@ try {
       g._state.stageTime = Math.max(20, g._state.stageTime);
       g.tick(0.01);
       const summoned = g.bossSpawned;
-      g.hitEnemy(g.boss, g.boss.maxHp * 1000);
+      g.boss.combatPhase=3;g.boss.transitionTime=0;g.boss.recoveryTime=1;g.boss.chainRemaining=0;g.hitEnemy(g.boss, g.boss.maxHp * 1000);
       g.bossArena.skip(); // Skip the short victory cue before reward assertions.
       g.equipment.nextReward();
       document.querySelector('[data-equipment-choice="skip"]')?.click();
@@ -545,7 +545,7 @@ try {
     const hidden = g.boss.hiddenBoss === "king";
     runSteps(3);
     g.renderer.render(g.scene, g.camera);
-    g.hitEnemy(g.boss, g.boss.maxHp * 1000);
+    g.boss.combatPhase=3;g.boss.transitionTime=0;g.boss.recoveryTime=1;g.boss.chainRemaining=0;g.hitEnemy(g.boss, g.boss.maxHp * 1000);
     g.training.leave();
     return {
       unseenRejected,

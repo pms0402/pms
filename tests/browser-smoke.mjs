@@ -11,6 +11,8 @@ const browser = await chromium.launch({
 const baseURL = process.env.BASE_URL || 'http://localhost:5173';
 const errors = [];
 const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+// This suite clicks page controls; pointer-lock behavior has its own native-input suite.
+await context.addInitScript(() => {if(!localStorage.getItem('voidrun.preferences'))localStorage.setItem('voidrun.preferences',JSON.stringify({muted:true,screenControls:true,quality:'high',risk:'none',viewMode:'third'}));});
 const page = await manualPage(context);
 page.on('pageerror', (error) => errors.push(error.message));
 const phase = () => page.evaluate(() => window.__game.state.phase);
@@ -23,6 +25,7 @@ try {
   assert.equal(await page.locator('#canvas-error').isVisible(), false);
   assert.ok(await page.locator('#game-canvas canvas').isVisible());
 
+  await page.locator('#fullscreen').click(); // Explicitly leave default game viewport for site navigation.
   await page.locator('.main-nav [data-nav="guide"]').click();
   assert.equal(await modalVisible(), true);
   assert.equal(await page.locator('#modal').evaluate((el) => document.activeElement === el), true);
@@ -64,7 +67,7 @@ try {
   assert.equal(await phase(), 'playing');
   await page.reload();
   await page.waitForFunction(() => window.__game?.getDebugState().frames > 1);
-  assert.deepEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('voidrun.preferences'))), { muted: false, quality: 'low', risk: 'none', viewMode:'third' });
+  assert.deepEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('voidrun.preferences'))), { muted: false, screenControls:true, quality: 'low', risk: 'none', viewMode:'third' });
   assert.equal(await page.locator('#sound-toggle').getAttribute('aria-label'), '사운드 끄기');
   assert.equal(await page.evaluate(() => window.__game.quality), 'low');
   console.log('PASS desktop: sound/quality preferences persist after reload and activate renderer settings');
@@ -91,6 +94,7 @@ try {
   assert.equal(await phase(), 'playing');
   assert.equal(await modalVisible(), false);
   assert.equal(await page.evaluate(() => window.__game.state.kills), 0);
+  await page.locator('#fullscreen').click();
   await page.locator('.main-nav [data-nav="history"]').click();
   assert.equal(await page.locator('.history-row:not(.history-head)').count(), 1);
   assert.equal(await phase(), 'paused');

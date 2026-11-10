@@ -1,3 +1,4 @@
+import {RUN_GROWTH,addGrowthRank} from './combat-balance.js';
 import { WORLD_RADIUS } from './terrain.js';
 import { STAGES, getBossDefinition } from './encounters.js';
 import { getSwordEvolutionChoices, applySwordEvolution } from './sword.js';
@@ -6,8 +7,8 @@ import { getSwordEvolutionChoices, applySwordEvolution } from './sword.js';
 export const STAGE_DURATION = 120;
 export const BOSS_SPAWN_TIME = 90;
 export const MAX_STAGES = STAGES.length;
-export const ENEMY_HEALTH_GROWTH = 1.7;
-export const ENEMY_DAMAGE_GROWTH = 1.35;
+export const ENEMY_HEALTH_GROWTH = 1.15;
+export const ENEMY_DAMAGE_GROWTH = 1.075;
 // A broad, traversable terrain with landmarks, hills and ruined buildings.
 export const ARENA_RADIUS = WORLD_RADIUS;
 
@@ -92,18 +93,18 @@ const EVOLUTIONS = {
 };
 
 const PASSIVES = [
-  { id: 'power', title: '예리한 칼날', description: '검 공격력 ×1.2 · 마법과 별도 성장', rarity: 'rare', icon: 'sword', weight: 4, maxRank: 12, branch: 'sword' },
-  { id: 'haste', title: '검술의 호흡', description: '검 모션 가속 능력치 +8% · 실제 모션 가속 최대 1.65배', rarity: 'rare', icon: 'sword', weight: 3, maxRank: 12, branch: 'sword' },
-  { id: 'blade_range', title: '뻗어가는 칼끝', description: '검 타격 사거리 ×1.12 · 검 궤적과 실제 타격 범위가 함께 증가', rarity: 'rare', icon: 'sword', weight: 4, maxRank: 8, branch: 'sword' },
-  { id: 'spell_power', title: '마력 응축', description: '모든 마법 공격력 ×1.2 · 검과 별도 성장', rarity: 'epic', icon: 'orbit', weight: 4, maxRank: 12, branch: 'magic' },
-  { id: 'spell_haste', title: '주문 가속', description: '시전 가속 능력치 +8% · 준비 단축 최대 1.6배 · 쿨타임 감소 상한 적용', rarity: 'epic', icon: 'bolt', weight: 3, maxRank: 12, branch: 'magic' },
-  { id: 'vitality', title: '생명의 씨앗', description: '최대 체력 ×1.15 · 증가한 체력만큼 회복', rarity: 'rare', icon: 'heart', weight: 3, maxRank: 12 },
+  { id: 'power', title: '예리한 칼날', description: '검 공격력 +3%p/단계 · 마법과 별도 성장', rarity: 'rare', icon: 'sword', weight: 4, maxRank: 12, branch: 'sword' },
+  { id: 'haste', title: '검술의 호흡', description: '검 모션 가속 능력치 +2%p/단계 · 실제 모션 가속 최대 1.65배', rarity: 'rare', icon: 'sword', weight: 3, maxRank: 12, branch: 'sword' },
+  { id: 'blade_range', title: '뻗어가는 칼끝', description: '검 타격 사거리 +3%p/단계 · 검 궤적과 실제 타격 범위가 함께 증가', rarity: 'rare', icon: 'sword', weight: 4, maxRank: 8, branch: 'sword' },
+  { id: 'spell_power', title: '마력 응축', description: '마법 공격력 +3%p/단계 · 검과 별도 성장', rarity: 'epic', icon: 'orbit', weight: 4, maxRank: 12, branch: 'magic' },
+  { id: 'spell_haste', title: '주문 가속', description: '시전 가속 능력치 +2%p/단계 · 준비 단축 최대 1.6배 · 쿨타임 감소 상한 적용', rarity: 'epic', icon: 'bolt', weight: 3, maxRank: 12, branch: 'magic' },
+  { id: 'vitality', title: '생명의 씨앗', description: '최대 체력 +2%p/단계 · 증가한 체력만큼 회복', rarity: 'rare', icon: 'heart', weight: 3, maxRank: 12 },
   { id: 'magnet', title: '작은 탐욕', description: '경험치와 골드 획득 범위 +8%', rarity: 'rare', icon: 'magnet', weight: 2, maxRank: 12 },
-  { id: 'critical', title: '집중', description: '치명타 확률 +2%p', rarity: 'rare', icon: 'target', weight: 2, maxRank: 12 },
-  { id: 'armor', title: '흑요석 조각', description: '받는 피해 감소 +2%p', rarity: 'rare', icon: 'shield', weight: 3, maxRank: 12 },
-  { id: 'regen', title: '숲의 숨결', description: '초당 최대 체력의 0.2% 재생 추가', rarity: 'rare', icon: 'cross', weight: 2, maxRank: 10 },
-  { id: 'speed', title: '가벼운 발걸음', description: '이동 속도 +3%', rarity: 'rare', icon: 'move', weight: 2, maxRank: 12 },
-  {id:'spell_area',title:'넓어지는 각인',description:'수동 스킬 범위 ×1.12 · 실제 범위 최대 20m',rarity:'rare',icon:'orbit',weight:3,maxRank:6,branch:'magic'},
+  { id: 'critical', title: '집중', description: '치명타 확률 +0.75%p', rarity: 'rare', icon: 'target', weight: 2, maxRank: 12 },
+  { id: 'armor', title: '흑요석 조각', description: '받는 피해 감소 +0.5%p', rarity: 'rare', icon: 'shield', weight: 3, maxRank: 12 },
+  { id: 'regen', title: '숲의 숨결', description: '초당 최대 체력의 0.05% 재생 추가', rarity: 'rare', icon: 'cross', weight: 2, maxRank: 10 },
+  { id: 'speed', title: '가벼운 발걸음', description: '이동 속도 +1%p/단계', rarity: 'rare', icon: 'move', weight: 2, maxRank: 12 },
+  {id:'spell_area',title:'넓어지는 각인',description:'수동 스킬 범위 +3%p/단계 · 실제 범위 최대 20m',rarity:'rare',icon:'orbit',weight:3,maxRank:6,branch:'magic'},
   {id:'skill_multihit',title:'겹쳐지는 술식',description:'화염 투사체 +1 · 번개 대상 +2 · 서리 약한 여진 +1 · 룬 타격 간격 단축',rarity:'epic',icon:'bolt',weight:2,maxRank:3,branch:'magic'},
   {id:'status_mastery',title:'잔류하는 마력',description:'상태 지속 강화 · 서리 빙결 최대 0.6초 · 화염 지대 유지 증가',rarity:'rare',icon:'snowflake',weight:2,maxRank:4,branch:'magic'},
 ];
@@ -196,20 +197,20 @@ export function applyUpgrade(stats, id) {
   const passive = passiveChoices(stats).find(candidate => candidate.id === id);
   if (!passive) return false;
   switch (id) {
-    case 'spell_area': stats.spellAreaMultiplier=finite(stats.spellAreaMultiplier,1)*1.12;break;
+    case 'spell_area': stats.spellAreaMultiplier=addGrowthRank(stats.spellAreaMultiplier,passiveRank(stats,id),RUN_GROWTH[id]);break;
     case 'skill_multihit':stats.skillExtraHits=(stats.skillExtraHits||0)+1;break;
     case 'status_mastery':stats.statusBonus=(stats.statusBonus||0)+.15;break;
-    case 'power': stats.damage = finite(stats.damage, 18) * 1.2; break;
-    case 'haste': stats.attackRate = finite(stats.attackRate, 1.5) * 1.08; break;
-    case 'blade_range': stats.swordRangeMultiplier = finite(stats.swordRangeMultiplier, 1) * 1.12; break;
-    case 'spell_power': stats.spellDamage = finite(stats.spellDamage, 18) * 1.2; break;
-    case 'spell_haste': stats.spellRate = finite(stats.spellRate, 1.5) * 1.08; break;
-    case 'vitality': stats.maxHp = finite(stats.maxHp, 100) * 1.15; break;
+    case 'power': stats.damage = addGrowthRank(stats.damage,passiveRank(stats,id),RUN_GROWTH[id],18); break;
+    case 'haste': stats.attackRate = addGrowthRank(stats.attackRate,passiveRank(stats,id),RUN_GROWTH[id],1.5); break;
+    case 'blade_range': stats.swordRangeMultiplier = addGrowthRank(stats.swordRangeMultiplier,passiveRank(stats,id),RUN_GROWTH[id],1); break;
+    case 'spell_power': stats.spellDamage = addGrowthRank(stats.spellDamage,passiveRank(stats,id),RUN_GROWTH[id],18); break;
+    case 'spell_haste': stats.spellRate = addGrowthRank(stats.spellRate,passiveRank(stats,id),RUN_GROWTH[id],1.5); break;
+    case 'vitality': stats.maxHp = addGrowthRank(stats.maxHp,passiveRank(stats,id),RUN_GROWTH[id],100); break;
     case 'magnet': stats.magnet = finite(stats.magnet, 5.5) * 1.08; break;
-    case 'critical': stats.critChance = Math.min(0.6, finite(stats.critChance, 0.08) + 0.02); break;
-    case 'armor': stats.armor = Math.min(0.5, finite(stats.armor, 0) + 0.02); break;
-    case 'regen': stats.regen = finite(stats.regen, 0) + 0.2; break;
-    case 'speed': stats.speed = finite(stats.speed, 7.5) * 1.03; break;
+    case 'critical': stats.critChance = Math.min(0.6, finite(stats.critChance, 0.08) + 0.0075); break;
+    case 'armor': stats.armor = Math.min(0.5, finite(stats.armor, 0) + 0.005); break;
+    case 'regen': stats.regen = finite(stats.regen, 0) + 0.05; break;
+    case 'speed': stats.speed = addGrowthRank(stats.speed,passiveRank(stats,id),RUN_GROWTH[id],7.5); break;
     default: return false;
   }
   stats.passiveLevels ||= {};

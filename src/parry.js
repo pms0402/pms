@@ -251,7 +251,7 @@ export class ParrySystem {
     g.clearTelegraph(boss);
     if (g.bossPhases.boss === boss) g.bossPhases.rush = null;
     g.bossSystem.cancelParryable?.(boss);
-    boss.hiddenPending = null;
+    boss.hiddenPending = null;boss.hiddenRush=null;boss.hiddenComboRemaining=0;boss.comboPlan=[];boss.comboPattern=null;
     boss.hiddenTimer = Math.max(1.2, boss.hiddenTimer || 0);
     boss.mode = "chase";
     boss.actionTimer = Math.max(1.2, boss.actionTimer || 0);

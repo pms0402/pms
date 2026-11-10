@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {chooseBossAction} from './tactical-ai.js';
 import { ARENA_RADIUS, getBossStats } from './balance.js';
+import {BOSS_COMBAT,BOSS_PATTERN_NAMES,bossChain,bossWarning} from './boss-combat.js';
 
 const TAU = Math.PI * 2;
 const COLORS = { artillery: '#e7b06d', plague: '#a4d86d', brood: '#c89ad7', storm: '#8bdaf4', reaper: '#e5a1d0' };
@@ -15,6 +16,7 @@ export class BossSystem {
     this.boss = null;
     this.zones = [];
     this.pendingShots = [];
+    this.guides = [];
     this.decorations = [];
     this.materials = new Map();
     this.geometry = {
@@ -42,7 +44,7 @@ export class BossSystem {
     const info = this.game.bossStats?.() || getBossStats(this.stage());
     boss.archetype ||= info.archetype || 'warden';
     boss.variant = info.variant || boss.variant || 1;
-    boss.mode = 'chase'; boss.actionTimer = 1.6; boss.actionIndex = 0;
+    boss.mode = 'chase'; boss.actionTimer = 1.6; boss.actionIndex = 0;boss.comboPlan=[];boss.comboStep=0;boss.comboTotal=0;boss.transitionTime=0;
     boss.aimDirection = new THREE.Vector3(0, 0, 1);
     boss.blinkTarget = new THREE.Vector3(); boss.ringAngle = 0;
     // Six distinct bind meshes share the established boss animation/physics rig.
@@ -147,7 +149,7 @@ export class BossSystem {
     for (let i = gap; i < count; i++) {
       const a = angle + i / count * TAU;
       this.direction.set(Math.sin(a), 0, Math.cos(a));
-      this.fire(boss, this.direction, { count: 1, speed: 6.8, life: 6 });
+      this.fire(boss, this.direction, { count: 1, speed: 8.2, life: 6 });
     }
   }
 
@@ -156,51 +158,54 @@ export class BossSystem {
     this.pendingShots.push({ boss, delay, direction: direction?.clone(), ...options });
   }
 
-  prepare(boss) {
+  prepare(boss,forcedPattern=null) {
     const origin = boss.group.position, target = this.game.player.position;
     this.game.sound?.('boss',origin);
     boss.aimDirection.copy(target).sub(origin).setY(0).normalize();
     if (boss.aimDirection.lengthSq() === 0) boss.aimDirection.set(0, 0, 1);
     boss.actionIndex++; this.actions++;
-    const enraged = boss.hp < boss.maxHp * .5,pattern=chooseBossAction(boss.archetype,origin.distanceTo(target),boss.lastPattern,{phase:boss.combatPhase||1,nearEdge:Math.hypot(target.x,target.z)>(this.game.training?.active?13:76),zones:this.zones.filter(z=>z.damage>0).length,exposed:this.game.actions?.exposed?.()||false});boss.lastPattern=pattern;
+    const enraged = boss.hp < boss.maxHp * .5,pattern=forcedPattern||chooseBossAction(boss.archetype,origin.distanceTo(target),boss.lastPattern,{phase:boss.combatPhase||1,nearEdge:Math.hypot(target.x,target.z)>(this.game.bossArena?.active?24:this.game.training?.active?13:76),zones:this.zones.filter(z=>z.damage>0).length,exposed:this.game.actions?.exposed?.()||false});boss.lastPattern=pattern;
+    if(!forcedPattern){const plan=bossChain(boss.archetype,pattern,boss.combatPhase||1,boss.variant);boss.comboPlan=plan.slice(1);boss.comboTotal=plan.length;boss.comboStep=0;}
+    boss.comboStep++;boss.attackCue=`${BOSS_PATTERN_NAMES[pattern]||'공격'} · 연계 ${boss.comboStep}/${boss.comboTotal}`;
     switch (boss.archetype) {
       case 'artillery':
-        boss.mode = pattern; boss.actionTimer = .95;
-        this.warningLine(boss, .95);
+        boss.mode = pattern; boss.actionTimer = bossWarning(.95,boss.combatPhase);
+        this.warningLine(boss, boss.actionTimer);
         if (boss.variant > 1 && boss.mode === 'fan-warning') this.zone(target, 3.4, 1.1, .16, this.damage() * .8, 'pulse');
         break;
       case 'plague': {
-        boss.mode = pattern; boss.actionTimer = 1.15;
-        if (boss.mode === 'fan-warning') this.warningLine(boss, 1.15);
+        boss.mode = pattern; boss.actionTimer = bossWarning(1.15,boss.combatPhase);
+        if (boss.mode === 'fan-warning') this.warningLine(boss, boss.actionTimer);
         else {
           const offsets = [[0, 0], [6.8, 0], [-6.8, 0]];
           if (boss.variant > 1) offsets.push([6.8, -6.8], [-6.8, 6.8]);
           for (const [dx, dz] of offsets) {
             const point = target.clone().add(new THREE.Vector3(dx, 0, dz));
-            this.zone(point, 3.1, 1.15, 2.6, this.damage() * .7, 'pool');
+            this.zone(point, 3.1, boss.actionTimer, 2.6, this.damage() * .7, 'pool');
           }
         }
         break;
       }
       case 'brood':
-        boss.mode = pattern; boss.actionTimer = 1.1;
-        this.zone(origin, boss.mode === 'pulse-warning' ? 7.2 : 6.2, 1.1, .16, this.damage() * .95, 'pulse'); break;
+        boss.mode = pattern; boss.actionTimer = bossWarning(1.1,boss.combatPhase);
+        this.zone(origin, boss.mode === 'pulse-warning' ? 7.2 : 6.2, boss.actionTimer, .16, this.damage() * .95, 'pulse'); break;
       case 'storm': {
         boss.mode = pattern;
-        boss.actionTimer = boss.variant > 1 && boss.mode === 'nova-warning' ? 1.25 : 1.05;
+        boss.actionTimer = bossWarning(boss.variant > 1 && boss.mode === 'nova-warning' ? 1.25 : 1.05,boss.combatPhase);
         const radius = boss.mode === 'nova-warning' ? (boss.variant > 1 ? 9.5 : 8.2) : 4.2;
-        this.zone(origin, radius, boss.actionTimer, .16, boss.mode === 'nova-warning' ? this.damage() * 1.15 : 0, 'pulse'); break;
+        this.zone(origin, radius, boss.actionTimer, .16, boss.mode === 'nova-warning' ? this.damage() * 1.15 : 0, 'pulse');
+        if(boss.mode==='radial-warning'){const sweep=enraged&&boss.variant>1?.6:enraged||boss.variant>1?.4:.2;this.radialGuide(boss,boss.ringAngle+.58,boss.actionTimer+1.6,sweep);}break;
       }
       case 'reaper': {
-        if(pattern==='cross-warning'){boss.mode=pattern;boss.actionTimer=.95;for(let i=0;i<4;i++){const a=i*Math.PI/2+boss.actionIndex*.25,d=new THREE.Vector3(Math.sin(a),0,Math.cos(a));this.warningLine({...boss,aimDirection:d},.95);this.schedule(boss,.95,d,{count:3,spread:.1,speed:9.5});}break;}
-        boss.mode = 'blink-warning'; boss.actionTimer = 1.05;
+        if(pattern==='cross-warning'){boss.mode=pattern;boss.actionTimer=bossWarning(.95,boss.combatPhase);const aimed=Math.atan2(boss.aimDirection.x,boss.aimDirection.z);for(let i=0;i<4;i++){const a=i*Math.PI/2+aimed,d=new THREE.Vector3(Math.sin(a),0,Math.cos(a));this.warningLine({...boss,aimDirection:d},boss.actionTimer);this.schedule(boss,boss.actionTimer,d,{count:3,spread:.1,speed:10});}break;}
+        boss.mode = 'blink-warning'; boss.actionTimer = bossWarning(1.05,boss.combatPhase);
         const edge=Math.hypot(target.x,target.z)>(this.game.training?.active?13:76),angle = edge?Math.atan2(-target.x,-target.z):Math.atan2(origin.x - target.x, origin.z - target.z) + Math.PI / 2;
         boss.blinkTarget.copy(target).add(new THREE.Vector3(Math.sin(angle) * 6.5, 0, Math.cos(angle) * 6.5));
         const radius = Math.hypot(boss.blinkTarget.x, boss.blinkTarget.z);
         if (radius > ARENA_RADIUS - 4) boss.blinkTarget.multiplyScalar((ARENA_RADIUS - 4) / radius);
         const rift=this.game.bossArena?.blinkTarget();if(rift)boss.blinkTarget.copy(rift);
         this.game.resolvePosition?.(boss.blinkTarget,1.4,7.5);
-        this.zone(boss.blinkTarget, 4.8, 1.05, .05, 0, 'blink'); break;
+        this.zone(boss.blinkTarget, 4.8, boss.actionTimer, .05, 0, 'blink'); break;
       }
     }
     boss.enraged = enraged;
@@ -214,13 +219,13 @@ export class BossSystem {
     } else if (mode === 'fan-warning') {
       this.fire(boss, boss.aimDirection, { count: boss.archetype === 'plague' ? (boss.variant > 1 || enraged ? 7 : 5) : (enraged || boss.variant > 1 ? 9 : 7), spread: boss.archetype === 'plague' ? .2 : .18, speed: 8.5 });
     } else if (mode === 'summon-warning') {
-      const wanted = Math.min(enraged ? 6 : 4, MAX_SUMMONS - this.summoned, Math.max(0, 160 - this.game.enemies.length));
+      const wanted = Math.min(enraged ? 6 : 4, this.summonCapacity(boss), Math.max(0, 160 - this.game.enemies.length));
       for (let i = 0; i < wanted; i++) {
         const angle = i / Math.max(1, wanted) * TAU + boss.actionIndex;
         const pos = this.game.bossArena?.minionPosition(i)||boss.group.position;
         const kind = boss.variant > 1 ? [2, 3, 5, 1][i % 4] : i % 2 ? 1 : 0;
         const minion = this.game.spawnEnemy(pos.x + Math.sin(angle) * (this.game.bossArena?.active?1:4.2), pos.z + Math.cos(angle) * (this.game.bossArena?.active?1:4.2), kind, { minion: true,surfaceY:pos.y });
-        if (minion) this.summoned++;
+        if (minion) this.registerSummon(minion,boss);
       }
       this.game.burst?.(boss.group.position, this.color, 10);
     } else if (mode === 'radial-warning') {
@@ -233,18 +238,26 @@ export class BossSystem {
       this.game.puff?.(boss.group.position, this.color, 2, .4);
       boss.group.position.copy(boss.blinkTarget);
       this.game.puff?.(boss.group.position, this.color, 2, .4);
-      this.zone(boss.group.position, 4.8, .85, .16, this.damage(), 'pulse');
+      const warning=bossWarning(.98,boss.combatPhase);this.zone(boss.group.position, 4.8, warning, .16, this.damage(), 'pulse');
+      const aimed=Math.atan2(this.game.player.position.x-boss.group.position.x,this.game.player.position.z-boss.group.position.z);
       for (let i = 0; i < 4; i++) {
-        const angle = i * Math.PI / 2 + boss.actionIndex * .35;
+        const angle = i * Math.PI / 2 + aimed;
         this.direction.set(Math.sin(angle), 0, Math.cos(angle));
-        this.schedule(boss, .85, this.direction, { count: 3, spread: .1, speed: 9.5 });
+        this.warningLine({...boss,aimDirection:this.direction},warning);this.schedule(boss, warning, this.direction, { count: 3, spread: .1, speed: 10 });
       }
-      boss.mode = 'cross-warning'; boss.actionTimer = .85;
+      boss.mode = 'cross-warning'; boss.actionTimer = warning;
       return;
     }
-    boss.chainRemaining=Math.max(0,...this.pendingShots.map(s=>s.delay));
-    boss.mode='recovery';boss.recoveryTime=(boss.combatPhase===3?.9:1.2)+boss.chainRemaining;
-    boss.actionTimer = (boss.archetype === 'plague' ? 3.2 : boss.archetype === 'brood' ? 4.2 : 2.7) * (enraged ? .78 : 1) * (boss.combatPhase === 3 ? .82 : 1);
+    const pending=Math.max(0,...this.pendingShots.map(s=>s.delay));
+    if(boss.comboPlan?.length){boss.comboPattern=boss.comboPlan.shift();boss.mode='combo-link';boss.actionTimer=Math.max(BOSS_COMBAT.link,pending+.18);boss.chainRemaining=boss.actionTimer;boss.recoveryTime=0;}
+    else{boss.chainRemaining=pending;boss.mode='recovery';boss.recoveryTime=(boss.combatPhase===3?.9:BOSS_COMBAT.recovery)+pending;boss.actionTimer=BOSS_COMBAT.chase;boss.attackCue='연계 종료 · 반격 기회';}
+  }
+
+  summonCapacity(boss=this.boss){return Math.max(0,MAX_SUMMONS-this.game.enemies.filter(e=>e.hp>0&&e.summoner===boss).length);}
+  registerSummon(minion,boss=this.boss){minion.summoner=boss;minion.noReward=this.summoned>=MAX_SUMMONS;if(!minion.noReward)this.summoned++;}
+  radialGuide(boss,angle,life,sweep=.2){
+    if(this.guides.length>=4)return;const geometry=new THREE.RingGeometry(.25,1,30,1,-Math.PI/9,Math.PI/4.5),material=new THREE.MeshBasicMaterial({color:'#a5ecdb',transparent:true,opacity:.13,side:THREE.DoubleSide,depthWrite:false}),mesh=new THREE.Mesh(geometry,material);
+    mesh.rotation.x=-Math.PI/2;mesh.rotation.z=angle+Math.PI/12+sweep/2-Math.PI/2;mesh.scale.setScalar(24);mesh.position.copy(boss.group.position);mesh.position.y+=.12;this.scene.add(mesh);this.game.fitGroundMesh?.(mesh,.12);this.guides.push({mesh,life});
   }
 
   update(boss, dt) {
@@ -258,13 +271,15 @@ export class BossSystem {
     if (boss.mode === 'chase' && (distance > .01||Math.abs(target.y-pos.y)>1.5)) {
       const movement = this.game.combatLineClear&&!this.game.combatLineClear(pos,target)?1:distance < wanted - 2 ? -.65 : distance > wanted + 1 ? 1 : 0;
       const speed = (boss.speed || 2.6) * slow * movement * dt;
-      const steer = movement > 0 && this.game.world && (!this.game.sideAreas?.active||this.game.bossArena?.active) && !this.game.training?.active ? this.game.world.steer(pos, dx, dz, 1.4, 0) : { x: dx / distance, z: dz / distance };
+      const steer = movement > 0 && this.game.world && (!this.game.sideAreas?.active||this.game.bossArena?.active) && !this.game.training?.active ? this.game.world.steer(pos, dx, dz, 1.4, 0) : { x: dx / Math.max(.001,distance), z: dz / Math.max(.001,distance) };
       pos.x += steer.x * speed; pos.z += steer.z * speed;
     }
     boss.group.rotation.y = Math.atan2(dx, dz);
     boss.actionTimer -= dt;
+    if(boss.mode==='combo-link')boss.chainRemaining=Math.max(0,boss.actionTimer);
     if (boss.actionTimer <= 0) {
       if (boss.mode === 'chase') {if(!this.game.combatLineClear||this.game.combatLineClear(pos,target)||this.game.bossArena?.active&&boss.archetype==='artillery')this.prepare(boss);else boss.actionTimer=.25;}
+      else if(boss.mode==='combo-link'){const pattern=boss.comboPattern;boss.comboPattern=null;this.prepare(boss,pattern);}
       else this.resolve(boss);
     }
     const radius = Math.hypot(pos.x, pos.z);
@@ -275,6 +290,7 @@ export class BossSystem {
 
   updateEffects(dt) {
     if (!this.playing()) return;
+    for(let i=this.guides.length-1;i>=0;i--){const guide=this.guides[i];guide.life-=dt;if(guide.life<=0){this.removeMarker(guide.mesh);this.guides.splice(i,1);}}
     dt = Math.max(0, Math.min(.1, dt)); this.time += dt;
     for (let i = this.pendingShots.length - 1; i >= 0; i--) {
       const shot = this.pendingShots[i]; shot.delay -= dt;
@@ -299,7 +315,7 @@ export class BossSystem {
       const player = this.game.player.position;
       const dx = player.x - zone.position.x, dz = player.z - zone.position.z;
       if (zone.damage > 0 && zone.tick <= 0 && dx * dx + dz * dz < zone.radius * zone.radius && dx * dx + dz * dz >= (zone.innerRadius || 0) ** 2) {
-        this.game.takeDamage(zone.damage, zone.position, zone.cause, null, { unblockable: true }); zone.tick = .6;
+        this.game.takeDamage(zone.damage, zone.terrainPulse?player.clone():zone.position, zone.cause, null, { unblockable: true }); zone.tick = .6;
         if (zone.type === 'pulse') zone.damage = 0;
       }
       if (zone.life <= 0) { this.removeMarker(zone.marker); this.zones.splice(i, 1); }
@@ -307,6 +323,8 @@ export class BossSystem {
   }
 
   cancelParryable(boss) {
+    boss.comboPlan=[];boss.comboPattern=null;
+    for(const g of this.guides)this.removeMarker(g.mesh);this.guides.length=0;
     boss.chainRemaining=0;
     this.pendingShots = this.pendingShots.filter(shot=>shot.boss !== boss);
     for (let i=this.zones.length-1;i>=0;i--) if(this.zones[i].type==='aim'||this.zones[i].parryable) {this.removeMarker(this.zones[i].marker);this.zones.splice(i,1);}
@@ -315,6 +333,8 @@ export class BossSystem {
   }
 
   cancelAttacks() {
+    if(this.boss){this.boss.comboPlan=[];this.boss.comboPattern=null;}
+    for(const g of this.guides)this.removeMarker(g.mesh);this.guides.length=0;
     if(this.boss)this.boss.chainRemaining=0;
     for (const zone of this.zones) this.removeMarker(zone.marker);
     this.zones.length = 0; this.pendingShots.length = 0;
@@ -323,6 +343,7 @@ export class BossSystem {
   }
 
   clear() {
+    for(const g of this.guides)this.removeMarker(g.mesh);this.guides.length=0;
     for (const zone of this.zones) this.removeMarker(zone.marker);
     this.zones.length = 0; this.pendingShots.length = 0;
     for (const { boss, group } of this.decorations) {

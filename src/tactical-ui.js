@@ -148,11 +148,13 @@ export function createTacticalUi({ game, openModal, forceCloseModal, notify }) {
     if (boss?.alive)
       text(
         $("#boss-tactic"),
-        boss.chainRemaining > 0
-          ? "연계 중 · 다음 예고 확인"
+        boss.transitionTime>0
+          ? `페이즈 전환 보호 ${boss.transitionTime.toFixed(1)}s`
+          : boss.chainRemaining > 0
+          ? `${boss.attackCue||'연계 중'} · 다음 예고 확인`
           : boss.recoveryTime > 0
-            ? `반격 기회 ${boss.recoveryTime.toFixed(1)}s · 받는 피해 +20%`
-            : "푸른 공격 패링 가능 · 붉은 지면은 회피",
+            ? `반격 기회 ${boss.recoveryTime.toFixed(1)}s · 받는 피해 +25%`
+            : boss.attackCue||"방어 자세 · 연계 회피/패링 후 반격",
       );
   }
   return { bind, update, trainingMenu };

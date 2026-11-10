@@ -34,12 +34,12 @@ test('optional target radius intersects finite sector edges without allowing rea
   assert.equal(isSwordHit(profile, 0, profile.range+.1, 0, 1, 0), false, 'zero-radius checks match the visible boundary exactly');
 });
 
-test('earned range ranks compound with saved/relic range, stay separate from damage and stop at eight', () => {
+test('earned range ranks add linearly while preserving saved/relic range, stay separate from damage and stop at eight', () => {
   const player = stats(); player.swordRangeMultiplier = 1.4 * 1.2;
   const initial = structuredClone(player);
   for (let rank = 1; rank <= 8; rank++) {
     assert.equal(applyUpgrade(player, 'blade_range'), true);
-    near(getSwordProfile(player).range, BASE_SWORD_RANGE * initial.swordRangeMultiplier * 1.12 ** rank);
+    near(getSwordProfile(player).range, BASE_SWORD_RANGE * initial.swordRangeMultiplier * (1 + .03 * rank));
     assert.equal(player.passiveLevels.blade_range, rank);
     assert.equal(player.damage, initial.damage);
     assert.equal(player.spellDamage, initial.spellDamage);
@@ -64,7 +64,7 @@ test('sword evolution requires earned sword ranks and one mutually exclusive cho
     assert.equal(player.swordEvolution, definition.mode);
     for (const other of SWORD_EVOLUTIONS) assert.equal(applyUpgrade(player, other.id), false);
     const profile = getSwordProfile(player);
-    near(profile.range, BASE_SWORD_RANGE * 1.12 * definition.rangeMultiplier);
+    near(profile.range, BASE_SWORD_RANGE * 1.03 * definition.rangeMultiplier);
     near(profile.arc, definition.arc);
     near(profile.damageMultiplier, definition.damageMultiplier);
     near(profile.attackRateMultiplier, definition.attackRateMultiplier);

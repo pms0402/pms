@@ -26,9 +26,9 @@ const baseName = {
 export function itemMarkup(item, old) {
   const grade =
       EQUIPMENT_GRADES.find((g) => g.id === item.grade) || EQUIPMENT_GRADES[0],
-    power = item.power * (1 + 0.12 * item.level),
-    prior = old ? old.power * (1 + 0.12 * old.level) : 0;
-  return `<article class="gear-card" style="--gear:${grade.color}"><small>${grade.name} · ${EQUIPMENT_SLOTS[item.slot]} · 강화 ${item.level}/5</small><h3>${esc(item.title)}</h3><strong>${baseName[item.slot]} +${(power * 100).toFixed(1)}%</strong>${old ? `<p class="gear-compare">현재 ${esc(old.title)} +${(prior * 100).toFixed(1)}% → <b>${((power - prior) * 100).toFixed(1)}%p</b></p>` : ""}<ul>${item.options.map((id) => `<li>${esc(EQUIPMENT_OPTIONS.find((o) => o.id === id)?.name)}${id === "element" ? ` (${esc(SPELLS.find(s => s.id === item.element)?.name || item.element)})` : ""}</li>`).join("")}</ul>${item.setId ? `<p class="gear-set" style="color:${SETS.find(s=>s.id===item.setId)?.color||'#c6acff'}">세트 · ${esc(SETS.find(s=>s.id===item.setId)?.name||item.setId)}</p>` : ""}${item.unique ? '<p class="gear-unique">고유 · 공명: 숨겨진 조합 피해 +12%</p>' : ""}</article>`;
+    power = item.power * (1 + 0.08 * item.level),
+    prior = old ? old.power * (1 + 0.08 * old.level) : 0;
+  return `<article class="gear-card" style="--gear:${grade.color}"><small>${grade.name} · ${EQUIPMENT_SLOTS[item.slot]} · 강화 ${item.level}/5</small><h3>${esc(item.title)}</h3><strong>${baseName[item.slot]} +${(power * 100).toFixed(1)}%</strong>${old ? `<p class="gear-compare">현재 ${esc(old.title)} +${(prior * 100).toFixed(1)}% → <b>${((power - prior) * 100).toFixed(1)}%p</b></p>` : ""}<ul>${item.options.map((id) => `<li>${esc(EQUIPMENT_OPTIONS.find((o) => o.id === id)?.name)}${id === "element" ? ` (${esc(SPELLS.find(s => s.id === item.element)?.name || item.element)})` : ""}</li>`).join("")}</ul>${item.setId ? `<p class="gear-set" style="color:${SETS.find(s=>s.id===item.setId)?.color||'#c6acff'}">세트 · ${esc(SETS.find(s=>s.id===item.setId)?.name||item.setId)}</p>` : ""}${item.unique ? '<p class="gear-unique">고유 · 공명: 숨겨진 조합 피해 +3%</p>' : ""}</article>`;
 }
 export function createExpansionUi({
   game,

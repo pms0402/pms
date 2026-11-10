@@ -7,7 +7,7 @@ import {
 
 const near = (actual, expected) => assert.ok(Math.abs(actual - expected) <= Math.max(1, expected) * 1e-10, `${actual} ≈ ${expected}`);
 
-test('an early 1000-gold wallet buys broad, immediately meaningful permanent growth', () => {
+test('an early 1000-gold wallet buys broad but modest permanent growth', () => {
   let progress = settleRun(createProgress(), { runId: 'earned-first-stage', gold: 1000 }).progress;
   let purchased = 0;
   for (let round = 0; round < 50; round++) {
@@ -20,21 +20,26 @@ test('an early 1000-gold wallet buys broad, immediately meaningful permanent gro
   }
   const bonuses = getPermanentBonuses(progress);
   assert.ok(purchased >= 25, `${purchased} purchases should preserve accessible early growth`);
-  assert.ok(bonuses.damageMultiplier * bonuses.attackRateMultiplier >= 2, 'sword DPS at least doubles from bought upgrades');
-  assert.ok(bonuses.spellDamageMultiplier * bonuses.spellRateMultiplier >= 2, 'magic DPS independently doubles');
-  assert.ok(bonuses.maxHpMultiplier >= 1.7, 'health purchases noticeably improve survival');
+  near(bonuses.damageMultiplier, 1 + .006 * progress.upgrades.power);
+  near(bonuses.attackRateMultiplier, 1 + .0035 * progress.upgrades.haste);
+  assert.ok(bonuses.damageMultiplier * bonuses.attackRateMultiplier > 1 && bonuses.damageMultiplier * bonuses.attackRateMultiplier < 1.2, 'early purchases help without replacing pattern mastery');
+  near(bonuses.spellDamageMultiplier, 1 + .006 * progress.upgrades.arcana);
+  near(bonuses.spellRateMultiplier, 1 + .0035 * progress.upgrades.focus);
+  assert.ok(bonuses.spellDamageMultiplier * bonuses.spellRateMultiplier > 1 && bonuses.spellDamageMultiplier * bonuses.spellRateMultiplier < 1.2, 'magic remains an independent modest growth channel');
+  near(bonuses.maxHpMultiplier, 1 + .005 * progress.upgrades.vitality);
+  assert.ok(bonuses.maxHpMultiplier > 1 && bonuses.maxHpMultiplier < 1.1);
   assert.ok(progress.bank >= 0 && progress.bank < 1000);
   assert.equal(progress.lifetimeGold, 1000, 'spending never reduces earned lifetime gold');
 });
 
-test('higher combat levels keep compounding instead of adding negligible percentages', () => {
+test('higher combat levels retain equal small additive increments without compounding', () => {
   const level10 = getPermanentBonuses({ upgrades: { power: 10, arcana: 10, vitality: 10 } });
   const level20 = getPermanentBonuses({ upgrades: { power: 20, arcana: 20, vitality: 20 } });
-  assert.ok(level10.damageMultiplier > 3);
-  assert.ok(level20.damageMultiplier > 9);
-  near(level20.damageMultiplier / level10.damageMultiplier, level10.damageMultiplier);
-  near(level20.spellDamageMultiplier / level10.spellDamageMultiplier, level10.spellDamageMultiplier);
-  near(level20.maxHpMultiplier / level10.maxHpMultiplier, level10.maxHpMultiplier);
+  near(level10.damageMultiplier, 1.06);
+  near(level20.damageMultiplier, 1.12);
+  near(level20.damageMultiplier - level10.damageMultiplier, .06);
+  near(level20.spellDamageMultiplier - level10.spellDamageMultiplier, .06);
+  near(level20.maxHpMultiplier - level10.maxHpMultiplier, .05);
   const sword = getPermanentBonuses({ upgrades: { power: 10, haste: 10 } });
   assert.equal(sword.spellDamageMultiplier, 1);
   assert.equal(sword.spellRateMultiplier, 1);
@@ -91,7 +96,7 @@ test('a mid-floor 100-million-gold wallet cannot complete a combat node or the w
   assert.equal(balanced.lifetimeGold, 100000000);
 });
 
-test('offer percentages match actual compounded bonuses before and after a purchase', () => {
+test('offer percentages match actual linear bonuses before and after a purchase', () => {
   const before = normalizeProgress({ bank: 1000000000000, upgrades: { power: 9, arcana: 3, vitality: 4, haste: 2 } });
   for (const [id, multiplier] of [['power', 'damageMultiplier'], ['arcana', 'spellDamageMultiplier'], ['vitality', 'maxHpMultiplier'], ['haste', 'attackRateMultiplier']]) {
     const offer = getPermanentUpgradeOffers(before).find(item => item.id === id);
@@ -103,7 +108,7 @@ test('offer percentages match actual compounded bonuses before and after a purch
   }
 });
 
-test('existing paid levels and earned money retain their identity and get the stronger effects', () => {
+test('existing paid levels and earned money retain their identity with the smaller effects', () => {
   const oldSave = { version: 1, bank: 175, lifetimeGold: 2000, upgrades: { power: 12, vitality: 9, fortune: 8 }, settledRunIds: ['already-settled'], unlocks: { characters: ['wanderer', 'arcanist'], weapons: ['voidblade', 'tempest'] }, loadout: { character: 'arcanist', weapon: 'tempest' } };
   const snapshot = structuredClone(oldSave);
   const restored = normalizeProgress(JSON.parse(JSON.stringify(oldSave)));
@@ -113,8 +118,8 @@ test('existing paid levels and earned money retain their identity and get the st
   assert.equal(restored.upgrades.vitality, 9);
   assert.deepEqual(restored.loadout, oldSave.loadout);
   const bonuses = getPermanentBonuses(restored);
-  near(bonuses.damageMultiplier, 1.12 ** 12 * 0.85 * 0.82);
-  near(bonuses.maxHpMultiplier, 1.1 ** 9 * 0.9);
+  near(bonuses.damageMultiplier, (1 + .006 * 12) * 0.85 * 0.82);
+  near(bonuses.maxHpMultiplier, (1 + .005 * 9) * 0.9);
   near(bonuses.goldMultiplier, 1.4);
   assert.equal(settleRun(restored, { runId: 'already-settled', gold: 1000 }).duplicate, true);
   assert.deepEqual(oldSave, snapshot);
@@ -130,9 +135,13 @@ test('all maximum saved levels give finite bounded bonuses and cannot over-purch
   }
   const bonuses = getPermanentBonuses(capped);
   for (const [key, value] of Object.entries(bonuses)) if (typeof value === 'number') assert.ok(Number.isFinite(value) && value >= 0, key);
-  assert.ok(bonuses.damageMultiplier > 250 && bonuses.damageMultiplier < 300);
-  assert.ok(bonuses.maxHpMultiplier > 100 && bonuses.maxHpMultiplier < 120);
-  assert.ok(bonuses.attackRateMultiplier < 3);
-  assert.equal(bonuses.armorBonus, 0.3);
+  near(bonuses.damageMultiplier, 1.3);
+  near(bonuses.spellDamageMultiplier, 1.3);
+  near(bonuses.maxHpMultiplier, 1.25);
+  near(bonuses.attackRateMultiplier, 1.14);
+  near(bonuses.spellRateMultiplier, 1.14);
+  near(bonuses.swordRangeMultiplier, 1.1);
+  near(bonuses.spellAreaMultiplier, 1.1);
+  assert.equal(bonuses.armorBonus, 0.06);
   assert.equal(bonuses.goldMultiplier, 2.5);
 });

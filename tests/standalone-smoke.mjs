@@ -65,6 +65,7 @@ try {
   assert.equal(await embedded.locator('#game-canvas').evaluate(() => window.__game.state.phase), 'paused');
   await embedded.locator('#resume').click();
   assert.equal(await embedded.locator('#game-canvas').evaluate(() => window.__game.state.phase), 'playing');
+  await embedded.locator('#fullscreen').click(); // Site navigation is outside the default game viewport.
   await embedded.locator('.main-nav [data-nav="permanent"]').click();
   assert.equal(await embedded.locator('.storage-unavailable').isVisible(), true, 'opaque previews must clearly disclose that permanent progress cannot be saved');
   assert.match(await embedded.locator('#camp-storage').textContent(), /저장/);

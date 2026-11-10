@@ -9,8 +9,8 @@ const starter = () => ({ damage: 18, spellDamage: 18, maxHp: 100, attackRate: 1.
 test('the balance API no longer exposes an automatic player-growth multiplier', () => {
   assert.equal('getStageGrowth' in balance, false, 'removing the floor bonus must not leave a neutral or hidden automatic-growth helper');
   assert.equal(MAX_STAGES, 10);
-  assert.equal(ENEMY_HEALTH_GROWTH, 1.7);
-  assert.equal(ENEMY_DAMAGE_GROWTH, 1.35);
+  assert.equal(ENEMY_HEALTH_GROWTH, 1.15);
+  assert.equal(ENEMY_DAMAGE_GROWTH, 1.075);
 });
 
 test('all ten floors retain affordable enemy pressure without the former exponential wall', () => {
@@ -28,7 +28,7 @@ test('all ten floors retain affordable enemy pressure without the former exponen
   const last = getStageStats(MAX_STAGES);
   assert.ok(last.enemyHealth < 6000, 'a normal final-floor enemy no longer assumes a free3.2× player bonus every floor');
   assert.ok(last.enemyDamage < 165, 'player health can be built through chosen upgrades rather than forced floor scaling');
-  assert.ok(last.enemyHealth > getStageStats(5).enemyHealth * 10, 'later floors still grow substantially');
+  assert.ok(last.enemyHealth > getStageStats(5).enemyHealth * 2 && last.enemyHealth < getStageStats(5).enemyHealth * 2.1, 'late floors add measured stat pressure alongside harder patterns');
 });
 
 test('the gold curve and boss payouts survive the manual-growth rebalance unchanged', () => {
@@ -56,16 +56,16 @@ test('later XP drops increase earned level-up opportunities with bounded predict
   close(getXpDropMultiplier(999), 2.8);
 });
 
-test('chosen damage, speed and health upgrades compound only their own stat channels', () => {
+test('chosen damage, speed and health upgrades add linear ranks only to their own stat channels', () => {
   const stats = starter();
   for (let choice = 0; choice < 3; choice++) assert.equal(applyUpgrade(stats, 'power'), true);
-  close(stats.damage, 18 * 1.2 ** 3);
+  close(stats.damage, 18 * 1.09);
   assert.equal(stats.spellDamage, 18); assert.equal(stats.maxHp, 100);
   assert.equal(applyUpgrade(stats, 'spell_power'), true);
-  close(stats.spellDamage, 18 * 1.2); close(stats.damage, 18 * 1.2 ** 3);
+  close(stats.spellDamage, 18 * 1.03); close(stats.damage, 18 * 1.09);
   assert.equal(applyUpgrade(stats, 'vitality'), true);
-  close(stats.maxHp, 115);
+  close(stats.maxHp, 102);
   assert.equal(applyUpgrade(stats, 'haste'), true);
-  close(stats.attackRate, 1.5 * 1.08); assert.equal(stats.spellRate, 1.5);
+  close(stats.attackRate, 1.5 * 1.02); assert.equal(stats.spellRate, 1.5);
   assert.deepEqual(stats.passiveLevels, { power: 3, spell_power: 1, vitality: 1, haste: 1 });
 });

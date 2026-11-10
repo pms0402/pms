@@ -95,14 +95,14 @@ try {
   assert.equal(saved.upgrades.power, 1);
   assert.equal(saved.upgrades.vitality, 1);
   assert.equal(saved.upgrades.fortune, 1);
-  console.log('PASS permanent purchases: exact debit, compound upgrades, continued affordability, save and reload');
+  console.log('PASS permanent purchases: exact debit, linear upgrades, continued affordability, save and reload');
 
   await page.locator('#start-button').click();
   await stopClock();
   const secondRun = await page.evaluate(() => window.__game.state);
   assert.notEqual(secondRun.runId, firstRun);
-  near(secondRun.damage, 18 * 1.12, 'purchased damage carries into the next run');
-  near(secondRun.maxHp, 100 * 1.1, 'purchased vitality carries into the next run');
+  near(secondRun.damage, 18 * 1.006, 'purchased damage carries into the next run');
+  near(secondRun.maxHp, 100 * 1.005, 'purchased vitality carries into the next run');
   near(secondRun.hp, secondRun.maxHp, 'a run starts at its permanently improved maximum health');
   near(secondRun.playerStats.goldMultiplier, 1.05, 'fortune improves future run earnings');
   assert.equal(secondRun.gold, 0);
@@ -113,6 +113,7 @@ try {
   // Use the real cursor-accessible view before clicking a live HUD/navigation item.
   for(let i=0;i<3&&await page.evaluate(()=>window.__game.view.mode!=='overhead');i++)await page.keyboard.press('v');
   await page.waitForFunction(()=>!document.pointerLockElement);
+  if (await page.locator('#fullscreen').getAttribute('aria-pressed') === 'true') await page.locator('#fullscreen').click();
   await page.locator('[data-nav="permanent"]').first().click();
   assert.equal(await phase(), 'paused');
   const disabled = await page.locator('[data-permanent-buy]').evaluateAll(buttons => buttons.length === 10 && buttons.every(button => button.disabled));
@@ -140,7 +141,7 @@ try {
     game._state.stage = finalStage;
     game._state.stageTime = game.state.stageDuration;
     const boss = game.spawnBoss();
-    game.hitEnemy(boss, boss.hp + 1, game.player.position.clone().set(1, 0, 0)); if (game.equipment?.rewardQueue.length) { game.bossArena.skip(); game.equipment.nextReward(); document.querySelector('[data-equipment-choice="skip"]')?.click(); }
+    boss.combatPhase=3;boss.transitionTime=0;boss.recoveryTime=1;boss.chainRemaining=0; /* Terminal-phase reward fixture. */ game.hitEnemy(boss, boss.hp + 1, game.player.position.clone().set(1, 0, 0)); if (game.equipment?.rewardQueue.length) { game.bossArena.skip(); game.equipment.nextReward(); document.querySelector('[data-equipment-choice="skip"]')?.click(); }
     game.tick(1 / 60);
     return { runId: game.state.runId, gold: Math.floor(game.state.gold), phase: game.state.phase };
   }, MAX_STAGES);
@@ -156,7 +157,7 @@ try {
   await page.locator('#camp-start').click();
   await stopClock();
   assert.equal(await phase(), 'playing');
-  near(await page.evaluate(() => window.__game.state.damage), 18 * 1.12, 'camp retry retains purchased power');
+  near(await page.evaluate(() => window.__game.state.damage), 18 * 1.006, 'camp retry retains purchased power');
   assert.equal(await page.evaluate(() => window.__game.state.gold), 0);
   assert.equal((await progress()).bank, saved.bank);
   console.log('PASS victory: final-boss completion settles once, returning to results is idempotent, camp retry keeps permanent upgrades');
@@ -197,12 +198,13 @@ try {
   await page.reload();
   await page.waitForFunction(() => window.__game?.getDebugState().frames > 1);
   await page.evaluate(() => cancelAnimationFrame(window.__game.raf)); // Domain fixtures advance time explicitly; keep menu rendering out of UI waits.
+  if (await page.locator('#fullscreen').getAttribute('aria-pressed') === 'true') await page.locator('#fullscreen').click();
   await page.locator('[data-nav="permanent"]').first().click();
   assert.equal(await page.locator('[data-permanent-buy="power"]').isDisabled(), true, 'maximum-level upgrades remain unpurchasable');
   await page.locator('#modal-close').click();
   await page.locator('#start-button').click();
   await stopClock();
-  near(await page.evaluate(() => window.__game.state.damage), 18 * 1.12 ** 50, 'saved maximum-level permanent upgrades apply once without the former hidden cap');
+  near(await page.evaluate(() => window.__game.state.damage), 18 * 1.3, 'saved maximum-level permanent upgrades apply once without the former hidden cap');
   await legacyContext.close();
   assert.deepEqual(errors, [], 'no uncaught browser errors');
   console.log('PASS migration and caps: prior earnings imported once, maximum levels reject purchase and apply exactly once');

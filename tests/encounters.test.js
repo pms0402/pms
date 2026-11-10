@@ -39,7 +39,7 @@ test('later floors offer gentler enemy curves and more earned XP without uncappe
     nearRatio(boss.health, current.enemyHealth * 35);
     assert.equal(boss.coinValue, current.coinValue * 25);
   }
-  assert.ok(getStageStats(10).enemyHealth > getStageStats(5).enemyHealth * 14);
+  assert.ok(getStageStats(10).enemyHealth > getStageStats(5).enemyHealth * 2);
   assert.ok(getStageStats(10).coinValue > getStageStats(5).coinValue * 90000);
 });
 

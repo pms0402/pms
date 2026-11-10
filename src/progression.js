@@ -1,17 +1,18 @@
 import { NEW_CLASSES } from './classes.js';
+import {PERMANENT_GROWTH as G,linearGrowth} from './combat-balance.js';
 const MAX_SAFE = Number.MAX_SAFE_INTEGER;
 const RECEIPT_LIMIT = 200;
 
-/** Core combat upgrades compound; early prices stay accessible and later ranks track floor income. */
+/** Purchased levels and prices are preserved; combat bonuses now grow linearly. */
 export const PERMANENT_UPGRADES = [
-  { id: 'power', branch: 'sword', requires: [], name: '검술의 뿌리', description: '단계마다 검 공격력 ×1.12 · 마법과 독립 성장', icon: 'sword', maxLevel: 50, baseCost: 12, increment: 12, compound: true, unit: '%' },
-  { id: 'haste', branch: 'sword', requires: [{ id: 'power', level: 1 }], name: '연속 베기', description: '단계마다 검 모션 가속 ×1.025', icon: 'sword', maxLevel: 40, baseCost: 18, increment: 2.5, compound: true, unit: '%' },
-  { id: 'bladeReach', branch: 'sword', requires: [{ id: 'power', level: 1 }], name: '검기의 가지', description: '검 타격 범위 +2%', icon: 'target', maxLevel: 20, baseCost: 20, increment: 2, unit: '%' },
-  { id: 'arcana', branch: 'magic', requires: [], name: '마력의 뿌리', description: '단계마다 마법 공격력 ×1.12 · 검과 독립 성장', icon: 'orbit', maxLevel: 50, baseCost: 12, increment: 12, compound: true, unit: '%' },
-  { id: 'focus', branch: 'magic', requires: [{ id: 'arcana', level: 1 }], name: '주문의 흐름', description: '단계마다 마법 시전 가속 ×1.025', icon: 'bolt', maxLevel: 40, baseCost: 18, increment: 2.5, compound: true, unit: '%' },
-  { id: 'spellArea', branch: 'magic', requires: [{ id: 'arcana', level: 1 }], name: '확산의 가지', description: '마법 효과 범위 +2%', icon: 'orbit', maxLevel: 20, baseCost: 20, increment: 2, unit: '%' },
-  { id: 'vitality', branch: 'core', requires: [], name: '생명의 뿌리', description: '단계마다 기본 최대 체력 ×1.10', icon: 'heart', maxLevel: 50, baseCost: 15, increment: 10, compound: true, unit: '%' },
-  { id: 'armor', branch: 'core', requires: [], name: '견고한 피부', description: '모든 런의 기본 피해 감소 +0.75%p', icon: 'shield', maxLevel: 40, baseCost: 24, increment: 0.75, unit: '%p' },
+  { id: 'power', branch: 'sword', requires: [], name: '검술의 뿌리', description: '검 공격력 +0.6%p/단계 · 최대 +30%', icon: 'sword', maxLevel: 50, baseCost: 12, increment: .6, unit: '%' },
+  { id: 'haste', branch: 'sword', requires: [{ id: 'power', level: 1 }], name: '연속 베기', description: '검 모션 가속 +0.35%p/단계 · 최대 +14%', icon: 'sword', maxLevel: 40, baseCost: 18, increment: .35, unit: '%' },
+  { id: 'bladeReach', branch: 'sword', requires: [{ id: 'power', level: 1 }], name: '검기의 가지', description: '검 타격 범위 +0.5%p/단계 · 최대 +10%', icon: 'target', maxLevel: 20, baseCost: 20, increment: .5, unit: '%' },
+  { id: 'arcana', branch: 'magic', requires: [], name: '마력의 뿌리', description: '마법 공격력 +0.6%p/단계 · 최대 +30%', icon: 'orbit', maxLevel: 50, baseCost: 12, increment: .6, unit: '%' },
+  { id: 'focus', branch: 'magic', requires: [{ id: 'arcana', level: 1 }], name: '주문의 흐름', description: '마법 시전 가속 +0.35%p/단계 · 최대 +14%', icon: 'bolt', maxLevel: 40, baseCost: 18, increment: .35, unit: '%' },
+  { id: 'spellArea', branch: 'magic', requires: [{ id: 'arcana', level: 1 }], name: '확산의 가지', description: '마법 효과 범위 +0.5%p/단계 · 최대 +10%', icon: 'orbit', maxLevel: 20, baseCost: 20, increment: .5, unit: '%' },
+  { id: 'vitality', branch: 'core', requires: [], name: '생명의 뿌리', description: '기본 최대 체력 +0.5%p/단계 · 최대 +25%', icon: 'heart', maxLevel: 50, baseCost: 15, increment: .5, unit: '%' },
+  { id: 'armor', branch: 'core', requires: [], name: '견고한 피부', description: '기본 피해 감소 +0.15%p/단계 · 최대 +6%', icon: 'shield', maxLevel: 40, baseCost: 24, increment: .15, unit: '%p' },
   { id: 'magnet', branch: 'core', requires: [], name: '잔향 자석', description: '모든 런의 기본 획득 범위 +3%', icon: 'magnet', maxLevel: 30, baseCost: 10, increment: 3, unit: '%' },
   { id: 'fortune', branch: 'core', requires: [], name: '황금의 운', description: '모든 런의 골드 획득량 +5%', icon: 'coin', maxLevel: 30, baseCost: 20, increment: 5, unit: '%' },
 ];
@@ -178,14 +179,14 @@ export function getPermanentBonuses(progress) {
   const character = CHARACTERS.find(item => item.id === loadout.character);
   const weapon = WEAPONS.find(item => item.id === loadout.weapon);
   return {
-    damageMultiplier: 1.12 ** upgrades.power * character.damageMultiplier * weapon.damageMultiplier,
-    spellDamageMultiplier: 1.12 ** upgrades.arcana * character.spellDamageMultiplier,
-    maxHpMultiplier: 1.1 ** upgrades.vitality * character.maxHpMultiplier,
-    attackRateMultiplier: 1.025 ** upgrades.haste * weapon.attackRateMultiplier,
-    spellRateMultiplier: 1.025 ** upgrades.focus,
-    swordRangeMultiplier: (1 + 0.02 * upgrades.bladeReach) * weapon.swordRangeMultiplier,
-    spellAreaMultiplier: 1 + 0.02 * upgrades.spellArea,
-    armorBonus: 0.0075 * upgrades.armor,
+    damageMultiplier: linearGrowth(upgrades.power,G.power) * character.damageMultiplier * weapon.damageMultiplier,
+    spellDamageMultiplier: linearGrowth(upgrades.arcana,G.arcana) * character.spellDamageMultiplier,
+    maxHpMultiplier: linearGrowth(upgrades.vitality,G.vitality) * character.maxHpMultiplier,
+    attackRateMultiplier: linearGrowth(upgrades.haste,G.haste) * weapon.attackRateMultiplier,
+    spellRateMultiplier: linearGrowth(upgrades.focus,G.focus),
+    swordRangeMultiplier: linearGrowth(upgrades.bladeReach,G.bladeReach) * weapon.swordRangeMultiplier,
+    spellAreaMultiplier: linearGrowth(upgrades.spellArea,G.spellArea),
+    armorBonus: G.armor * upgrades.armor,
     magnetMultiplier: 1 + 0.03 * upgrades.magnet,
     goldMultiplier: 1 + 0.05 * upgrades.fortune,
     characterId: character.id,

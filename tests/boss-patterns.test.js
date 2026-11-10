@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import { BossSystem } from '../src/bosses.js';
+import { BOSS_COMBAT, bossDamageState } from '../src/boss-combat.js';
+import { HiddenBossSystem } from '../src/hidden-bosses.js';
 import { buildSculptedMonster } from '../src/sculpted-models.js';
 
 const close = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-8, `${actual} ≈ ${expected}`);
@@ -37,7 +39,7 @@ function fixture(archetype, stage = 2) {
   const advance = seconds => {
     for (let time = 0; time < seconds - 1e-9; time += .01) {
       game.invulnerable = Math.max(0, game.invulnerable - .01);
-      if(boss.recoveryTime>0){boss.recoveryTime=Math.max(0,boss.recoveryTime-.01);if(!boss.recoveryTime){boss.mode='chase';boss.actionTimer=1.2;}}else system.update(boss,.01);system.updateEffects(.01);
+      if(boss.recoveryTime>0){boss.chainRemaining=Math.max(0,(boss.chainRemaining||0)-.01);boss.recoveryTime=Math.max(0,boss.recoveryTime-.01);if(!boss.recoveryTime){boss.mode='chase';boss.actionTimer=BOSS_COMBAT.chase;}}else system.update(boss,.01);system.updateEffects(.01);
     }
   };
   const prepare = () => {boss.recoveryTime=0; boss.mode = 'chase'; boss.actionTimer = 0; advance(.01); };
@@ -97,7 +99,7 @@ test('brood summons respect the horde cap and a finite encounter reward budget',
   f.system.dispose();
 });
 
-test('storm fires slow rings with a usable gap and alternates with a warned nova', () => {
+test('storm fires bounded rings with a usable gap and alternates with a warned nova', () => {
   const f = fixture('storm', 5); f.prepare(); f.advance(.9);
   assert.equal(f.shots.length, 0);
   f.advance(.25);
@@ -105,7 +107,7 @@ test('storm fires slow rings with a usable gap and alternates with a warned nova
   const angles = f.shots.map(shot => (Math.atan2(shot.direction.x, shot.direction.z) + Math.PI * 2) % (Math.PI * 2)).sort((a, b) => a - b);
   const gaps = angles.map((angle, i) => (angles[(i + 1) % angles.length] - angle + Math.PI * 2) % (Math.PI * 2));
   assert.ok(Math.max(...gaps) > 1, 'the radial attack leaves a broad escape opening');
-  assert.ok(f.shots.every(shot => shot.options.speed < 8));
+  assert.ok(f.shots.every(shot => shot.options.speed === 8.2));
   f.advance(.5); assert.equal(f.shots.length, 20, 'a second offset ring is delayed instead of spawning on top of the first');
   f.boss.group.position.set(10, 0, 0); f.game.player.position.set(6, 0, 0);
   f.prepare(); assert.equal(f.boss.mode, 'nova-warning');
@@ -124,7 +126,8 @@ test('reaper marks a fixed landing point before blinking and delays the crossfir
   f.advance(.9); assert.ok(f.boss.group.position.distanceTo(start) < 1e-8); assert.equal(f.shots.length, 0);
   f.advance(.2); assert.ok(f.boss.group.position.distanceTo(target) < .2);
   assert.equal(f.shots.length, 0, 'the arrival pulse has its own warning');
-  f.advance(.9);
+  f.advance(.9);assert.equal(f.shots.length,0,'the full arrival warning remains readable');
+  f.advance(.1);
   assert.equal(f.shots.length, 4); assert.equal(f.game.enemyProjectiles.length, 12);
   assert.equal(f.hits.length, 0, 'moving away from the locked landing point safely avoids the attack');
   f.system.dispose();
@@ -227,10 +230,82 @@ test('plague leaves an escapable corridor and chained volleys retain a real reco
     artillery.prepare(); artillery.system.resolve(artillery.boss);
     const b = artillery.boss;
     assert.ok(b.chainRemaining > 0);
-    close(b.recoveryTime - b.chainRemaining, phase === 3 ? .9 : 1.2);
+    assert.equal(b.recoveryTime,0,'there is no false opening between linked attacks');
+    assert.equal(bossDamageState(b),'guard');
+    for(let t=0;t<10&&b.mode!=='recovery';t+=.01)artillery.advance(.01);
+    assert.equal(b.mode,'recovery','every bounded chain ends with an opening');
+    close(b.recoveryTime - b.chainRemaining, phase === 3 ? .9 : BOSS_COMBAT.recovery);
     artillery.system.cancelParryable(b);
     assert.equal(b.chainRemaining, 0);
     assert.equal(artillery.system.pendingShots.length, 0);
     artillery.system.dispose();
   }
+});
+
+test('reinforcements remain threatening after the reward budget without exceeding live or reward caps', () => {
+  const f=fixture('brood',4);
+  for(let wave=0;wave<12;wave++){
+    f.boss.mode='summon-warning';f.system.resolve(f.boss);
+    assert.ok(f.game.enemies.filter(e=>e.summoner===f.boss&&e.hp>0).length<=18);
+  }
+  assert.equal(f.summons.length,18);
+  f.summons.forEach(e=>e.hp=0);
+  f.boss.mode='summon-warning';f.system.resolve(f.boss);
+  assert.equal(f.summons.length,22,'defeated reinforcements can be replaced');
+  assert.equal(f.summons.filter(e=>!e.noReward).length,18,'only the initial budget grants experience or gold');
+  assert.ok(f.summons.slice(18).every(e=>e.noReward));
+  f.system.dispose();
+});
+
+test('storm guide fits the shared escape gap of every delayed ring and is removed on parry', () => {
+  const f=fixture('storm',10);f.boss.hp=300;f.boss.combatPhase=3;
+  f.system.prepare(f.boss,'radial-warning');
+  assert.equal(f.system.guides.length,1);
+  const mesh=f.system.guides[0].mesh;mesh.updateMatrixWorld(true);
+  f.system.resolve(f.boss);f.system.updateEffects(.1);
+  for(let i=0;i<12;i++)f.system.updateEffects(.1);
+  assert.equal(f.shots.length,40);
+  const positions=mesh.geometry.getAttribute('position'),point=new THREE.Vector3();
+  for(let i=0;i<positions.count;i++){
+    point.fromBufferAttribute(positions,i).applyMatrix4(mesh.matrixWorld).sub(f.boss.group.position).setY(0).normalize();
+    for(const shot of f.shots)assert.ok(point.dot(shot.direction)<Math.cos(.1),'no projectile axis enters the drawn escape sector');
+  }
+  f.system.cancelParryable(f.boss);
+  assert.equal(f.system.guides.length,0);assert.equal(mesh.parent,null);
+  assert.deepEqual(f.boss.comboPlan,[]);assert.equal(f.system.pendingShots.length,0);
+  f.system.dispose();
+});
+
+test('hidden observer delays its opening until warned follow-up attacks finish', () => {
+  const f=fixture('reaper',6),hidden=Object.create(HiddenBossSystem.prototype);
+  hidden.game=f.game;f.game.bossSystem=f.system;f.game.bossStats=()=>({damage:20});
+  f.boss.hiddenBoss='observer';f.boss.combatPhase=3;f.boss.hiddenAction=1;
+  f.boss.hiddenPending={type:'blink',destination:new THREE.Vector3(8,0,0)};
+  hidden.resolve(f.boss);
+  assert.equal(f.system.pendingShots.length,2);
+  assert.equal(bossDamageState(f.boss),'guard');
+  assert.equal(f.boss.chainRemaining,1.3,'the ground rift warning also delays the opening');
+  close(f.boss.recoveryTime-f.boss.chainRemaining,.9);
+  f.advance(1.31);
+  assert.equal(bossDamageState(f.boss),'opening');
+  assert.equal(f.shots.length,2);
+  f.system.dispose();
+});
+
+test('primordial alternates a reachable inner refuge, outer refuge, and a marked player position', () => {
+  const f=fixture('storm',10),hidden=Object.create(HiddenBossSystem.prototype);
+  hidden.game=f.game;f.game.bossSystem=f.system;f.game.bossStats=()=>({damage:20});
+  f.game.bossArena={active:true};f.game.combatStats={speed:7.5};f.game.fitGroundMesh=()=>{};
+  f.boss.hiddenBoss='primordial';f.boss.hiddenAction=0;f.boss.combatPhase=3;
+  f.game.player.position.set(24,0,0);
+  hidden.prepare(f.boss);
+  let zone=f.system.zones.find(z=>z.damage>0);
+  assert.equal(zone.innerRadius,7);assert.equal(zone.radius,28);assert.equal(zone.terrainPulse,true);
+  assert.ok(zone.warning*7.5>18);
+  f.system.cancelAttacks();hidden.prepare(f.boss);
+  zone=f.system.zones.find(z=>z.damage>0);
+  assert.equal(zone.innerRadius,undefined);assert.equal(zone.radius,9);assert.equal(zone.terrainPulse,true);
+  f.system.cancelAttacks();hidden.prepare(f.boss);
+  assert.ok(f.system.zones.some(z=>z.position.distanceTo(f.game.player.position)<.001&&z.damage>0));
+  f.system.dispose();
 });

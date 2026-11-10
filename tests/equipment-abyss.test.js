@@ -39,7 +39,7 @@ test("equipment comparison is reversible, bounded and never mutates the base bui
   const before = JSON.stringify(base),
     b = equipmentBonuses([item]);
   assert.ok(
-    b.damage > 1 && b.crit === 0.04 && b.attackRate === 1.08 && b.blast === 1,
+    b.damage > 1 && b.crit === 0.015 && b.attackRate === 1.025 && b.blast === 1,
   );
   assert.equal(JSON.stringify(base), before);
   assert.equal(equipmentBonuses([]).damage, 1);

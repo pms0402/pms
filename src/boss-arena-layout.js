@@ -9,7 +9,7 @@ export const BOSS_ARENAS=Object.freeze({
   reaper:{title:'뒤틀린 폐허 궁전',epithet:'공간의 틈에서 거두는 자',region:'void',color:'#c7a3ed',rule:'망령은 빛나는 균열로 도약합니다. C로 균열을 사용해 추적하거나 이탈하세요.',change:'궁전 격벽 해제 · 새로운 균열 활성',motif:[61.74,92.5,65.4,82.4]},
   king:{title:'잿빛 왕의 왕좌',epithet:'왕관을 버리지 못한 검',region:'ruins',color:'#e7ca85',rule:'계단 양쪽으로 왕좌를 우회하세요. 검격은 파란 예고, 지형 공격은 붉은 예고입니다.',change:'왕좌의 봉인 붕괴 · 양쪽 회랑 개방',motif:[65.4,98,82.4,73.42]},
   observer:{title:'공허 관측 성환',epithet:'모든 결말을 지켜본 눈',region:'void',color:'#d7b7f1',rule:'관측 오벨리스크를 엄폐로 활용하고 도약 지점의 예고를 확인하세요.',change:'관측 격벽 해제 · 시선 통로 변화',motif:[51.91,77.78,69.3,103.83]},
-  primordial:{title:'태초의 심연 성소',epithet:'빛 이전에 깨어 있던 것',region:'void',color:'#eda0b2',rule:'거대한 고리 공격은 중앙 안전 원으로 피하세요. 방사형 회랑으로 복귀할 수 있습니다.',change:'심연의 봉인 해제 · 외곽 파문 활성',motif:[36.71,55,43.65,49]},
+  primordial:{title:'태초의 심연 성소',epithet:'빛 이전에 깨어 있던 것',region:'void',color:'#eda0b2',rule:'외곽 파문은 중앙 7m, 중앙 붕괴는 9m 밖. 붉은 손아귀 표식에서는 이동하세요.',change:'심연의 봉인 해제 · 외곽 파문 활성',motif:[36.71,55,43.65,49]},
 });
 
 /** Authored connected floors. Phase changes only remove barriers; no floor disappears. */

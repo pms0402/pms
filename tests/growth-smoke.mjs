@@ -104,11 +104,11 @@ try {
   await page.evaluate(() => cancelAnimationFrame(window.__game.raf)); // Domain fixtures advance time explicitly; keep menu rendering out of UI waits.
   await start();
   const upgraded = await page.evaluate(() => window.__game.state);
-  near(upgraded.damage, 18 * 1.12 ** 4, 'four sword purchases compound to a noticeable 57% gain');
-  near(upgraded.spellDamage, 18 * 1.12, 'magic branch compounds independently');
-  assert.ok(upgraded.damage / 18 > 1.5);
+  near(upgraded.damage, 18 * 1.024, 'four sword purchases add exactly 2.4%');
+  near(upgraded.spellDamage, 18 * 1.006, 'magic branch grows independently');
+  assert.ok(upgraded.damage / 18 > 1 && upgraded.damage / 18 < 1.03, 'four ranks give a small additive improvement');
   assert.equal((await page.evaluate(() => JSON.parse(localStorage.getItem('voidrun.progression')))).bank, 500 - spent);
-  console.log('PASS economy: real kill5G → contact death500G → affordable purchases → reload → independent compounded growth');
+  console.log('PASS economy: real kill5G → contact death500G → affordable purchases → reload → independent linear growth');
 
   await load(); await start();
   const growth = await page.evaluate(floors => {
@@ -122,8 +122,9 @@ try {
       const beforeKill = JSON.stringify(game.stats);
       stages.push({ stage: game.state.stage, hp: game.stats.maxHp, enemyHp: sample.maxHp, regionHealth: game.getThreat().enemyHealth });
       const boss = game.spawnBoss();
-      game.hitEnemy(boss, boss.hp + 1); if (game.equipment?.rewardQueue.length) { game.equipment.nextReward(); document.querySelector('[data-equipment-choice="skip"]')?.click(); }
+      boss.combatPhase=3;boss.transitionTime=0;boss.recoveryTime=1;boss.chainRemaining=0; /* Terminal-phase reward fixture. */ game.hitEnemy(boss, boss.hp + 1); game.bossArena.skip(); if (game.equipment?.rewardQueue.length) { game.equipment.nextReward(); document.querySelector('[data-equipment-choice="skip"]')?.click(); }
       stages.at(-1).bossChangedStats = JSON.stringify(game.stats) !== beforeKill;
+      game.bossArena.skip(); // Route checks explicitly skip the short victory cue.
       const before = { stats: JSON.stringify(game.stats), hp: game.state.hp };
       game._state.stageTime = game.state.stageDuration;
       if (!game.nextStage()) throw new Error('Actual cleared boss did not unlock the route choice');
@@ -149,17 +150,17 @@ try {
   await load({ seed: { bank: 123, lifetimeGold: 999, upgrades: { power: 30, arcana: 30, vitality: 30, haste: 30, focus: 30 }, settledRunIds: ['old-paid-run'], importedHistory: true } });
   await start();
   const legacy = await page.evaluate(() => ({ stats: window.__game.stats, saved: JSON.parse(localStorage.getItem('voidrun.progression')) }));
-  near(legacy.stats.damage, 18 * 1.12 ** 30, 'previously paid sword levels receive the new compound value without an obsolete×2 clamp');
-  near(legacy.stats.spellDamage, 18 * 1.12 ** 30, 'previously paid magic levels retain the same benefit');
-  near(legacy.stats.maxHp, 100 * 1.1 ** 30, 'existing health levels are preserved and enhanced');
-  near(legacy.stats.attackRate, 1.5 * 1.025 ** 30, 'casting/attack purchased rates are not silently capped');
+  near(legacy.stats.damage, 18 * 1.18, 'all previously paid sword levels receive the new linear bonus');
+  near(legacy.stats.spellDamage, 18 * 1.18, 'previously paid magic levels retain the same benefit');
+  near(legacy.stats.maxHp, 100 * 1.15, 'all existing health levels use the smaller linear bonus');
+  near(legacy.stats.attackRate, 1.5 * 1.105, 'casting/attack purchased rates are not silently capped');
   assert.equal(legacy.saved.bank, 123); assert.ok(legacy.saved.settledRunIds.includes('old-paid-run'));
   console.log('PASS migration: high-level saved purchases apply fully while money and settlement receipts survive');
 
   await load(); await start();
   await acquire('giantsHeart');
-  near(await page.evaluate(() => window.__game.stats.maxHp), 140, 'giant heart changes actual maximum health');
-  near(await page.evaluate(() => window.__game.state.hp), 140, 'maximum-health relic heals only its new health capacity');
+  near(await page.evaluate(() => window.__game.stats.maxHp), 112, 'giant heart changes actual maximum health');
+  near(await page.evaluate(() => window.__game.state.hp), 112, 'maximum-health relic heals only its new health capacity');
   await acquire('huntersWisdom');
   const xp = await page.evaluate(() => { const game = window.__game; game.dropPickup(game.player.position, 'xp', 10); game.stepForTest(.2); return game.state.xp; });
   near(xp, 13.5, 'wisdom increases actually collected experience');
@@ -172,7 +173,7 @@ try {
     return { ordinary: ordinaryHp - ordinary.hp, elite: eliteHp - elite.hp };
   });
   near(damage.ordinary, 10, 'executioner leaves ordinary enemies unchanged');
-  near(damage.elite, 13, 'executioner increases actual elite damage');
+  near(damage.elite, 11, 'executioner increases actual elite damage');
   await acquire('shockwave');
   const dash = await page.evaluate(() => {
     const game = window.__game;

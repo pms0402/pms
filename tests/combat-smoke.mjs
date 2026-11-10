@@ -179,8 +179,8 @@ try {
     const blockedAlive = game.state.stage === 1 && game.state.stageTime === duration && !game.nextStage();
     // Test both gates independently: killing early does not waive survival time.
     game._state.stageTime = duration - 10;
-    game.hitEnemy(game.boss, game.boss.hp + 1, game.player.position.clone().set(1, 0, 0));
-    if (game.equipment?.rewardQueue.length) { game.equipment.nextReward(); document.querySelector('[data-equipment-choice="skip"]')?.click(); }
+    game.boss.combatPhase=3;game.boss.transitionTime=0;game.boss.recoveryTime=1;game.boss.chainRemaining=0;game.hitEnemy(game.boss, game.boss.hp + 1, game.player.position.clone().set(1, 0, 0));
+    game.bossArena.skip(); if (game.equipment?.rewardQueue.length) { game.equipment.nextReward(); document.querySelector('[data-equipment-choice="skip"]')?.click(); }
     const blockedEarly = game.bossDefeated && !game.nextStage() && game.state.stage === 1;
     game._state.stageTime = duration;
     game.tick(1 / 60);
@@ -287,7 +287,7 @@ try {
     const boss = game.spawnBoss();
     game.tick(.02);
     const blocked = game.state.phase !== 'won' && game.state.stage === finalStage;
-    game.hitEnemy(boss, boss.hp + 1, game.player.position.clone().set(1, 0, 0)); if (game.equipment?.rewardQueue.length) { game.equipment.nextReward(); document.querySelector('[data-equipment-choice="skip"]')?.click(); }
+    boss.combatPhase=3;boss.transitionTime=0;boss.recoveryTime=1;boss.chainRemaining=0;game.hitEnemy(boss, boss.hp + 1, game.player.position.clone().set(1, 0, 0)); game.bossArena.skip(); if (game.equipment?.rewardQueue.length) { game.equipment.nextReward(); document.querySelector('[data-equipment-choice="skip"]')?.click(); }
     game.tick(1 / 60);
     return { blocked, phase: game.state.phase, bossDefeated: game.bossDefeated };
   }, { duration: STAGE_DURATION, finalStage: MAX_STAGES });

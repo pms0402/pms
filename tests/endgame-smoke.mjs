@@ -82,7 +82,7 @@ try {
     equipped.stats.damage > 18 &&
       equipped.stats.magic > 18 &&
       equipped.stats.armor > 0 &&
-      equipped.stats.crit === 0.04,
+      equipped.stats.crit === 0.015,
   );
   assert.equal(equipped.stats.hp, 60);
   assert.ok(equipped.baseUnchanged && equipped.restored);
@@ -158,9 +158,11 @@ try {
       g.bossSystem.begin(b);
       g.bossPhases.begin(b);
       b.hp = b.maxHp = 1000;
-      g.hitEnemy(b, 310, undefined, "explosion");
+      b.recoveryTime=1;b.chainRemaining=0;
+      g.hitEnemy(b, 310/1.25, undefined, "explosion");
       const second = b.combatPhase;
-      g.hitEnemy(b, 350, undefined, "explosion");
+      g.updateBoss(b,.8);b.recoveryTime=1;b.chainRemaining=0;
+      g.hitEnemy(b, 350/1.25, undefined, "explosion");
       const max = b.maxHp;
       g.bossPhases.special(b);
       g.renderer.render(g.scene, g.camera);
@@ -174,7 +176,7 @@ try {
         rush: !!g.bossPhases.rush,
         shots: g.bossSystem.pendingShots.length,
       };
-      g.hitEnemy(b, 1e8, undefined, "explosion");
+      b.transitionTime=0;g.hitEnemy(b, 1e8, undefined, "explosion");
       result.cleaned = g.bossSystem.zones.length === 0 && !g.bossPhases.boss;
       g.bossArena.skip(); // Skip the short victory cue before reward assertions.
       g.equipment.nextReward();
@@ -183,7 +185,7 @@ try {
     assert.equal(phases.second, 2);
     assert.equal(phases.phase, 3);
     assert.equal(phases.max, 1000);
-    assert.equal(phases.hp, 340);
+    assert.ok(Math.abs(phases.hp-350)<.001, 'a single damage packet stops at the 35% phase threshold');
     assert.deepEqual(phases.transitions, [2, 3]);
     assert.ok(phases.cleaned && phases.zones <= 12 && phases.shots <= 12);
     assert.equal(await page.locator("[data-equipment-choice]").count(), 4);
@@ -303,7 +305,7 @@ try {
     g.regionId = "throne";
     g.regionSystem.setRegion("throne");
     const b = g.spawnBoss();
-    g.hitEnemy(b, 1e12, undefined, "explosion");
+    b.combatPhase=3;b.transitionTime=0;g.hitEnemy(b, 1e12, undefined, "explosion");
     g.bossArena.skip();
     g.equipment.nextReward();
     document.querySelector('[data-equipment-choice="skip"]').click();
@@ -376,8 +378,8 @@ try {
     "PASS actual normal victory unlock, mode selection, 11→12/15/20 regional progress, constraints and persistent build records",
   );
   await page.evaluate(() => window.fixture());
-  const defenseGear = await page.evaluate(item => { const g = window.__game; item.slot = 'armor'; item.options = ['desperate','vital','guard']; g.equipment.add(item); g.equipment.equip(item.id); g._state.hp = 40; const armor = g.combatStats.armor, hp = g._state.hp; g.takeDamage(10,g.player.position.clone().set(0,0,1)); return { armor, damage: hp - g._state.hp }; }, gear);
-  near(defenseGear.armor, .09); near(defenseGear.damage, 9.1);
+  const defenseGear = await page.evaluate(item => { const g = window.__game; item.slot = 'armor'; item.options = ['desperate','vital','guard']; g.equipment.add(item); g.equipment.equip(item.id); g._state.hp = 30; const armor = g.combatStats.armor, hp = g._state.hp; g.takeDamage(10,g.player.position.clone().set(0,0,1)); return { armor, damage: hp - g._state.hp }; }, gear);
+  near(defenseGear.armor, .04); near(defenseGear.damage, 9.6);
   await page.evaluate(() => window.fixture());
   const forged = await page.evaluate((item) => {
     const g = window.__game;

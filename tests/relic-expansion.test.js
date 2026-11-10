@@ -35,25 +35,25 @@ test('twenty additional relics each change a real stat or combat modifier, with 
 test('sword and magic relic builds amplify their own damage and timing independently', () => {
   const sword = fresh(), magic = fresh();
   for (const id of ['whetstone', 'warDrum', 'longblade']) applyRelic(sword, id);
-  near(sword.damage / 18 * (sword.attackRate / 1.5), 1.68);
-  near(sword.swordRangeMultiplier, 1.2);
+  near(sword.damage / 18 * (sword.attackRate / 1.5), 1.166);
+  near(sword.swordRangeMultiplier, 1.1);
   assert.equal(sword.spellDamage, 18);
   assert.equal(sword.spellRate, 1.5);
   for (const id of ['arcanePrism', 'hourglass', 'wideSigil']) applyRelic(magic, id);
-  near(magic.spellDamage / 18 * (magic.spellRate / 1.5), 1.68);
-  near(magic.spellAreaMultiplier, 1.18);
+  near(magic.spellDamage / 18 * (magic.spellRate / 1.5), 1.166);
+  near(magic.spellAreaMultiplier, 1.1);
   assert.equal(magic.damage, 18);
   assert.equal(magic.attackRate, 1.5);
   for (const [id, field] of [['inferno', 'fireballBonus'], ['glacier', 'frostBonus'], ['conductor', 'lightningBonus'], ['satellites', 'orbitBonus']]) {
     applyRelic(magic, id);
-    assert.equal(magic[field], 0.25);
+    assert.equal(magic[field], 0.08);
   }
 });
 
-test('high-growth health, damage and fortune keep their gains when relics are combined', () => {
+test('preexisting health, damage and fortune keep their base values when relics are combined', () => {
   const first = { ...fresh(), damage: 1e8, maxHp: 1e7, goldMultiplier: 2.5 };
   applyRelic(first, 'whetstone'); applyRelic(first, 'giantsHeart');
-  near(first.damage, 1.4e8); near(first.maxHp, 1.4e7);
+  near(first.damage, 1.1e8); near(first.maxHp, 1.12e7);
   applyRelic(first, 'alchemy'); applyRelic(first, 'greed'); applyBossReward(first, 10);
   const second = { ...fresh(), goldMultiplier: 2.5 };
   applyRelic(second, 'greed'); applyRelic(second, 'alchemy'); applyBossReward(second, 10);
@@ -70,7 +70,7 @@ test('survival and exploration relics expose one-use revival and bounded movemen
   for (const id of ['ironroot', 'spring', 'windstep', 'vacuum', 'huntersWisdom', 'secondWind', 'shockwave', 'executioner']) applyRelic(stats, id);
   assert.equal(stats.reviveCharges, 1);
   assert.equal(stats.dashShockwave, true);
-  assert.equal(stats.eliteDamageBonus, 0.3);
+  assert.equal(stats.eliteDamageBonus, 0.1);
   assert.ok(stats.armor > 0 && stats.armor <= 0.6);
   assert.ok(stats.regen > 0);
   assert.ok(stats.speed > 7.5 && stats.speed <= 20);

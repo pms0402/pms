@@ -181,7 +181,7 @@ try {
         result.secondWarning = boss.mode;
         result.secondRadius = Math.max(...game.bossSystem.zones.map(zone => zone.radius));
       }
-      game.hitEnemy(boss, boss.hp + 1); if (game.equipment?.rewardQueue.length) { game.equipment.nextReward(); document.querySelector('[data-equipment-choice="skip"]')?.click(); }
+      boss.combatPhase=3;boss.transitionTime=0;boss.recoveryTime=1;boss.chainRemaining=0;game.hitEnemy(boss, boss.hp + 1); game.bossArena.skip(); if (game.equipment?.rewardQueue.length) { game.equipment.nextReward(); document.querySelector('[data-equipment-choice="skip"]')?.click(); }
       result.afterDeath = game.bossSystem.getDebugState();
       result.boltsAfterDeath = game.enemyProjectiles.length;
       return result;
@@ -235,7 +235,7 @@ try {
 
   await fixture(5);
   const fifth = await page.evaluate(() => {
-    const game = window.__game, boss = game.spawnBoss(); game.hitEnemy(boss, boss.hp + 1); if (game.equipment?.rewardQueue.length) { game.equipment.nextReward(); document.querySelector('[data-equipment-choice="skip"]')?.click(); }
+    const game = window.__game, boss = game.spawnBoss(); boss.combatPhase=3;boss.transitionTime=0;boss.recoveryTime=1;boss.chainRemaining=0;game.hitEnemy(boss, boss.hp + 1); game.bossArena.skip(); if (game.equipment?.rewardQueue.length) { game.equipment.nextReward(); document.querySelector('[data-equipment-choice="skip"]')?.click(); }
     game._state.stageTime = game.state.stageDuration;
     const advanced = game.nextStage();
     const routeOffered = game.state.phase === 'route' && game.state.stage === 5;
@@ -251,7 +251,7 @@ try {
     game.emit();
     const livingGate = game.nextStage();
     const names = { stage: document.querySelector('#stage-name').textContent, counter: document.querySelector('#stage-number').textContent, routes: document.querySelectorAll('.route-stop').length };
-    game.hitEnemy(boss, boss.hp + 1); if (game.equipment?.rewardQueue.length) { game.equipment.nextReward(); document.querySelector('[data-equipment-choice="skip"]')?.click(); }
+    boss.combatPhase=3;boss.transitionTime=0;boss.recoveryTime=1;boss.chainRemaining=0;game.hitEnemy(boss, boss.hp + 1); game.bossArena.skip(); if (game.equipment?.rewardQueue.length) { game.equipment.nextReward(); document.querySelector('[data-equipment-choice="skip"]')?.click(); }
     const won = game.nextStage();
     return { livingGate, names, won, phase: game.state.phase, stage: game.state.stage };
   });

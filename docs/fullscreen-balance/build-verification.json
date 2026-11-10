@@ -1,0 +1,49 @@
+{
+  "version": "v0.25.0",
+  "unitTests": {
+    "passed": 304,
+    "failed": 0
+  },
+  "browserChecks": [
+    "controls",
+    "mouse-controls",
+    "trackpad",
+    "parry",
+    "permanent",
+    "economy-scale",
+    "manual-growth",
+    "builds",
+    "frost",
+    "endgame",
+    "boss-arenas",
+    "boss-combat",
+    "fullscreen (including boss/control overlap)",
+    "browser",
+    "growth",
+    "standalone (dist/VOIDRUN.html, standalone and opaque sandbox)",
+    "deploy (root and /pms/)",
+    "adventure (PC sections and touch portrait/landscape verified separately)"
+  ],
+  "assets": {
+    "script": {
+      "path": "assets/index-C_fN6dcN.js",
+      "bytes": 4964087,
+      "sha256": "f43edbeecca99894f257f89597b8ddb5acca34b232efb2c94a36869a4ece6bf0"
+    },
+    "stylesheet": {
+      "path": "assets/index-TZiEuQnt.css",
+      "bytes": 206432,
+      "sha256": "5e3496b2c8083fc0e5520e3d067295b80aedb481f61cf4f6a2694ff9dc91cc5a"
+    },
+    "standalone": {
+      "path": "VOIDRUN.html",
+      "bytes": 6794846,
+      "sha256": "00562648f14cac5d3195703574c2e88a03620305ac4add4ab2d7165bab26fd8d"
+    },
+    "archive": {
+      "path": "versions/v0.16.0.html",
+      "bytes": 3254663,
+      "sha256": "e8867949d23b1319d9f111432b4ce02f6982fca30ea40d564bc76b1d31b019aa"
+    }
+  }
+}

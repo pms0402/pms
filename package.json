@@ -1,6 +1,6 @@
 {
   "name": "voidrun",
-  "version": "0.24.0",
+  "version": "0.25.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -51,7 +51,9 @@
     "test:topology": "node tests/topology-smoke.mjs",
     "test:topology-mobile": "node tests/topology-mobile-smoke.mjs",
     "test:boss-arenas": "node tests/boss-arena-smoke.mjs",
-    "test:boss-arenas-mobile": "node tests/boss-arena-mobile-smoke.mjs"
+    "test:boss-arenas-mobile": "node tests/boss-arena-mobile-smoke.mjs",
+    "test:fullscreen": "node tests/fullscreen-smoke.mjs",
+    "test:boss-combat": "node tests/boss-combat-smoke.mjs"
   },
   "dependencies": {
     "@fontsource-variable/noto-sans-kr": "5.2.10",

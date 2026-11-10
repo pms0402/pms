@@ -1,0 +1,134 @@
+[
+  {
+    "mobile": false,
+    "state": {
+      "width": 1440,
+      "height": 960,
+      "iw": 1440,
+      "ih": 960,
+      "full": true,
+      "native": false,
+      "requests": 1,
+      "scrollWidth": 1440,
+      "scrollHeight": 960
+    },
+    "budget": {
+      "before": 3538944,
+      "after": 2985676,
+      "quality": "high",
+      "shadows": true
+    },
+    "bossLayouts": [
+      {
+        "width": 1440,
+        "height": 960,
+        "boss": {
+          "x": 550,
+          "y": 8,
+          "width": 340,
+          "height": 30
+        },
+        "overlaps": []
+      },
+      {
+        "width": 1180,
+        "height": 820,
+        "boss": {
+          "x": 420,
+          "y": 8,
+          "width": 340,
+          "height": 30
+        },
+        "overlaps": []
+      },
+      {
+        "width": 390,
+        "height": 844,
+        "boss": {
+          "x": 12,
+          "y": 8,
+          "width": 112,
+          "height": 29
+        },
+        "overlaps": []
+      },
+      {
+        "width": 844,
+        "height": 390,
+        "boss": {
+          "x": 278.515625,
+          "y": 5,
+          "width": 253.1875,
+          "height": 28
+        },
+        "overlaps": []
+      }
+    ]
+  },
+  {
+    "mobile": true,
+    "state": {
+      "width": 390,
+      "height": 844,
+      "iw": 390,
+      "ih": 844,
+      "full": true,
+      "native": false,
+      "requests": 0,
+      "scrollWidth": 390,
+      "scrollHeight": 844
+    },
+    "budget": {
+      "before": 842400,
+      "after": 842400,
+      "quality": "high",
+      "shadows": true
+    },
+    "bossLayouts": [
+      {
+        "width": 1440,
+        "height": 960,
+        "boss": {
+          "x": 490,
+          "y": 8,
+          "width": 460,
+          "height": 30
+        },
+        "overlaps": []
+      },
+      {
+        "width": 1180,
+        "height": 820,
+        "boss": {
+          "x": 360,
+          "y": 8,
+          "width": 460,
+          "height": 30
+        },
+        "overlaps": []
+      },
+      {
+        "width": 390,
+        "height": 844,
+        "boss": {
+          "x": 12,
+          "y": 8,
+          "width": 112,
+          "height": 29
+        },
+        "overlaps": []
+      },
+      {
+        "width": 844,
+        "height": 390,
+        "boss": {
+          "x": 278.515625,
+          "y": 5,
+          "width": 253.1875,
+          "height": 28
+        },
+        "overlaps": []
+      }
+    ]
+  }
+]
