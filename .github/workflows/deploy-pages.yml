@@ -38,6 +38,13 @@ jobs:
       - name: Build self-contained HTML
         run: npm run build:standalone -- dist/VOIDRUN.html
 
+      - name: Build ELDERMERE game website
+        run: |
+          npm --prefix eldermere test
+          npm --prefix eldermere run build:website
+          mkdir -p dist/eldermere
+          cp -R eldermere/dist/. dist/eldermere/
+
       - name: Record deployed version
         run: node -e "require('node:fs').writeFileSync('dist/version.json', JSON.stringify({commit:process.env.GITHUB_SHA, builtAt:new Date().toISOString()})+'\n')"
 
@@ -83,3 +90,8 @@ jobs:
         run: node scripts/verify-live.mjs
         env:
           GAME_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
+
+      - name: Verify published ELDERMERE website
+        run: npm --prefix eldermere run verify:website
+        env:
+          ELDERMERE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/eldermere/

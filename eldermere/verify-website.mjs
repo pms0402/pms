@@ -1,0 +1,24 @@
+import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+const base = new URL(process.env.ELDERMERE_URL || 'http://127.0.0.1:4184/eldermere/');
+const get = async path => {
+  const url = new URL(path, base);
+  assert.equal(url.origin, base.origin);
+  assert.ok(url.pathname.startsWith(base.pathname));
+  const res = await fetch(url, { redirect:'error', signal:AbortSignal.timeout(15000), cache:'no-store' });
+  assert.ok(res.ok, `${res.status} ${url.pathname}`);
+  return res;
+};
+const version = await (await get('version.json')).json();
+assert.equal(version.game, 'ELDERMERE');
+if (process.env.GITHUB_SHA) assert.equal(version.commit, process.env.GITHUB_SHA);
+const html = await (await get('')).text();
+assert.ok(html.includes('id="world"') && html.includes('id="begin"'));
+assert.ok(html.includes('./game.js'));
+const code = await (await get('game.js')).text();
+assert.equal(createHash('sha256').update(code).digest('hex'), version.entrySha256);
+await get('style.css');
+await get('assets/emblem.svg');
+const portable = await (await get('ELDERMERE.html')).text();
+assert.ok(portable.includes('<canvas') && !portable.includes('src="./game.js"'));
+console.log('PASS playable website, styles, emblem, portable game and exact build digest', version.version);

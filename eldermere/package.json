@@ -1,0 +1,16 @@
+{
+  "name": "eldermere",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node server.mjs",
+    "build": "node build.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "test:life": "node tests/life-browser.mjs && node tests/life-combat.mjs && node tests/trade-browser.mjs",
+    "test:browser": "node tests/browser.mjs",
+    "build:website": "node build-website.mjs",
+    "verify:website": "node verify-website.mjs",
+    "test:website": "node tests/website.mjs"
+  }
+}
