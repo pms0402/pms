@@ -1,3 +1,4 @@
+import {HOMES,homeSpec,farmPosition} from './housing.js';
 import {Pixel,hash} from './art.js';
 export const MINE_WALLS={mine1:[{x:320,y:74,w:24,h:245},{x:640,y:325,w:24,h:260}],mine2:[{x:312,y:285,w:220,h:24},{x:610,y:74,w:24,h:220},{x:610,y:390,w:24,h:195}]};
 export function lifeWorld(){
@@ -37,6 +38,18 @@ export function lifeWorld(){
  for(let i=0;i<9;i++)add('stone'+i,'stonePile',125+i%3*96,1145+Math.floor(i/3)*65,'overworld',{radius:10,resourceId:'stone',interact:'mining',label:'풍화암 · 석재 채집'});
  for(let i=0;i<10;i++){add('mushroom'+i,'mushroomPatch',210+i%4*130,280+Math.floor(i/4)*65,'overworld',{resourceId:'mushroom',interact:'forage',label:'숲버섯 · 채집'});}
  for(let i=0;i<6;i++)add('apple'+i,'appleTree',260+i%2*70,1175+Math.floor(i/2)*75,'overworld',{resourceId:'apple',interact:'forage',radius:10,label:'야생 사과나무 · 채집'});
+ // Expanded frontier retains every existing node ID and appends new permanent IDs.
+ add('property-house','property_farmhouse',2130,1280,'overworld',{solid:{w:190,h:80}});
+ add('property-door','ledger',2130,1315,'overworld',{interact:'house',label:'개척지 주택 · 농가 / 공방 / 대저택'});
+ add('frontier-bench','anvil',2290,1180,'overworld',{radius:12,interact:'station',station:'bench',label:'개척지 작업대'});
+ add('frontier-forge','forge',2335,1180,'overworld',{radius:16,interact:'station',station:'furnace',label:'개척지 용광로'});
+ add('frontier-farm-sign','ledger',1930,1370,'overworld',{radius:7,interact:'farmManage',label:'개척지 농장 관리'});
+ for(let i=12;i<64;i++){const q=farmPosition(i);add('plot'+i,'plot',q.x,q.y,'overworld',{plotIndex:i,interact:'plot',label:'개척지 텃밭 · 재배 관리'});}
+ for(const [n,m]of ['copper','iron','silver','gold','mythril'].entries())for(let i=0;i<6;i++)node('frontier-'+m+i,m,1930+n*105+(i%2)*38,240+Math.floor(i/2)*100,'overworld');
+ for(let i=0;i<35;i++){const x=1875+(i%6)*105,y=850+Math.floor(i/6)*120;if(Math.hypot(x-2130,y-1280)<220||y>1290&&x>1900)continue;add('frontier-tree'+i,i%4?'tree':'pine',x,y,'overworld',{radius:10,resource:'wood',hits:3,interact:'gather',label:'개척지 나무 · 벌목'});}
+ for(let i=0;i<14;i++)add('frontier-herb'+i,'herb',180+(i%7)*215,1550+Math.floor(i/7)*180,'overworld',{resource:'herb',hits:1,interact:'gather',label:'들판 달빛풀 · 채집'});
+ for(let i=0;i<10;i++)add('frontier-apple'+i,'appleTree',1850+i%2*80,1460+Math.floor(i/2)*70,'overworld',{radius:10,resourceId:'apple',interact:'forage',label:'개척지 사과나무 · 수확'});
+ for(const [id,x,y]of [['frontier-wolf',2400,480],['frontier-bat',2220,360]])enemies.push({id,x,y,homeX:x,homeY:y,type:'wolf',map:'overworld',hp:75,maxHp:75,cooldown:1,windup:0,hit:0,dead:false,respawn:0});
  for(const [id,x,y,type,map]of[['cave-slime',530,280,'slime','mine1'],['cave-wolf',760,380,'wolf','mine1'],['depth-guard1',700,350,'caveguard','mine2'],['depth-guard2',790,180,'caveguard','mine2'],['depth-bat',380,460,'bat','mine2']])enemies.push({id,x,y,homeX:x,homeY:y,type,map,hp:type==='caveguard'?125:55,maxHp:type==='caveguard'?125:55,cooldown:.7,windup:0,hit:0,dead:false,respawn:0});
  return {objects,enemies,maps:{mine1:mineGround('mine1'),mine2:mineGround('mine2'),home:homeGround()}};
 }
@@ -49,10 +62,18 @@ function mineGround(map){const p=new Pixel(960,640);p.r(0,0,960,640,'#142b30');f
  for(let i=0;i<90;i++){const x=66+hash(i,2)*825,y=88+hash(8,i)*484;p.poly([[x,y],[x+3,y-4],[x+7,y-2],[x+9,y+2],[x+2,y+3]],i%5?'#607468':'#9b9d79');}
  if(map==='mine2'){p.ellipse(510,475,65,35,'#203e48');for(let i=0;i<20;i++)p.r(465+hash(i,2)*85,456+hash(3,i)*38,8,1,'#4d7774');}
  return p.canvas;}
-function homeGround(){const p=new Pixel(480,360);p.r(0,0,480,360,'#172b28');p.r(38,42,404,284,'#a39066');for(let y=78;y<326;y+=12)for(let x=48+(y%3)*8;x<432;x+=36){p.r(x,y,35,11,hash(x,y)>.5?'#917c55':'#9f8860');p.r(x+2,y,30,1,'#c3aa76');p.r(x+3,y+3,1,1,'#665b40');p.line(x+6,y+7,x+29,y+7,'#a18c61');}p.r(38,36,404,42,'#b9ac80');for(let x=40;x<442;x+=50){p.r(x,36,5,42,'#645b40');p.r(x,39,2,36,'#8d7952');}p.r(38,70,404,8,'#6c6245');p.r(38,36,404,5,'#ddd0a0');p.r(38,78,10,248,'#5c5b40');p.r(432,78,10,248,'#5c5b40');p.r(38,326,185,10,'#655d40');p.r(257,326,185,10,'#655d40');
- for(const x of[120,310]){p.r(x,43,42,27,'#625d42');p.r(x+3,44,36,23,'#9eae9c');p.r(x+19,43,3,27,'#6d6949');p.r(x,55,42,2,'#6d6949');p.r(x+4,45,13,8,'#d4d4b0');}return p.canvas;}
+export function homeGround(type='cottage'){
+ const spec=HOMES[type]||HOMES.cottage,{w,h}=spec,p=new Pixel(w,h),floor=h-34;
+ p.r(0,0,w,h,'#172b28');p.r(38,42,w-76,h-76,'#a39066');
+ for(let y=78;y<floor;y+=12)for(let x=48+(y%3)*8;x<w-48;x+=36){p.r(x,y,35,11,hash(x,y)>.5?'#917c55':'#9f8860');p.r(x+2,y,30,1,'#c3aa76');p.r(x+3,y+3,1,1,'#665b40');p.line(x+6,y+7,x+29,y+7,'#a18c61');}
+ p.r(38,36,w-76,42,spec.color);for(let x=40;x<w-38;x+=50){p.r(x,36,5,42,'#645b40');p.r(x,39,2,36,'#8d7952');}p.r(38,70,w-76,8,'#6c6245');p.r(38,36,w-76,5,'#ddd0a0');p.r(38,78,10,h-112,'#5c5b40');p.r(w-48,78,10,h-112,'#5c5b40');p.r(38,floor,w/2-55,10,'#655d40');p.r(w/2+17,floor,w/2-55,10,'#655d40');
+ for(let x=110;x<w-100;x+=190){p.r(x,43,42,27,'#625d42');p.r(x+3,44,36,23,'#9eae9c');p.r(x+19,43,3,27,'#6d6949');p.r(x,55,42,2,'#6d6949');p.r(x+4,45,13,8,'#d4d4b0');}
+ if(type==='estate'){for(let x=64;x<w-64;x+=180){p.r(x,78,12,44,'#b9bd9c');p.r(x+2,78,3,42,'#e2d9b6');p.r(x-3,78,18,5,'#6e816e');}p.r(65,135,w-130,4,'#b8aa7b');}
+ if(type==='lodge'){p.r(55,82,w-110,6,'#685638');for(let x=60;x<w-60;x+=120){p.r(x,85,3,16,'#b5a170');p.r(x+9,85,3,16,'#b5a170');}}
+ return p.canvas;
+}
 export function indoorBlocked(x,y,map,objects,state,r=7){if(map==='home'){
- if(x<48+r||x>432-r||y<80+r||y>326-r)return true;
+ const spec=homeSpec(state);if(x<48+r||x>spec.w-48-r||y<80+r||y>spec.h-34-r)return true;
  return state.life.home.items.some(o=>{const size=({chest:[30,20],bench:[46,25],furnace:[38,30],bed:[30,43],lamp:[8,8]})[o.type];return size&&Math.abs(x-o.x)<size[0]/2+r&&y>o.y-size[1]-r&&y<o.y+r;});}
  if(x<48+r||x>914-r||y<74+r||y>594-r)return true;
  if(MINE_WALLS[map]?.some(b=>x+r>b.x&&x-r<b.x+b.w&&y+r>b.y&&y-r<b.y+b.h))return true;

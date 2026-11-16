@@ -15,7 +15,7 @@ export class Pixel {
 }
 const cache=new Map();
 export function sprite(type,frame=0,dir=0){const key=type+':'+frame+':'+dir;if(cache.has(key))return cache.get(key);let p;
- const painting=illustratedSprite(Pixel,type,frame,dir);if(painting){cache.set(key,painting);return painting;}
+ const painting=type.startsWith('property_')?propertyArt(type):illustratedSprite(Pixel,type,frame,dir);if(painting){cache.set(key,painting);return painting;}
  const extra=lifeSprite(Pixel,type,frame);if(extra){const detailed=finishRaster(extra);cache.set(key,detailed);return detailed;}
  if(type==='tree'||type==='pine')p=tree(type,frame);
  else if(type==='house'||type==='shop'||type==='mill')p=house(type);
@@ -97,4 +97,10 @@ export function makeAtlas(){const c=surface(1024,620),ctx=c.getContext('2d');for
 export function gearOverlay(loadout,dir,frame){const key=JSON.stringify(Object.values(loadout).map(g=>g?[g.material,g.type]:null))+dir+frame;if(!cache.has(key))cache.set(key,paintedEquipment(Pixel,loadout,dir,frame));return cache.get(key);}
 
 export function spriteSize(img){const d=img.density||1;return{w:img.width/d,h:img.height/d};}
-export function drawSprite(ctx,img,x,y){const {w,h}=spriteSize(img);ctx.drawImage(img,x,y,w,h);}
+export function drawSprite(ctx,img,x,y,width,height){const {w,h}=spriteSize(img);ctx.drawImage(img,x,y,width??w,height??h);}
+
+function propertyArt(type){const base=illustratedSprite(Pixel,'house',0,0);const dims=type==='property_estate'?[240,190]:type==='property_lodge'?[200,170]:[168,148];const p=new Pixel(dims[0]*2,dims[1]*2);p.canvas.density=2;const c=p.c;c.imageSmoothingEnabled=false;const bottom=p.canvas.height-16;
+ if(type==='property_estate'){c.drawImage(base,10,bottom-255,220,255);c.drawImage(base,p.canvas.width-230,bottom-255,220,255);p.r(198,bottom-240,83,218,'#adb69b');p.poly([[184,bottom-240],[238,bottom-295],[295,bottom-240]],'#576e6b');for(let y=bottom-278;y<bottom-240;y+=6)p.line(222-(y-bottom+278),y,255+(y-bottom+278),y,'#9fafa0');p.r(222,bottom-70,37,62,'#655b3f');for(const x of[206,264]){p.r(x,bottom-222,9,211,'#d5cfaa');p.r(x+2,bottom-220,2,205,'#f1e4bf');}p.r(215,bottom-182,48,48,'#4b726d');p.r(237,bottom-182,4,48,'#d5c48d');p.r(215,bottom-160,48,3,'#d5c48d');p.r(210,bottom-8,64,5,'#c4b58a');}
+ else if(type==='property_lodge'){c.drawImage(base,2,bottom-230,230,230);c.drawImage(base,140,bottom-272,255,272);p.r(147,bottom-8,109,5,'#b0a073');for(const x of[154,248])p.r(x,bottom-90,5,82,'#8c744a');p.line(143,bottom-91,261,bottom-91,'#d0b47d');}
+ else {c.drawImage(base,16,bottom-260,292,260);p.r(12,bottom-10,310,7,'#8d9c73');for(const x of[28,282]){p.r(x,bottom-53,23,40,'#997d4d');p.ellipse(x+11,bottom-54,13,5,'#d4b783');}}
+ return p.canvas;}

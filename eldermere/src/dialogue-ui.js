@@ -9,13 +9,13 @@ export function createDialogue({game,close,onOpen,onHide}){
  next.onclick=advance;panel.querySelector('#dialog-done').onclick=close;
  return {show,hide,advance,get visible(){return !panel.hidden;},get speaker(){return speaker;}};
 }
-export function createNotices(){const box=document.querySelector('#notice-stack'),queue=[];let current=null,deadline=0,left=0,timer,paused=false;
- const later=()=>{clearTimeout(timer);deadline=performance.now()+left;if(!paused)timer=setTimeout(dismiss,left);};
+export function createNotices(){const box=document.querySelector('#notice-stack'),queue=[];let current=null,deadline=0,left=0,timer,paused=false,suspended=false;
+ const later=()=>{clearTimeout(timer);deadline=performance.now()+left;if(!paused&&!suspended)timer=setTimeout(dismiss,left);};
  function dismiss(){clearTimeout(timer);box.classList.remove('shown');box.hidden=true;current=null;if(queue.length)display(queue.shift());}
- function display(notice){current=notice;box.hidden=false;box.querySelector('.notice-title').textContent=notice.title;box.querySelector('.notice-body').textContent=notice.text;left=readingDuration(notice.text);box.style.setProperty('--notice-time',left+'ms');box.classList.remove('shown');void box.offsetWidth;box.classList.add('shown');later();}
+ function display(notice){current=notice;box.hidden=false;box.querySelector('.notice-title').textContent=notice.title;box.querySelector('.notice-body').textContent=notice.text;left=readingDuration(notice.text);box.style.setProperty('--notice-time',left+'ms');box.classList.remove('shown');void box.offsetWidth;box.classList.add('shown');box.classList.toggle('reading',paused||suspended);later();}
  function show(title,text){if(current?.text===text||queue.some(n=>n.text===text))return;if(current){queue.push({title,text});return;}display({title,text});}
  box.querySelector('button').onclick=dismiss;
- box.addEventListener('pointerenter',()=>{paused=true;left=Math.max(0,deadline-performance.now());clearTimeout(timer);box.classList.add('reading');});box.addEventListener('pointerleave',()=>{paused=false;box.classList.remove('reading');if(current)later();});
+ box.addEventListener('pointerenter',()=>{paused=true;left=Math.max(0,deadline-performance.now());clearTimeout(timer);box.classList.add('reading');});box.addEventListener('pointerleave',()=>{paused=false;box.classList.toggle('reading',suspended);if(current)later();});
  document.addEventListener('visibilitychange',()=>{if(document.hidden&&current){left=Math.max(0,deadline-performance.now());clearTimeout(timer);}else if(current)later();});
- return {show,dismiss,get current(){return current;},get queued(){return queue.length;}};
+ return {show,dismiss,suspend(flag){if(flag&&!suspended){if(current&&!paused)left=Math.max(0,deadline-performance.now());clearTimeout(timer);suspended=true;box.classList.add('reading');}else if(!flag&&suspended){suspended=false;box.classList.toggle('reading',paused);if(current)later();}},get current(){return current;},get queued(){return queue.length;}};
 }

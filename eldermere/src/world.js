@@ -1,7 +1,7 @@
 import {polishGround} from './illustration.js';
 import {lifeWorld,indoorBlocked} from './life-world.js';
 import {hash,Pixel,sprite,spriteSize,drawSprite} from './art.js';
-import {WORLD,DUNGEON_WALLS,isWater,isPath,riverX,regionAt,onBridge} from './data.js';
+import {WORLD,DUNGEON_WALLS,isWater,isPath,riverX,regionAt,onBridge,isOriginalPath} from './data.js';
 export function createWorld(){const objects=[],enemies=[];let id=0;const add=(type,x,y,extra={})=>{const o={id:'o'+id++,type,x,y,...extra};objects.push(o);return o;};
  add('house',425,557,{solid:{w:100,h:52},label:'목재와 향신료 · 상점'});add('shop',812,538,{solid:{w:100,h:52}});add('house',425,833,{solid:{w:100,h:52}});add('house',811,846,{solid:{w:100,h:52}});
  add('well',620,568,{radius:15,label:'우물 · 체력 회복',interact:'well'});add('bench',782,641,{radius:15,label:'제작대',interact:'bench'});add('elder',700,604,{label:'장로 로완 · 대화',interact:'elder'});add('merchant',456,610,{label:'상인 미라 · 거래',interact:'merchant'});add('farmer',690,1010,{label:'농부 엘린 · 대화',interact:'farmer'});
@@ -11,9 +11,9 @@ export function createWorld(){const objects=[],enemies=[];let id=0;const add=(ty
  for(let x=300;x<920;x+=46)if(Math.abs(x-620)>60)add('fence',x,925,{solid:{w:44,h:5}});
  for(let x=270;x<=530;x+=44)add('fence',x,1115,{solid:{w:42,h:5}});
  for(const [x,y]of[[295,584],[307,811],[914,827],[895,486],[300,480],[945,595],[756,390],[530,396],[360,690],[940,708]])add('tree',x,y,{radius:10,resource:'wood',hits:3,label:'버드나무 · 목재 채집',interact:'gather',variant:id%3});
- for(let j=0;j<190;j++){const x=65+hash(j,7)*1780,y=100+hash(3,j)*1240;if(isWater(x,y)||isPath(x,y)||onBridge(x,y))continue;if(x>290&&x<935&&y>410&&y<900)continue;if(x>260&&x<940&&y>910&&y<1130)continue;if(Math.hypot(x-1490,y-281)<80||Math.hypot(x-1590,y-1000)<55)continue;if(objects.some(o=>Math.hypot(x-o.x,y-o.y)<44))continue;add(j%4===0?'pine':'tree',Math.round(x),Math.round(y),{radius:10,resource:'wood',hits:3,label:'나무 · 목재 채집',interact:'gather',variant:j%3});}
+ for(let j=0;j<190;j++){const x=65+hash(j,7)*1780,y=100+hash(3,j)*1240;if(isWater(x,y)||isOriginalPath(x,y)||onBridge(x,y))continue;if(x>290&&x<935&&y>410&&y<900)continue;if(x>260&&x<940&&y>910&&y<1130)continue;if(Math.hypot(x-1490,y-281)<80||Math.hypot(x-1590,y-1000)<55)continue;if(objects.some(o=>Math.hypot(x-o.x,y-o.y)<44))continue;add(j%4===0?'pine':'tree',Math.round(x),Math.round(y),{radius:10,resource:'wood',hits:3,label:'나무 · 목재 채집',interact:'gather',variant:j%3});}
  for(const [x,y]of[[896,740],[924,765],[963,790],[1300,591],[1420,413],[1550,360],[400,330],[480,315],[1530,900]])add('ore',x,y,{radius:13,resource:'ore',hits:2,label:'청철 광맥 · 광석 채집',interact:'gather'});
- for(let j=0;j<44;j++){const x=260+hash(j,32)*1350,y=350+hash(42,j)*850;if(isWater(x,y)||isPath(x,y)||objects.some(o=>Math.hypot(x-o.x,y-o.y)<45))continue;add('herb',Math.round(x),Math.round(y),{resource:'herb',hits:1,label:'달빛풀 · 채집',interact:'gather'});}
+ for(let j=0;j<44;j++){const x=260+hash(j,32)*1350,y=350+hash(42,j)*850;if(isWater(x,y)||isOriginalPath(x,y)||objects.some(o=>Math.hypot(x-o.x,y-o.y)<45))continue;add('herb',Math.round(x),Math.round(y),{resource:'herb',hits:1,label:'달빛풀 · 채집',interact:'gather'});}
  for(const [x,y]of[[734,756],[847,737],[535,870],[760,1092]])add('herb',x,y,{resource:'herb',hits:1,label:'달빛풀 · 채집',interact:'gather'});
  for(const [x,y,type]of[[1290,660,'slime'],[1350,550,'slime'],[1440,780,'wolf'],[1580,610,'wolf'],[1550,420,'slime'],[1380,960,'slime'],[350,280,'wolf'],[700,240,'wolf'],[1600,1180,'wolf']])enemies.push(enemy('e'+enemies.length,x,y,type));
  const life=lifeWorld();const reserved=life.objects.filter(o=>o.map==='overworld'&&!['plot','stonePile','mushroomPatch','appleTree'].includes(o.type));const retained=objects.filter(o=>!['tree','pine','herb'].includes(o.type)||!reserved.some(n=>Math.hypot(o.x-n.x,o.y-n.y)<45));return {objects:retained,enemies:[...enemies,...life.enemies],ground:createGround(),dungeon:createDungeon(),lifeObjects:life.objects,maps:life.maps};}
@@ -54,12 +54,12 @@ export function blocked(x,y,map,objects,state,r=7){if(['mine1','mine2','home'].i
  if(x<28||y<46||x>WORLD.w-28||y>WORLD.h-28)return true;
  for(const [dx,dy]of[[r,0],[-r,0],[0,r],[0,-r]])if(isWater(x+dx,y+dy))return true;
  return objects.some(o=>{if(o.map&&o.map!==map)return false;if(o.plotIndex!==undefined)return false;if(state.life?.nodes[o.id]?.until>state.time)return false;if(o.resource&&state.harvested[o.id]?.until>state.time)return false;const b=objectBounds(o);return b&&x+r>b.x&&x-r<b.x+b.w&&y+r>b.y&&y-r<b.y+b.h;});}
-export function drawObject(ctx,o,time,state){let type=o.type;
- if(o.plotIndex!==undefined){const plot=state.life.plots[o.id];if(plot?.crop){const cropTime=({wheat:70,carrot:100,melon:160})[plot.crop];type='crop_'+plot.crop+'_'+(plot.growth>=cropTime?3:plot.growth>cropTime*.4?2:1);}else if(!plot?.tilled){type='plotWild';}else type='plot';}
+export function drawObject(ctx,o,time,state){let type=o.type;if(o.id==='property-house')type='property_'+(state.life.home.type&&state.life.home.type!=='cottage'?state.life.home.type:'farmhouse');
+ if(o.plotIndex!==undefined){const plot=state.life.plots[o.id];if(plot?.crop){const cropTime=({wheat:55,carrot:80,melon:125})[plot.crop];type='crop_'+plot.crop+'_'+(plot.growth>=cropTime?3:plot.growth>cropTime*.4?2:1);}else if(!plot?.tilled){type='plotWild';}else type='plot';}
  if(state.life?.nodes[o.id]?.until>time){if(o.interact==='mining')type='rubble';else if(o.resourceId==='apple')type='appleTree';else return;}
  if(o.resource&&state.harvested[o.id]?.until>state.time){if(o.resource!=='wood')return;type='stump';}
  const animated=['forge','cookfire','smith','miner','fisher'].includes(type);const img=sprite(type,animated?Math.floor(time*3)%4:o.variant||0);const size=spriteSize(img);let anchorX=size.w/2,anchorY=size.h-7;
- if(['house','shop','mill'].includes(type))anchorY=132;
+ if(['house','shop','mill'].includes(type))anchorY=132;if(type.startsWith('property_'))anchorY=size.h-8;
  if(type==='tree'||type==='pine')anchorY=93;
  drawSprite(ctx,img,Math.round(o.x-anchorX),Math.round(o.y-anchorY));
  if(o.plotIndex!==undefined&&state.life.plots[o.id]?.water>0){ctx.fillStyle='#7eacb944';ctx.fillRect(o.x-15,o.y-3,30,3);}

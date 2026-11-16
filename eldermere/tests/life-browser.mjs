@@ -1,3 +1,4 @@
+import {installActivities} from './activities-fixture.mjs';
 import {chromium} from 'playwright';
 import assert from 'node:assert/strict';
 import {mkdir} from 'node:fs/promises';
@@ -7,8 +8,8 @@ const page=await browser.newPage({viewport:{width:1440,height:960}}),errors=[];p
 const base=process.env.BASE_URL||'http://127.0.0.1:4174';await mkdir(new URL('../test-results/',import.meta.url),{recursive:true});
 const state=()=>page.evaluate(()=>window.__eldermere.game.state);
 try{
- await page.goto(base+'/?test=1');await page.waitForFunction(()=>window.__eldermere?.game.frames>2);await page.click('#begin');await installNavigation(page);
- await page.evaluate(()=>{window.tickLife=seconds=>{const g=window.__eldermere.game;if(g.paused)throw Error('Tick while paused');for(let i=0;i<seconds*25;i++){g.update(.04,{});if(g.p.hp<g.maxHp-40)g.use();}};window.finishLife=()=>{const g=window.__eldermere.game;let ticks=0;while(g.state.life.job&&ticks++<1000)g.update(.04,{});if(ticks>=1000)throw Error('Job stalled');};});
+ await page.goto(base+'/?test=1');await page.waitForFunction(()=>window.__eldermere?.game.frames>2);await page.click('#begin');await installNavigation(page);await installActivities(page);
+ await page.evaluate(()=>{window.tickLife=seconds=>{const g=window.__eldermere.game;if(g.paused)throw Error('Tick while paused');for(let i=0;i<seconds*25;i++){g.update(.04,{});if(g.p.hp<g.maxHp-40)g.use();}};window.finishLife=()=>window.finishActivity();});
  const tick=s=>page.evaluate(s=>window.tickLife(s),s),finish=()=>page.evaluate(()=>window.finishLife());
  async function walk(id,range=34){const pos=typeof id==='string'?await page.evaluate(id=>{const o=window.__eldermere.game.life.objects().find(o=>o.id===id);if(!o)throw Error('Missing target '+id);return{x:o.x,y:o.y};},id):id;await page.evaluate(([p,r])=>window.walkTo(p.x,p.y,r),[pos,range]);}
  const key=()=>page.keyboard.press('e');
@@ -16,7 +17,7 @@ try{
  async function mine(id){const item=await page.evaluate(id=>{const o=window.__eldermere.game.world.lifeObjects.find(o=>o.id===id);return o.metal?o.metal+'Ore':o.resourceId;},id);const before=(await state()).inventory[item];for(let attempt=0;attempt<4;attempt++){await walk(id);await key();assert.ok((await state()).life.job,'No mining job '+id);await finish();if((await state()).inventory[item]>before)return;await page.evaluate(()=>{const g=window.__eldermere.game;for(let i=0;i<350;i++){for(const e of g.enemies)if(Math.hypot(e.x-g.p.x,e.y-g.p.y)<g.life.profile().range)g.strike(Math.atan2(e.y-g.p.y,e.x-g.p.x));if(g.p.hp<g.maxHp-35)g.use();g.update(.02,{});}});}throw Error('Mining repeatedly interrupted '+id);}
  async function vendor(id){await page.evaluate(id=>{const g=window.__eldermere.game;let i=0;while(!g.life.isOpen(id)&&i++<15000)g.update(.04,{});},id);const npc=await page.evaluate(id=>{const o=window.__eldermere.game.life.npcs.find(o=>o.npc===id);return{id:o.id,map:o.map};},id);assert.equal(npc.map,(await state()).map);await walk(npc.id);await key();await page.click('#dialog-trade');await page.locator('[data-tab="buy"]').waitFor();}
  const trees=await page.evaluate(()=>window.__eldermere.game.world.objects.filter(o=>o.resource==='wood').sort((a,b)=>Math.hypot(a.x-620,a.y-664)-Math.hypot(b.x-620,b.y-664)).slice(0,14).map(o=>o.id));
- for(const id of trees){await walk(id);for(let i=0;i<3;i++){await key();await tick(.45);}}
+ for(const id of trees){await walk(id);await key();await finish();}
  assert.ok((await state()).inventory.wood>=42);
  for(let i=0;i<3;i++)await mine('stone'+i);
  await walk('mine-mouth');await key();assert.equal((await state()).map,'mine1');await walk('mine-cache');await key();assert.equal((await state()).inventory.coal,12);
@@ -37,10 +38,10 @@ try{
  await page.locator('[data-tab="orders"]').click();await page.click('#order-action');await page.click('#order-action');await page.locator('.close').click();
  await vendor('smith');await page.locator('[data-tab="orders"]').click();await page.click('#order-action');await page.click('#order-action');assert.ok((await state()).life.unlocked.includes('silver'));await page.locator('.close').click();
  for(const id of ['plot0','plot1','plot2','plot3']){await walk(id);await key();await page.click('#till');await finish();await key();await page.locator('[data-plant="wheat"]').click();await page.click('#water');await page.locator('.close').click();}await tick(76);
- for(const id of ['plot0','plot1','plot2','plot3']){await walk(id);await key();await page.click('#harvest');await page.locator('.close').click();}assert.ok((await state()).inventory.wheat>=12);
+ for(const id of ['plot0','plot1','plot2','plot3']){await walk(id);await key();await page.click('#harvest');await finish();}assert.ok((await state()).inventory.wheat>=12);
  await walk('plot0');await key();await page.locator('[data-plant="carrot"]').click();await page.click('#water');await page.locator('.close').click();
  await walk('river-fish');await key();await finish();assert.ok((await state()).inventory.fish+(await state()).inventory.rareFish>=1);
- await walk('mushroom0');await key();await finish();const herb=await page.evaluate(()=>window.__eldermere.game.world.objects.find(o=>o.type==='herb'&&!window.__eldermere.game.life.depleted(o)).id);await walk(herb);await key();await process('cookfire','grilledFish');assert.equal((await state()).inventory.grilledFish,1);
+ await walk('mushroom0');await key();await finish();const herb=await page.evaluate(()=>window.__eldermere.game.world.objects.find(o=>o.type==='herb'&&!window.__eldermere.game.life.depleted(o)).id);await walk(herb);await key();await finish();await process('cookfire','grilledFish');assert.equal((await state()).inventory.grilledFish,1);
  await page.screenshot({path:new URL('../test-results/life-farm.png',import.meta.url).pathname});console.log('PASS real plot cultivation, crop harvesting, fishing, forage and cooking');
  await vendor('mira');await page.locator('[data-tab="sell"]').click();for(let i=0;i<12;i++)await page.locator('[data-sell="wheat"]').click();await page.locator('[data-sell="grilledFish"]').click();await page.locator('.close').click();
  await page.keyboard.press('i');await page.click('#inventory-gear');await page.locator('[data-equip="'+sword.uid+'"]').click();await page.locator('.close').click();await vendor('mira');await page.locator('[data-tab="gear"]').click();await page.locator('[data-sell-gear="'+sword.uid+'"]').click();await page.locator('.close').click();
