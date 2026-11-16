@@ -1,3 +1,5 @@
+import {atlasSprite} from './valley-art.js';
+import {valleyProp} from './valley-props.js';
 import {rpgSprite,rpgIcon} from './rpg-art.js';
 import {illustratedSprite,finishRaster,paintedEquipment} from './illustration.js';
 import {lifeSprite,lifeIcon,equipmentOverlay} from './life-art.js';
@@ -16,7 +18,7 @@ export class Pixel {
 }
 const cache=new Map();
 export function sprite(type,frame=0,dir=0){const key=type+':'+frame+':'+dir;if(cache.has(key))return cache.get(key);let p;
- const rpg=rpgSprite(Pixel,type,frame);if(rpg){cache.set(key,rpg);return rpg;}const painting=type.startsWith('property_')?propertyArt(type):illustratedSprite(Pixel,type,frame,dir);if(painting){cache.set(key,painting);return painting;}
+ const atlas=atlasSprite(type);if(atlas){cache.set(key,atlas);return atlas;}const valley=valleyProp(Pixel,type);if(valley){cache.set(key,valley);return valley;}const rpg=rpgSprite(Pixel,type,frame);if(rpg){cache.set(key,rpg);return rpg;}const painting=type.startsWith('property_')?propertyArt(type):illustratedSprite(Pixel,type,frame,dir);if(painting){cache.set(key,painting);return painting;}
  const extra=lifeSprite(Pixel,type,frame);if(extra){const detailed=finishRaster(extra);cache.set(key,detailed);return detailed;}
  if(type==='tree'||type==='pine')p=tree(type,frame);
  else if(type==='house'||type==='shop'||type==='mill')p=house(type);

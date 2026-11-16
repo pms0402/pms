@@ -24,3 +24,8 @@ under `/workspace/generated_images/` in the development environment.
 
 Version 0.3 high-density world sprites were authored in `../src/illustration.js`.
 The same CC0 asset dedication applies to the original artwork additions.
+
+
+## Valley Days original illustration atlases (0.6)
+
+`world/structures.png`, `world/nature.png`, `world/props.png` are original images generated for ELDERMERE during this development session, with alpha transparency. They depict original fantasy buildings, trees, gardens and work facilities; no third-party videogame sprites are included. The game extracts their individual cells with Canvas and retains all original source files. The original generated files also remain under `/workspace/generated_images/`.

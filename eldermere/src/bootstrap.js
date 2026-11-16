@@ -1,0 +1,2 @@
+import {loadValleyArt} from './valley-art.js';
+loadValleyArt().then(()=>import('./main.js')).then(()=>{document.querySelector('#loading-world')?.remove();}).catch(()=>{const el=document.querySelector('#loading-world');if(el){el.querySelector('p').textContent='풍경을 불러오지 못했습니다. 연결을 확인하고 다시 열어 주세요.';const b=document.createElement('button');b.className='primary';b.textContent='다시 불러오기';b.onclick=()=>location.reload();el.append(b);}});

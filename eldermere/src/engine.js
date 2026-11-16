@@ -1,3 +1,4 @@
+import {ValleySystem} from './valley.js';
 import {AdventureSystem} from './adventure.js';
 import {FarmSystem} from './farm.js';
 import {learned,CHAPTERS} from './progression.js';
@@ -7,7 +8,7 @@ import {SPAWN,initialState,restoreSave,SAVE_KEY,RECIPES,craft,regionAt,REGIONS} 
 import {createWorld,blocked,enemy} from './world.js';
 export class Game {
  constructor(storage=localStorage){this.storage=storage;this.loadError=false;this.state=initialState();try{const s=JSON.parse(storage.getItem(SAVE_KEY));const restored=restoreSave(s);if(restored)this.state=restored;else if(s)this.loadError=true;}catch{this.loadError=true;}
- this.world=createWorld();this.world.enemies.push(enemy('guardian',320,178,'guardian','dungeon'));this.effects=[];this.particles=[];this.attack=null;this.attackCooldown=0;this.dashTime=0;this.invulnerable=0;this.gatherCooldown=0;this.walk=0;this.moving=false;this.running=false;this.paused=!this.state.started;this.region=regionAt(this.state.player.x,this.state.player.y,this.state.map);this.autosave=0;this.shake=0;this.event=()=>{};this.frames=0;this.totalKills=0;this.projectiles=[];this.life=new LifeSystem(this);this.activities=new ActivitySystem(this);this.adventure=new AdventureSystem(this);this.farm=new FarmSystem(this);
+ this.world=createWorld();this.world.enemies.push(enemy('guardian',320,178,'guardian','dungeon'));this.effects=[];this.particles=[];this.attack=null;this.attackCooldown=0;this.dashTime=0;this.invulnerable=0;this.gatherCooldown=0;this.walk=0;this.moving=false;this.running=false;this.paused=!this.state.started;this.region=regionAt(this.state.player.x,this.state.player.y,this.state.map);this.autosave=0;this.shake=0;this.event=()=>{};this.frames=0;this.totalKills=0;this.projectiles=[];this.life=new LifeSystem(this);this.activities=new ActivitySystem(this);this.adventure=new AdventureSystem(this);this.farm=new FarmSystem(this);this.valley=new ValleySystem(this);
  for(const e of this.world.enemies){if(this.state.rpg.clears.includes(e.id)){e.dead=true;e.respawn=1e12;}if(this.state.killed[e.id]>this.state.time){e.dead=true;e.respawn=this.state.killed[e.id];}}
  if(this.solid(this.state.player.x,this.state.player.y)){this.state.map='overworld';Object.assign(this.state.player,SPAWN);}
  }
@@ -16,7 +17,7 @@ export class Game {
  move(entity,dx,dy,r=7){const steps=Math.max(1,Math.ceil(Math.max(Math.abs(dx),Math.abs(dy))/4));let moved=false;for(let i=0;i<steps;i++){if(!this.solid(entity.x+dx/steps,entity.y,r)){entity.x+=dx/steps;moved=true;}if(!this.solid(entity.x,entity.y+dy/steps,r)){entity.y+=dy/steps;moved=true;}}return moved;}
  notify(text,sound='ui'){this.event('toast',{text});this.event('sound',{name:sound});}
  start(){this.state.started=true;this.paused=false;this.save(false);}
- update(dt,input){this.frames++;if(this.paused)return;dt=Math.min(dt,.04);this.state.time+=dt;this.adventure.update(dt);this.farm.update(dt);this.attackCooldown=Math.max(0,this.attackCooldown-dt);this.gatherCooldown=Math.max(0,this.gatherCooldown-dt);this.invulnerable=Math.max(0,this.invulnerable-dt);this.shake=Math.max(0,this.shake-dt*25);
+ update(dt,input){this.frames++;if(this.paused)return;dt=Math.max(0,Math.min(dt,.04));this.state.time+=dt;this.valley.update(dt);this.adventure.update(dt);this.farm.update(dt);this.attackCooldown=Math.max(0,this.attackCooldown-dt);this.gatherCooldown=Math.max(0,this.gatherCooldown-dt);this.invulnerable=Math.max(0,this.invulnerable-dt);this.shake=Math.max(0,this.shake-dt*25);
  let dx=(input.right?1:0)-(input.left?1:0),dy=(input.down?1:0)-(input.up?1:0),len=Math.hypot(dx,dy);if(len){dx/=len;dy/=len;if(Math.abs(dx)>Math.abs(dy))this.p.dir=dx>0?1:3;else this.p.dir=dy>0?0:2;}
  this.running=!!input.run&&this.p.stamina>4&&len>0;let speed=(this.running?113:78)*(this.adventure.slow>0?.65:1);
  if(this.dashTime>0){this.dashTime-=dt;dx=this.dashX;dy=this.dashY;speed=290;}else this.p.stamina=Math.min(100,this.p.stamina+(this.running?-9:22+(learned(this.state,'endurance')?8:0))*dt);

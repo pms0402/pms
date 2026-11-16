@@ -1,3 +1,4 @@
+import {weatherAt} from './valley-data.js';
 import {materialReason,itemReason,stageAt,CHAPTERS} from './progression.js';
 import {HOMES,homeSpec,homeDoor,homeUpgradePrice,farmLimit} from './housing.js';
 import {homeGround} from './life-world.js';
@@ -24,14 +25,14 @@ export class LifeSystem {
  stationLevel(station){return this.s.map==='home'?this.l.home.levels[station]||1:this.l.town.support>=10?2:1;}
  isOpen(vendor){const def=VENDORS[vendor];if(!def)return false;const h=hourAt(this.s.time);return h>=def.open[0]&&h<def.open[1];}
  vendorNearby(vendor){return this.npcs.some(o=>o.npc===vendor&&this.near(o,64));}
- canTrade(vendor){return this.isOpen(vendor)&&this.vendorNearby(vendor);}
+ canTrade(vendor){return this.g.valley?.atCounter(vendor)?this.s.map==='place_inn'||this.isOpen(vendor):this.isOpen(vendor)&&this.vendorNearby(vendor);}
  update(dt){
   if(this.workFx){this.workFx.remaining-=dt;if(this.workFx.remaining<=0)this.workFx=null;}
   this.updateNpcs(dt);
   this.growCrops(dt);
   if(this.l.job)this.g.activities?.resume();
  }
- growCrops(dt){for(const plot of Object.values(this.l.plots)){if(!plot.crop)continue;const c=CROPS[plot.crop];if(plot.growth>=c.time)continue;if(Math.floor(this.s.time/180)%4===3)plot.water=Math.min(120,plot.water+dt*4);if(this.s.farm?.upgrades.includes('irrigation')&&this.l.home.owned)plot.water=120;const wet=plot.water>0;plot.growth=Math.min(c.time,plot.growth+(wet?dt*(1+(this.skill('farming')-1)*.035):0));plot.water=Math.max(0,plot.water-dt*.65);}}
+ growCrops(dt){for(const plot of Object.values(this.l.plots)){if(!plot.crop)continue;const c=CROPS[plot.crop];if(plot.growth>=c.time)continue;if(weatherAt(this.s.time)==='rain')plot.water=Math.min(120,plot.water+dt*4);if(this.s.farm?.upgrades.includes('irrigation')&&this.l.home.owned)plot.water=120;const wet=plot.water>0;plot.growth=Math.min(c.time,plot.growth+(wet?dt*(this.g.valley?.seasonGrowth(plot.crop)||1)*(1+(this.skill('farming')-1)*.035):0));plot.water=Math.max(0,plot.water-dt*.65);}}
  begin(kind,id,time,cost={},gold=0){if(this.l.job||this.g.activities?.busy){this.g.notify('진행 중인 작업을 먼저 마치세요.');return false;}if(!countCost(this.s.inventory,cost)||this.s.gold<gold||!Number.isSafeInteger(gold)||gold<0)return false;spend(this.s.inventory,cost);this.s.gold-=gold;const duration=Math.max(.5,time);this.l.job={kind,id,remaining:duration,total:duration,cost:{...cost},gold,map:this.s.map,x:this.g.p.x,y:this.g.p.y,started:this.s.time};this.g.activities?.start(this.jobActivity(this.l.job),{type:'job',id},this.jobLabel(this.l.job));this.g.event('work',{});this.g.event('sound',{name:kind==='mine'?'mine':kind==='fish'?'water':'craft'});this.g.save(false);return true;}
  jobActivity(j){if(j.kind==='mine')return'mining';if(j.kind==='gather')return'gathering';if(j.kind==='fish')return'fishing';if(j.kind==='till')return'crafting';if(j.kind==='upgrade')return'crafting';const r=ALL_RECIPES.find(r=>r.id===j.id);return r?.skill==='smelting'?'smelting':r?.skill==='cooking'?'cooking':r?.skill==='logging'?'logging':'crafting';}
  jobLabel(j){const r=ALL_RECIPES.find(r=>r.id===j.id);return r?.name||this.g.world.lifeObjects.find(o=>o.id===j.id)?.label||'생활 작업';}
@@ -62,6 +63,7 @@ export class LifeSystem {
   if(!o)return false;
   if(o.vendor||o.npc){this.g.event('dialog',{type:o.vendor||o.npc});return true;}
   const type=o.interact;
+  if(type==='placeEnter'){this.g.valley.enter(o.place);return true;}if(type==='placeExit'){this.g.valley.exit(o.place);return true;}if(type==='shopCounter'){this.g.event('lifePanel',{type:'vendor',id:o.shop});return true;}if(type==='valleySign'){this.g.notify(o.text);return true;}if(type==='discovery'){this.g.valley.discover(o.discovery);return true;}if(['shipping','sleep','archive','greenhouse'].includes(type)){this.g.event('valleyPanel',{type:type==='sleep'?'rest':type});return true;}
   if(type==='adventure'){this.g.event('adventurePanel',{});return true;}if(type==='rpgGate'){this.g.adventure.enter(o.target);return true;}if(type==='rpgExit'){this.g.adventure.exit(o.target);return true;}if(type==='ranch'||type==='animal'){this.g.event('ranchPanel',{id:o.animal});return true;}
   if(type==='mining'){this.mine(o);return true;}if(type==='forage'){this.begin('gather',o.id,1.5);return true;}
   if(type==='station'){this.g.event('lifePanel',{type:'station',id:o.station});return true;}
@@ -69,7 +71,7 @@ export class LifeSystem {
   if(type==='farmManage'){this.g.event('lifePanel',{type:'farm'});return true;}
   if(type==='fishing'){this.begin('fish',o.id,6/(1+(this.skill('fishing')-1)*.06),{bait:1});if(!this.s.inventory.bait&&!this.l.job)this.g.notify('미끼가 없습니다. 상인에게 구입하세요.');return true;}
   if(type==='house'||type==='storage'){this.g.event('lifePanel',{type:type==='house'?'house':'storage'});return true;}
-  if(type==='rest'){this.g.p.hp=this.g.maxHp;this.g.p.stamina=100;this.g.notify('내 침대에서 쉬었습니다.');return true;}
+  if(type==='rest'){this.g.event('valleyPanel',{type:'rest'});return true;}
   if(type==='furniture'){this.g.notify('손수 꾸민 집이 따뜻합니다.');return true;}
   const travel={mineEntry:['mine1',480,560],mineExit:['overworld',1660,389],deepDown:['mine2',160,522],deepUp:['mine1',800,190],homeExit:['overworld',homeDoor(this.s).x,homeDoor(this.s).y]};
   if(travel[type]){const [map,x,y]=travel[type];this.travel(map,x,y);return true;}
