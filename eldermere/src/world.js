@@ -1,3 +1,4 @@
+import {adventureWorld,ruinBlocked,RUINS} from './adventure-world.js';
 import {polishGround} from './illustration.js';
 import {lifeWorld,indoorBlocked} from './life-world.js';
 import {hash,Pixel,sprite,spriteSize,drawSprite} from './art.js';
@@ -16,7 +17,7 @@ export function createWorld(){const objects=[],enemies=[];let id=0;const add=(ty
  for(let j=0;j<44;j++){const x=260+hash(j,32)*1350,y=350+hash(42,j)*850;if(isWater(x,y)||isOriginalPath(x,y)||objects.some(o=>Math.hypot(x-o.x,y-o.y)<45))continue;add('herb',Math.round(x),Math.round(y),{resource:'herb',hits:1,label:'달빛풀 · 채집',interact:'gather'});}
  for(const [x,y]of[[734,756],[847,737],[535,870],[760,1092]])add('herb',x,y,{resource:'herb',hits:1,label:'달빛풀 · 채집',interact:'gather'});
  for(const [x,y,type]of[[1290,660,'slime'],[1350,550,'slime'],[1440,780,'wolf'],[1580,610,'wolf'],[1550,420,'slime'],[1380,960,'slime'],[350,280,'wolf'],[700,240,'wolf'],[1600,1180,'wolf']])enemies.push(enemy('e'+enemies.length,x,y,type));
- const life=lifeWorld();const reserved=life.objects.filter(o=>o.map==='overworld'&&!['plot','stonePile','mushroomPatch','appleTree'].includes(o.type));const retained=objects.filter(o=>!['tree','pine','herb'].includes(o.type)||!reserved.some(n=>Math.hypot(o.x-n.x,o.y-n.y)<45));return {objects:retained,enemies:[...enemies,...life.enemies],ground:createGround(),dungeon:createDungeon(),lifeObjects:life.objects,maps:life.maps};}
+ const life=lifeWorld(),adventure=adventureWorld();life.objects.push(...adventure.objects);life.enemies.push(...adventure.enemies);Object.assign(life.maps,adventure.maps);const reserved=life.objects.filter(o=>o.map==='overworld'&&!['plot','stonePile','mushroomPatch','appleTree'].includes(o.type));const retained=objects.filter(o=>!['tree','pine','herb'].includes(o.type)||!reserved.some(n=>Math.hypot(o.x-n.x,o.y-n.y)<45));return {objects:retained,enemies:[...enemies,...life.enemies],ground:createGround(),dungeon:createDungeon(),lifeObjects:life.objects,maps:life.maps};}
 export function enemy(id,x,y,type,map='overworld'){return{id,x,y,homeX:x,homeY:y,type,map,hp:type==='guardian'?180:type==='wolf'?58:42,maxHp:type==='guardian'?180:type==='wolf'?58:42,cooldown:.5,windup:0,hit:0,dead:false,respawn:0};}
 function createGround(){const p=new Pixel(WORLD.w,WORLD.h);
  for(let y=0;y<WORLD.h;y+=4)for(let x=0;x<WORLD.w;x+=4){let col;const h=hash(x,y,5),forest=regionAt(x,y)==='forest'||x>1200;
@@ -50,12 +51,12 @@ function createDungeon(){const p=new Pixel(640,512);p.r(0,0,640,512,'#162a2d');f
  for(const [x,y]of[[86,215],[550,215],[90,380],[550,380]]){p.poly([[x-5,y],[x-8,y-18],[x-3,y-26],[x+2,y-18],[x+5,y-6]],'#5e9b9b');p.line(x-4,y-21,x-3,y-5,'#abd5c2');p.poly([[x+1,y],[x+3,y-13],[x+7,y-15],[x+10,y-5],[x+6,y+2]],'#54858a');}
  for(let i=0;i<300;i++){const x=75+hash(i,7)*490,y=78+hash(2,i)*370;if(i%3===0)p.r(x,y,2,2,'#84927a');else p.line(x,y,x+5,y+2,'#283f42');}return p.canvas;}
 export function objectBounds(o){if(o.solid)return{x:o.x-o.solid.w/2,y:o.y-o.solid.h-5,w:o.solid.w,h:o.solid.h};if(o.radius)return{x:o.x-o.radius,y:o.y-o.radius,w:o.radius*2,h:o.radius*2};return null;}
-export function blocked(x,y,map,objects,state,r=7){if(['mine1','mine2','home'].includes(map))return indoorBlocked(x,y,map,objects,state,r);if(map==='dungeon'){if(x<73+r||x>568-r||y<76+r||y>458-r)return true;if(DUNGEON_WALLS.some(b=>x+r>b.x&&x-r<b.x+b.w&&y+r>b.y&&y-r<b.y+b.h))return true;return [[160,156],[480,156],[160,340],[480,340]].some(([px,py])=>Math.abs(x-px)<15+r&&y>py-45-r&&y<py+r);}
+export function blocked(x,y,map,objects,state,r=7){if(RUINS[map])return ruinBlocked(x,y,map,r);if(['mine1','mine2','home'].includes(map))return indoorBlocked(x,y,map,objects,state,r);if(map==='dungeon'){if(x<73+r||x>568-r||y<76+r||y>458-r)return true;if(DUNGEON_WALLS.some(b=>x+r>b.x&&x-r<b.x+b.w&&y+r>b.y&&y-r<b.y+b.h))return true;return [[160,156],[480,156],[160,340],[480,340]].some(([px,py])=>Math.abs(x-px)<15+r&&y>py-45-r&&y<py+r);}
  if(x<28||y<46||x>WORLD.w-28||y>WORLD.h-28)return true;
  for(const [dx,dy]of[[r,0],[-r,0],[0,r],[0,-r]])if(isWater(x+dx,y+dy))return true;
  return objects.some(o=>{if(o.map&&o.map!==map)return false;if(o.plotIndex!==undefined)return false;if(state.life?.nodes[o.id]?.until>state.time)return false;if(o.resource&&state.harvested[o.id]?.until>state.time)return false;const b=objectBounds(o);return b&&x+r>b.x&&x-r<b.x+b.w&&y+r>b.y&&y-r<b.y+b.h;});}
 export function drawObject(ctx,o,time,state){let type=o.type;if(o.id==='property-house')type='property_'+(state.life.home.type&&state.life.home.type!=='cottage'?state.life.home.type:'farmhouse');
- if(o.plotIndex!==undefined){const plot=state.life.plots[o.id];if(plot?.crop){const cropTime=({wheat:55,carrot:80,melon:125})[plot.crop];type='crop_'+plot.crop+'_'+(plot.growth>=cropTime?3:plot.growth>cropTime*.4?2:1);}else if(!plot?.tilled){type='plotWild';}else type='plot';}
+ if(o.plotIndex!==undefined){const plot=state.life.plots[o.id];if(plot?.crop){const cropTime=({wheat:55,carrot:80,melon:125,starbean:90,emberPepper:120,frostLotus:160})[plot.crop];type='crop_'+plot.crop+'_'+(plot.growth>=cropTime?3:plot.growth>cropTime*.4?2:1);}else if(!plot?.tilled){type='plotWild';}else type='plot';}
  if(state.life?.nodes[o.id]?.until>time){if(o.interact==='mining')type='rubble';else if(o.resourceId==='apple')type='appleTree';else return;}
  if(o.resource&&state.harvested[o.id]?.until>state.time){if(o.resource!=='wood')return;type='stump';}
  const animated=['forge','cookfire','smith','miner','fisher'].includes(type);const img=sprite(type,animated?Math.floor(time*3)%4:o.variant||0);const size=spriteSize(img);let anchorX=size.w/2,anchorY=size.h-7;

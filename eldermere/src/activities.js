@@ -34,10 +34,11 @@ export class ActivitySystem{
  resolve(id,outcome){const a=this.active;if(!a||a.id!==id||a.settled)return false;a.settled=true;this.active=null;this.advanceTime(a.elapsed);const inv=this.g.state.inventory,before={...inv},oldGear=new Set(this.g.state.life.gear.map(g=>g.uid));let accepted=false;
  if(outcome.success){if(a.source.type==='job'){const j=this.g.state.life.job;if(j?.id===a.source.id){this.g.state.life.job=null;accepted=this.g.life.finish({...j,grade:outcome.grade})!==false;}}
  else if(a.source.type==='legacy')accepted=this.g.life.collectLegacy(a.source.id,outcome.grade);
+ else if(a.source.type==='animal')accepted=this.g.farm.collect(a.source.id,outcome.grade);
  else if(a.source.type==='harvest')accepted=this.g.life.collectCrop(a.source.id,outcome.grade);}
  if(!outcome.success||!accepted){if(a.source.type==='job'){if(this.g.state.life.job?.kind==='fish')this.g.state.life.job=null;else this.g.life.cancel();}}
  const loot=Object.entries(inv).filter(([k,v])=>v>(before[k]||0)).map(([id,v])=>({id,qty:v-(before[id]||0)}));this.result={id,kind:a.kind,label:a.label,success:!!(outcome.success&&accepted),grade:outcome.grade,loot:outcome.success&&accepted?loot:[],equipment:this.g.state.life.gear.filter(g=>!oldGear.has(g.uid))};this.g.paused=true;this.g.event('activityResult',this.result);this.g.save(false);return true;}
  cancel(){const a=this.active;if(!a){if(this.result)this.dismiss();return false;}this.active=null;this.advanceTime(a.elapsed);if(a.source.type==='job')this.g.life.cancel();this.g.paused=!this.g.state.started;this.g.event('activityClosed',{});return true;}
- advanceTime(seconds){this.g.state.time+=seconds;this.g.life.growCrops?.(seconds);}
+ advanceTime(seconds){this.g.state.time+=seconds;this.g.life.growCrops?.(seconds);this.g.farm?.update(seconds);}
  dismiss(){this.result=null;this.g.paused=!this.g.state.started;this.g.event('activityClosed',{});}
 }

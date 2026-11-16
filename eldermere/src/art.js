@@ -1,3 +1,4 @@
+import {rpgSprite,rpgIcon} from './rpg-art.js';
 import {illustratedSprite,finishRaster,paintedEquipment} from './illustration.js';
 import {lifeSprite,lifeIcon,equipmentOverlay} from './life-art.js';
 // Original pixel artwork. Every silhouette is rasterized on the same 1px grid.
@@ -15,7 +16,7 @@ export class Pixel {
 }
 const cache=new Map();
 export function sprite(type,frame=0,dir=0){const key=type+':'+frame+':'+dir;if(cache.has(key))return cache.get(key);let p;
- const painting=type.startsWith('property_')?propertyArt(type):illustratedSprite(Pixel,type,frame,dir);if(painting){cache.set(key,painting);return painting;}
+ const rpg=rpgSprite(Pixel,type,frame);if(rpg){cache.set(key,rpg);return rpg;}const painting=type.startsWith('property_')?propertyArt(type):illustratedSprite(Pixel,type,frame,dir);if(painting){cache.set(key,painting);return painting;}
  const extra=lifeSprite(Pixel,type,frame);if(extra){const detailed=finishRaster(extra);cache.set(key,detailed);return detailed;}
  if(type==='tree'||type==='pine')p=tree(type,frame);
  else if(type==='house'||type==='shop'||type==='mill')p=house(type);
@@ -80,7 +81,7 @@ function prop(type,frame){const p=new Pixel(48,48);
  else if(type==='crystal'){p.ellipse(24,41,15,5,'#2b4c5460');p.poly([[17,35],[15,16],[23,3],[32,14],[31,35],[24,42]],'#457e91');p.poly([[18,17],[23,5],[25,17],[24,38]],'#b1e2d7');p.poly([[25,17],[31,14],[29,34],[24,38]],'#67b5bc');p.r(21,13,2,11,'#e4f3d9');}
  else if(type==='sign'){p.r(23,20,3,23,'#6f6542');p.poly([[7,16],[33,16],[42,22],[33,27],[7,27]],'#ad955e');p.r(10,18,21,1,'#d6bb7e');p.r(12,22,19,1,'#6c6441');}
  return p;}
-export function icon(name){const extra=lifeIcon(Pixel,name);if(extra)return extra;const p=new Pixel(24,24);switch(name){
+export function icon(name){const rpg=rpgIcon(Pixel,name);if(rpg)return rpg;const extra=lifeIcon(Pixel,name);if(extra)return extra;const p=new Pixel(24,24);switch(name){
  case'sword':p.poly([[5,20],[7,15],[16,4],[21,2],[21,7],[10,18]],'#d6dfc8');p.line(9,16,19,5,'#819b99');p.line(5,13,12,20,'#c8a465');p.line(4,21,8,17,'#816443');break;
  case'boot':p.poly([[8,3],[16,3],[15,14],[21,17],[21,21],[7,21],[5,17]],'#9d8f64');p.r(8,5,7,3,'#c7b482');p.r(7,20,15,2,'#4c5642');break;
  case'potion':p.r(9,2,6,4,'#bc9e64');p.r(9,6,6,4,'#a5c5b0');p.ellipse(12,16,7,7,'#7d524c');p.ellipse(12,16,5,5,'#bd7863');p.r(8,12,2,5,'#e1b994');p.r(7,20,10,1,'#768c75');break;

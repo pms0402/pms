@@ -9,7 +9,7 @@ try{
  await page.goto((process.env.BASE_URL||'http://127.0.0.1:4174')+'/?test=1');await page.waitForFunction(()=>window.__eldermere?.game.frames>2);await page.click('#begin');await installActivities(page);
  const results=await page.evaluate(async()=>{
   const {game:g}=window.__eldermere,{enemy}=await import('./src/world.js'),{validateSave}=await import('./src/data.js');
-  g.world.enemies=[];g.state.gold=1000;for(const id of Object.keys(g.state.inventory))g.state.inventory[id]=100;for(const s of Object.values(g.state.life.skills)){s.level=5;s.xp=0;}g.state.life.unlocked=['basic','silver','mythril','feast'];
+  g.world.enemies=[];g.state.gold=1000;g.state.rpg.clears=['guardian','emberlord','frostqueen'];g.p.level=7;for(const id of Object.keys(g.state.inventory))g.state.inventory[id]=100;for(const s of Object.values(g.state.life.skills)){s.level=5;s.xp=0;}g.state.life.unlocked=['basic','silver','mythril','feast'];
   const step=seconds=>{for(let i=0;i<seconds*50;i++)g.update(.02,{});};
   Object.assign(g.p,{x:780,y:680});
   for(const type of ['sword','greatsword','dagger','bow','staff','helmet','armor','gloves','boots']){if(!g.life.startRecipe('iron_'+type))throw Error('Cannot forge '+type);window.finishActivity();}

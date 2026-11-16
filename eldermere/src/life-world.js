@@ -74,7 +74,7 @@ export function homeGround(type='cottage'){
 }
 export function indoorBlocked(x,y,map,objects,state,r=7){if(map==='home'){
  const spec=homeSpec(state);if(x<48+r||x>spec.w-48-r||y<80+r||y>spec.h-34-r)return true;
- return state.life.home.items.some(o=>{const size=({chest:[30,20],bench:[46,25],furnace:[38,30],bed:[30,43],lamp:[8,8]})[o.type];return size&&Math.abs(x-o.x)<size[0]/2+r&&y>o.y-size[1]-r&&y<o.y+r;});}
+ return state.life.home.items.some(o=>{const size=({chest:[30,20],bench:[46,25],furnace:[38,30],bed:[30,43],lamp:[8,8],press:[38,30]})[o.type];return size&&Math.abs(x-o.x)<size[0]/2+r&&y>o.y-size[1]-r&&y<o.y+r;});}
  if(x<48+r||x>914-r||y<74+r||y>594-r)return true;
  if(MINE_WALLS[map]?.some(b=>x+r>b.x&&x-r<b.x+b.w&&y+r>b.y&&y-r<b.y+b.h))return true;
  if(map==='mine2'&&((x-510)/72)**2+((y-475)/42)**2<1)return true;
