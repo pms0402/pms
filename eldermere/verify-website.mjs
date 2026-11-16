@@ -15,10 +15,11 @@ if (process.env.GITHUB_SHA) assert.equal(version.commit, process.env.GITHUB_SHA)
 const html = await (await get('')).text();
 assert.ok(html.includes('id="world"') && html.includes('id="begin"'));
 assert.ok(html.includes('./game.js'));
-const code = await (await get('game.js')).text();
+const script=html.match(/src="(\.\/game\.js[^"]*)"/);assert.ok(script);
+const code = await (await get(script[1])).text();
 assert.equal(createHash('sha256').update(code).digest('hex'), version.entrySha256);
 await get('style.css');
-await get('assets/emblem.svg');
+await get('assets/emblem.svg');await get('assets/portraits/characters.png');
 const portable = await (await get('ELDERMERE.html')).text();
 assert.ok(portable.includes('<canvas') && !portable.includes('src="./game.js"'));
 console.log('PASS playable website, styles, emblem, portable game and exact build digest', version.version);

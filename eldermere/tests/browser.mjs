@@ -30,7 +30,7 @@ try{
  assert.equal(await page.evaluate(()=>window.__eldermere.game.state.inventory.ore),4);
  await walk(782,641,34);await page.keyboard.press('e');await page.locator('[data-craft="sword"]').click();await page.locator('.close').click();assert.deepEqual(await page.evaluate(()=>{const g=window.__eldermere.game;return[g.state.inventory.wood,g.state.inventory.ore,g.state.inventory.sword,g.damage,g.state.quest];}),[0,0,1,27,2]);
  console.log('PASS connected-world harvesting and exact-cost bench crafting');
- await walk(456,610);await page.keyboard.press('e');const gold=await page.evaluate(()=>window.__eldermere.game.state.gold);const foodPrice=await page.evaluate(()=>window.__eldermere.game.life.price('mira','food','buy'));await page.locator('[data-buy="food"]').click();assert.equal(await page.evaluate(()=>window.__eldermere.game.state.gold),gold-foodPrice);await page.locator('.close').click();
+ await walk(456,610);await page.keyboard.press('e');await page.click('#dialog-trade');const gold=await page.evaluate(()=>window.__eldermere.game.state.gold);const foodPrice=await page.evaluate(()=>window.__eldermere.game.life.price('mira','food','buy'));await page.locator('[data-buy="food"]').click();assert.equal(await page.evaluate(()=>window.__eldermere.game.state.gold),gold-foodPrice);await page.locator('.close').click();
  await walk(734,756);await page.keyboard.press('e');await walk(847,737);await page.keyboard.press('e');await page.keyboard.press('c');await page.locator('[data-craft="potion"]').click();await page.locator('.close').click();
  console.log('PASS shop purchase and field potion crafting');
  await walk(620,568,32);await page.keyboard.press('e');

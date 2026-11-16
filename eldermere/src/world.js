@@ -1,5 +1,6 @@
+import {polishGround} from './illustration.js';
 import {lifeWorld,indoorBlocked} from './life-world.js';
-import {hash,Pixel,sprite} from './art.js';
+import {hash,Pixel,sprite,spriteSize,drawSprite} from './art.js';
 import {WORLD,DUNGEON_WALLS,isWater,isPath,riverX,regionAt,onBridge} from './data.js';
 export function createWorld(){const objects=[],enemies=[];let id=0;const add=(type,x,y,extra={})=>{const o={id:'o'+id++,type,x,y,...extra};objects.push(o);return o;};
  add('house',425,557,{solid:{w:100,h:52},label:'목재와 향신료 · 상점'});add('shop',812,538,{solid:{w:100,h:52}});add('house',425,833,{solid:{w:100,h:52}});add('house',811,846,{solid:{w:100,h:52}});
@@ -39,7 +40,7 @@ function createGround(){const p=new Pixel(WORLD.w,WORLD.h);
  for(let y=608;y<698;y+=6)for(let x=554;x<685;x+=8)if(Math.hypot((x-620)*.8,y-655)<49){let h=hash(x,y);p.r(x+(y%4),y,7,5,h>.5?'#a7a581':'#949a77');p.r(x+1+(y%4),y,5,1,'#bdba92');}
  // Ground flowers, scattered fern fans and pebbles.
  for(let i=0;i<2000;i++){let x=Math.floor(hash(i,81)*WORLD.w),y=Math.floor(hash(i,21)*WORLD.h);if(isWater(x,y)||isPath(x,y)||x>290&&x<550&&y>930&&y<1130)continue;if(i%3===0){p.r(x,y,1,3,'#577644');p.r(x-1,y,3,1,i%2?'#e6d99e':'#cbb0a7');p.dot(x,y-1,i%2?'#f1e1ac':'#e1c7b8');}else{p.line(x,y,x-3,y-4,'#567743');p.line(x,y,x+3,y-3,'#9ab16b');p.line(x,y,x,y-5,'#91a561');}}
- return p.canvas;}
+ return polishGround(p.canvas);}
 function createDungeon(){const p=new Pixel(640,512);p.r(0,0,640,512,'#162a2d');for(let y=48;y<466;y+=16)for(let x=64;x<576;x+=16){let h=hash(x,y);p.r(x,y,15,15,h>.6?'#3c5254':'#364c4e');p.r(x+1,y+1,13,1,'#506467');if(h>.7)p.line(x+2,y+6,x+8,y+11,'#263d40');}p.r(64,46,512,8,'#77837a');p.r(64,54,512,12,'#4b6261');p.r(64,66,512,5,'#243e40');for(let x=76;x<576;x+=31)p.r(x,51,28,3,'#8a9082');
  for(const [x,y]of[[160,156],[480,156],[160,340],[480,340]]){p.r(x-14,y-44,29,45,'#273f43');p.r(x-12,y-44,25,33,'#627575');p.r(x-15,y-46,31,6,'#94a095');p.r(x-15,y-12,31,7,'#85958d');p.r(x-9,y-36,3,20,'#879891');p.r(x+6,y-36,3,20,'#445f61');}
  for(const wall of DUNGEON_WALLS){p.r(wall.x,wall.y,wall.w,wall.h+5,'#1c3338');p.r(wall.x,wall.y,wall.w,wall.h,'#536968');p.r(wall.x,wall.y,wall.w,3,'#a2aa95');for(let x=wall.x+3;x<wall.x+wall.w-6;x+=16){p.r(x,wall.y+4,13,5,'#7d8e82');p.r(x+6,wall.y+11,12,4,'#687e77');}}
@@ -57,10 +58,10 @@ export function drawObject(ctx,o,time,state){let type=o.type;
  if(o.plotIndex!==undefined){const plot=state.life.plots[o.id];if(plot?.crop){const cropTime=({wheat:70,carrot:100,melon:160})[plot.crop];type='crop_'+plot.crop+'_'+(plot.growth>=cropTime?3:plot.growth>cropTime*.4?2:1);}else if(!plot?.tilled){type='plotWild';}else type='plot';}
  if(state.life?.nodes[o.id]?.until>time){if(o.interact==='mining')type='rubble';else if(o.resourceId==='apple')type='appleTree';else return;}
  if(o.resource&&state.harvested[o.id]?.until>state.time){if(o.resource!=='wood')return;type='stump';}
- const animated=['forge','cookfire','smith','miner','fisher'].includes(type);const img=sprite(type,animated?Math.floor(time*3)%4:o.variant||0);let anchorX=img.width/2,anchorY=img.height-7;
+ const animated=['forge','cookfire','smith','miner','fisher'].includes(type);const img=sprite(type,animated?Math.floor(time*3)%4:o.variant||0);const size=spriteSize(img);let anchorX=size.w/2,anchorY=size.h-7;
  if(['house','shop','mill'].includes(type))anchorY=132;
  if(type==='tree'||type==='pine')anchorY=93;
- ctx.drawImage(img,Math.round(o.x-anchorX),Math.round(o.y-anchorY));
+ drawSprite(ctx,img,Math.round(o.x-anchorX),Math.round(o.y-anchorY));
  if(o.plotIndex!==undefined&&state.life.plots[o.id]?.water>0){ctx.fillStyle='#7eacb944';ctx.fillRect(o.x-15,o.y-3,30,3);}
  if(o.interact==='mining'&&state.life.job?.id===o.id){const j=state.life.job;ctx.fillStyle='#243c32';ctx.fillRect(o.x-16,o.y+5,32,3);ctx.fillStyle='#ddc98f';ctx.fillRect(o.x-16,o.y+5,32*(1-j.remaining/j.total),2);}
  if(o.npc){ctx.font='8px sans-serif';ctx.textAlign='center';ctx.fillStyle=o.working?'#e0c481':'#b2c2a0';ctx.fillText(o.working?'◈':'z',o.x,o.y-39);}

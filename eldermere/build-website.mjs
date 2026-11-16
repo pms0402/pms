@@ -17,9 +17,13 @@ const pkg = JSON.parse(await readFile(new URL('package.json', root), 'utf8'));
 let html = await readFile(new URL('index.html', root), 'utf8');
 html = html.replace('./src/main.js', './game.js');
 await writeFile(new URL('dist/game.js', root), code);
-await writeFile(new URL('dist/index.html', root), html);
+const digest=createHash('sha256').update(code).digest('hex');
+await writeFile(new URL('dist/index.html', root), html.replace('./game.js', './game.js?v='+digest.slice(0,12)).replace('./style.css', './style.css?v='+pkg.version));
+const portraits=await readFile(new URL('assets/portraits/characters.png',root));
 const portable = html
+  .replace('<link rel="preload" as="image" href="./assets/portraits/characters.png">', '')
   .replace('<link rel="stylesheet" href="./style.css">', () => '<style>' + css + '</style>')
+  .replaceAll('./assets/portraits/characters.png', 'data:image/png;base64,'+portraits.toString('base64'))
   .replaceAll('./assets/emblem.svg', 'data:image/svg+xml;base64,' + Buffer.from(emblem).toString('base64'))
   .replace('<script type="module" src="./game.js"></script>', () => '<script>' + code.replaceAll('</script', '<\\/script') + '</script>');
 await writeFile(new URL('dist/ELDERMERE.html', root), portable);

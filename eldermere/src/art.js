@@ -1,3 +1,4 @@
+import {illustratedSprite,finishRaster,paintedEquipment} from './illustration.js';
 import {lifeSprite,lifeIcon,equipmentOverlay} from './life-art.js';
 // Original pixel artwork. Every silhouette is rasterized on the same 1px grid.
 // Art is independent from collision, simulation and UI; no external game assets.
@@ -14,13 +15,14 @@ export class Pixel {
 }
 const cache=new Map();
 export function sprite(type,frame=0,dir=0){const key=type+':'+frame+':'+dir;if(cache.has(key))return cache.get(key);let p;
- const extra=lifeSprite(Pixel,type,frame);if(extra){cache.set(key,extra);return extra;}
+ const painting=illustratedSprite(Pixel,type,frame,dir);if(painting){cache.set(key,painting);return painting;}
+ const extra=lifeSprite(Pixel,type,frame);if(extra){const detailed=finishRaster(extra);cache.set(key,detailed);return detailed;}
  if(type==='tree'||type==='pine')p=tree(type,frame);
  else if(type==='house'||type==='shop'||type==='mill')p=house(type);
  else if(type==='player'||type==='elder'||type==='merchant'||type==='farmer')p=person(type,frame,dir);
  else if(type==='slime'||type==='wolf'||type==='guardian')p=monster(type,frame,dir);
  else p=prop(type,frame);
- cache.set(key,p.canvas);return p.canvas;}
+ const detailed=finishRaster(p.canvas);cache.set(key,detailed);return detailed;}
 function tree(type,variant){const p=new Pixel(80,100);const r=(...a)=>p.r(...a);p.ellipse(42,91,26,7,'#243c344c');
  p.poly([[35,91],[37,60],[32,46],[39,50],[45,38],[49,47],[44,65],[47,87],[54,94],[43,91],[39,95]],'#3b3c2d');
  p.poly([[39,87],[40,57],[43,53],[42,89],[47,91],[40,90],[36,94]],'#88704a');p.line(43,78,44,59,'#b3955b');p.line(38,90,40,67,'#544d36');
@@ -90,6 +92,9 @@ export function icon(name){const extra=lifeIcon(Pixel,name);if(extra)return extr
  case'crystal':p.poly([[6,8],[12,1],[19,8],[17,19],[12,23],[7,18]],'#70b5b8');p.poly([[8,8],[12,3],[12,20]],'#d5edce');break;
  case'food':p.ellipse(12,14,9,7,'#b68b4c');p.ellipse(11,12,7,5,'#e0bd77');p.line(8,9,6,14,'#986a3f');p.line(13,8,11,13,'#a07841');break;
  }return p.canvas;}
-export function makeAtlas(){const c=surface(384,240),ctx=c.getContext('2d');for(let d=0;d<4;d++)for(let f=0;f<4;f++)ctx.drawImage(sprite('player',f,d),f*32,d*40);ctx.drawImage(sprite('tree'),144,0);ctx.drawImage(sprite('house'),224,0);ctx.drawImage(sprite('wolf'),140,115);ctx.drawImage(sprite('slime'),180,115);ctx.drawImage(sprite('ore'),140,160);return c;}
+export function makeAtlas(){const c=surface(1024,620),ctx=c.getContext('2d');for(let d=0;d<4;d++)for(let f=0;f<4;f++)ctx.drawImage(sprite('player',f,d),f*64,d*80);for(const [i,type]of ['elder','merchant','farmer','smith','miner','fisher'].entries())ctx.drawImage(sprite(type),300+i*80,320);ctx.drawImage(sprite('tree'),290,0);ctx.drawImage(sprite('pine'),450,0);ctx.drawImage(sprite('house'),620,0);for(const [i,type]of ['wolf','slime','guardian','caveguard','bat'].entries())ctx.drawImage(sprite(type),300+i*120,450);return c;}
 
-export function gearOverlay(loadout,dir,frame){const key=JSON.stringify(Object.values(loadout).map(g=>g?[g.material,g.type]:null))+dir+frame;if(!cache.has(key))cache.set(key,equipmentOverlay(Pixel,loadout,dir,frame));return cache.get(key);}
+export function gearOverlay(loadout,dir,frame){const key=JSON.stringify(Object.values(loadout).map(g=>g?[g.material,g.type]:null))+dir+frame;if(!cache.has(key))cache.set(key,paintedEquipment(Pixel,loadout,dir,frame));return cache.get(key);}
+
+export function spriteSize(img){const d=img.density||1;return{w:img.width/d,h:img.height/d};}
+export function drawSprite(ctx,img,x,y){const {w,h}=spriteSize(img);ctx.drawImage(img,x,y,w,h);}

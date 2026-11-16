@@ -14,3 +14,13 @@ Version 0.2 adds original mining veins, tools, furnace/anvil/cookfire sprites, c
 worker NPCs, furniture, weapon/armor overlays, item icons and work sound synthesis.
 Sources: `../src/life-art.js`, `../src/life-world.js`, `../src/main.js`.
 The same CC0 asset dedication above applies to these additions.
+
+Version 0.3 portrait atlas: `portraits/characters.png` was generated specifically
+for ELDERMERE with OpenAI image generation from original character descriptions.
+It contains the player, Rowan, Mira, Bram, Elin, Doran, Sera and the Star Guardian.
+It is an original AI-assisted illustration, not a third-party sprite pack or
+an extracted image from another game. The original generated file is retained
+under `/workspace/generated_images/` in the development environment.
+
+Version 0.3 high-density world sprites were authored in `../src/illustration.js`.
+The same CC0 asset dedication applies to the original artwork additions.

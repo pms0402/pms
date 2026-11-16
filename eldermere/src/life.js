@@ -56,7 +56,7 @@ export class LifeSystem {
  mine(o){const dx=o.x-this.g.p.x,dy=o.y-this.g.p.y;this.g.p.dir=Math.abs(dx)>Math.abs(dy)?dx>0?1:3:dy>0?0:2;if(this.depleted(o))return false;if(o.metal&&this.l.tools.pick<METALS[o.metal].tier){this.g.notify(METALS[o.metal].name+' 채굴에는 '+METALS[o.metal].tier+'등급 곡괭이가 필요합니다.');return false;}const time=(o.metal?METALS[o.metal].time:o.resourceId==='stone'?1.8:2)/(1+this.l.tools.pick*.25+(this.skill('mining')-1)*.04);return this.begin('mine',o.id,time);}
  interact(o){
   if(!o)return false;
-  if(o.vendor||o.npc){if(!this.isOpen(o.vendor||o.npc)){const def=VENDORS[o.vendor||o.npc];this.g.notify(def.name+'은 쉬고 있습니다. 영업 '+def.open[0]+':00–'+def.open[1]+':00');return true;}this.g.event('lifePanel',{type:'vendor',id:o.vendor||o.npc});return true;}
+  if(o.vendor||o.npc){this.g.event('dialog',{type:o.vendor||o.npc});return true;}
   const type=o.interact;
   if(type==='mining'){this.mine(o);return true;}if(type==='forage'){this.begin('gather',o.id,1.5);return true;}
   if(type==='station'){this.g.event('lifePanel',{type:'station',id:o.station});return true;}
