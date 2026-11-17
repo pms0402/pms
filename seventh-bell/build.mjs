@@ -1,0 +1,3 @@
+import {cp,mkdir,rm,readFile,writeFile} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
+const root=new URL('.',import.meta.url),out=new URL('dist/',root);await rm(out,{recursive:true,force:true});await mkdir(out,{recursive:true});for(const name of ['index.html','style.css','src','assets'])await cp(new URL(name,root),new URL(name,out),{recursive:true});const pkg=JSON.parse(await readFile(new URL('package.json',root)));await writeFile(new URL('version.json',out),JSON.stringify({game:'Echoes of the Seventh Bell',version:pkg.version,commit:process.env.GITHUB_SHA||null,entrySha256:createHash('sha256').update(await readFile(new URL('src/main.js',root))).digest('hex')}));console.log('Built independent Seventh Bell site in dist/');

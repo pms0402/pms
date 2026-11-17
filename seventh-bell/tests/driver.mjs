@@ -1,0 +1,12 @@
+// Route driver changes only inputs. It never assigns positions or grants rewards.
+export async function installDriver(page){await page.evaluate(()=>{
+ const get=()=>window.__seventh.game;
+ window.tick=(t,held={})=>{const g=get();for(let i=0;i<Math.ceil(t*120);i++)g.update(1/120,held);window.__seventh.render.snap();};
+ window.walkTo=x=>{const g=get(),dir=Math.sign(x-g.p.x);let ticks=0;while(Math.abs(g.p.x-x)>5&&ticks++<9000){if(g.paused||g.p.dead)throw Error('Route interrupted at '+g.p.x+','+g.p.y);if(g.p.grounded&&((dir>0&&((g.p.x>1072&&g.p.x<1130)||(g.p.x>1382&&g.p.x<1450)))||(dir<0&&((g.p.x>1505&&g.p.x<1545)||(g.p.x>1190&&g.p.x<1230)))))g.press('jump');g.update(1/120,{left:dir<0,right:dir>0,run:true,jump:true});if(g.p.y>580)throw Error('Route fell at '+g.p.x);}window.tick(.16);if(Math.abs(g.p.x-x)>28)throw Error('Route blocked '+g.p.x+','+g.p.y+' -> '+x);};
+ window.jumpTo=(x,double=false)=>{const g=get();g.press('jump');let second=false;for(let i=0;i<220;i++){const t=i/120,d=x-g.p.x;if(double&&t>.30&&!second){g.press('jump');second=true;}g.update(1/120,{left:d<-8,right:d>8,run:true,jump:true});if(g.p.grounded&&t>.25){window.tick(.12);if(Math.abs(g.p.x-x)>30)throw Error('Jump missed '+g.p.x+','+g.p.y+' -> '+x);return;}}throw Error('Jump did not land');};
+ window.fightBoss=(stopAtPhase2=false)=>{const g=get();let parries=0,hits=g.lastHits.length;for(let i=0;i<18000;i++){const e=g.world.boss,p=g.p;if(g.profile.flags.edran||p.dead)return{dead:p.dead,choice:g.profile.flags.edran,hp:p.hp,bossHp:e.hp,phase:e.phase,seconds:i/120,parries,hits:g.lastHits.length-hits};if(stopAtPhase2&&e.phase===2){g.paused=true;window.__seventh.render.snap();return{phase:2,hp:p.hp,bossHp:e.hp};}if(e.state==='weakened'){if(Math.abs(p.x-e.x)<85){g.press('interact');continue;}g.update(1/120,{left:p.x>e.x,right:p.x<e.x});continue;}
+ const d=e.x-p.x,near=Math.abs(d)<62;if(!p.action)p.dir=Math.sign(d)||p.dir;
+ if(e.state==='windup'){const wind=e.pattern==='slam'?.88:e.pattern==='lunge'?.68:e.pattern==='double'?.48:.64;if(e.t>wind-.14&&(!p.action||p.action.spec&&p.action.t>=p.action.spec.end)){if(g.parry())parries++;}}
+ else if(e.state==='recover'||e.stagger>.20){if(p.hp<g.maxHp*.62)g.heal();if(near||g.skillCD===0&&Math.abs(d)<138){if(g.skillCD===0&&p.stamina>30&&!p.action)g.press('skill');else if(p.stamina>18)g.press('attack');}}
+ const move=!near&&(e.state==='recover'||e.state==='idle'||e.stagger>.20);g.update(1/120,{left:move&&d<0,right:move&&d>0});}return{timeout:true,hp:g.p.hp,bossHp:g.world.boss.hp};};
+ });}

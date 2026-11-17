@@ -1,0 +1,17 @@
+export const SAVE_KEY='seventh-bell.save.v1',WIDTH=640,HEIGHT=360;
+export const ATTACKS={
+ light1:{duration:.42,windup:.10,end:.21,damage:18,reach:56,stamina:8,push:90,row:4,start:0},
+ light2:{duration:.46,windup:.13,end:.24,damage:23,reach:65,stamina:9,push:110,row:4,start:4},
+ light3:{duration:.58,windup:.21,end:.33,damage:33,reach:73,stamina:13,push:160,row:5,start:0},
+ heavy:{duration:.87,windup:.37,end:.51,damage:50,reach:78,stamina:23,push:210,row:5,start:4},
+ skill:{duration:.68,windup:.25,end:.39,damage:37,reach:145,stamina:28,push:180,row:7,start:0}
+};
+export const CHAPTERS=[{name:'잊힌 성벽',boss:'최후의 문지기, 에드란',bell:1},{name:'침묵의 대성당',boss:'침묵의 성녀, 마리에',bell:2},{name:'불 꺼진 제철도시',boss:'잿빛 대장장이, 브라그',bell:3},{name:'뒤집힌 서고',boss:'기억의 기록관, 레오넬',bell:5},{name:'왕관 없는 궁전',boss:'여명을 지키는 왕, 아르케인 3세',bell:7}];
+export const CHECKPOINTS=[{id:'outer',x:145,y:302,name:'성벽 밖의 종'},{id:'gate',x:3080,y:302,name:'문지기의 쉼터'}];
+export const TALENTS={vigor:{name:'버티는 몸',desc:'최대 체력 +20',cost:1},echo:{name:'남은 울림',desc:'공명 기술 재사용 8초 → 6초',cost:1},breath:{name:'고른 호흡',desc:'집중 회복 속도 증가',cost:1}};
+export const newProfile=()=>({version:1,started:false,level:1,xp:0,marks:0,upgrade:0,talents:[],points:0,checkpoint:'outer',position:{x:190,y:302},hp:100,flasks:3,flags:{letter:false,lever:false,memento:false,edran:null,echo:false,cache:false,helped:false,upper:false},opened:[],killed:[],loss:null,playtime:0});
+export const maxHp=p=>100+(p.level-1)*9+(p.talents.includes('vigor')?20:0);
+export function validProfile(p){const nat=(v,max=1e6)=>Number.isSafeInteger(v)&&v>=0&&v<=max;return !!(p&&p.version===1&&typeof p.started==='boolean'&&nat(p.level,30)&&p.level>=1&&nat(p.xp)&&nat(p.marks)&&nat(p.upgrade,3)&&nat(p.points,30)&&Array.isArray(p.talents)&&new Set(p.talents).size===p.talents.length&&p.talents.every(t=>Object.hasOwn(TALENTS,t))&&CHECKPOINTS.some(c=>c.id===p.checkpoint)&&p.position&&Number.isFinite(p.position.x)&&p.position.x>=16&&p.position.x<=4510&&Number.isFinite(p.position.y)&&p.position.y>=0&&p.position.y<650&&Number.isFinite(p.hp)&&p.hp>0&&p.hp<=maxHp(p)&&nat(p.flasks,3)&&p.flags&&['letter','lever','memento','echo','cache','helped','upper'].every(k=>typeof p.flags[k]==='boolean')&&[null,'slain','freed'].includes(p.flags.edran)&&(!p.flags.echo||!!p.flags.edran)&&Array.isArray(p.opened)&&p.opened.every(k=>['crypt','supplies','upper'].includes(k))&&new Set(p.opened).size===p.opened.length&&Array.isArray(p.killed)&&p.killed.every(k=>/^e\d+$/.test(k))&&new Set(p.killed).size===p.killed.length&&(!p.loss||Number.isFinite(p.loss.x)&&p.loss.x>=0&&p.loss.x<4530&&Number.isFinite(p.loss.y)&&p.loss.y<650&&p.loss.y>=0&&nat(p.loss.marks))&&Number.isFinite(p.playtime)&&p.playtime>=0);}
+export const zoneAt=(x,y)=>x>3390?'lastgate':y>370?'crypt':x>2300?'passage':x>900?'bridge':'rampart';
+export const ZONES={rampart:{name:'잊힌 성벽',sub:'왕국 외곽',color:'#90aeb6'},bridge:{name:'부서진 순례교',sub:'종탑으로 가는 옛길',color:'#abb2a2'},crypt:{name:'이름 없는 묘지',sub:'성벽 아래',color:'#7d9b99'},passage:{name:'문지기의 회랑',sub:'첫 번째 종탑',color:'#baa47e'},lastgate:{name:'닫힌 새벽의 문',sub:'에드란의 초소',color:'#bd976e'}};
+export const LETTER=['종을 부수지 마.','종이 무엇을 지키고 있는지 먼저 알아내.','그리고 일곱 번째 종 앞에서 내 이름을 불러줘.'];

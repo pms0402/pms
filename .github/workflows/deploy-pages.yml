@@ -45,6 +45,13 @@ jobs:
           mkdir -p dist/eldermere
           cp -R eldermere/dist/. dist/eldermere/
 
+      - name: Build Echoes of the Seventh Bell
+        run: |
+          npm --prefix seventh-bell test
+          npm --prefix seventh-bell run build
+          mkdir -p dist/seventh-bell
+          cp -R seventh-bell/dist/. dist/seventh-bell/
+
       - name: Record deployed version
         run: node -e "require('node:fs').writeFileSync('dist/version.json', JSON.stringify({commit:process.env.GITHUB_SHA, builtAt:new Date().toISOString()})+'\n')"
 
@@ -95,3 +102,8 @@ jobs:
         run: npm --prefix eldermere run verify:website
         env:
           ELDERMERE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/eldermere/
+
+      - name: Verify published Seventh Bell website
+        run: npm --prefix seventh-bell run verify:live
+        env:
+          SEVENTH_BELL_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/seventh-bell/
