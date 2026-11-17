@@ -1,1 +1,14 @@
-{"name":"echoes-of-the-seventh-bell","version":"0.1.0","private":true,"type":"module","scripts":{"dev":"node server.mjs","build":"node build.mjs","test":"node --test tests/*.test.mjs","test:browser":"node tests/browser.mjs","verify:live":"node verify-live.mjs"}}
+{
+  "name": "echoes-of-the-seventh-bell",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node server.mjs",
+    "build": "node build.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "test:browser": "node tests/browser.mjs",
+    "verify:live": "node verify-live.mjs",
+    "test:interaction": "node tests/fullscreen-browser.mjs"
+  }
+}
