@@ -11,6 +11,10 @@ All visual game assets in this directory were created specifically for **Echoes 
 | ruins.png | exec-3485f680-a462-40e0-8e79-cdbbf48fa6d3.png | Transparent architectural parallax layer |
 | masonry.png | exec-7c9ab9aa-8ffe-47c4-b596-476d225d7886.png | Ground source, first row of the 4×4 environment atlas |
 | objects.png | exec-32b94b15-7ba8-4d84-84fb-d6c42eed5966.png | Same original environment sheet with background removed through the image tool |
+| marie.png | exec-7e031a4a-9543-46bc-8bf4-9f317de1b94f.png | Original Silent Saint, 6×4 animation sheet |
+| brag.png | exec-ce773159-c6f0-4115-ab33-c749a29e943c.png | Original Ashen Blacksmith, 6×4 animation sheet |
+| cathedral.png | exec-75c6cfa7-d16a-4949-881b-e9de7846987b.png | Original cathedral panorama |
+| foundry.png | exec-0ff42c70-4455-4b20-bcab-0e9fce11c52e.png | Original foundry city panorama |
 | bell.svg | Authored in this task | Small original UI emblem |
 
 Original generated outputs are retained in `/workspace/generated_images/`. Runtime code crops the explicit grid, rasterizes animation cells and disables interpolation. It does not use a photographic source or apply a photo-to-pixel effect. Alpha is thresholded for crisp sprite outlines. The source sheets are generated artwork, not represented as a manually hand-pixelled commercial pack.
