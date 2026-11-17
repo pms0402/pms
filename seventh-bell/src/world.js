@@ -36,6 +36,14 @@ export function createWorld(){const bosses=BOSS_ORDER.map(createBoss);const worl
  {id:'archivecache',type:'chest',x:12740,y:120,echo:true,memory:true,archive:true,label:'접혀 있던 내일'},{id:'fourth-end',type:'ending',x:15300,y:302,label:'왕궁으로 가는 문 살펴보기'});
  for(const [type,x,y,scale]of [['archiveShelf',11610,302,1.7],['archiveShelf',11940,430,1.6],['archiveShelf',12250,430,1.7],['archiveShelf',12500,430,1.5],['archiveShelf',12960,302,1.6],['archiveShelf',13480,302,1.8],['archiveShelf',14340,302,1.9],['archiveShelf',14700,302,1.9],['archiveShelf',15170,302,1.6]])world.scenery.push({type,x,y,s:scale});
  for(const[id,type,x,y]of [['e18','watchman',11680,302],['e19','wisp',12080,406],['e20','cantor',12510,430],['e21','watchman',13010,302],['e22','cantor',13500,302]])world.enemies.push(enemy(id,type,x,y,3));
+ // Keep architecture out of the route; only real closed barriers use gate art.
+ world.scenery=world.scenery.filter(d=>!['arch','tower','columns','lift'].includes(d.type));
+ for(const d of world.scenery){if(d.type==='statue'&&d.x===1160){d.x=1300;d.y=302;}}
+ world.gates=world.gates.filter(g=>g.id!=='slag');
+ for(const g of world.gates){const floor=g.y+g.h;if(g.id==='mechanism')Object.assign(g,{x:2736,y:162,w:32,h:140});else if(g.id.startsWith('arena-'))Object.assign(g,{w:30});else{Object.assign(g,{w:46,h:Math.min(202,g.h),y:floor-Math.min(202,g.h)});if(g.id==='palace-closed')g.x=15348;}}
+ for(const p of world.platforms)if(p.oneway&&p.material!=='archive')p.tile=0;
+ const camps=[['outer',260,'성벽 밖 정비대'],['gate',2990,'회랑 정비대'],['nave',4600,'성당 문턱 정비대'],['choir',6445,'성가대석 정비대'],['works',7770,'제철소 정비대'],['anvil',9640,'모루 앞 정비대'],['archive',11310,'서고 문턱 정비대'],['index',13850,'기록실 정비대']];
+ for(const[checkpoint,x,name]of camps)world.objects.push({id:'workshop-'+checkpoint,type:'workshop',checkpoint,x,y:302,name,label:'장비 정비 · 종길 이동'});
  return world;}
 export function enemy(id,type,x,y,rank=0){const flying=type==='wisp',hp=Math.round((type==='watchman'?88:type==='cantor'?72:56)*(1+rank*.18));return{id,type,rank,x,y,homeX:x,homeY:y,w:flying?30:22,h:flying?30:48,hp,maxHp:hp,vx:0,vy:0,dir:-1,state:'idle',t:0,cooldown:1.1,stagger:0,dead:false,deathT:0,hit:0,walk:0,flying};}
 export const overlaps=(a,b)=>a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;
