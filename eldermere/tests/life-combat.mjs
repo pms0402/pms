@@ -15,7 +15,7 @@ try{
   for(const type of ['sword','greatsword','dagger','bow','staff','helmet','armor','gloves','boots']){if(!g.life.startRecipe('iron_'+type))throw Error('Cannot forge '+type);window.finishActivity();}
   const cases=[];
   for(const [type,distance]of [['sword',42],['greatsword',60],['dagger',26],['bow',150],['staff',140]]){
-   g.state.map='overworld';Object.assign(g.p,{x:620,y:730,stamina:100,hp:100});g.projectiles=[];g.attack=null;g.attackCooldown=0;const gear=g.life.l.gear.find(x=>x.type===type);g.life.equip(gear.uid);const e=enemy('fixture-'+type,620+distance,730,'wolf');e.hp=e.maxHp=300;e.cooldown=999;g.world.enemies=[e];const hp=e.hp,stamina=g.p.stamina;g.strike(0);step(type==='bow'||type==='staff'?.7:.15);cases.push({type,damage:hp-e.hp,staminaSpent:stamina-g.p.stamina,projectile:g.life.profile().projectile||null});
+   g.state.map='overworld';Object.assign(g.p,{x:620,y:680,stamina:100,hp:100});g.projectiles=[];g.attack=null;g.attackCooldown=0;const gear=g.life.l.gear.find(x=>x.type===type);g.life.equip(gear.uid);const e=enemy('fixture-'+type,620+distance,680,'wolf');e.hp=e.maxHp=300;e.cooldown=999;g.world.enemies=[e];const hp=e.hp,stamina=g.p.stamina;g.strike(0);step(type==='bow'||type==='staff'?.7:.15);cases.push({type,damage:hp-e.hp,staminaSpent:stamina-g.p.stamina,projectile:g.life.profile().projectile||null});
   }
   // A wall stops the actual swept projectile before it can hit a target.
   g.attack=null;g.attackCooldown=0;g.projectiles=[];Object.assign(g.p,{x:425,y:600,stamina:100});g.life.equip(g.life.l.gear.find(x=>x.type==='bow').uid);const blocked=enemy('wall-test',425,500,'wolf');blocked.cooldown=999;g.world.enemies=[blocked];g.strike(-Math.PI/2);step(.6);const wallBlocked=blocked.hp===blocked.maxHp;

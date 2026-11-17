@@ -1,6 +1,6 @@
 {
   "name": "eldermere",
-  "version": "0.6.0",
+  "version": "0.8.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -15,6 +15,9 @@
     "build:website": "node build-website.mjs",
     "verify:website": "node verify-website.mjs",
     "test:website": "node tests/website.mjs",
-    "test:presentation": "node tests/presentation.mjs"
+    "test:presentation": "node tests/presentation.mjs",
+    "test:controls": "node tests/controls-browser.mjs",
+    "test:art": "node tests/art-browser.mjs",
+    "test:pack": "node tests/pack-browser.mjs"
   }
 }

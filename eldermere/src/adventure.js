@@ -28,14 +28,14 @@ export class AdventureSystem{
  this.hazards=this.hazards.filter(h=>!h.dead);
  }
  hazard(e,kind,data){this.hazards.push({map:e.map,kind,t:.9,life:.25,damage:e.damage,radius:34,color:e.type==='emberlord'?'#e79759':e.type==='frostqueen'?'#9fded4':'#c3a0df',...data});}
- enemy(e,dt){if(!e.boss)return false;e.hit=Math.max(0,e.hit-dt);e.cooldown-=dt;e.slow=Math.max(0,(e.slow||0)-dt);const p=this.g.p,dx=p.x-e.x,dy=p.y-e.y,d=Math.hypot(dx,dy);if(d>360&&Math.hypot(e.x-e.homeX,e.y-e.homeY)<10)return true;
- if(e.cooldown<=0){const phase=e.hp<e.maxHp*.5,round=e.round++;
+ enemy(e,dt){if(!e.boss)return false;e.castFlash=Math.max(0,(e.castFlash||0)-dt);e.hit=Math.max(0,e.hit-dt);e.cooldown-=dt;e.slow=Math.max(0,(e.slow||0)-dt);const p=this.g.p,dx=p.x-e.x,dy=p.y-e.y,d=Math.hypot(dx,dy);if(d>360&&Math.hypot(e.x-e.homeX,e.y-e.homeY)<10)return true;
+ if(e.cooldown<=0){e.castFlash=.7;const phase=e.hp<e.maxHp*.5,round=e.round++;
   if(e.type==='emberlord'){if(round%2===0){for(let i=0;i<(phase?4:3);i++)this.hazard(e,'circle',{x:p.x+(i===0?0:Math.cos(i*2.3)*65),y:p.y+(i===0?0:Math.sin(i*2.3)*60),t:.95+i*.16,radius:phase?42:35});}else {const a=Math.atan2(dy,dx);this.hazard(e,'line',{x:e.x,y:e.y,xx:e.x+Math.cos(a)*265,yy:e.y+Math.sin(a)*265,radius:19,t:1});}e.cooldown=phase?2.6:3.4;}
   if(e.type==='frostqueen'){const a=Math.atan2(dy,dx);for(let i=0;i<(phase?8:5);i++)this.hazard(e,'orb',{x:e.x,y:e.y-5,angle:phase?i*Math.PI/4:a+(i-2)*.24,speed:105,life:3.3,radius:8,t:.85,slow:true});if(round%2===1)this.hazard(e,'circle',{x:p.x,y:p.y,radius:50,t:1.35,slow:true});e.cooldown=phase?2.5:3.5;}
   if(e.type==='riftkeeper'){if(round%2===0){for(let i=0;i<2;i++){const a=(round*.45)+i*Math.PI/2;this.hazard(e,'line',{x:e.x-Math.cos(a)*290,y:e.y-Math.sin(a)*290,xx:e.x+Math.cos(a)*290,yy:e.y+Math.sin(a)*290,radius:phase?24:18,t:1.1});}}else{for(let i=0;i<(phase?8:5);i++)this.hazard(e,'orb',{x:e.x,y:e.y,angle:Math.atan2(dy,dx)+(i-(phase?3.5:2))*.3,speed:130,life:3,radius:9,t:.8});this.hazard(e,'circle',{x:p.x,y:p.y,radius:45,t:1.1});}e.cooldown=phase?2.2:3.2;}
   this.g.event('sound',{name:'cast'});
  }
- if(d>55){const speed=(e.slow?13:23)*dt;this.g.move(e,dx/(d||1)*speed,dy/(d||1)*speed,12);}return true;
+ if(d>55&&e.hit<=0)this.g.pursueEnemy(e,p,e.slow?13:23,dt,55);return true;
  }
  onKill(e){this.r.kills[e.type]=(this.r.kills[e.type]||0)+1;const c=CHAPTERS.find(c=>c.boss===e.id);if(c){e.dead=true;e.respawn=1e12;this.s.killed[e.id]=1e12;if(this.r.clears.includes(c.boss))return true;if(CHAPTERS.indexOf(c)!==stageAt(this.s))return true;this.r.clears.push(c.boss);this.s.inventory[c.reward]+=4;this.s.gold+=c.gold;this.g.gainXp(c.xp);if(c.boss==='guardian'){this.s.inventory.crystal++;if(this.s.quest===2)this.s.quest=3;this.g.life.unlock('silver');}if(c.boss==='frostqueen')this.g.life.unlock('mythril');this.g.notify('챕터 완료 · '+c.name+'! '+c.unlock+' 해금','level');this.g.event('chapter',{chapter:c});this.hazards=[];this.g.save(false);return true;}
  const special=({emberling:'emberCore',frostling:'frostHeart',riftsentinel:'starSigil'})[e.type];if(special&&this.r.kills[e.type]%3===0){this.s.inventory[special]++;this.g.notify('전투 전용 재료를 얻었습니다.','level');}return false;

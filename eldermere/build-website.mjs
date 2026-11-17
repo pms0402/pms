@@ -1,4 +1,5 @@
 import { build } from 'esbuild';
+import {ART_SHEETS} from './src/pixel-atlas.js';
 import { readFile, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import './build.mjs';
@@ -20,7 +21,7 @@ await writeFile(new URL('dist/game.js', root), code);
 const digest=createHash('sha256').update(code).digest('hex');
 await writeFile(new URL('dist/index.html', root), html.replace('./game.js', './game.js?v='+digest.slice(0,12)).replace('./style.css', './style.css?v='+pkg.version));
 const portraits=await readFile(new URL('assets/portraits/characters.png',root));
-const worldArt={};for(const name of ['structures','nature','props'])worldArt[name]='data:image/png;base64,'+(await readFile(new URL('assets/world/'+name+'.png',root))).toString('base64');
+const worldArt={};for(const name of ['structures','nature','props',...Object.keys(ART_SHEETS)])worldArt[name]='data:image/png;base64,'+(await readFile(new URL('assets/world/'+name+'.png',root))).toString('base64');
 const portable = html
   .replace('<link rel="preload" as="image" href="./assets/portraits/characters.png">', '')
   .replace('<link rel="stylesheet" href="./style.css">', () => '<style>' + css + '</style>')

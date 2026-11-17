@@ -1,7 +1,8 @@
+import {makeOutdoorTerrain,fillFloor} from './terrain.js';
+import {neighborhoodWorld,dressWorld,townRoadDistance} from './world-composition.js';
 import {valleyWorld,placeBlocked} from './valley-world.js';
 import {valleySea} from './valley-data.js';
 import {adventureWorld,ruinBlocked,RUINS} from './adventure-world.js';
-import {polishGround} from './illustration.js';
 import {lifeWorld,indoorBlocked} from './life-world.js';
 import {hash,Pixel,sprite,spriteSize,drawSprite} from './art.js';
 import {WORLD,DUNGEON_WALLS,isWater,isPath,riverX,regionAt,onBridge,isOriginalPath} from './data.js';
@@ -18,37 +19,17 @@ export function createWorld(){const objects=[],enemies=[];let id=0;const add=(ty
  for(const [x,y]of[[896,740],[924,765],[963,790],[1300,591],[1420,413],[1550,360],[400,330],[480,315],[1530,900]])add('ore',x,y,{radius:13,resource:'ore',hits:2,label:'청철 광맥 · 광석 채집',interact:'gather'});
  for(let j=0;j<44;j++){const x=260+hash(j,32)*1350,y=350+hash(42,j)*850;if(isWater(x,y)||isOriginalPath(x,y)||objects.some(o=>Math.hypot(x-o.x,y-o.y)<45))continue;add('herb',Math.round(x),Math.round(y),{resource:'herb',hits:1,label:'달빛풀 · 채집',interact:'gather'});}
  for(const [x,y]of[[734,756],[847,737],[535,870],[760,1092]])add('herb',x,y,{resource:'herb',hits:1,label:'달빛풀 · 채집',interact:'gather'});
- for(const [x,y,type]of[[1290,660,'slime'],[1350,550,'slime'],[1440,780,'wolf'],[1580,610,'wolf'],[1550,420,'slime'],[1380,960,'slime'],[350,280,'wolf'],[700,240,'wolf'],[1600,1180,'wolf']])enemies.push(enemy('e'+enemies.length,x,y,type));
- const life=lifeWorld(),adventure=adventureWorld(),valley=valleyWorld();life.objects.push(...valley.objects);Object.assign(life.maps,valley.maps);life.objects.push(...adventure.objects);life.enemies.push(...adventure.enemies);Object.assign(life.maps,adventure.maps);const reserved=life.objects.filter(o=>o.map==='overworld'&&!o.decor&&!['plot','stonePile','mushroomPatch','appleTree'].includes(o.type));const retained=objects.filter(o=>!['tree','pine','herb'].includes(o.type)||!reserved.some(n=>Math.hypot(o.x-n.x,o.y-n.y)<45));return {objects:retained,enemies:[...enemies,...life.enemies],ground:createGround(),dungeon:createDungeon(),lifeObjects:life.objects,maps:life.maps};}
-export function enemy(id,x,y,type,map='overworld'){return{id,x,y,homeX:x,homeY:y,type,map,hp:type==='guardian'?180:type==='wolf'?58:42,maxHp:type==='guardian'?180:type==='wolf'?58:42,cooldown:.5,windup:0,hit:0,dead:false,respawn:0};}
-function createGround(){const p=new Pixel(WORLD.w,WORLD.h);
- for(let y=0;y<WORLD.h;y+=4)for(let x=0;x<WORLD.w;x+=4){let col;const h=hash(x,y,5),forest=regionAt(x,y)==='forest'||x>1200;
- const river=Math.abs(x-riverX(y)),lake=((x-1310)/265)**2+((y-1130)/175)**2;
- if(isWater(x,y))col=h>.82?'#599db2':h>.4?'#5197ad':'#4b91a9';
- else if(x>3380&&y<1250)col=h>.5?'#e6ca93':'#dbc08a';
- else if(river<59||lake<1.1&&lake>.9)col=h>.5?'#a6a37a':'#8f9868';
- else if(isPath(x+(h-.5)*9,y+(hash(y,x)-.5)*9))col=h>.8?'#cab784':h>.25?'#b8a674':'#a89767';
- else{let shade=hash(Math.floor(x/45),Math.floor(y/45),1);col=forest?(h>.8?'#7ea85e':shade>.6?'#598c50':'#669653'):(h>.88?'#9bbb69':shade>.5?'#83aa59':'#8ab25e');}
- p.r(x,y,4,4,col);
- if(h>.88&&!isWater(x,y)&&!isPath(x,y)){p.r(x,y,1,2,forest?'#93a364':'#a4b575');p.r(x+1,y+1,1,2,'#68874d');}
- if(h<.04&&isPath(x,y))p.r(x,y,2,1,'#d9c796');
+ for(const [x,y,type]of[[1290,660,'slime'],[1350,550,'slime'],[1440,780,'wolf'],[1580,610,'wolf'],[1550,420,'slime'],[1380,960,'slime'],[230,180,'wolf'],[760,150,'wolf'],[1600,1180,'wolf']])enemies.push(enemy('e'+enemies.length,x,y,type));
+ const life=lifeWorld(),adventure=adventureWorld(),valley=valleyWorld();life.objects.push(...valley.objects,...neighborhoodWorld());dressWorld(life.objects);Object.assign(life.maps,valley.maps);life.objects.push(...adventure.objects);life.enemies.push(...adventure.enemies);Object.assign(life.maps,adventure.maps);const reserved=life.objects.filter(o=>o.map==='overworld'&&!o.decor&&!['plot','stonePile','mushroomPatch','appleTree'].includes(o.type));const retained=objects.filter(o=>!['tree','pine','herb'].includes(o.type)||!reserved.some(n=>Math.hypot(o.x-n.x,o.y-n.y)<45));clearNewStreets(retained,life.objects);return {objects:retained,enemies:[...enemies,...life.enemies],ground:createGround(),dungeon:createDungeon(),lifeObjects:life.objects,maps:life.maps};}
+function clearNewStreets(objects,lifeObjects){
+ const all=[...objects,...lifeObjects],fixed=new Set(['295,584','307,811','914,827','895,486','300,480','945,595','756,390','530,396','360,690','940,708']),empty={time:0,harvested:{},life:{nodes:{}}};
+ for(const o of all){if(o.resource!=='wood'||o.map&&o.map!=='overworld'||o.x>1150||o.y>1400||fixed.has(o.x+','+o.y)||townRoadDistance(o.x,o.y)>24)continue;
+  const ox=o.x,oy=o.y;outer:for(let r=36;r<=180;r+=12)for(let i=0;i<20;i++){const x=Math.round(ox+Math.cos(i*Math.PI/10)*r),y=Math.round(oy+Math.sin(i*Math.PI/10)*r);if(townRoadDistance(x,y)<26||blocked(x,y,'overworld',all,empty,14))continue;o.x=x;o.y=y;break outer;}
  }
- // Timber bridge crosses the river, with planks, nails and rails.
- const bx=Math.round(riverX(680));p.r(bx-103,654,206,52,'#46554a');for(let x=bx-98;x<bx+98;x+=7){p.r(x,657,6,44,'#927e56');p.r(x,657,6,2,'#b9a16a');p.r(x+2,660,1,2,'#4d5844');p.r(x+2,695,1,2,'#4d5844');}p.r(bx-103,653,206,4,'#c5af75');p.r(bx-103,701,206,4,'#665c3e');
- for(let x=bx-100;x<=bx+100;x+=40){p.r(x,643,4,16,'#726640');p.r(x,645,2,9,'#d2ba7c');p.r(x,692,4,17,'#746743');}
- for(const cy of [2160,2500]){const cx=Math.round(riverX(cy));p.r(cx-108,cy-27,216,54,'#4d695d');for(let x=cx-104;x<cx+104;x+=7){p.r(x,cy-23,6,46,'#ad8c58');p.r(x,cy-23,6,2,'#dfbc7c');p.r(x+2,cy-20,1,2,'#5e5e43');}p.r(cx-109,cy-27,218,4,'#e3c48c');p.r(cx-109,cy+25,218,4,'#735e40');}
- for(let y=1560;y<1745;y+=7)for(let x=2830;x<3150;x+=10){p.r(x+(y%2)*4,y,9,6,hash(x,y)>.5?'#c8b889':'#b9ac7c');p.r(x+1,y,7,1,'#e3d2a3');}
- const pierX=3230;for(let x=pierX;x<3640;x+=8){p.r(x,628,7,45,'#b79965');p.r(x,628,7,2,'#ecd19b');p.r(x+2,632,1,2,'#796c4d');}p.r(pierX,626,410,3,'#d7c390');p.r(pierX,672,410,4,'#6c7150');
- // Planted fields: tilled furrows, cabbages and wheat, never placeholder tiles.
- for(let y=957;y<1085;y+=18){p.r(310,y-2,214,13,'#8f7951');p.r(311,y,212,2,'#695f40');for(let x=316;x<522;x+=15){let v=hash(x,y);p.r(x,y+2,1,9,'#4e6b3b');if(x<420){p.ellipse(x,y+5,4,3,'#496a3e');p.ellipse(x-1,y+3,3,3,'#8da163');p.r(x-2,y+2,2,1,'#b9c48b');}else{p.line(x,y+8,x,y-2,'#c7ad62');p.r(x-2,y,4,2,'#dfc27a');p.r(x-2,y+4,4,2,'#d1b16d');if(v>.5)p.r(x+2,y+6,3,1,'#8d9953');}}}
- // Worn stepping stones connect the doorsteps to the village road.
- for(const [x,y]of[[425,557],[812,538],[425,833],[811,846]]){const lo=Math.min(y+4,680),hi=Math.max(y+4,680);for(let yy=lo;yy<hi;yy+=9){const xx=x+Math.sin(yy*.07)*2;p.r(xx-5,yy,10,5,'#a8aa83');p.r(xx-4,yy,8,1,'#c1ba8f');p.r(xx-4,yy+5,8,1,'#657d51');}}
- // Cobblestone village square, irregular 4px stones.
- for(let y=608;y<698;y+=6)for(let x=554;x<685;x+=8)if(Math.hypot((x-620)*.8,y-655)<49){let h=hash(x,y);p.r(x+(y%4),y,7,5,h>.5?'#a7a581':'#949a77');p.r(x+1+(y%4),y,5,1,'#bdba92');}
- // Ground flowers, scattered fern fans and pebbles.
- for(let i=0;i<2000;i++){let x=Math.floor(hash(i,81)*WORLD.w),y=Math.floor(hash(i,21)*WORLD.h);if(isWater(x,y)||isPath(x,y)||x>290&&x<550&&y>930&&y<1130)continue;if(i%3===0){p.r(x,y,1,3,'#577644');p.r(x-1,y,3,1,i%2?'#e6d99e':'#cbb0a7');p.dot(x,y-1,i%2?'#f1e1ac':'#e1c7b8');}else{p.line(x,y,x-3,y-4,'#567743');p.line(x,y,x+3,y-3,'#9ab16b');p.line(x,y,x,y-5,'#91a561');}}
- return polishGround(p.canvas);}
-function createDungeon(){const p=new Pixel(640,512);p.r(0,0,640,512,'#162a2d');for(let y=48;y<466;y+=16)for(let x=64;x<576;x+=16){let h=hash(x,y);p.r(x,y,15,15,h>.6?'#3c5254':'#364c4e');p.r(x+1,y+1,13,1,'#506467');if(h>.7)p.line(x+2,y+6,x+8,y+11,'#263d40');}p.r(64,46,512,8,'#77837a');p.r(64,54,512,12,'#4b6261');p.r(64,66,512,5,'#243e40');for(let x=76;x<576;x+=31)p.r(x,51,28,3,'#8a9082');
+}
+export function enemy(id,x,y,type,map='overworld'){return{id,x,y,homeX:x,homeY:y,type,map,hp:type==='guardian'?180:type==='wolf'?58:42,maxHp:type==='guardian'?180:type==='wolf'?58:42,cooldown:.5,windup:0,hit:0,dead:false,respawn:0};}
+function createGround(){return makeOutdoorTerrain();}
+function createDungeon(){const p=new Pixel(640,512);p.r(0,0,640,512,'#162a2d');fillFloor(p.c,7,64,76,512,382);p.r(64,46,512,8,'#77837a');p.r(64,54,512,12,'#4b6261');p.r(64,66,512,5,'#243e40');for(let x=76;x<576;x+=31)p.r(x,51,28,3,'#8a9082');
  for(const [x,y]of[[160,156],[480,156],[160,340],[480,340]]){p.r(x-14,y-44,29,45,'#273f43');p.r(x-12,y-44,25,33,'#627575');p.r(x-15,y-46,31,6,'#94a095');p.r(x-15,y-12,31,7,'#85958d');p.r(x-9,y-36,3,20,'#879891');p.r(x+6,y-36,3,20,'#445f61');}
  for(const wall of DUNGEON_WALLS){p.r(wall.x,wall.y,wall.w,wall.h+5,'#1c3338');p.r(wall.x,wall.y,wall.w,wall.h,'#536968');p.r(wall.x,wall.y,wall.w,3,'#a2aa95');for(let x=wall.x+3;x<wall.x+wall.w-6;x+=16){p.r(x,wall.y+4,13,5,'#7d8e82');p.r(x+6,wall.y+11,12,4,'#687e77');}}
  // A ritual mosaic, broken masonry and blue mineral seams give the ruin its own identity.
@@ -65,10 +46,10 @@ export function drawObject(ctx,o,time,state){if(o.hidden||o.interact==='placeEnt
  if(o.plotIndex!==undefined){const plot=state.life.plots[o.id];if(plot?.crop){const cropTime=({wheat:55,carrot:80,melon:125,starbean:90,emberPepper:120,frostLotus:160})[plot.crop];type='crop_'+plot.crop+'_'+(plot.growth>=cropTime?3:plot.growth>cropTime*.4?2:1);}else if(!plot?.tilled){type='plotWild';}else type='plot';}
  if(state.life?.nodes[o.id]?.until>time){if(o.interact==='mining')type='rubble';else if(o.resourceId==='apple')type='appleTree';else return;}
  if(o.resource&&state.harvested[o.id]?.until>state.time){if(o.resource!=='wood')return;type='stump';}
- const animated=['forge','cookfire','smith','miner','fisher'].includes(type);const img=sprite(type,animated?Math.floor(time*3)%4:o.variant||0);const size=spriteSize(img);let anchorX=size.w/2,anchorY=size.h-7;
+ const animated=['forge','cookfire'].includes(type);const img=sprite(type,o.npc?(o.moving?Math.floor(o.walk||0)%4:0):animated?Math.floor(time*3)%4:o.variant||0,o.dir||0);const size=spriteSize(img);let anchorX=size.w/2,anchorY=size.h-7;
  if(['house','shop','mill'].includes(type))anchorY=132;if(type.startsWith('property_'))anchorY=size.h-8;
  if(type==='tree'||type==='pine')anchorY=size.h-8;
- drawSprite(ctx,img,Math.round(o.x-anchorX),Math.round(o.y-anchorY));
+ if(o.npc||o.solid||o.resource==='wood'){ctx.save();ctx.fillStyle='#15362d35';ctx.beginPath();ctx.ellipse(o.x,o.y+2,o.npc?10:o.solid?Math.min(57,o.solid.w/2):18,o.npc?3:6,0,0,7);ctx.fill();ctx.restore();}drawSprite(ctx,img,Math.round(o.x-anchorX),Math.round(o.y-anchorY));if(type==='forge'||type==='cookfire'){ctx.save();ctx.globalCompositeOperation='screen';ctx.globalAlpha=.12+Math.sin(time*8+o.x)*.05;ctx.fillStyle='#ffb64d';ctx.beginPath();ctx.ellipse(o.x,o.y-19,8,6,0,0,7);ctx.fill();ctx.restore();}
  if(o.plotIndex!==undefined&&state.life.plots[o.id]?.water>0){ctx.fillStyle='#7eacb944';ctx.fillRect(o.x-15,o.y-3,30,3);}
  if(o.interact==='mining'&&state.life.job?.id===o.id){const j=state.life.job;ctx.fillStyle='#243c32';ctx.fillRect(o.x-16,o.y+5,32,3);ctx.fillStyle='#ddc98f';ctx.fillRect(o.x-16,o.y+5,32*(1-j.remaining/j.total),2);}
  if(o.npc){ctx.font='8px sans-serif';ctx.textAlign='center';ctx.fillStyle=o.working?'#e0c481':'#b2c2a0';ctx.fillText(o.working?'◈':'z',o.x,o.y-39);}

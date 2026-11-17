@@ -20,10 +20,10 @@ export const CROPS = {
 export const SKILLS={mining:'채광',smelting:'제련',smithing:'대장장이',logging:'벌목',farming:'농사',fishing:'낚시',cooking:'요리',commerce:'상업'};
 export const WEAPONS={
   sword:{name:'검', damage:1, cooldown:.40, range:49, arc:1.15, stamina:5, desc:'균형 잡힌 베기'},
-  greatsword:{name:'대검', damage:1.65, cooldown:.88, range:65, arc:1.65, stamina:14, desc:'넓은 범위 · 느린 회복 · 높은 기력 소모'},
+  greatsword:{name:'대검', damage:1.65, cooldown:.88, range:65, arc:1.65, stamina:14, desc:'넓은 범위 · 느린 회복 · 높은 전투 활력 소모'},
   dagger:{name:'단검', damage:.65, cooldown:.22, range:33, arc:.7, stamina:3, desc:'빠른 찌르기 · 짧은 사거리'},
   bow:{name:'활', damage:.85, cooldown:.65, range:270, arc:0, stamina:8, projectile:'arrow', desc:'긴 사거리 · 단일 표적 · 화살 자동 보충'},
-  staff:{name:'지팡이', damage:1.05, cooldown:.90, range:190, arc:0, stamina:18, projectile:'spark', desc:'폭발 마법 · 기력 소모 · 느린 발사'}
+  staff:{name:'지팡이', damage:1.05, cooldown:.90, range:190, arc:0, stamina:18, projectile:'spark', desc:'폭발 마법 · 전투 활력 소모 · 느린 발사'}
 };
 export const GEAR_TYPES={...Object.fromEntries(Object.entries(WEAPONS).map(([k,v])=>[k,{name:v.name,slot:'weapon'}])),helmet:{name:'투구',slot:'head'},armor:{name:'갑옷',slot:'body'},gloves:{name:'장갑',slot:'hands'},boots:{name:'신발',slot:'feet'}};
 export const QUALITIES=[{name:'보통',mult:1},{name:'정교',mult:1.15},{name:'명장',mult:1.32}];
@@ -33,11 +33,11 @@ const item=(id,name,icon,value,desc='')=>LIFE_ITEMS[id]={name,icon,value,desc};
 for(const [id,m] of Object.entries(METALS)){item(id+'Ore',m.name+' 광석',id+'Ore',m.value,'곡괭이 '+m.tier+'등급 이상 · 제련 재료');item(id+'Bar',m.name+' 주괴',id+'Bar',m.barValue,'용광로에서 제련한 금속');}
 for(const [id,c] of Object.entries(CROPS)){item(c.seed,c.name+' 씨앗','seed',c.stage?8+c.stage*5:id==='melon'?12:id==='carrot'?5:3,'개간한 밭에 심으세요');item(id,c.name,id,c.value,`성장 ${c.time}초 · 기본 수확 ${c.yield}개`);}
 for(const [id,n,ico,value,desc] of [
- ['stone','석재','stone',2,'용광로와 집 시설 재료'],['coal','석탄','coal',3,'광석 2개와 석탄 1개로 주괴 2개 제련'],['plank','가공 목재','plank',7,'목재 2개를 작업대에서 가공'],['mushroom','숲버섯','mushroom',5,'요리 재료'],['apple','야생 사과','apple',6,'회복 음식과 요리 재료'],['fish','은빛 송어','fish',10,'호수와 강에서 낚시'],['rareFish','황금 농어','rareFish',28,'낚시 숙련도에 따라 확률 증가'],['bait','낚시 미끼','bait',2,'낚시 시도당 하나 소비'],['pelt','짐승 가죽','pelt',8,'늑대 부산물 · 가구 재료'],['gel','슬라임 진액','gel',5,'몬스터 부산물'],['ancientShard','고대 파편','ancientShard',25,'깊은 광산의 수호자 · 특수 장비 재료'],['relic','고대 보물','relic',55,'던전 보물 · 지역별 가격 차이'],['grilledFish','허브 생선구이','grilledFish',24,'체력 60 · 기력 30 회복'],['stew','농부의 스튜','stew',35,'체력 75 · 기력 60 회복'],['moonFeast','달빛 만찬','moonFeast',90,'체력과 기력 완전 회복'],['copperPick','구리 곡괭이','pickaxe',38,'등급 1 · 철 채굴 가능'],['ironPick','철 곡괭이','ironPick',72,'등급 2 · 은·금 채굴 가능'],['steelPick','은강 곡괭이','steelPick',120,'등급 3 · 미스릴 채굴 가능'],['silverBook','은세공 도안','book',50,'사용하면 은 장비 레시피 해금']
+ ['stone','석재','stone',2,'용광로와 집 시설 재료'],['coal','석탄','coal',3,'광석 2개와 석탄 1개로 주괴 2개 제련'],['plank','가공 목재','plank',7,'목재 2개를 작업대에서 가공'],['mushroom','숲버섯','mushroom',5,'요리 재료'],['apple','야생 사과','apple',6,'회복 음식과 요리 재료'],['fish','은빛 송어','fish',10,'호수와 강에서 낚시'],['rareFish','황금 농어','rareFish',28,'낚시 숙련도에 따라 확률 증가'],['bait','낚시 미끼','bait',2,'낚시 시도당 하나 소비'],['pelt','짐승 가죽','pelt',8,'늑대 부산물 · 가구 재료'],['gel','슬라임 진액','gel',5,'몬스터 부산물'],['ancientShard','고대 파편','ancientShard',25,'깊은 광산의 수호자 · 특수 장비 재료'],['relic','고대 보물','relic',55,'던전 보물 · 지역별 가격 차이'],['grilledFish','허브 생선구이','grilledFish',24,'체력 60 · 전투 활력 30 회복'],['stew','농부의 스튜','stew',35,'체력 75 · 전투 활력 60 회복'],['moonFeast','달빛 만찬','moonFeast',90,'체력과 전투 활력 완전 회복'],['copperPick','구리 곡괭이','pickaxe',38,'등급 1 · 철 채굴 가능'],['ironPick','철 곡괭이','ironPick',72,'등급 2 · 은·금 채굴 가능'],['steelPick','은강 곡괭이','steelPick',120,'등급 3 · 미스릴 채굴 가능'],['silverBook','은세공 도안','book',50,'사용하면 은 장비 레시피 해금']
 ])item(id,n,ico,value,desc);
 for(const [id,name,ico,value,desc]of [
- ['starSalad','별빛 샐러드','food',45,'체력 50 · 기력 50 · 60초 공격력 +4'],['emberStew','잿불 어부의 스튜','stew',65,'체력 85 · 기력 60 · 60초 공격력 +4'],['frostTea','서리꽃 차','potion',55,'체력 40 · 기력 60 · 60초 방어력 +3'],
- ['egg','산들 달걀','egg',9,'목장 수확 · 요리와 판매'],['milk','구름빛 우유','milk',16,'젖소 수확 · 치즈 재료'],['wool','달솜 양모','wool',24,'양 수확 · 직물 재료'],['feed','목장 사료','feed',3,'가축 한 번의 생산을 돕습니다'],['cheese','숙성 치즈','cheese',48,'가공품 · 체력 70 회복'],['cloth','달솜 직물','cloth',62,'가공품 · 고급 거래품'],['omelet','정원 오믈렛','omelet',32,'체력 55 · 기력 70 · 60초 전투 집중'],['starJam','별콩 잼','starJam',45,'가공품 · 지역 무역'],['emberCore','잿불 핵','emberCore',0,'전투 전용 · 성채 보스와 잿불 정찰대'],['frostHeart','서리 심장','frostHeart',0,'전투 전용 · 왕릉 보스와 서리 망령'],['starSigil','별의 인장','starSigil',0,'전투 전용 · 별의 경계']
+ ['starSalad','별빛 샐러드','food',45,'체력 50 · 전투 활력 50 · 60초 공격력 +4'],['emberStew','잿불 어부의 스튜','stew',65,'체력 85 · 전투 활력 60 · 60초 공격력 +4'],['frostTea','서리꽃 차','potion',55,'체력 40 · 전투 활력 60 · 60초 방어력 +3'],
+ ['egg','산들 달걀','egg',9,'목장 수확 · 요리와 판매'],['milk','구름빛 우유','milk',16,'젖소 수확 · 치즈 재료'],['wool','달솜 양모','wool',24,'양 수확 · 직물 재료'],['feed','목장 사료','feed',3,'가축 한 번의 생산을 돕습니다'],['cheese','숙성 치즈','cheese',48,'가공품 · 체력 70 회복'],['cloth','달솜 직물','cloth',62,'가공품 · 고급 거래품'],['omelet','정원 오믈렛','omelet',32,'체력 55 · 전투 활력 70 · 60초 전투 집중'],['starJam','별콩 잼','starJam',45,'가공품 · 지역 무역'],['emberCore','잿불 핵','emberCore',0,'전투 전용 · 성채 보스와 잿불 정찰대'],['frostHeart','서리 심장','frostHeart',0,'전투 전용 · 왕릉 보스와 서리 망령'],['starSigil','별의 인장','starSigil',0,'전투 전용 · 별의 경계']
 ])item(id,name,ico,value,desc);
 export const PROCESS_RECIPES=[
  {id:'potion',name:'회복 물약',out:'potion',qty:2,cost:{herb:2},station:'field',skill:'cooking',time:3,xp:5,legacy:true},

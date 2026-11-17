@@ -42,6 +42,9 @@ export function lifeIcon(Pixel,name){
  const sprites={stone:'stonePile',coal:'coalVein',mushroom:'mushroomPatch',apple:'appleTree',relic:'relicChest',wheat:'crop_wheat_3',carrot:'crop_carrot_3',melon:'crop_melon_3'};
  if(sprites[name]){p.c.drawImage(lifeSprite(Pixel,sprites[name]),0,0,24,24);return p.canvas;}
  switch(name){
+ case'axe':p.line(5,23,15,5,'#a27b49');p.line(6,22,16,5,'#dec58a');p.poly([[12,3],[15,2],[22,6],[22,14],[17,13],[13,8]],'#7e9995');p.line(19,6,21,13,'#e2e6c5');p.r(12,5,5,3,'#a78d63');break;
+ case'scythe':p.line(5,23,14,6,'#c3a66e');p.poly([[10,5],[14,2],[20,3],[23,7],[23,13],[20,9],[18,7],[14,6]],'#a2bfb5');p.line(16,3,21,6,'#ecedc8');p.r(8,17,3,2,'#776246');break;
+ case'fishingRod':p.line(3,22,15,3,'#d1b576');p.line(15,3,22,8,'#d7e2c1');p.line(22,8,22,18,'#a6c9bb');p.r(20,18,3,2,'#d59669');p.r(6,15,4,4,'#6e8c81');p.dot(7,16,'#e6d2a4');break;
  case'wateringCan':p.poly([[3,10],[14,10],[16,22],[4,22]],'#83a9a0');p.r(5,11,7,2,'#c1d3b1');p.line(6,10,6,5,'#c3cdae');p.line(6,5,12,5,'#c3cdae');p.line(12,5,14,10,'#c3cdae');p.poly([[14,17],[21,11],[23,12],[18,20]],'#acc0a8');p.r(21,9,3,4,'#d9d6b0');break;
  case'hoe':p.line(5,23,16,4,'#b79b65');p.poly([[13,2],[23,5],[21,10],[12,6]],'#aebba6');p.line(14,3,22,5,'#ded7b3');break;
  case'pickaxe':case'ironPick':case'steelPick':p.line(5,22,15,7,'#bd9f65');p.poly([[7,5],[13,2],[20,6],[23,12],[16,8],[11,7]],name==='pickaxe'?'#c49468':name==='ironPick'?'#b3c2b0':'#c9e2d0');p.line(10,3,19,6,'#f1dfb0');break;

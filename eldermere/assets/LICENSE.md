@@ -29,3 +29,9 @@ The same CC0 asset dedication applies to the original artwork additions.
 ## Valley Days original illustration atlases (0.6)
 
 `world/structures.png`, `world/nature.png`, `world/props.png` are original images generated for ELDERMERE during this development session, with alpha transparency. They depict original fantasy buildings, trees, gardens and work facilities; no third-party videogame sprites are included. The game extracts their individual cells with Canvas and retains all original source files. The original generated files also remain under `/workspace/generated_images/`.
+
+## Living World art (0.7)
+
+The following original AI-assisted sheets were generated for ELDERMERE from original descriptions and this project's own reference artwork: `world/hero.png`, `villagers.png`, `villager_motion.png`, `fauna.png`, `rift.png`, `resources.png`, `forest.png`, `architecture.png`, `details.png`, `crops.png`, `terrain.png`, `civic.png`, `interiors.png`. They contain 200 animation, object and terrain cells in total. No third-party game assets were extracted. Source images remain under `/workspace/generated_images/`. The same original-asset dedication applies.
+
+These source images are compiled at runtime by `../src/pixel-atlas.js`: uniform two authored pixels per world unit, per-sheet limited palettes (64 for terrain, 96 for most sprites, 128 for buildings), thresholded alpha and stable animation bounds. This is an image-assisted art pipeline; it does not claim every source pixel was manually painted.
