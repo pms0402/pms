@@ -12,13 +12,20 @@ export const PATTERNS={
  furnace:{name:'용광로의 숨',hint:'주황색 틈 사이에 서기',windup:1.6,active:.28,recover:1.65,range:0,damage:46,pillars:true,row:3,prep:2,strike:3},
  forgeSweep:{name:'망치 휘두르기',hint:'머리 위가 아닌 허리 쪽 준비 자세 · 거리 벌리기',windup:1.05,active:.26,recover:1.4,range:135,damage:44,row:2,prep:1,strike:3},
  charge:{name:'쇳덩이 돌진',hint:'발을 굳히면 방향 고정 · 회피하거나 막기',windup:1.2,active:.45,recover:1.5,range:95,damage:46,speed:235,row:2,prep:1,strike:4},
+ quill:{name:'행을 가르는 깃펜',hint:'깃펜을 뒤로 빼면 찌른다 · 거리 벌리거나 막기',windup:1.1,active:.25,recover:1.4,range:128,damage:43,row:1,prep:2,strike:3},
+ folio:{name:'접힌 문장',hint:'곧게 날아오는 책장 · 점프하거나 막기',windup:1.35,active:.23,recover:1.5,range:0,damage:35,shot:true,projectile:'page',row:2,prep:2,strike:3},
+ redaction:{name:'지워지는 자리',hint:'보랏빛으로 표시한 두 자리 사이로 이동',windup:1.6,active:.26,recover:1.6,range:0,damage:45,pillars:true,row:2,prep:2,strike:4},
+ footnote:{name:'바닥에 남은 주석',hint:'책을 내리면 낮은 잉크가 온다 · 점프',windup:1.3,active:.24,recover:1.55,range:68,damage:41,wave:33,row:2,prep:2,strike:4},
+ finalLine:{name:'끝나지 않은 문장',hint:'두 번 가른다 · 두 번째 깃펜까지 보고 반격',windup:1.2,active:.25,recover:1.5,range:135,damage:44,twice:true,row:1,prep:2,strike:4},
  forgeDouble:{name:'되돌아오는 망치',hint:'두 번 휘두른다 · 끝난 뒤 반격',windup:1.15,active:.25,recover:1.5,range:135,damage:44,row:2,prep:1,strike:3,twice:true}
 };
 export const BOSS_DEFS={
  edran:{name:'최후의 문지기, 에드란',chapter:1,x:3910,left:3395,right:4235,hp:420,clue:'memento',ability:'echo',patterns:[['sweep','slam','lunge'],['double','slam','lunge','sweep']],intro:'돌아가라. 밖에는 새벽이 오지 않는다.'},
  marie:{name:'침묵의 성녀, 마리에',chapter:2,x:6990,left:6500,right:7380,hp:620,clue:'hymn',ability:'voice',patterns:[['thrust','choir','tide'],['choir','knell','thrust','tide']],intro:'마리에는 입을 열었다. 목에 달린 작은 종만 흔들렸다.'},
+ leonel:{name:'기억의 기록관, 레오넬',chapter:4,x:14490,left:14000,right:14900,hp:980,clue:'errata',ability:'memory',patterns:[['quill','folio','footnote'],['finalLine','redaction','folio','footnote']],phaseText:'레오넬이 책의 매듭을 풀었다. 지워질 자리가 먼저 빛난다.',intro:'그 글씨를 알아보는군. …그럼 여기서 멈춰. 다음 장은 읽지 마.'},
  brag:{name:'잿빛 대장장이, 브라그',chapter:3,x:10210,left:9750,right:10740,hp:850,clue:'ledger',ability:'forge',patterns:[['hammer','forgeSweep','furnace'],['charge','hammer','forgeDouble','furnace']],intro:'그 밸브, 네가 잠갔나. …비켜. 아직 안에 사람이 있다.'}
 };
-export function createBoss(id){const d=BOSS_DEFS[id];return{id,type:id,boss:true,x:d.x,y:302,w:id==='brag'?58:48,h:id==='marie'?94:105,hp:d.hp,maxHp:d.hp,vx:0,vy:0,dir:-1,state:'idle',t:0,phase:1,cooldown:1.4,attackIndex:0,stagger:0,dead:false,deathT:0,hit:0,walk:0,targets:[]};}
+export const BOSS_ORDER=['edran','marie','brag','leonel'];
+export function createBoss(id){const d=BOSS_DEFS[id];return{id,type:id,boss:true,x:d.x,y:302,w:id==='brag'?58:48,h:id==='marie'?94:id==='leonel'?99:105,hp:d.hp,maxHp:d.hp,vx:0,vy:0,dir:-1,state:'idle',t:0,phase:1,cooldown:1.4,attackIndex:0,stagger:0,dead:false,deathT:0,hit:0,walk:0,targets:[]};}
 export function attackRect(e,warning=false){const a=PATTERNS[e.pattern];if(!a)return{x:e.x,y:e.y,w:0,h:0};const reach=a.range+(warning?(a.speed||0)*a.active:0);return{x:e.dir>0?e.x-18:e.x-reach,y:e.y-96,w:reach+18,h:96};}
 export function targetRects(e){return(e.targets||[]).map(x=>({x:x-34,y:e.y-104,w:68,h:104}));}

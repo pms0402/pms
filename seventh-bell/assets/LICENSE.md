@@ -15,6 +15,9 @@ All visual game assets in this directory were created specifically for **Echoes 
 | brag.png | exec-ce773159-c6f0-4115-ab33-c749a29e943c.png | Original Ashen Blacksmith, 6×4 animation sheet |
 | cathedral.png | exec-75c6cfa7-d16a-4949-881b-e9de7846987b.png | Original cathedral panorama |
 | foundry.png | exec-0ff42c70-4455-4b20-bcab-0e9fce11c52e.png | Original foundry city panorama |
+| leonel.png | exec-7c2acedd-d5d7-43c5-a2bc-d721093395f8.png | Original archivist boss, 6×4 animation sheet |
+| archive.png | exec-d45d0fc4-e74f-4a25-8174-8ccdc3eb5b6e.png | Original inverted archive panorama |
+| archive-objects.png | exec-6356a1a1-c1a9-4c65-a5cc-0820154c2cc6.png | Original library props and floor, 4×2 atlas |
 | bell.svg | Authored in this task | Small original UI emblem |
 
 Original generated outputs are retained in `/workspace/generated_images/`. Runtime code crops the explicit grid, rasterizes animation cells and disables interpolation. It does not use a photographic source or apply a photo-to-pixel effect. Alpha is thresholded for crisp sprite outlines. The source sheets are generated artwork, not represented as a manually hand-pixelled commercial pack.
