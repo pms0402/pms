@@ -25,6 +25,8 @@ All visual game assets in this directory were created specifically for **Echoes 
 | arkein.png | exec-1a4faf34-56e6-4d1e-a047-bfaa768c45a5.png | Dedicated crownless king, 6×4 atlas; image-tool cleanup of exec-39bda410-1bd4-434a-9797-3de407408c90.png |
 | palace.png | exec-793bca28-746f-45ea-9fa2-1d57e8d38b8e.png | Original ruined palace panorama |
 | traps.png | exec-b3cccea2-4e2b-441f-851e-b993285f5abc.png | Animated spikes, pendulum, crusher, crossbow and royal machinery, 4×3 atlas |
+| cut-body.png | exec-572cf9d7-8978-4091-917e-1d40abae33a5.png | Original body-only downstroke, rising cut, finishing cut and ready stance, 8×4 atlas |
+| steel-blade.png | exec-37f8d1be-46d6-4471-827f-70085738cbc6.png | Original separate steel sword, attached to the registered fist with constant blade length |
 | tutor.png | exec-18fde72d-f3e6-4cb6-994b-2c9b4514d781.png | Original bell repair practice automaton, 6×4 animation atlas |
 | bell.svg | Authored in this task | Small original UI emblem |
 
