@@ -1,5 +1,8 @@
+import {mapX,roomStart,EXTENSIONS,WORLD_WIDTH} from './layout.js';
+import {CHECKPOINTS} from './data.js';
+import {makeTrap} from './traps.js';
 import {createBoss,BOSS_DEFS,BOSS_ORDER} from './bosses.js';
-export const WORLD={w:15400,h:690};
+export const WORLD={w:WORLD_WIDTH,h:690};
 const ground=(x,y,w,tile=0,extra={})=>({x,y,w,h:96,tile,...extra});
 export function createWorld(){const bosses=BOSS_ORDER.map(createBoss);const world={w:WORLD.w,h:WORLD.h,
  platforms:[ground(-80,302,1190,0,{foundation:true,h:1800}),ground(1180,302,240,3),ground(1490,302,280,3),ground(1768,322,74,1,{h:14,oneway:true}),ground(1830,362,68,1,{h:14,oneway:true}),ground(1880,410,74,2,{h:14,oneway:true}),ground(1510,478,1040,2,{foundation:true,h:1800}),ground(2330,302,65),ground(2510,302,40),ground(2550,302,860,0,{foundation:true,h:1800}),ground(3390,302,1150,0,{foundation:true,h:1800}),ground(486,272,72,0,{oneway:true,h:18}),ground(550,246,128,0,{oneway:true,h:18}),ground(690,214,112,0,{oneway:true,h:18}),ground(810,202,128,0,{oneway:true,h:18}),ground(2600,244,128,0,{oneway:true,h:18}),ground(2780,190,120,0,{oneway:true,h:18}),ground(2930,132,105,0,{oneway:true,h:18}),ground(1125,222,90,3,{oneway:true,h:18,echo:true}),ground(1295,161,95,3,{oneway:true,h:18,echo:true}),ground(1465,105,130,0,{oneway:true,h:18,echo:true})],
@@ -17,7 +20,7 @@ export function createWorld(){const bosses=BOSS_ORDER.map(createBoss);const worl
  ground(8610,342,100,3,{oneway:true,h:18}),ground(8670,386,90,3,{oneway:true,h:18}),ground(9040,386,110,3,{oneway:true,h:18}),ground(9150,340,100,3,{oneway:true,h:18}),
  ground(8040,248,100,3,{oneway:true,h:18}),ground(8170,194,270,3,{oneway:true,h:18}));
  world.gates.push({id:'first-bell',x:4510,y:-120,w:25,h:422},{id:'choir-door',x:6200,y:-120,w:25,h:422},{id:'second-bell',x:7670,y:-120,w:25,h:422},{id:'furnace-door',x:9440,y:-120,w:25,h:422},{id:'slag',x:8220,y:40,w:22,h:154});
- for(const b of bosses.slice(1)){const d=[BOSS_DEFS[b.id].left,BOSS_DEFS[b.id].right];world.gates.push({id:b.id+'-left',x:d[0],y:100,w:20,h:202},{id:b.id+'-right',x:d[1],y:100,w:20,h:202});}
+ for(const b of bosses.slice(1)){const d=[BOSS_DEFS[b.id].left,BOSS_DEFS[b.id].right];world.gates.push({mapped:true,id:b.id+'-left',x:d[0],y:100,w:20,h:202},{mapped:true,id:b.id+'-right',x:d[1],y:100,w:20,h:202});}
  for(const c of [{id:'nave',x:4690},{id:'choir',x:6370},{id:'works',x:7860},{id:'anvil',x:9550}])world.objects.push({id:'shrine-'+c.id,type:'shrine',checkpoint:c.id,x:c.x,y:302,label:'종 앞에서 기록'});
  world.objects.push({id:'choir-rope',type:'bellrope',x:5760,y:188,label:'성가대석의 종줄 당기기'},{id:'hymn',type:'chest',x:6020,y:302,label:'목소리를 묶은 악보'},{id:'choirrelic',type:'chest',x:5910,y:130,echo:true,voice:true,label:'남겨 둔 목소리'},
  {id:'furnace-valve',type:'valve',x:8830,y:430,label:'용광로 밸브 잠그기'},{id:'ledger',type:'chest',x:9190,y:430,label:'작업반의 출근 장부'},{id:'forgecache',type:'chest',x:8350,y:194,label:'봉인된 도가니'},
@@ -33,7 +36,7 @@ export function createWorld(){const bosses=BOSS_ORDER.map(createBoss);const worl
  world.objects.push({id:'shrine-archive',type:'shrine',x:11400,y:302,checkpoint:'archive',label:'서고 문턱에서 기록'},{id:'index-wheel',type:'indexwheel',x:12320,y:430,label:'책장 색인 장치 돌리기'},
  {id:'palimpsest',type:'lectern',x:13120,y:302,label:'아직 오지 않은 날의 기록 읽기'},{id:'errata',type:'chest',x:13350,y:194,label:'레오넬의 정정 기록',archive:true},
  {id:'shrine-index',type:'shrine',x:13760,y:302,checkpoint:'index',label:'기록실 앞에서 기록'},{id:'seventh-record',type:'finalrecord',x:15020,y:302,label:'일곱 번째 종의 입탑 기록'},
- {id:'archivecache',type:'chest',x:12740,y:120,echo:true,memory:true,archive:true,label:'접혀 있던 내일'},{id:'fourth-end',type:'ending',x:15300,y:302,label:'왕궁으로 가는 문 살펴보기'});
+ {id:'archivecache',type:'chest',x:12740,y:120,echo:true,memory:true,archive:true,label:'접혀 있던 내일'},{id:'fourth-end',type:'palaceway',x:15300,y:302,label:'왕궁으로 가는 문 살펴보기'});
  for(const [type,x,y,scale]of [['archiveShelf',11610,302,1.7],['archiveShelf',11940,430,1.6],['archiveShelf',12250,430,1.7],['archiveShelf',12500,430,1.5],['archiveShelf',12960,302,1.6],['archiveShelf',13480,302,1.8],['archiveShelf',14340,302,1.9],['archiveShelf',14700,302,1.9],['archiveShelf',15170,302,1.6]])world.scenery.push({type,x,y,s:scale});
  for(const[id,type,x,y]of [['e18','watchman',11680,302],['e19','wisp',12080,406],['e20','cantor',12510,430],['e21','watchman',13010,302],['e22','cantor',13500,302]])world.enemies.push(enemy(id,type,x,y,3));
  // Keep architecture out of the route; only real closed barriers use gate art.
@@ -44,11 +47,41 @@ export function createWorld(){const bosses=BOSS_ORDER.map(createBoss);const worl
  for(const p of world.platforms)if(p.oneway&&p.material!=='archive')p.tile=0;
  const camps=[['outer',260,'성벽 밖 정비대'],['gate',2990,'회랑 정비대'],['nave',4600,'성당 문턱 정비대'],['choir',6445,'성가대석 정비대'],['works',7770,'제철소 정비대'],['anvil',9640,'모루 앞 정비대'],['archive',11310,'서고 문턱 정비대'],['index',13850,'기록실 정비대']];
  for(const[checkpoint,x,name]of camps)world.objects.push({id:'workshop-'+checkpoint,type:'workshop',checkpoint,x,y:302,name,label:'장비 정비 · 종길 이동'});
+
+ // Fifth chapter: palace approaches, a sunken mechanism room and the royal hall.
+ world.platforms.push(ground(15400,302,700),ground(16100,430,400,2,{foundation:true,h:1800}),ground(16500,302,2500),ground(19000,478,600,2,{foundation:true,h:1800}),ground(19600,302,2800),
+ ground(16070,342,100,0,{oneway:true,h:18}),ground(16140,386,100,0,{oneway:true,h:18}),ground(16310,386,100,0,{oneway:true,h:18}),ground(16420,340,100,0,{oneway:true,h:18}),
+ ground(18960,342,100,0,{oneway:true,h:18}),ground(19040,386,100,0,{oneway:true,h:18}),ground(19120,432,100,0,{oneway:true,h:18}),ground(19360,430,100,0,{oneway:true,h:18}),ground(19470,386,100,0,{oneway:true,h:18}),ground(19570,340,100,0,{oneway:true,h:18}),
+ ground(18580,268,100,0,{oneway:true,h:18}),ground(18700,222,100,0,{oneway:true,h:18}),ground(18820,178,120,0,{oneway:true,h:18}));
+ world.gates.push({id:'palace-door',x:16610,y:100,w:46,h:202},{id:'clockwork-door',x:19750,y:100,w:46,h:202});
+ world.objects.push({id:'palace-winch',type:'royallever',x:16300,y:430,flag:'palacedoor',label:'지하 권양기 돌리기'},{id:'clockwork',type:'royallever',x:19280,y:478,flag:'clockwork',label:'왕궁 종축 맞추기'},
+ {id:'royalorder',type:'chest',x:18870,y:178,royal:true,label:'아르케인의 마지막 명령서'},{id:'palacecache',type:'chest',x:19400,y:478,royal:true,label:'시종의 비상금'},{id:'seventh-bell',type:'ending',x:22100,y:302,label:'일곱 번째 종 앞에 서기'});
+ for(const[id,type,x,y]of [['e23','watchman',15870,302],['e24','cantor',16750,302],['e25','wisp',17680,280],['e26','watchman',18200,302],['e27','cantor',18700,302],['e28','watchman',19880,302],['e29','cantor',20200,302]])world.enemies.push(enemy(id,type,x,y,4));
+ // Register all legacy authored positions once. Widths cross only inserted flat rooms.
+ for(const p of world.platforms){const right=mapX(p.x+p.w);p.x=mapX(p.x);p.w=right-p.x;}
+ for(const g of world.gates)if(!g.mapped)g.x=mapX(g.x);
+ for(const o of world.objects)o.x=mapX(o.x);
+ for(const d of world.scenery)d.x=mapX(d.x);
+ for(const e of world.enemies){e.x=mapX(e.x);e.homeX=mapX(e.homeX);}
+ world.lift.x=mapX(world.lift.x);world.traps=[];for(const p of world.platforms)if(!p.oneway&&p.x>=mapX(15400)){p.h=1800;p.foundation=true;}
+ function cutFloor(left,right){world.platforms=world.platforms.flatMap(p=>{if(p.y!==302||p.oneway||p.x>=right||p.x+p.w<=left)return[p];return [...(p.x<left?[{...p,w:left-p.x}]:[]),...(p.x+p.w>right?[{...p,x:right,w:p.x+p.w-right}]:[])];});}
+ for(const [i,r]of EXTENSIONS.entries()){const x=roomStart(r),tile=i===2?3:i===3?1:0;
+  // A short gap, a raised reward route and a sheltered route under a trap.
+  cutFloor(x+r.length*.56,x+r.length*.56+76);
+  for(const [dx,y,w]of[[180,270,110],[320,224,120],[460,178,150],[650,224,120],[790,270,110]])world.platforms.push(ground(x+dx,y,w,tile,{oneway:true,h:18,...(i===3?{material:'archive'}:{})}));
+  world.objects.push({id:r.id+'-cache',type:'chest',x:x+520,y:178,royal:true,label:'종축 연결 부품'});
+  world.enemies.push(enemy('e'+(30+i*3),'watchman',x+350,302,i),enemy('e'+(31+i*3),'cantor',x+r.length*.67,302,i),enemy('e'+(32+i*3),'wisp',x+r.length*.82,280,i));
+  world.traps.push(makeTrap(r.id+'-spikes','spikes',x+130,302,r.chapter),makeTrap(r.id+'-swing','pendulum',x+r.length*.43,302,r.chapter,.7),makeTrap(r.id+'-ram',i%2?'crusher':'emitter',x+r.length*.75,302,r.chapter,.3));
+  for(const dx of [80,r.length*.3,r.length*.9])world.scenery.push({type:i===3?'archiveShelf':'statue',x:x+dx,y:302,s:i===3?1.5:.85});
+ }
+ for(const[a,b]of[[17520,17600],[18100,18185]])cutFloor(mapX(a),mapX(b));
+ world.traps.push(makeTrap('royal-spikes','spikes',mapX(15780),302,5),makeTrap('royal-swing','pendulum',mapX(17000),302,5,.6),makeTrap('royal-ram','crusher',mapX(17900),302,5,.8),makeTrap('royal-bolt','emitter',mapX(18500),302,5),makeTrap('royal-ram2','crusher',mapX(20050),302,5,.2));
+ for(const c of CHECKPOINTS){if(!world.objects.some(o=>o.checkpoint===c.id&&o.type==='shrine'))world.objects.push({id:'shrine-'+c.id,type:'shrine',x:c.x,y:c.y,checkpoint:c.id,label:c.name+' · 기록'});if(!world.objects.some(o=>o.checkpoint===c.id&&o.type==='workshop'))world.objects.push({id:'workshop-'+c.id,type:'workshop',checkpoint:c.id,x:c.x-90,y:c.y,name:c.name+' 정비대',label:'장비 정비 · 종길 이동'});}
  return world;}
 export function enemy(id,type,x,y,rank=0){const flying=type==='wisp',hp=Math.round((type==='watchman'?88:type==='cantor'?72:56)*(1+rank*.18));return{id,type,rank,x,y,homeX:x,homeY:y,w:flying?30:22,h:flying?30:48,hp,maxHp:hp,vx:0,vy:0,dir:-1,state:'idle',t:0,cooldown:1.1,stagger:0,dead:false,deathT:0,hit:0,walk:0,flying};}
 export const overlaps=(a,b)=>a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;
 export const body=e=>({x:e.x-e.w/2,y:e.y-e.h,w:e.w,h:e.h});
-export function gateActive(g,id){const f=g.profile.flags;if(id==='mechanism')return !f.lever;if(id==='first-bell')return !f.edran;if(id==='second-bell')return !f.marie;if(id==='choir-door')return !f.choir;if(id==='furnace-door')return !f.coolant;if(id==='third-bell')return !f.brag;if(id==='archive-index')return !f.index||!f.chronology;if(id==='palace-closed')return true;if(id==='slag')return !f.slag;return g.bossActive&&(id.startsWith(g.world.boss.id+'-')||g.world.boss.id==='edran'&&id.startsWith('arena-'));}
+export function gateActive(g,id){const f=g.profile.flags;if(id==='mechanism')return !f.lever;if(id==='first-bell')return !f.edran;if(id==='second-bell')return !f.marie;if(id==='choir-door')return !f.choir;if(id==='furnace-door')return !f.coolant;if(id==='third-bell')return !f.brag;if(id==='archive-index')return !f.index||!f.chronology;if(id==='palace-closed')return !f.leonel||!f.sister;if(id==='palace-door')return !f.palacedoor;if(id==='clockwork-door')return !f.clockwork;if(id==='slag')return !f.slag;return g.bossActive&&(id.startsWith(g.world.boss.id+'-')||g.world.boss.id==='edran'&&id.startsWith('arena-'));}
 export const solids=g=>[...g.world.platforms.filter(p=>(!p.echo||g.echoTime>0)&&(!p.voice||g.profile.flags.voice)&&(!p.memory||g.profile.flags.memory)&&(!p.index||g.profile.flags.index)),g.world.lift,...g.world.gates.filter(p=>gateActive(g,p.id))];
 export function moveBody(e,dt,platforms){const oldY=e.y,oldX=e.x;e.grounded=false;e.x+=e.vx*dt;
  for(const p of platforms){if(p.oneway)continue;if(overlaps(body(e),p)){if(e.vx>0&&oldX+e.w/2<=p.x+2)e.x=p.x-e.w/2;else if(e.vx<0&&oldX-e.w/2>=p.x+p.w-2)e.x=p.x+p.w+e.w/2;else continue;e.vx=0;}}

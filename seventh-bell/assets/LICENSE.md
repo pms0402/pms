@@ -19,6 +19,12 @@ All visual game assets in this directory were created specifically for **Echoes 
 | archive.png | exec-d45d0fc4-e74f-4a25-8174-8ccdc3eb5b6e.png | Original inverted archive panorama |
 | archive-objects.png | exec-6356a1a1-c1a9-4c65-a5cc-0820154c2cc6.png | Original library props and floor, 4×2 atlas |
 | services.png | exec-75cec696-8307-4451-b4b4-f99c20b019ab.png | Original regional workshop, cart, narrow barrier panel, sealed chest and equipment icons, 4×2 atlas |
+| swordplay.png | exec-afd82ea7-8d7f-40af-a410-53cfb4428e92.png | Four eight-frame grounded sword sequences, 8×4 atlas |
+| motion-extras.png | exec-0fbec55b-e4a4-475a-b21c-c3978020bf20.png | Air swordplay, braking, flask drinking and invocation, 8×4 atlas |
+| echo-blade.png | exec-a4445d38-08a8-4c23-9989-3a23da7efcfc.png | Travelling spectral blade and impact, 4×2 atlas |
+| arkein.png | exec-1a4faf34-56e6-4d1e-a047-bfaa768c45a5.png | Dedicated crownless king, 6×4 atlas; image-tool cleanup of exec-39bda410-1bd4-434a-9797-3de407408c90.png |
+| palace.png | exec-793bca28-746f-45ea-9fa2-1d57e8d38b8e.png | Original ruined palace panorama |
+| traps.png | exec-b3cccea2-4e2b-441f-851e-b993285f5abc.png | Animated spikes, pendulum, crusher, crossbow and royal machinery, 4×3 atlas |
 | bell.svg | Authored in this task | Small original UI emblem |
 
 Original generated outputs are retained in `/workspace/generated_images/`. Runtime code crops the explicit grid, rasterizes animation cells and disables interpolation. It does not use a photographic source or apply a photo-to-pixel effect. Alpha is thresholded for crisp sprite outlines. The source sheets are generated artwork, not represented as a manually hand-pixelled commercial pack.

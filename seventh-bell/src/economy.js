@@ -1,3 +1,4 @@
+import {chapterAtWorld} from './layout.js';
 import {weaponLimit,armorLimit,gripLimit} from './data.js';
 
 export const TRAVEL_COST=12;
@@ -12,4 +13,4 @@ export function offers(profile){
  ];
  return rows.map(row=>({...row,reason:row.level>=row.max?(row.id==='charm'?'이미 지니고 있다':'정비 완료'):row.level>=row.limit?'다음 종의 파편이 필요하다':profile.marks<row.price?'동전이 부족하다':null}));
 }
-export function checkpointUnlocked(profile,checkpoint){const f=profile.flags;return checkpoint.x>=11220?!!f.brag:checkpoint.x>=7700?!!f.marie:checkpoint.x>=4540?!!f.edran:true;}
+export function checkpointUnlocked(profile,checkpoint){const f=profile.flags;const chapter=checkpoint.chapter||chapterAtWorld(checkpoint.x);return chapter===5?!!f.leonel&&!!f.sister:chapter===4?!!f.brag:chapter===3?!!f.marie:chapter===2?!!f.edran:true;}

@@ -1,5 +1,11 @@
+import {mapX} from './layout.js';
 // Each attack commits its direction and target before its visible windup.
 export const PATTERNS={
+ royalCut:{name:'닫힌 성문',windup:1.15,active:.25,recover:1.5,range:128,damage:51,row:1,prep:2,strike:4},
+ royalFall:{name:'묵은 새벽',windup:1.5,active:.24,recover:1.65,range:82,damage:58,wave:38,row:2,prep:2,strike:4},
+ royalMarch:{name:'왕의 걸음',windup:1.25,active:.40,recover:1.55,range:98,damage:52,speed:185,row:1,prep:2,strike:4},
+ royalDawn:{name:'일곱 번째 종',windup:1.7,active:.24,recover:1.7,range:0,damage:55,pillars:true,row:2,prep:2,strike:4},
+ royalTwice:{name:'놓지 못한 칼',windup:1.3,active:.24,recover:1.65,range:128,damage:49,twice:true,row:1,prep:2,strike:4},
  sweep:{name:'횡베기',windup:.95,active:.24,recover:1.15,range:118,damage:34,row:1,prep:1,strike:2},
  slam:{name:'종 내려찍기',windup:1.2,active:.22,recover:1.45,range:78,damage:42,wave:30,row:1,prep:3,strike:4},
  lunge:{name:'돌진 찌르기',windup:1.05,active:.4,recover:1.35,range:95,damage:38,speed:225,row:2,prep:2,strike:3},
@@ -25,7 +31,9 @@ export const BOSS_DEFS={
  leonel:{name:'기억의 기록관, 레오넬',chapter:4,x:14490,left:14000,right:14900,hp:980,clue:'errata',ability:'memory',patterns:[['quill','folio','footnote'],['finalLine','redaction','folio','footnote']],phaseText:'레오넬이 책의 매듭을 풀었다.',intro:'그 글씨를 알아보는군. …그럼 여기서 멈춰. 다음 장은 읽지 마.'},
  brag:{name:'잿빛 대장장이, 브라그',chapter:3,x:10210,left:9750,right:10740,hp:850,clue:'ledger',ability:'forge',patterns:[['hammer','forgeSweep','furnace'],['charge','hammer','forgeDouble','furnace']],intro:'그 밸브, 네가 잠갔나. …비켜. 아직 안에 사람이 있다.'}
 };
-export const BOSS_ORDER=['edran','marie','brag','leonel'];
+BOSS_DEFS.arkein={name:'여명을 지키는 왕, 아르케인 3세',chapter:5,x:21200,left:20600,right:21840,hp:1320,clue:'royalorder',ability:'dawn',patterns:[['royalCut','royalFall','royalMarch'],['royalTwice','royalDawn','royalMarch','royalFall']],intro:'종을 끄러 왔나. …그 뒤에 오는 밤도 네가 맡을 테냐.',phaseText:'왕이 망토를 풀었다. 등 뒤의 창에서 새벽빛이 꺼졌다.'};
+for(const d of Object.values(BOSS_DEFS))for(const k of ['x','left','right'])d[k]=mapX(d[k]);
+export const BOSS_ORDER=['edran','marie','brag','leonel','arkein'];
 export function createBoss(id){const d=BOSS_DEFS[id];return{id,type:id,boss:true,x:d.x,y:302,w:id==='brag'?58:48,h:id==='marie'?94:id==='leonel'?99:105,hp:d.hp,maxHp:d.hp,vx:0,vy:0,dir:-1,state:'idle',t:0,phase:1,cooldown:1.4,attackIndex:0,stagger:0,dead:false,deathT:0,hit:0,walk:0,targets:[]};}
 export function attackRect(e,warning=false){const a=PATTERNS[e.pattern];if(!a)return{x:e.x,y:e.y,w:0,h:0};const reach=a.range+(warning?(a.speed||0)*a.active:0);return{x:e.dir>0?e.x-18:e.x-reach,y:e.y-96,w:reach+18,h:96};}
 export function targetRects(e){return(e.targets||[]).map(x=>({x:x-34,y:e.y-104,w:68,h:104}));}
