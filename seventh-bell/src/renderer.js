@@ -1,4 +1,4 @@
-import {ECHO_LIFE} from './afterimages.js';
+import {ECHO_LIFE,ribbonEdges} from './afterimages.js';
 import {trainerFrame} from './tutorial.js';
 import {mapX,originalX,chapterAtWorld} from './layout.js';
 import {trapPose} from './traps.js';
@@ -37,7 +37,21 @@ export class Renderer{
  if(p.hurt>0){c.fillStyle='#9b4538'+Math.floor(p.hurt/.28*38).toString(16).padStart(2,'0');c.fillRect(0,0,WIDTH,HEIGHT);}if(p.dead){c.fillStyle='#071018'+Math.min(225,Math.floor(p.deathT*85)).toString(16).padStart(2,'0');c.fillRect(0,0,WIDTH,HEIGHT);}
  }
  afterimages(){const g=this.g,c=this.c,echoes=g.bladeEchoes;let ghosts=0;for(let i=echoes.length-1;i>=0&&ghosts<3;i-=3){const e=echoes[i],age=g.clock-e.time;if(age<.025||age>=ECHO_LIFE)continue;drawPose(c,e.pose,e.x,e.y,e.dir,.18*(1-age/ECHO_LIFE),true);ghosts++;}
- c.save();for(let i=1;i<echoes.length;i++){const a=echoes[i-1],b=echoes[i];if(a.swing!==b.swing||a.dir!==b.dir)continue;const age=g.clock-b.time;if(age>=ECHO_LIFE)continue;const A=a.blade,B=b.blade;if(Math.hypot(A.bx-B.bx,A.by-B.by)>96)continue;const tail=(v,f)=>({x:Math.round(v.ax+(v.bx-v.ax)*f),y:Math.round(v.ay+(v.by-v.ay)*f)}),a0=tail(A,.28),a1=tail(A,1),b0=tail(B,.28),b1=tail(B,1);c.globalAlpha=.48*Math.pow(1-age/ECHO_LIFE,1.4);c.fillStyle=b.kind==='heavy'?'#e4c894':'#d7dec0';c.beginPath();c.moveTo(a0.x,a0.y);c.lineTo(a1.x,a1.y);c.lineTo(b1.x,b1.y);c.lineTo(b0.x,b0.y);c.closePath();c.fill();c.strokeStyle='#f4efcd';c.lineWidth=1;c.globalAlpha*=.85;c.beginPath();c.moveTo(a1.x,a1.y);c.lineTo(b1.x,b1.y);c.stroke();}c.restore();}
+ c.save();c.lineJoin='round';c.lineCap='round';
+ for(let i=1;i<echoes.length;i++){
+  const a=echoes[i-1],b=echoes[i];if(a.swing!==b.swing||a.dir!==b.dir)continue;
+  const age=g.clock-b.time;if(age>=ECHO_LIFE||Math.hypot(a.blade.bx-b.blade.bx,a.blade.by-b.blade.by)>96)continue;
+  const edges=ribbonEdges(a.blade,b.blade);if(!edges)continue;
+  const {outer,inner}=edges;
+  c.globalAlpha=.66*Math.pow(1-age/ECHO_LIFE,1.2);c.fillStyle=b.kind==='heavy'?'#e4c894':'#d7dec0';
+  c.beginPath();c.moveTo(outer[0].x,outer[0].y);
+  for(let j=1;j<outer.length;j++)c.lineTo(outer[j].x,outer[j].y);
+  for(let j=inner.length-1;j>=0;j--)c.lineTo(inner[j].x,inner[j].y);
+  c.closePath();c.fill();
+  c.strokeStyle='#f4efcd';c.lineWidth=1;c.globalAlpha*=.85;c.beginPath();c.moveTo(outer[0].x,outer[0].y);
+  for(let j=1;j<outer.length;j++)c.lineTo(outer[j].x,outer[j].y);
+  c.stroke();
+ }c.restore();}
 
  traps(){const c=this.c;for(const t of this.g.world.traps){if(t.x<this.x-230||t.x>this.x+this.width+230)continue;const p=trapPose(t,this.g.clock);if(t.type==='spikes'){boundedProp(c,p.frame,0,t.x,t.y+7,80,[9,9,21,37][p.frame]);}else if(t.type==='pendulum'){c.save();c.strokeStyle='#7c7563';c.lineWidth=3;c.beginPath();c.moveTo(p.pivotX,p.pivotY);c.lineTo(p.x,p.y-18);c.stroke();c.restore();boundedProp(c,0,1,p.x,p.y,36,40,true);}else if(t.type==='crusher'){c.save();c.strokeStyle='#635e52';c.lineWidth=5;c.beginPath();c.moveTo(t.x,t.y-245);c.lineTo(p.x,p.y-30);c.stroke();c.restore();boundedProp(c,1,1,p.x,p.y,56,70,true);}else boundedProp(c,2,1,p.x,p.y,40,38,true);if(p.warning)this.glow(p.x,p.y-7,22,'#e6a657');}}
 
