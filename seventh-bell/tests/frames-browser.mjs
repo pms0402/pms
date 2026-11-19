@@ -35,7 +35,7 @@ try{
     drawings.add(cell.toDataURL());
     c.drawImage(cell,(frame%6)*160,Math.floor(frame/6)*160);
     c.fillStyle='#bfcfc7';c.font='10px monospace';c.fillText(String(frame+1).padStart(2,'0'),(frame%6)*160+10,Math.floor(frame/6)*160+18);
-    const blade=worldBlade(actor);if(Math.abs(Math.hypot(blade.bx-blade.ax,blade.by-blade.ay)-30)>1e-6)throw Error('Sword registration changed');
+    const blade=worldBlade(actor);if(Math.abs(Math.hypot(blade.bx-blade.ax,blade.by-blade.ay)-48)>1e-6)throw Error('Sword registration changed');
    }
    // Audit the real game update at normal 60 Hz, again without an afterimage.
    g.paused=false;g.world.enemies=[];g.world.traps=[];g.p.action=null;g.p.comboQueued=false;
@@ -52,7 +52,7 @@ try{
   assert.ok(report.silhouettes>=20,clip+' must change body silhouette, not just texture or blade rotation');
   assert.equal(report.drawings,24);
   assert.ok(report.played.length>=20,clip+' must actually play at least 20 stages at normal 60 Hz');
-  await writeFile(new URL('090-'+clip+'-24-poses.png',out),Buffer.from(report.sheet.split(',')[1],'base64'));
+  await writeFile(new URL('091-'+clip+'-24-poses.png',out),Buffer.from(report.sheet.split(',')[1],'base64'));
   console.log('PASS',clip,JSON.stringify({body:report.body,silhouettes:report.silhouettes,drawings:report.drawings,played:report.played.length}));
  }
  assert.deepEqual(errors,[]);

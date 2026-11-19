@@ -1,4 +1,4 @@
-import {ageAfterimages,captureAfterimage} from './afterimages.js';
+import {ageAfterimages,captureAfterimage,rememberSwing} from './afterimages.js';
 import {createTutorialWorld,newTutorial,trainerOf,tutorialSignal,tutorialHit,updateTutorial} from './tutorial.js';
 import {mapX,chapterAtWorld} from './layout.js';
 import {has,maxStamina,learnReason} from './skills.js';
@@ -73,7 +73,7 @@ export class Game{
  if(p.grounded&&!p.support?.echo)p.lastSafe={x:p.x,y:p.y};
  if(!wasGrounded&&p.grounded){p.land=.12;this.fx(p.x,p.y,'dust',.35);this.sound('land');}
  if(p.action&&p.action.kind!=='dash'){
-  const a=p.action;a.t+=dt;
+  const a=p.action;a.t+=dt;if(a.spec&&a.t<a.spec.windup)rememberSwing(this,a);
   if(a.kind==='charge'){
    if(a.t>=.5&&!a.ready){a.ready=true;this.fx(p.x+p.dir*8,p.y-39,'charge',.3);this.sound('parry');}
   }else if(a.kind==='plunge'){
@@ -96,7 +96,7 @@ export class Game{
  this.autosave+=dt;if(this.autosave>15){this.autosave=0;this.save();}}
  attackDamage(a){const p=this.profile;let n=a.spec.damage+p.upgrade*4+(p.level-1)*2+(p.flags.upper?7:0)+(a.kind==='heavy'&&p.flags.forge?12:0);if(a.kind==='skill'){if(has(p,'echocharge'))n*=1.2;}else{n+=(has(p,'edge')?3:0)+(has(p,'edge2')?4:0);if(a.kind==='light3'&&has(p,'finisher'))n*=1.2;if(a.air&&has(p,'aircut'))n*=1.2;}return Math.round(n*(a.power||1));}
  resolveAttack(a){const p=this.p,s=a.spec;if(a.kind==='skill'){if(!a.released){a.released=true;this.projectiles.push({kind:'echoBlade',friendly:true,x:p.x+p.dir*24,y:p.y-30,vx:p.dir*285,vy:0,damage:this.attackDamage(a),owner:'player',life:.6,range:145,distance:0,hit:new Set(),pierce:has(this.profile,'echo2')?3:2});}return;}
- if(!a.swung){a.swung=true;this.sound(['heavy','light3'].includes(a.kind)?'heavy':'swing');}captureAfterimage(this,a);const blade=worldBlade(p),paths=sweptBlades(a.previousBlade,blade).filter(b=>clearLine(this,p.x,p.y-30,b.ax,b.ay));a.previousBlade=blade;
+ if(!a.swung){if(!a.prepared){const t=a.t;a.t=Math.max(0,s.windup-1e-6);rememberSwing(this,a);a.t=t;}a.swung=true;this.sound(['heavy','light3'].includes(a.kind)?'heavy':'swing');}captureAfterimage(this,a);const blade=worldBlade(p),paths=sweptBlades(a.previousBlade,blade).filter(b=>clearLine(this,p.x,p.y-30,b.ax,b.ay));a.previousBlade=blade;
  const touches=r=>paths.some(b=>bladeTouches(b,r)&&clearLine(this,b.ax,b.ay,Math.max(r.x,Math.min(r.x+r.w,b.bx)),Math.max(r.y,Math.min(r.y+r.h,b.by))));
  for(const e of [...this.world.enemies,this.world.boss]){if(e.dead||e.boss&&(!this.bossActive||e!==this.world.boss)||a.hit.has(e.id)||!touches(body(e)))continue;a.hit.add(e.id);this.damageEnemy(e,this.attackDamage(a),p.dir,s.push,a.kind);if(a.kind==='upper'&&!e.boss&&!e.training&&!e.flying&&!e.dead){e.vy=-255;e.grounded=false;e.y-=1;}this.lastHits.push({enemy:e.id,kind:a.kind,t:a.t,windup:s.windup,end:s.end,blade:{...blade}});this.lastHits=this.lastHits.slice(-30);}
  const seal=this.world.objects.find(o=>o.id==='forgecache');if(a.kind==='heavy'&&this.profile.flags.forge&&!this.profile.flags.slag&&touches({x:seal.x-22,y:seal.y-35,w:44,h:35})){this.profile.flags.slag=true;this.tell('보물함을 묶은 쇠사슬이 끊어졌다.');this.fx(seal.x,seal.y-20,'hit',.8);this.sound('mechanism');this.save();}}

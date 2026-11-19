@@ -4,11 +4,11 @@ import {TALENTS} from './skills.js';
 export {TALENTS} from './skills.js';
 export const SAVE_KEY='seventh-bell.save.v1',WIDTH=640,HEIGHT=360;
 export const ATTACKS={
- light1:{duration:.46,windup:.083333,end:.116667,chainAt:.255,damage:18,reach:56,stamina:8,push:90,row:4,start:0},
- light2:{duration:.48,windup:.10,end:.133334,chainAt:.285,damage:23,reach:65,stamina:9,push:110,row:4,start:4},
- light3:{duration:.58,windup:.15,end:.183334,damage:33,reach:73,stamina:13,push:160,row:5,start:0},
- heavy:{duration:.86,windup:.30,end:.333334,damage:50,reach:78,stamina:23,push:210,row:5,start:4},
- thrust:{duration:.49,windup:.066667,end:.10,damage:26,stamina:12,push:130},
+ light1:{duration:.50,windup:.125,end:.158334,chainAt:.29,damage:18,reach:56,stamina:8,push:90,row:4,start:0},
+ light2:{duration:.52,windup:.13,end:.163334,chainAt:.32,damage:23,reach:65,stamina:9,push:110,row:4,start:4},
+ light3:{duration:.60,windup:.17,end:.203334,damage:33,reach:73,stamina:13,push:160,row:5,start:0},
+ heavy:{duration:.88,windup:.32,end:.353334,damage:50,reach:78,stamina:23,push:210,row:5,start:4},
+ thrust:{duration:.60,windup:.14,end:.173334,damage:26,stamina:12,push:130},
  upper:{duration:.54,windup:.10,end:.133334,damage:22,stamina:15,push:55},
  counter:{duration:.49,windup:.066667,end:.10,damage:38,stamina:16,push:170},
  plunge:{duration:.52,windup:.12,end:.16,damage:36,stamina:18,push:125},

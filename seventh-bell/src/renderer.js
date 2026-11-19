@@ -36,14 +36,14 @@ export class Renderer{
  c.restore();this.atmosphere();if(g.effects.some(e=>e.kind==='parry'&&e.life>e.max-.07)){c.fillStyle='#fff1d61c';c.fillRect(0,0,WIDTH,HEIGHT);}if(p.action?.kind==='charge'&&p.action.t>=.5)this.glow(p.x-this.x+p.dir*8,p.y-this.y-39,17,'#e1c78f');
  if(p.hurt>0){c.fillStyle='#9b4538'+Math.floor(p.hurt/.28*38).toString(16).padStart(2,'0');c.fillRect(0,0,WIDTH,HEIGHT);}if(p.dead){c.fillStyle='#071018'+Math.min(225,Math.floor(p.deathT*85)).toString(16).padStart(2,'0');c.fillRect(0,0,WIDTH,HEIGHT);}
  }
- afterimages(){const g=this.g,c=this.c,echoes=g.bladeEchoes;let ghosts=0;for(let i=echoes.length-1;i>=0&&ghosts<3;i-=3){const e=echoes[i],age=g.clock-e.time;if(age<.025||age>=ECHO_LIFE)continue;drawPose(c,e.pose,e.x,e.y,e.dir,.18*(1-age/ECHO_LIFE),true);ghosts++;}
+ afterimages(){const g=this.g,c=this.c,echoes=g.bladeEchoes;let ghosts=0;for(let i=echoes.length-1;i>=0&&ghosts<2;i-=3){const e=echoes[i],age=g.clock-e.time;if(age<.025||age>=ECHO_LIFE)continue;drawPose(c,e.pose,e.x,e.y,e.dir,.12*(1-age/ECHO_LIFE),true);ghosts++;}
  c.save();c.lineJoin='round';c.lineCap='round';
  for(let i=1;i<echoes.length;i++){
   const a=echoes[i-1],b=echoes[i];if(a.swing!==b.swing||a.dir!==b.dir)continue;
-  const age=g.clock-b.time;if(age>=ECHO_LIFE||Math.hypot(a.blade.bx-b.blade.bx,a.blade.by-b.blade.by)>96)continue;
+  const age=g.clock-b.time;if(age>=ECHO_LIFE||Math.hypot(a.x-b.x,a.y-b.y)>96)continue;
   const edges=ribbonEdges(a.blade,b.blade);if(!edges)continue;
   const {outer,inner}=edges;
-  c.globalAlpha=.66*Math.pow(1-age/ECHO_LIFE,1.2);c.fillStyle=b.kind==='heavy'?'#e4c894':'#d7dec0';
+  c.globalAlpha=.8*Math.pow(1-age/ECHO_LIFE,1.2);c.fillStyle=['heavy','light3'].includes(b.kind)?'#f2cd91':'#eff5dc';
   c.beginPath();c.moveTo(outer[0].x,outer[0].y);
   for(let j=1;j<outer.length;j++)c.lineTo(outer[j].x,outer[j].y);
   for(let j=inner.length-1;j>=0;j--)c.lineTo(inner[j].x,inner[j].y);
