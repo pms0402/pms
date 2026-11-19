@@ -22,7 +22,11 @@ export function cutAngle(a,queued=false){return ANGLES[cutStage(a,queued)];}
 export function cutPose(p,clock=0){const a=p.action;
  if(!a){if(p.grounded&&Math.abs(p.vx)<12&&!p.brake&&!p.land&&!p.hurt&&!p.dead){const col=Math.floor(clock*5)%8;return{sheet:'cut-body',row:3,col,size:74,root:[79.5,79.5,79.5,79.5,79.5,78.5,78.5,79][col],foot:[121,121,121,122,122,122,121,121][col],hand:[[68,80],[68,80],[69,80],[68,80],[68,80],[67,80],[67,80],[68,80]][col],angle:35,steel:true};}return null;}
  if(!['light1','light2','light3','heavy'].includes(a.kind))return null;
- const clip=a.air||!p.grounded?'air':a.kind,frame=cutStage(a,p.comboQueued);
- return{sheet:'cut-'+clip,clip,frame,col:frame%6,row:Math.floor(frame/6),size:74,root:75,foot:clip==='air'?121:FEET[clip][frame],hand:HANDS[clip][frame],angle:ANGLES[frame],steel:true};
+ const clip=a.air||!p.grounded?'air':a.kind,frame=cutStage(a,p.comboQueued),foot=clip==='air'?121:FEET[clip][frame],hand=HANDS[clip][frame];
+ let angle=ANGLES[frame];
+ // A low follow-through turns the wrist outward instead of burying the long
+ // blade in the floor. Rendering and collision both use this registered angle.
+ if(p.grounded&&angle>0){const reach=STEEL.length+(STEEL.guard-STEEL.grip)*STEEL.length/(1-STEEL.guard),clearance=(foot-hand[1])*74/128-1.5;angle=Math.min(angle,Math.asin(Math.max(0,Math.min(1,clearance/reach)))*180/Math.PI);}
+ return{sheet:'cut-'+clip,clip,frame,col:frame%6,row:Math.floor(frame/6),size:74,root:75,foot,hand,angle,steel:true};
 }
 export function steelRig(p,pose){const s=pose.size/128,theta=pose.angle*Math.PI/180,c=Math.cos(theta)*p.dir,d=Math.sin(theta),width=STEEL.length/(1-STEEL.guard),offset=(STEEL.guard-STEEL.grip)*width,handX=p.x+(pose.hand[0]-pose.root)*s*p.dir,handY=p.y+(pose.hand[1]-pose.foot)*s;return{handX,handY,angle:pose.angle,width,ax:handX+c*offset,ay:handY+d*offset,bx:handX+c*(offset+STEEL.length),by:handY+d*(offset+STEEL.length)};}
