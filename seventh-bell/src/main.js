@@ -2,6 +2,8 @@ import {LESSONS,trainerOf} from './tutorial.js';
 import {BRANCHES,learnReason} from './skills.js';
 import {mapX,originalX,chapterAtWorld} from './layout.js';
 import {registeredPose,worldBlade} from './blade.js';
+import {CUT_CLIPS,CUT_FRAMES} from './cuts.js';
+import {ATTACKS} from './data.js';
 import {TRAVEL_COST} from './economy.js';
 import {BOSS_DEFS} from './bosses.js';
 import {createSpeechUI} from './speech.js';
@@ -69,7 +71,7 @@ async function boot(){await loadArt(n=>$('#load-percent').textContent=Math.round
  const canvas=$('#world');canvas.addEventListener('contextmenu',e=>e.preventDefault());canvas.addEventListener('pointerdown',e=>{if(modal||!$('#welcome').hidden||e.pointerType==='touch')return;e.preventDefault();audio.unlock();canvas.focus();if(e.button===0){const b=canvas.getBoundingClientRect(),x=(e.clientX-b.left)/b.width*render.width+render.x;if(!game.p.action)game.p.dir=x>game.p.x?1:-1;game.press('attack');}if(e.button===2)game.press('parry');});
  function release(e){const b=e.currentTarget;if(b.dataset.hold)input[b.dataset.hold]=false;if(b.dataset.press==='jump')input.jump=false;}
  $$('[data-hold],[data-press]').forEach(b=>{b.onpointerdown=e=>{e.preventDefault();if(modal||!$('#welcome').hidden)return;audio.unlock();b.setPointerCapture(e.pointerId);if(b.dataset.hold)input[b.dataset.hold]=true;else{if(b.dataset.press==='jump')input.jump=true;game.press(b.dataset.press);}};b.onpointerup=b.onpointercancel=b.onlostpointercapture=release;});if(matchMedia('(pointer:coarse)').matches||navigator.maxTouchPoints>0)document.body.classList.add('touch');
- resize();if(new URLSearchParams(location.search).has('test'))window.__seventh={game,render,input,close,updateUI,artStats,art:{cell,draw,drawPose},speechUI,coords:{mapX,originalX},poses:{registeredPose,worldBlade}};
+ resize();if(new URLSearchParams(location.search).has('test'))window.__seventh={game,render,input,close,updateUI,artStats,art:{cell,draw,drawPose},speechUI,coords:{mapX,originalX},poses:{registeredPose,worldBlade,CUT_CLIPS,CUT_FRAMES,ATTACKS}};
  let ui=0;function frame(now){const dt=Math.min(.08,(now-last)/1000);last=now;game.update(dt,input);render.render(dt);speechUI.update(!modal&&$('#welcome').hidden&&game.profile.started);ui+=dt;if(ui>.06){updateUI();ui=0;}if(!game.paused)audio.update(game.bossActive,game.zone==='crypt',game.profile.flags[['edran','marie','brag','leonel','arkein'][chapterAtWorld(game.p.x)-1]]);requestAnimationFrame(frame);}requestAnimationFrame(frame);
 }
 boot().catch(e=>{console.error(e);$('#loading-error').hidden=false;$('#loading-error p').textContent='게임을 불러오지 못했습니다. 연결을 확인한 뒤 다시 열어 주세요.';});

@@ -4,10 +4,10 @@ import {TALENTS} from './skills.js';
 export {TALENTS} from './skills.js';
 export const SAVE_KEY='seventh-bell.save.v1',WIDTH=640,HEIGHT=360;
 export const ATTACKS={
- light1:{duration:.43,windup:.12,end:.25,chainAt:.30,damage:18,reach:56,stamina:8,push:90,row:4,start:0},
- light2:{duration:.45,windup:.13,end:.27,chainAt:.32,damage:23,reach:65,stamina:9,push:110,row:4,start:4},
- light3:{duration:.53,windup:.17,end:.32,damage:33,reach:73,stamina:13,push:160,row:5,start:0},
- heavy:{duration:.87,windup:.37,end:.51,damage:50,reach:78,stamina:23,push:210,row:5,start:4},
+ light1:{duration:.48,windup:.12,end:.32,chainAt:.44,damage:18,reach:56,stamina:8,push:90,row:4,start:0},
+ light2:{duration:.50,windup:.13,end:.33,chainAt:.46,damage:23,reach:65,stamina:9,push:110,row:4,start:4},
+ light3:{duration:.58,windup:.17,end:.37,damage:33,reach:73,stamina:13,push:160,row:5,start:0},
+ heavy:{duration:.93,windup:.37,end:.57,damage:50,reach:78,stamina:23,push:210,row:5,start:4},
  skill:{duration:.68,windup:.25,end:.39,damage:37,reach:145,stamina:28,push:180,row:7,start:0}
 };
 export const CHAPTERS=[{name:'잊힌 성벽',boss:'최후의 문지기, 에드란',bell:1},{name:'침묵의 대성당',boss:'침묵의 성녀, 마리에',bell:2},{name:'불 꺼진 제철도시',boss:'잿빛 대장장이, 브라그',bell:3},{name:'뒤집힌 서고',boss:'기억의 기록관, 레오넬',bell:5},{name:'왕관 없는 궁전',boss:'여명을 지키는 왕, 아르케인 3세',bell:7}];
