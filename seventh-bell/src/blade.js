@@ -18,5 +18,5 @@ export function bladeTouches(b,r,radius=2){if(!b)return false;let lo=0,hi=1;cons
 export function sweptBlades(previous,current){if(!current)return[];if(!previous)return[current];const n=Math.max(1,Math.ceil(Math.max(Math.hypot(current.ax-previous.ax,current.ay-previous.ay),Math.hypot(current.bx-previous.bx,current.by-previous.by))/3));return Array.from({length:n+1},(_,i)=>Object.fromEntries(['ax','ay','bx','by'].map(k=>[k,previous[k]+(current[k]-previous[k])*i/n])));}
 // Load the rear leg, then drive the hips forward through the active cut.
 // These are actual collision-tested steps; the sprite is never teleported.
-export const ROOT_DRIVE={light1:{back:2,forward:9},light2:{back:2,forward:11},light3:{back:3,forward:16},heavy:{back:4,forward:14}};
+export const ROOT_DRIVE={light1:{back:2,forward:9},light2:{back:2,forward:11},light3:{back:3,forward:16},heavy:{back:4,forward:14},thrust:{back:1,forward:46},upper:{back:2,forward:8},counter:{back:1,forward:62}};
 export function rootStep(a,t){const r=a&&ROOT_DRIVE[a.kind];if(!r||t<=0)return 0;const s=a.spec;if(t<s.windup){const f=Math.max(0,t/s.windup);return-r.back*f*f;}const f=Math.max(0,Math.min(1,(t-s.windup)/(s.end-s.windup)));return-r.back+(r.forward+r.back)*f*f*(3-2*f);}
