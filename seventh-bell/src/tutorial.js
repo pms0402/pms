@@ -29,7 +29,7 @@ export function updateTutorial(g,dt){const p=g.p,t=g.profile.tutorial,e=trainerO
  e.hit=Math.max(0,e.hit-dt);if(e.dead){e.deathT+=dt;return;}e.stagger=Math.max(0,e.stagger-dt);e.cooldown-=dt;e.t+=dt;
  if(p.x<770||t.step<2){e.vx=0;return;}if(e.stagger>.21){e.vx=0;return;}
  const d=p.x-e.x,dist=Math.abs(d),a=TRAINING_PATTERNS[e.pattern];
- if(e.state==='idle'){e.dir=Math.sign(d)||e.dir;e.vx=dist>53?e.dir*44:0;if(t.step>=3&&dist<100&&e.cooldown<=0){e.pattern=t.step===3||t.step===4?'cut':e.attackIndex++%2?'overhead':'cut';e.state='windup';e.t=0;e.vx=0;e.serial++;e.didHit=false;e.damagedPlayer=false;e.dashAttempt=null;e.previousBlade=null;g.sound('parry');}}
+ if(e.state==='idle'){e.dir=Math.sign(d)||e.dir;e.vx=t.step>=3&&dist<32?-e.dir*44:dist>53?e.dir*44:0;if(t.step>=3&&dist>=32&&dist<100&&e.cooldown<=0){e.pattern=t.step===3||t.step===4?'cut':e.attackIndex++%2?'overhead':'cut';e.state='windup';e.t=0;e.vx=0;e.serial++;e.didHit=false;e.damagedPlayer=false;e.dashAttempt=null;e.previousBlade=null;g.sound('parry');}}
  else if(e.state==='windup'){e.vx=0;if(e.t>=a.windup){e.state='attack';e.t=0;g.sound('swing');}}
  else if(e.state==='attack'){e.vx=0;const b=trainerBlade(e),paths=sweptBlades(e.previousBlade,b);e.previousBlade=b;if(!e.didHit&&paths.some(v=>bladeTouches(v,body(p),2))&&clearLine(g,e.x,e.y-30,p.x,p.y-25)){e.didHit=true;e.damagedPlayer=g.hurt(a.damage,e);}if(e.t>=a.active){if(t.step===3&&e.dashAttempt===e.serial&&!e.damagedPlayer)nextLesson(g);e.state='recover';e.t=0;}}
  else if(e.state==='recover'){e.vx=0;if(e.t>=(a?.recover||1.3)){e.state='idle';e.t=0;e.cooldown=.55;}}

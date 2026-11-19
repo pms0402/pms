@@ -25,15 +25,17 @@ All visual game assets in this directory were created specifically for **Echoes 
 | arkein.png | exec-1a4faf34-56e6-4d1e-a047-bfaa768c45a5.png | Dedicated crownless king, 6×4 atlas; image-tool cleanup of exec-39bda410-1bd4-434a-9797-3de407408c90.png |
 | palace.png | exec-793bca28-746f-45ea-9fa2-1d57e8d38b8e.png | Original ruined palace panorama |
 | traps.png | exec-b3cccea2-4e2b-441f-851e-b993285f5abc.png | Animated spikes, pendulum, crusher, crossbow and royal machinery, 4×3 atlas |
-| cut-light1.png | exec-7abbc604-d611-4e3e-a9a9-f71f3f46fee6.png | First light cut, 24 original body drawings in a 6×4 atlas |
-| cut-light2.png | exec-d8cda01b-019b-4abc-a36a-ca273349d93c.png | Second light cut, 24 original body drawings in a 6×4 atlas |
-| cut-light3.png | exec-620381c2-e824-41bf-a103-a6f434b0c8b8.png | Finishing cut, 24 original body drawings in a 6×4 atlas |
-| cut-heavy.png | exec-6d3001d1-816d-4769-9af7-318c2497fb3b.png | Heavy cleave, 24 original body drawings in a 6×4 atlas |
-| cut-air.png | exec-b1aefa3d-8eb7-4d58-8f5c-9db61f356455.png | Tucked airborne cut, 24 original body drawings in a 6×4 atlas |
+| cut-light1.png | exec-559cdfb9-64b6-4627-8748-a592f41cc16c.png | Whole-body diagonal forehand, 24 original body drawings in a 6×4 atlas |
+| cut-light2.png | exec-26bf4e1a-4030-4b34-ac6f-5695556ef35a.png | Reverse rising backhand with shoulder/hip rotation, 24 original body drawings in a 6×4 atlas |
+| cut-light3.png | exec-f848cce3-5ea3-4558-abab-ca81f35e2472.png | Deep two-handed finishing cleave, 24 original body drawings in a 6×4 atlas |
+| cut-heavy.png | exec-4fa429c7-a21e-405c-ae67-18c892a55ec9.png | Loaded two-handed heavy cleave, 24 original body drawings in a 6×4 atlas |
+| cut-air.png | exec-71b4d7ed-b174-4387-aad1-52e2f68bcbad.png | Airborne diagonal cut with torso twist and counterbalancing legs, 24 original body drawings in a 6×4 atlas |
 | cut-body.png | exec-572cf9d7-8978-4091-917e-1d40abae33a5.png | Original body-only downstroke, rising cut, finishing cut and ready stance, 8×4 atlas |
 | steel-blade.png | exec-37f8d1be-46d6-4471-827f-70085738cbc6.png | Original separate steel sword, attached to the registered fist with constant blade length |
 | tutor.png | exec-18fde72d-f3e6-4cb6-994b-2c9b4514d781.png | Original bell repair practice automaton, 6×4 animation atlas |
 | bell.svg | Authored in this task | Small original UI emblem |
+
+The rising-cut sheet was edited with the image tool to connect standing anticipation and recovery: initial output `exec-c1c21419-68ef-40ca-89b3-155ac1af000a.png`, recovery edit `exec-dedaf445-0318-40cb-a5c5-b17f3caaf55b.png`, and final output listed above. These are original replacements for the earlier arm-led sheets.
 
 Original generated outputs are retained in `/workspace/generated_images/`. Runtime code crops the explicit grid, rasterizes animation cells and disables interpolation. It does not use a photographic source or apply a photo-to-pixel effect. Alpha is thresholded for crisp sprite outlines. The source sheets are generated artwork, not represented as a manually hand-pixelled commercial pack.
 

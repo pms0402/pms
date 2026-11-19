@@ -16,4 +16,7 @@ export function worldBlade(p,pose=registeredPose(p)){if(pose?.steel){const {ax,a
 // Liang–Barsky segment/box intersection, with a 2px steel edge allowance.
 export function bladeTouches(b,r,radius=2){if(!b)return false;let lo=0,hi=1;const dx=b.bx-b.ax,dy=b.by-b.ay;for(const [p,q]of[[-dx,b.ax-r.x+radius],[dx,r.x+r.w+radius-b.ax],[-dy,b.ay-r.y+radius],[dy,r.y+r.h+radius-b.ay]]){if(Math.abs(p)<1e-9){if(q<0)return false;continue;}const t=q/p;if(p<0)lo=Math.max(lo,t);else hi=Math.min(hi,t);if(lo>hi)return false;}return true;}
 export function sweptBlades(previous,current){if(!current)return[];if(!previous)return[current];const n=Math.max(1,Math.ceil(Math.max(Math.hypot(current.ax-previous.ax,current.ay-previous.ay),Math.hypot(current.bx-previous.bx,current.by-previous.by))/3));return Array.from({length:n+1},(_,i)=>Object.fromEntries(['ax','ay','bx','by'].map(k=>[k,previous[k]+(current[k]-previous[k])*i/n])));}
-export const rootStep=(a,t)=>!a||a.kind==='skill'||a.kind==='heal'?0:({light1:5,light2:7,light3:11,heavy:9}[a.kind]||0)*Math.max(0,Math.min(1,(t-a.spec.windup)/(a.spec.end-a.spec.windup)));
+// Load the rear leg, then drive the hips forward through the active cut.
+// These are actual collision-tested steps; the sprite is never teleported.
+export const ROOT_DRIVE={light1:{back:2,forward:9},light2:{back:2,forward:11},light3:{back:3,forward:16},heavy:{back:4,forward:14}};
+export function rootStep(a,t){const r=a&&ROOT_DRIVE[a.kind];if(!r||t<=0)return 0;const s=a.spec;if(t<s.windup){const f=Math.max(0,t/s.windup);return-r.back*f*f;}const f=Math.max(0,Math.min(1,(t-s.windup)/(s.end-s.windup)));return-r.back+(r.forward+r.back)*f*f*(3-2*f);}
