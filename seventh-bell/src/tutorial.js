@@ -3,11 +3,11 @@ import {body,moveBody,solids,clearLine} from './world.js';
 import {bladeTouches,sweptBlades} from './blade.js';
 
 export const TUTORIAL_HP=360;
-export const newTutorial=(done=false)=>({state:done?'done':'new',step:done?8:0,combo:done?7:0,hp:done?0:TUTORIAL_HP});
+export const newTutorial=(done=false)=>({state:done?'done':'new',step:done?8:0,combo:done?5:0,hp:done?0:TUTORIAL_HP});
 export const LESSONS=[
  {title:'몸 풀기',key:'A D / ← →',touch:'왼쪽 · 오른쪽 버튼',text:'오른쪽으로 걸어가 보자. 오래 쉬었더니 다리가 뻣뻣하다.'},
  {title:'무너진 작업대',key:'Space',touch:'도약 버튼',text:'뛰어서 낮은 돌턱을 넘자. 누르는 길이에 따라 뛰는 높이가 달라진다.'},
- {title:'검을 손에 익히기',key:'좌클릭 / J · 세 번',touch:'공격 버튼 · 세 번',text:'가까이서 공격하고, 검을 휘두를 때 한 번씩 더 눌러 세 번 잇자.'},
+ {title:'검을 손에 익히기',key:'좌클릭 / J · 두 번',touch:'공격 버튼 · 두 번',text:'가까이서 공격하고, 검을 휘두를 때 한 번 더 눌러 내려찍기로 잇자.'},
  {title:'한 걸음 비켜서기',key:'Shift',touch:'회피 버튼',text:'기사가 검을 들면 회피로 공격을 피하자. 공격과 회피에는 집중을 쓴다.'},
  {title:'칼 받아내기',key:'우클릭 / L',touch:'막기 버튼',text:'기사를 바라보고 검을 막자. 닿기 직전에 받아내면 패링이 된다.'},
  {title:'무게를 실어서',key:'K / X',touch:'강타 버튼',text:'강공격을 한 번 맞히자. 준비가 길어서, 기사가 검을 거둘 때가 좋다.'},
@@ -21,7 +21,7 @@ export function createTutorialWorld(t){const dummy=createBoss('edran');Object.as
 export const trainerOf=g=>g.world.enemies.find(e=>e.training);
 export function nextLesson(g){const t=g.profile.tutorial;if(t.step>=8)return false;t.step++;g.tutorialWalk=0;g.event('tutorialStep',{step:t.step});g.sound('level');g.save();return true;}
 export function tutorialSignal(g,kind,e=null){if(!g.inTutorial)return;const t=g.profile.tutorial;if(kind==='jump')g.tutorialJumped=true;if(kind==='dash'&&e&&['windup','attack'].includes(e.state)&&Math.abs(g.p.x-e.x)<125)e.dashAttempt=e.serial;if(t.step===4&&['parry','guard'].includes(kind))nextLesson(g);}
-export function tutorialHit(g,e,kind,n){if(e.dead)return;const t=g.profile.tutorial;e.hp=Math.max(t.step<7?125:0,e.hp-n);t.hp=e.hp;e.hit=.13;e.stagger=.2;if(t.step===2&&['light1','light2','light3'].includes(kind)){t.combo|=1<<(['light1','light2','light3'].indexOf(kind));if(t.combo===7)nextLesson(g);}else if(t.step===5&&kind==='heavy')nextLesson(g);else if(t.step===6&&kind==='skill')nextLesson(g);
+export function tutorialHit(g,e,kind,n){if(e.dead)return;const t=g.profile.tutorial;e.hp=Math.max(t.step<7?125:0,e.hp-n);t.hp=e.hp;e.hit=.13;e.stagger=.2;if(t.step===2&&['light1','light3'].includes(kind)){t.combo|=kind==='light1'?1:4;if((t.combo&5)===5)nextLesson(g);}else if(t.step===5&&kind==='heavy')nextLesson(g);else if(t.step===6&&kind==='skill')nextLesson(g);
  if(e.hp<=0){e.dead=true;e.deathT=0;e.vx=0;e.state='dead';nextLesson(g);g.projectiles=[];g.sound('mechanism');}g.save();}
 export function trainerFrame(e,clock){if(e.dead)return[3,Math.min(5,3+Math.floor(e.deathT*2))];if(e.stagger>.21)return[3,2];if(e.hit>0&&e.state==='idle')return[3,0];const a=TRAINING_PATTERNS[e.pattern];if(e.state==='windup')return[a.row,Math.min(2,Math.floor(e.t/a.windup*3))];if(e.state==='attack')return[a.row,3+Math.min(1,Math.floor(e.t/a.active*2))];if(e.state==='recover')return[a?.row||1,5];return[0,Math.floor(e.walk*.07||clock*3)%6];}
 export function trainerBlade(e){const [row,col]=trainerFrame(e,0);if(![1,2].includes(row)||![3,4].includes(col))return null;const points=row===1?(col===3?[82,62,127,62]:[79,86,123,99]):(col===3?[74,75,114,108]:[70,96,124,120]),s=92/128,[ax,ay,bx,by]=points;return{ax:e.x+(ax-52)*s*e.dir,ay:e.y+(ay-122)*s,bx:e.x+(bx-52)*s*e.dir,by:e.y+(by-122)*s};}

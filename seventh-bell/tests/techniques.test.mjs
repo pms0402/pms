@@ -8,7 +8,7 @@ import {registeredPose,worldBlade} from '../src/blade.js';
 const tick=(g,t,input={})=>{for(let i=0;i<Math.ceil(t*120);i++)g.update(1/120,input);};
 function scene(distance=45){const g=new Game();g.start();g.world.traps=[];const e=enemy('e90','watchman',g.p.x+distance,302);e.hp=e.maxHp=500;g.world.enemies=[e];g.updateEnemy=()=>{};return{g,e};}
 
-test('all normal contacts last two 60Hz frames and damage only once per swing',()=>{for(const kind of ['light1','light2','light3','heavy']){const{g,e}=scene();const s=ATTACKS[kind];assert.ok(Math.abs(s.end-s.windup-2/60)<.000002);g.startAttack(kind);tick(g,s.windup-.01);assert.equal(e.hp,500);tick(g,1);assert.equal(e.hp,500-s.damage);assert.equal(g.lastHits.length,1);assert.ok(g.hitstop<=.1);}});
+test('all normal contacts last two 60Hz frames and damage only once per swing',()=>{for(const kind of ['light1','upper','light3','heavy']){const{g,e}=scene();const s=ATTACKS[kind];assert.ok(Math.abs(s.end-s.windup-2/60)<.000002);g.startAttack(kind);tick(g,s.windup-.01);assert.equal(e.hp,500);tick(g,1);assert.equal(e.hp,500-s.damage);assert.equal(g.lastHits.length,1);assert.ok(g.hitstop<=.1);}});
 test('recovery jump and dodge cancel immediately, but cannot cancel live steel or a flask',()=>{for(const cancel of ['jump','dash']){const{g}=scene();g.world.enemies=[];g.press('attack');tick(g,ATTACKS.light1.windup+.01);assert.equal(g.canRecover(),false);if(cancel==='jump'){g.press('jump');g.update(1/120,{jump:true});assert.equal(g.p.action.kind,'light1');assert.equal(g.p.grounded,true);}else assert.equal(g.dash(),false);tick(g,.05);assert.equal(g.canRecover(),true);g.press(cancel);g.update(1/120,{jump:true});assert.equal(g.p.action?.kind,cancel==='dash'?'dash':undefined);if(cancel==='jump')assert.ok(g.p.vy<0);}
  const{g}=scene();g.p.hp=30;g.heal();assert.equal(g.dash(),false);g.press('jump');g.update(1/120,{jump:true});assert.equal(g.p.action.kind,'heal');assert.equal(g.profile.flasks,2);
 });
@@ -31,4 +31,8 @@ test('a successful timed parry opens one paid counter with metal feedback and no
 });
 test('late or rear guard cannot earn a counter; a valid counter window expires',()=>{for(const late of [true,false]){const{g,e}=scene();g.p.invulnerable=0;g.parry();tick(g,late?.3:.08);if(!late)e.x=g.p.x-30;assert.equal(g.hurt(20,e),true);assert.equal(g.p.counterReady,0);}
  const{g,e}=scene();g.p.invulnerable=0;g.parry();tick(g,.08);g.hurt(20,e);tick(g,1.1);assert.equal(g.p.counterReady,0);g.press('attack');assert.equal(g.p.action.kind,'light1');
+});
+test('the downstroke deals 44 once and drives a grounded enemy farther with a heavier impact',()=>{
+ const results={};for(const kind of ['light1','light3']){const{g,e}=scene(),sounds=[];g.updateEnemy=Game.prototype.updateEnemy;g.event=(type,p)=>{if(type==='sound')sounds.push(p.name);};const origin=e.x;g.startAttack(kind);assert.equal(g.p.stamina,kind==='light3'?85:92);let farthest=0,stop=0;for(let i=0;i<160;i++){g.update(1/120);farthest=Math.max(farthest,e.x-origin);stop=Math.max(stop,g.hitstop);if(kind==='light3'&&g.hitstop>0&&g.p.action?.kind==='light3')assert.ok(registeredPose(g.p).frame>=5,'the impact freezes the low follow-through, not the raised sword');}assert.equal(g.lastHits.length,1);assert.equal(e.hp,kind==='light3'?456:482);results[kind]={farthest,stop};if(kind==='light3')assert.ok(sounds.includes('slamHit'));}
+ assert.ok(results.light3.farthest>40);assert.ok(results.light3.farthest>results.light1.farthest*3);assert.ok(results.light3.stop>.08&&results.light3.stop<=.1);assert.ok(results.light3.stop>results.light1.stop);
 });

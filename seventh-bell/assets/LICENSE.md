@@ -26,7 +26,7 @@ All visual game assets in this directory were created specifically for **Echoes 
 | palace.png | exec-793bca28-746f-45ea-9fa2-1d57e8d38b8e.png | Original ruined palace panorama |
 | traps.png | exec-b3cccea2-4e2b-441f-851e-b993285f5abc.png | Animated spikes, pendulum, crusher, crossbow and royal machinery, 4×3 atlas |
 | cut-light1.png | exec-f81b606a-7325-49cb-892d-d3c5ee49e9f4.png | Broad two-handed diagonal forehand with rear-shoulder preparation, 24 adult body drawings in a 6×4 atlas |
-| cut-light2.png | exec-ea2f4c83-8bce-4342-97fc-8635f153c89b.png | Fixed side-view rising backhand, 24 adult body drawings in a 6×4 atlas |
+| cut-light2.png | exec-ea2f4c83-8bce-4342-97fc-8635f153c89b.png | Dedicated anti-air rising cut (↑ + attack), excluded from the basic combo since 0.9.2; 24 adult body drawings in a 6×4 atlas |
 | cut-light3.png | exec-bea37259-b327-4e5b-83ba-e0376e845f9f.png | Fixed side-view overhead finisher, 24 adult body drawings in a 6×4 atlas |
 | cut-heavy.png | exec-c34bba55-ae95-4d7f-918b-8a39cab914d9.png | Fixed side-view charged overhead cut, 24 adult body drawings in a 6×4 atlas |
 | cut-air.png | exec-28fc479a-7c37-4e51-b3b2-e4bbee11f924.png | Fixed side-view airborne broad cut, 24 adult body drawings in a 6×4 atlas |

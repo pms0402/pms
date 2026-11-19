@@ -22,7 +22,7 @@ const CLIP={charge:'heavy',thrust:'thrust',upper:'light2',counter:'light1',plung
 export function cutAngle(a){return ANGLES[CLIP[a.kind]||(a.air?'air':a.kind)][cutStage(a)];}
 export function cutPose(p,clock=0){const a=p.action;
  if(!a){if(p.grounded&&Math.abs(p.vx)<12&&!p.brake&&!p.land&&!p.hurt&&!p.dead){const col=Math.floor(clock*5)%8;return{sheet:'cut-body',row:3,col,size:74,root:[79.5,79.5,79.5,79.5,79.5,78.5,78.5,79][col],foot:[121,121,121,122,122,122,121,121][col],hand:[[68,80],[68,80],[69,80],[68,80],[68,80],[67,80],[67,80],[68,80]][col],angle:20,steel:true};}return null;}
- if(!['light1','light2','light3','heavy',...Object.keys(CLIP)].includes(a.kind))return null;
+ if(!['light1','light3','heavy',...Object.keys(CLIP)].includes(a.kind))return null;
  const clip=CLIP[a.kind]||((a.air||!p.grounded)?'air':a.kind),frame=cutStage(a),foot=FEET[clip][frame],hand=HANDS[clip][frame];
  let angle=ANGLES[clip][frame];
  if(a.kind==='thrust')angle=frame<17?0:(frame-16)*20/7;

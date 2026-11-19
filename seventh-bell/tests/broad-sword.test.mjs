@@ -26,6 +26,6 @@ test('thrust visibly chambers behind the hip before a straight, full-arm extensi
  for(let i=0;i<40&&g.p.action.t<ATTACKS.thrust.windup;i++)g.update(1/120);const extended=registeredPose(g.p),front=steelRig(g.p,extended);assert.equal(extended.frame,4);assert.ok(front.handX>g.p.x+15);assert.equal(front.by,front.ay);assert.equal(extended.bladeBehind,false);tick(g,1);assert.equal(e.hp,274);assert.equal(g.lastHits.length,1);
 });
 test('large cuts still preserve adult height, exact steel length and floor-safe ready posture',()=>{
- const{g}=scene(80);for(const kind of ['light1','light2','light3','heavy','thrust'])for(const t of [0,ATTACKS[kind].windup*.9,ATTACKS[kind].windup,ATTACKS[kind].end-.001,ATTACKS[kind].duration-.001]){g.p.action={kind,spec:ATTACKS[kind],t,air:false};const pose=registeredPose(g.p),b=steelRig(g.p,pose);assert.equal(pose.size,74);assert.equal(STEEL.length,48);assert.ok(Math.abs(Math.hypot(b.bx-b.ax,b.by-b.ay)-48)<1e-8);assert.ok(b.by<=g.p.y-1.49);}
+ const{g}=scene(80);for(const kind of ['light1','upper','light3','heavy','thrust'])for(const t of [0,ATTACKS[kind].windup*.9,ATTACKS[kind].windup,ATTACKS[kind].end-.001,ATTACKS[kind].duration-.001]){g.p.action={kind,spec:ATTACKS[kind],t,air:false};const pose=registeredPose(g.p),b=steelRig(g.p,pose);assert.equal(pose.size,74);assert.equal(STEEL.length,48);assert.ok(Math.abs(Math.hypot(b.bx-b.ax,b.by-b.ay)-48)<1e-8);assert.ok(b.by<=g.p.y-1.49);}
  g.p.action=null;const ready=steelRig(g.p,registeredPose(g.p));assert.ok(ready.by<g.p.y-1.5);
 });

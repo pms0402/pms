@@ -9,7 +9,7 @@ export function ribbonEdges(a,b){
  const paths=sweptBlades(a,b),outer=paths.map(p=>({x:p.bx,y:p.by})),inner=paths.map(p=>({x:p.ax+(p.bx-p.ax)*.28,y:p.ay+(p.by-p.ay)*.28}));
  return{outer,inner};
 }
-const MELEE=['light1','light2','light3','heavy','thrust','upper','counter','plunge'];
+const MELEE=['light1','light3','heavy','thrust','upper','counter','plunge'];
 function sample(g,pose,blade){return{time:g.clock,swing:g.p.action.serial,kind:g.p.action.kind,x:g.p.x,y:g.p.y,dir:g.p.dir,pose:{...pose,hand:pose.hand?[...pose.hand]:undefined,blade:pose.blade?[...pose.blade]:undefined},blade:{...blade}};}
 // Keep the loaded pose privately. It appears in the crescent only once the
 // cut starts; anticipation itself still causes no damage and shows no arc.

@@ -4,7 +4,7 @@ export const TALENTS={
  edge2:{branch:'steel',tier:1,name:'날 세우기',desc:'검 공격 피해 추가 +4',cost:1,requires:['edge']},
  cutweight:{branch:'steel',tier:2,name:'무게 싣기',desc:'강공격의 준비와 회수 시간 15% 단축',cost:2,requires:['edge2']},
  riposte:{branch:'steel',tier:2,name:'되받아치기',desc:'패링 후 1.8초 안의 다음 검 공격 피해 +35%',cost:2,requires:['edge2']},
- finisher:{branch:'steel',tier:3,name:'마지막 한 수',desc:'일반 공격 세 번째 타격 피해 +20%',cost:2,requires:['cutweight','riposte']},
+ finisher:{branch:'steel',tier:3,name:'마지막 한 수',desc:'일반 공격 마지막 내려찍기 피해 +20%',cost:2,requires:['cutweight','riposte']},
  vigor:{branch:'survival',tier:0,name:'버티는 몸',desc:'최대 체력 +20 · 현재 체력은 회복되지 않음',cost:1,requires:[]},
  vigor2:{branch:'survival',tier:1,name:'굳은살',desc:'최대 체력 추가 +15',cost:1,requires:['vigor']},
  guard:{branch:'survival',tier:1,name:'단단한 막기',desc:'일반 막기의 집중 소모 18 → 14',cost:1,requires:['vigor']},

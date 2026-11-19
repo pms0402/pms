@@ -30,5 +30,5 @@ export function sweptBlades(previous,current){
 }
 // Load the rear leg, then drive the hips forward through the active cut.
 // These are actual collision-tested steps; the sprite is never teleported.
-export const ROOT_DRIVE={light1:{back:3,forward:9},light2:{back:3,forward:11},light3:{back:4,forward:16},heavy:{back:4,forward:14},thrust:{back:4,forward:46},upper:{back:2,forward:8},counter:{back:2,forward:62}};
+export const ROOT_DRIVE={light1:{back:3,forward:9},light3:{back:4,forward:16},heavy:{back:4,forward:14},thrust:{back:4,forward:46},upper:{back:2,forward:8},counter:{back:2,forward:62}};
 export function rootStep(a,t){const r=a&&ROOT_DRIVE[a.kind];if(!r||t<=0)return 0;const s=a.spec;if(t<s.windup){const f=Math.max(0,t/s.windup);return-r.back*f*f;}const f=Math.max(0,Math.min(1,(t-s.windup)/(s.end-s.windup)));return-r.back+(r.forward+r.back)*f*f*(3-2*f);}

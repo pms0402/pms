@@ -15,7 +15,7 @@ try{
  for(const clip of clips){
   const report=await p.evaluate(clip=>{
    const{game:g,art,poses}=window.__seventh,{registeredPose,worldBlade,ATTACKS}=poses;
-   const kind=clip==='air'?'light1':clip,spec=ATTACKS[kind];
+   const kind=clip==='light2'?'upper':clip==='air'?'light1':clip,spec=ATTACKS[kind];
    const canvas=document.createElement('canvas');canvas.width=960;canvas.height=640;
    const c=canvas.getContext('2d');c.imageSmoothingEnabled=false;
    const body=new Set(),silhouettes=new Set(),drawings=new Set();
@@ -52,7 +52,7 @@ try{
   assert.ok(report.silhouettes>=20,clip+' must change body silhouette, not just texture or blade rotation');
   assert.equal(report.drawings,24);
   assert.ok(report.played.length>=20,clip+' must actually play at least 20 stages at normal 60 Hz');
-  await writeFile(new URL('091-'+clip+'-24-poses.png',out),Buffer.from(report.sheet.split(',')[1],'base64'));
+  await writeFile(new URL('092-'+clip+'-24-poses.png',out),Buffer.from(report.sheet.split(',')[1],'base64'));
   console.log('PASS',clip,JSON.stringify({body:report.body,silhouettes:report.silhouettes,drawings:report.drawings,played:report.played.length}));
  }
  assert.deepEqual(errors,[]);
