@@ -52,7 +52,7 @@ try{
   assert.ok(report.silhouettes>=20,clip+' must change body silhouette, not just texture or blade rotation');
   assert.equal(report.drawings,24);
   assert.ok(report.played.length>=20,clip+' must actually play at least 20 stages at normal 60 Hz');
-  await writeFile(new URL('092-'+clip+'-24-poses.png',out),Buffer.from(report.sheet.split(',')[1],'base64'));
+  await writeFile(new URL('093-'+clip+'-24-poses.png',out),Buffer.from(report.sheet.split(',')[1],'base64'));
   console.log('PASS',clip,JSON.stringify({body:report.body,silhouettes:report.silhouettes,drawings:report.drawings,played:report.played.length}));
  }
  assert.deepEqual(errors,[]);

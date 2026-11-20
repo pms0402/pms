@@ -1,3 +1,4 @@
+import {HERO_BASE_SIZE} from './hero-rig.js';
 import {ECHO_LIFE,ribbonEdges} from './afterimages.js';
 import {trainerFrame} from './tutorial.js';
 import {mapX,originalX,chapterAtWorld} from './layout.js';
@@ -30,7 +31,7 @@ export class Renderer{
  if(g.profile.loss){const l=g.profile.loss;this.glow(l.x,l.y-10,20,'#d5c28b');prop(c,'lantern',l.x,l.y,22);}
  this.traps();this.afterimages();for(const e of g.world.enemies)this.actor(e);for(const e of g.world.bosses)if(!e.dead||e.deathT<5||g.profile.flags[e.id]==='freed')this.actor(e);this.threat();
  c.save();if(p.invulnerable>.1&&Math.sin(g.clock*45)>0&&p.hurt>0)c.globalAlpha=.55;drawHero(c,p,g.clock);c.restore();
- if(p.action?.kind==='dash'){for(let i=1;i<4;i++)draw(c,'repairman',Math.min(3,Math.floor(p.action.t/.28*4)),6,p.x-p.dir*i*13,p.y,64,64,p.dir<0,.08*(4-i));}
+ if(p.action?.kind==='dash'){for(let i=1;i<4;i++)draw(c,'repairman',Math.min(3,Math.floor(p.action.t/.28*4)),6,p.x-p.dir*i*13,p.y,HERO_BASE_SIZE,HERO_BASE_SIZE,p.dir<0,.08*(4-i));}
  for(const q of g.projectiles){c.save();c.globalAlpha=Math.min(1,((q.range||300)-(q.distance||0))/55);if(q.kind==='echoBlade'){draw(c,'echo-blade',Math.floor(g.clock*14)%4,0,q.x,q.y+14,28,28,q.vx<0);}else if(q.kind==='bolt'){boundedProp(c,3,1,q.x,q.y+3,30,6);}else if(q.kind==='page'){this.glow(q.x,q.y,18,'#c6a0e9');c.save();c.translate(Math.round(q.x),Math.round(q.y));c.rotate(Math.sin(g.clock*8)*.3);c.fillStyle='#e8dfec';c.fillRect(-6,-4,12,8);c.fillStyle='#9e80bd';c.fillRect(-3,-1,6,1);c.fillRect(-3,1,4,1);c.restore();}else if(q.kind==='wave'){c.strokeStyle='#e1bd79';c.lineWidth=2;c.beginPath();c.moveTo(q.x-12,q.y+6);c.lineTo(q.x-2,q.y-10);c.lineTo(q.x+9,q.y+4);c.stroke();this.glow(q.x,q.y,16,'#e5b970');}else{this.glow(q.x,q.y,16,'#e4b476');c.fillStyle='#f0e1ae';c.fillRect(Math.round(q.x-2),Math.round(q.y-2),4,4);}c.restore();}
  for(const e of g.effects)this.effect(e);if(g.world.boss.state==='windup'&&g.bossActive){const e=g.world.boss;this.glow(e.x+e.dir*28,e.y-70,25,'#f2be65');}
  c.restore();this.atmosphere();if(g.effects.some(e=>e.kind==='parry'&&e.life>e.max-.07)){c.fillStyle='#fff1d61c';c.fillRect(0,0,WIDTH,HEIGHT);}if(p.action?.kind==='charge'&&p.action.t>=.5)this.glow(p.x-this.x+p.dir*8,p.y-this.y-39,17,'#e1c78f');
