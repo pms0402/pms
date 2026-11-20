@@ -1,6 +1,6 @@
 {
   "name": "echoes-of-the-seventh-bell",
-  "version": "0.9.5",
+  "version": "0.9.6",
   "private": true,
   "type": "module",
   "scripts": {
@@ -22,6 +22,7 @@
     "test:techniques": "node tests/techniques-browser.mjs",
     "test:size": "node tests/size-browser.mjs",
     "test:clarity": "node tests/clarity-browser.mjs",
-    "test:locomotion": "node tests/locomotion-browser.mjs"
+    "test:locomotion": "node tests/locomotion-browser.mjs",
+    "test:boss-motion": "node tests/boss-motion-browser.mjs"
   }
 }

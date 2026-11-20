@@ -6,9 +6,10 @@ import {registeredPose,worldBlade} from './blade.js';
 import {CUT_CLIPS,CUT_FRAMES,CUT_PHASES,cutFrameTime} from './cuts.js';
 import {ATTACKS} from './data.js';
 import {TRAVEL_COST} from './economy.js';
-import {BOSS_DEFS} from './bosses.js';
+import {BOSS_DEFS,PATTERNS} from './bosses.js';
+import {BOSS_MOTION,BOSS_RIG,bossPose,bossWindup,bossImpactAt,bossRecovery} from './boss-motion.js';
 import {createSpeechUI} from './speech.js';
-import {loadArt,cell,draw,drawPose,drawHero,heroFrame,artStats} from './art.js';
+import {loadArt,cell,draw,drawPose,drawHero,heroFrame,drawBoss,artStats} from './art.js';
 import {Game} from './game.js';
 import {Renderer} from './renderer.js';
 import {Audio} from './audio.js';
@@ -72,7 +73,7 @@ async function boot(){await loadArt(n=>$('#load-percent').textContent=Math.round
  const canvas=$('#world');canvas.addEventListener('contextmenu',e=>e.preventDefault());canvas.addEventListener('pointerdown',e=>{if(modal||!$('#welcome').hidden||e.pointerType==='touch')return;e.preventDefault();audio.unlock();canvas.focus();if(e.button===0){const b=canvas.getBoundingClientRect(),x=(e.clientX-b.left)/b.width*render.width+render.x;if(!game.p.action)game.p.dir=x>game.p.x?1:-1;game.press('attack',input);}if(e.button===2)game.press('parry');});
  function release(e){const b=e.currentTarget;if(b.dataset.hold)input[b.dataset.hold]=false;if(b.dataset.press==='jump')input.jump=false;if(b.dataset.press==='heavy'){if(e.type==='pointerup')game.releaseCharge();else game.cancelCharge();}}
  $$('[data-hold],[data-press]').forEach(b=>{b.onpointerdown=e=>{e.preventDefault();if(modal||!$('#welcome').hidden)return;audio.unlock();b.setPointerCapture(e.pointerId);if(b.dataset.hold)input[b.dataset.hold]=true;else{if(b.dataset.press==='jump')input.jump=true;if(b.dataset.press==='heavy')game.beginCharge();else game.press(b.dataset.press,input);}};b.onpointerup=b.onpointercancel=b.onlostpointercapture=release;});if(matchMedia('(pointer:coarse)').matches||navigator.maxTouchPoints>0)document.body.classList.add('touch');
- resize();if(new URLSearchParams(location.search).has('test'))window.__seventh={game,render,input,close,updateUI,artStats,art:{cell,draw,drawPose,drawHero,heroFrame},speechUI,coords:{mapX,originalX},poses:{registeredPose,worldBlade,CUT_CLIPS,CUT_FRAMES,CUT_PHASES,cutFrameTime,ATTACKS,HERO_HEIGHT,HERO_RIG}};
+ resize();if(new URLSearchParams(location.search).has('test'))window.__seventh={game,render,input,close,updateUI,artStats,art:{cell,draw,drawPose,drawHero,heroFrame,drawBoss},speechUI,bosses:{BOSS_MOTION,BOSS_RIG,PATTERNS,bossPose,bossWindup,bossImpactAt,bossRecovery},coords:{mapX,originalX},poses:{registeredPose,worldBlade,CUT_CLIPS,CUT_FRAMES,CUT_PHASES,cutFrameTime,ATTACKS,HERO_HEIGHT,HERO_RIG}};
  let ui=0;function frame(now){const dt=Math.min(.08,(now-last)/1000);last=now;game.update(dt,input);render.render(dt);speechUI.update(!modal&&$('#welcome').hidden&&game.profile.started);ui+=dt;if(ui>.06){updateUI();ui=0;}if(!game.paused)audio.update(game.bossActive,game.zone==='crypt',game.profile.flags[['edran','marie','brag','leonel','arkein'][chapterAtWorld(game.p.x)-1]]);requestAnimationFrame(frame);}requestAnimationFrame(frame);
 }
 boot().catch(e=>{console.error(e);$('#loading-error').hidden=false;$('#loading-error p').textContent='게임을 불러오지 못했습니다. 연결을 확인한 뒤 다시 열어 주세요.';});

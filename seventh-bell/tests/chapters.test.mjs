@@ -3,6 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Game} from '../src/game.js';
 import {newProfile,validProfile,restoreProfile,SAVE_KEY} from '../src/data.js';
+import {bossImpactAt} from '../src/boss-motion.js';
 import {BOSS_DEFS,PATTERNS,attackRect,targetRects} from '../src/bosses.js';
 import {enemy,gateActive,overlaps,body} from '../src/world.js';
 const tick=(g,t,input={})=>{for(let i=0;i<Math.ceil(t*120);i++)g.update(1/120,input);};
@@ -17,7 +18,7 @@ test('three bosses have committed, readable attacks with increased damage and re
  }
 });
 test('boss hit boxes apply once after the shown windup, hit harder and leave an opening',()=>{
- for(const id of Object.keys(BOSS_DEFS)){const{g}=fixture();unlock(g);const e=g.world.bosses.find(b=>b.id===id);g.world.boss=e;g.bossActive=true;const pattern=id==='edran'?'sweep':id==='marie'?'thrust':'forgeSweep',a=PATTERNS[pattern];Object.assign(e,{state:'windup',pattern,t:0,dir:1});Object.assign(g.p,{x:e.x+50,y:302,invulnerable:0});assert.ok(overlaps(attackRect(e),body(g.p)));g.updateBoss(a.windup+.01);assert.equal(g.p.hp,100);g.updateBoss(.01);assert.equal(g.p.hp,100-a.damage);g.p.invulnerable=0;g.updateBoss(.1);assert.equal(g.p.hp,100-a.damage);g.updateBoss(a.active);assert.equal(e.state,'recover');assert.ok(a.recover>.8,'a full potion fits in the recovery');}
+ for(const id of Object.keys(BOSS_DEFS)){const{g}=fixture();unlock(g);const e=g.world.bosses.find(b=>b.id===id);g.world.boss=e;g.bossActive=true;const pattern=id==='edran'?'sweep':id==='marie'?'thrust':'forgeSweep',a=PATTERNS[pattern];Object.assign(e,{state:'windup',pattern,t:0,dir:1});Object.assign(g.p,{x:e.x+50,y:302,invulnerable:0});assert.ok(overlaps(attackRect(e),body(g.p)));g.updateBoss(a.windup+.01);assert.equal(g.p.hp,100);g.updateBoss(bossImpactAt(pattern)-.001);assert.equal(g.p.hp,100);g.updateBoss(.002);assert.equal(g.p.hp,100-a.damage);g.p.invulnerable=0;g.updateBoss(.1);assert.equal(g.p.hp,100-a.damage);g.updateBoss(a.active);assert.equal(e.state,'recover');assert.ok(a.recover>.8,'a full potion fits in the recovery');}
 });
 test('ground targets lock on preparation, have safe gaps and never hit before activation',()=>{const{g}=fixture();unlock(g);const e=g.world.bosses[2];g.world.boss=e;g.bossActive=true;e.attackIndex=2;e.cooldown=0;g.p.x=e.x-120;g.updateBoss(.01);assert.equal(e.pattern,'furnace');const targets=[...e.targets];g.p.x=e.x+200;g.updateBoss(.8);assert.deepEqual(e.targets,targets);assert.equal(g.p.hp,100);assert.ok(Math.abs(targets[1]-targets[0])>=100);assert.equal(targetRects(e).length,2);});
 test('second swings are announced with a new full windup and phase transitions clear old projectiles',()=>{const{g}=fixture(),e=g.world.boss;g.bossActive=true;g.p.x=mapX(3700);Object.assign(e,{phase:2,state:'recover',pattern:'double',t:.49,second:false});g.updateBoss(.02);assert.equal(e.state,'windup');assert.equal(e.t,0);assert.equal(e.second,true);g.updateBoss(.8);assert.equal(e.state,'windup');g.updateBoss(.06);assert.equal(e.state,'attack');Object.assign(e,{phase:1,state:'recover',hp:200});g.spawnShot(3800,270,-100,0,30,'edran');g.updateBoss(.02);assert.equal(e.state,'transition');assert.equal(g.projectiles.length,0);});

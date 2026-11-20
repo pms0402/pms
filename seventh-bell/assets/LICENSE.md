@@ -4,6 +4,11 @@ All visual game assets in this directory were created specifically for **Echoes 
 
 | File | Source output | Use |
 | --- | --- | --- |
+| edran-motion.png | exec-f1db8361-8cc3-4ca0-b636-7ec5727a6274.png | Six 6-frame sequences: walk, four dedicated pattern motions and standing parry; padded image-tool repack of exec-88c38938-a35d-4e3d-9311-3a46da54cbdf.png |
+| marie-motion.png | exec-e0601768-d494-4161-9f66-c132b8ea57ef.png | Walk, four dedicated pattern motions and standing parry, 6×6; padded repack of exec-3fdd6d20-e7d2-4d42-b4e8-9cf7e6eae7ab.png |
+| brag-motion.png | exec-1041c78a-11f6-481a-bdd8-a0b139e9a46e.png | Walk and five dedicated pattern motions, 6×6; padded repack of exec-5722f43a-d775-4b38-a2ca-4fcf3dd960ea.png |
+| leonel-motion.png | exec-cf6fd49b-488b-4d7b-8e35-1ccb1bc2c23f.png | Walk and five dedicated pattern motions, 6×6; padded repack of exec-b31e59c3-d3b1-4e33-92af-4dc8e1397531.png |
+| arkein-motion.png | exec-96685c13-ad0c-4640-bb78-9c0cca5378f3.png | Walk and five dedicated pattern motions, 6×6; artifact cleanup of padded exec-05e1e04b-355f-4124-8bf5-b6ab2ffd3469.png from original exec-b45a70d9-6491-4db5-9dc2-9816983c4e98.png |
 | gait-walk.png | exec-a91acf90-947e-419f-bb16-8198255c4725.png | 24 walking drawings, two 12-pose gait variations; image-tool transparency cleanup of exec-2fd5290b-0280-4ec7-978a-a2f2e26fd62e.png |
 | gait-run.png | exec-4a8dcd82-592a-47ee-957b-3cbd3fa290a5.png | 24 fixed-side-view running drawings with alternating contact and flight; frame origins registered in code |
 | gait-transitions.png | exec-320f2367-8007-459e-8fbe-182ff88cfc86.png | 24 source start/stop drawings; the first eight and final twelve are used; image-tool transparency cleanup of exec-e3f42ecc-ae65-4646-b435-128d4a71c497.png |
@@ -45,6 +50,8 @@ The six 0.9.0 attack sheets were edited with the image tool from the previous or
 In 0.9.4 the forehand, overhead finisher, charged overhead and airborne cut were regenerated with six preparation, ten distinct in-between cutting poses and eight recovery drawings. The actual swing now lasts 0.20–0.24 seconds rather than two 60 Hz frames. Runtime material palettes are matched to the original ready stance when each hero cell is cached, preventing changes in clothing exposure between sheets. All four replacements were made with the image tool from the project's own original character references.
 
 In 0.9.5 three locomotion atlases were generated from the original repairman and body references. Walking and running share a distance-integrated foot phase and switch at contact; start/stop use dedicated body drawings. The run atlas has per-cell horizontal registration to close the loop without a body-position reset. All locomotion sheets use a single fixed anatomical scale; running flight is preserved instead of aligning every sole to the floor.
+
+In 0.9.6 five original boss motion atlases add 180 actual drawings: walk cycles, 23 dedicated six-drawing pattern sequences and standing parry poses for the gatekeeper and saint. Chained second blows use the opposing cut sequence. The image tool repacked each atlas with empty gutters and complete weapons to remove adjacent-cell fragments. Runtime crops 192px cells, thresholds alpha and uses fixed per-sequence scale/sole registration; it does not synthesize a character from primitive shapes or distort individual body poses. The earlier boss atlases remain for story stabilization, phase transitions and death.
 
 Original generated outputs are retained in `/workspace/generated_images/`. Runtime code crops the explicit grid, rasterizes animation cells and disables interpolation. It does not use a photographic source or apply a photo-to-pixel effect. Alpha is thresholded for crisp sprite outlines. The source sheets are generated artwork, not represented as a manually hand-pixelled commercial pack.
 

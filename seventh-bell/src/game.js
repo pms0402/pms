@@ -1,3 +1,4 @@
+import {BOSS_MOTION,BOSS_RECOVER_STEP,bossWindup,bossImpactAt,bossRecovery} from './boss-motion.js';
 import {MOVE,newGait,groundVelocity,updateGait} from './locomotion.js';
 import {ageAfterimages,captureAfterimage,rememberSwing} from './afterimages.js';
 import {createTutorialWorld,newTutorial,trainerOf,tutorialSignal,tutorialHit,updateTutorial} from './tutorial.js';
@@ -104,7 +105,7 @@ export class Game{
  const seal=this.world.objects.find(o=>o.id==='forgecache');if(a.kind==='heavy'&&this.profile.flags.forge&&!this.profile.flags.slag&&touches({x:seal.x-22,y:seal.y-35,w:44,h:35})){this.profile.flags.slag=true;this.tell('보물함을 묶은 쇠사슬이 끊어졌다.');this.fx(seal.x,seal.y-20,'hit',.8);this.sound('mechanism');this.save();}}
 
  hitPause(duration,kind){const a=this.p.action;if(['light3','heavy'].includes(kind)&&a?.kind===kind&&a.t<a.spec.windup+(a.spec.end-a.spec.windup)*.8)a.impactPause=Math.max(a.impactPause||0,duration);else this.hitstop=Math.max(this.hitstop,duration);}
- damageEnemy(e,n,dir,push=80,kind=null){const weight=['heavy','plunge','counter'].includes(kind)?1.5:kind==='light3'?1.65:1;if(e.training){if(!this.inTutorial||e.dead)return;tutorialHit(this,e,kind,n);this.hitPause(.05*weight,kind);this.shake=1.2*weight;this.fx(e.x,e.y-e.h*.5,'hit',.3);this.sound(kind==='light3'?'slamHit':'hit');return;}if(e.dead||e.state==='weakened'&&e.grace>0)return;e.hp=Math.max(0,e.hp-n);e.hit=.13;e.vx=dir*push;e.stagger=e.boss?Math.max(e.stagger,.09):kind==='light3'?.48:.34;if(!e.boss){e.state='recover';e.t=0;}this.hitPause((e.boss?.06:.05)*weight,kind);this.shake=(e.boss?2:1.2)*weight;this.fx(e.x,e.y-e.h*.5,'hit',.3);this.sound(kind==='light3'?'slamHit':'hit');this.effects.push({kind:'number',x:e.x,y:e.y-e.h-6,text:String(n),life:.65,max:.65});
+ damageEnemy(e,n,dir,push=80,kind=null){const weight=['heavy','plunge','counter'].includes(kind)?1.5:kind==='light3'?1.65:1;if(e.training){if(!this.inTutorial||e.dead)return;tutorialHit(this,e,kind,n);this.hitPause(.05*weight,kind);this.shake=1.2*weight;this.fx(e.x,e.y-e.h*.5,'hit',.3);this.sound(kind==='light3'?'slamHit':'hit');return;}if(e.dead||e.state==='weakened'&&e.grace>0)return;e.hp=Math.max(0,e.hp-n);e.hit=.13;e.hitDir=dir;if(!e.boss)e.vx=dir*push;e.stagger=e.boss?e.stagger:kind==='light3'?.48:.34;if(!e.boss){e.state='recover';e.t=0;}this.hitPause((e.boss?.06:.05)*weight,kind);this.shake=(e.boss?2:1.2)*weight;this.fx(e.x,e.y-e.h*.5,'hit',.3);this.sound(kind==='light3'?'slamHit':'hit');this.effects.push({kind:'number',x:e.x,y:e.y-e.h-6,text:String(n),life:.65,max:.65});
  if(e.boss&&e.phase===2&&e.hp<=e.maxHp*.115&&this.profile.flags[BOSS_DEFS[e.id].clue]&&!e.offered){e.offered=true;e.hp=Math.max(1,e.hp);e.state='weakened';e.stagger=0;e.t=0;e.grace=1.3;this.p.comboQueued=false;this.projectiles=[];this.tell('종의 박자가 기록과 같다. 가까이서 W를 누르면 울림을 맞출 수 있다.');return;}
  if(e.hp<=0){e.dead=true;e.deathT=0;e.vx=0;if(e.boss){this.clearBoss('slain');return;}if(!this.profile.killed.includes(e.id))this.profile.killed.push(e.id);this.profile.marks+=(e.type==='watchman'?10:12)+(e.rank||0)*4;this.gainXp((e.type==='watchman'?18:22)+(e.rank||0)*5);this.sound('coin');}}
 
@@ -124,30 +125,49 @@ export class Game{
  if(solids(this).some(q=>!q.oneway&&overlaps(body(e),q))){e.x=ox;e.y=oy;e.vx=0;}}
  else{e.vy=Math.min(500,e.vy+1100*dt);const ahead=solids(this).some(q=>q.x<e.x+e.dir*22&&q.x+q.w>e.x+e.dir*22&&Math.abs(q.y-e.y)<25);if(!ahead&&e.grounded&&e.state!=='attack')e.vx=0;moveBody(e,dt,solids(this));}e.walk+=Math.abs(x-e.x);
  }
- spawnShot(x,y,vx,vy,damage,owner,kind='ember',range=360){this.projectiles.push({x,y,vx,vy,damage,owner,kind,life:range/Math.hypot(vx,vy)+.05,distance:0,range});}
+ spawnShot(x,y,vx,vy,damage,owner,kind='ember',range=360){this.projectiles.push({x,y,vx,vy,damage,owner,kind,attackSerial:owner===this.world.boss.id?this.world.boss.attackSerial:null,life:range/Math.hypot(vx,vy)+.05,distance:0,range});}
+ beginBossWindup(e,pattern,second=false){
+  e.attackSerial=(e.attackSerial||0)+1;e.pattern=pattern;e.state='windup';e.t=0;e.vx=0;e.second=second;e.released=false;e.didHit=false;e.dir=Math.sign(this.p.x-e.x)||e.dir;
+  const a=PATTERNS[pattern],d=BOSS_DEFS[e.id];e.targets=a.pillars?[Math.max(d.left+70,Math.min(d.right-70,this.p.x)),Math.max(d.left+70,Math.min(d.right-70,this.p.x+(this.p.x<e.x?190:-190)))]:[];this.sound('parry');
+ }
  updateBoss(dt){
- const e=this.world.boss,p=this.p,d=BOSS_DEFS[e.id];e.hit=Math.max(0,e.hit-dt);if(e.dead){e.deathT+=dt;return;}
+ const e=this.world.boss,p=this.p,d=BOSS_DEFS[e.id],motion=BOSS_MOTION[e.id];e.hit=Math.max(0,e.hit-dt);if(e.dead){e.deathT+=dt;return;}
  if(!this.bossActive){if(p.x>d.left+65&&p.x<d.right-25&&p.y<350){this.bossActive=true;this.projectiles=[];this.event('bossIntro',{id:e.id,text:d.intro});this.sound('bell');}else return;}
  e.cooldown-=dt;e.t+=dt;e.stagger=Math.max(0,e.stagger-dt);
  if(e.state==='weakened'){e.grace=Math.max(0,(e.grace||0)-dt);e.vx=0;return;}
- if(e.hp<e.maxHp*.52&&e.phase===1&&['idle','recover'].includes(e.state)){e.phase=2;e.state='transition';e.t=0;e.vx=0;e.second=false;this.projectiles=[];this.shake=3;this.fx(e.x,e.y-65,'echo',1.3);this.tell(d.phaseText||(e.id==='edran'?'에드란이 금 간 종을 움켜쥐었다.':e.id==='marie'?'마리에의 목에 달린 종에서 목소리가 흘러나왔다.':'브라그가 화로 문을 열었다.'));this.sound('bell');}
+ if(e.hp<e.maxHp*.52&&e.phase===1&&['idle','recover'].includes(e.state)){e.phase=2;e.state='transition';e.t=0;e.vx=0;e.stagger=0;e.second=false;this.projectiles=[];this.shake=3;this.fx(e.x,e.y-65,'echo',1.3);this.tell(d.phaseText||(e.id==='edran'?'에드란이 금 간 종을 움켜쥐었다.':e.id==='marie'?'마리에의 목에 달린 종에서 목소리가 흘러나왔다.':'브라그가 화로 문을 열었다.'));this.sound('bell');}
  if(e.state==='transition'){if(e.t>=1.6){e.state='idle';e.t=0;e.cooldown=.6;}return;}
- if(e.stagger>.12){e.vx=approach(e.vx,0,600*dt);return;}
- if(e.state==='idle'){e.dir=Math.sign(p.x-e.x)||e.dir;const dist=Math.abs(p.x-e.x);e.vx=dist>105?e.dir*(e.id==='marie'?35:39):0;
- if(e.cooldown<=0&&dist<=180){const list=d.patterns[e.phase-1];e.pattern=list[e.attackIndex++%list.length];e.state='windup';e.t=0;e.vx=0;e.second=false;const a=PATTERNS[e.pattern];e.targets=a.pillars?[Math.max(d.left+70,Math.min(d.right-70,p.x)),Math.max(d.left+70,Math.min(d.right-70,p.x+(p.x<e.x?190:-190)))]:[];this.sound('parry');}}
- else if(e.state==='windup'){e.vx=0;const a=PATTERNS[e.pattern],wind=e.second?.85:a.windup;
- if(e.t>=wind){e.state='attack';e.t=0;e.didHit=false;this.sound(e.id==='marie'||e.id==='leonel'?'echo':'heavy');
- if(a.wave){for(const dir of [-1,1])this.spawnShot(e.x+dir*35,e.y-9,dir*155,0,a.wave,e.id,'wave',e.id==='brag'?330:390);this.shake=3;}
- if(a.shot)this.spawnShot(e.x+e.dir*25,e.y-30,e.dir*175,0,a.damage,e.id,a.projectile||'voice',a.projectile?340:380);
- if(a.pillars)for(const x of e.targets)this.fx(x,e.y-50,'pillar',.28);}}
- else if(e.state==='attack'){const a=PATTERNS[e.pattern];e.vx=(a.speed||0)*e.dir;const rects=a.pillars?targetRects(e):a.range?[attackRect(e)]:[];
- if(!e.didHit&&rects.some(r=>overlaps(r,body(p)))&&clearLine(this,e.x,e.y-30,p.x,p.y-25)){e.didHit=true;this.hurt(a.damage,e);}
- if(e.t>=a.active){e.state='recover';e.t=0;e.vx=0;}}
- else if(e.state==='recover'){e.vx=0;const a=PATTERNS[e.pattern];if(e.t>=(a.twice&&!e.second?.5:a.recover)){if(a.twice&&!e.second){e.second=true;e.state='windup';e.t=0;}else{e.second=false;e.state='idle';e.t=0;e.cooldown=.6;}}}
- e.x=Math.max(d.left+75,Math.min(d.right-65,e.x+e.vx*dt));e.walk+=Math.abs(e.vx)*dt;
+ // Only a successful parry holds the boss. Ordinary hits preserve the current
+ // preparation/strike/footfall rather than selecting a collapse drawing.
+ if(e.stagger>.12){e.vx=0;return;}
+ const approachPlayer=factor=>{const distance=p.x-e.x;e.dir=Math.sign(distance)||e.dir;e.vx=Math.abs(distance)>motion.stop?e.dir*motion.speed*factor:0;};
+ if(e.state==='idle'){
+  approachPlayer(1);
+  if(e.cooldown<=0&&Math.abs(p.x-e.x)<=180){const list=d.patterns[e.phase-1];this.beginBossWindup(e,list[e.attackIndex++%list.length]);}
+ }else if(e.state==='windup'){
+  e.vx=0;if(e.t>=bossWindup(e)){e.state='attack';e.t=0;e.didHit=false;e.released=false;}
+ }else if(e.state==='attack'){
+  const a=PATTERNS[e.pattern];e.vx=(a.speed||0)*e.dir;
+  // Ground blows release at the low impact drawing; casts and direct cuts
+  // release while the weapon/hand extends. No damage occurs in preparation.
+  if(e.t>=bossImpactAt(e.pattern)&&e.t<a.active){
+   if(!e.released){e.released=true;this.sound(e.id==='marie'||e.id==='leonel'?'echo':'heavy');
+    if(a.wave){for(const dir of [-1,1])this.spawnShot(e.x+dir*35,e.y-9,dir*155,0,a.wave,e.id,'wave',e.id==='brag'?330:390);this.shake=3;}
+    if(a.shot)this.spawnShot(e.x+e.dir*25,e.y-30,e.dir*175,0,a.damage,e.id,a.projectile||'voice',a.projectile?340:380);
+    if(a.pillars)for(const x of e.targets)this.fx(x,e.y-50,'pillar',.28);
+   }
+   const rects=a.pillars?targetRects(e):a.range?[attackRect(e)]:[];
+   if(!e.didHit&&rects.some(r=>overlaps(r,body(p)))&&clearLine(this,e.x,e.y-30,p.x,p.y-25)){e.didHit=true;this.hurt(a.damage,e);}
+  }
+  if(e.t>=a.active){e.state='recover';e.t=0;e.vx=0;}
+ }else if(e.state==='recover'){
+  e.vx=0;if(e.t>=BOSS_RECOVER_STEP)approachPlayer(.72);
+  if(e.t>=bossRecovery(e)){if(PATTERNS[e.pattern]?.twice&&!e.second)this.beginBossWindup(e,e.pattern,true);else{e.second=false;e.state='idle';e.t=0;e.cooldown=.6;}}
+ }
+ const oldX=e.x;e.x=Math.max(d.left+75,Math.min(d.right-65,e.x+e.vx*dt));e.walk+=Math.abs(e.x-oldX);if(Math.abs(e.x-oldX)<1e-6)e.vx=0;
  }
 
- hurt(n,source){const p=this.p;if(p.dead||p.invulnerable>0)return false;const face=(source.x-p.x)*p.dir>0,a=p.action;if(a?.kind==='parry'&&face&&!source.unblockable){if(a.t>=.025&&a.t<=.21){source.stagger=1.35;source.state='recover';source.t=0;p.stamina=Math.min(this.maxStamina,p.stamina+24);this.hitstop=.09;p.counterReady=.8;this.shake=3;this.fx(p.x+p.dir*14,p.y-30,'parry',.5);if(source.training)tutorialSignal(this,'parry',source);if(has(this.profile,'riposte'))p.riposte=1.8;this.sound('parryHit');return false;}if(p.stamina>=(has(this.profile,'guard')?14:18)){p.stamina-=has(this.profile,'guard')?14:18;n=Math.ceil(n*.3);if(source.training)tutorialSignal(this,'guard',source);}}
+ hurt(n,source){const p=this.p;if(p.dead||p.invulnerable>0)return false;const face=(source.x-p.x)*p.dir>0,a=p.action;if(a?.kind==='parry'&&face&&!source.unblockable){if(a.t>=.025&&a.t<=.21){if(source.boss)this.projectiles=this.projectiles.filter(q=>q.friendly||q.owner!==source.id||q.attackSerial!==source.attackSerial);source.stagger=1.35;source.state='recover';source.t=0;p.stamina=Math.min(this.maxStamina,p.stamina+24);this.hitstop=.09;p.counterReady=.8;this.shake=3;this.fx(p.x+p.dir*14,p.y-30,'parry',.5);if(source.training)tutorialSignal(this,'parry',source);if(has(this.profile,'riposte'))p.riposte=1.8;this.sound('parryHit');return false;}if(p.stamina>=(has(this.profile,'guard')?14:18)){p.stamina-=has(this.profile,'guard')?14:18;n=Math.ceil(n*.3);if(source.training)tutorialSignal(this,'guard',source);}}
  n=Math.max(1,n-this.profile.gear.armor*2);if(source.training&&this.inTutorial)n=Math.min(n,Math.max(0,p.hp-1));if(has(this.profile,'laststand')&&p.hp<=this.maxHp*.3)n=Math.ceil(n*.9);p.hp-=n;this.bladeEchoes=[];p.counterReady=0;p.action=null;p.comboQueued=false;p.hurt=has(this.profile,'poised')?.23:.28;p.invulnerable=.65;p.vx=(Math.sign(p.x-source.x)||-p.dir)*(has(this.profile,'poised')?101:135);p.vy=-75;this.shake=3.5;this.hitstop=.06;this.fx(p.x,p.y-25,'hurt',.4);this.sound('hurt');if(p.hp<=0)this.die();return true;}
  updateProjectiles(dt){for(const q of this.projectiles){const old=q.x,oldY=q.y,speed=Math.hypot(q.vx,q.vy),travel=Math.min(dt,Math.max(0,((q.range||300)-(q.distance||0))/speed));q.x+=q.vx*travel;q.y+=q.vy*travel;q.distance=(q.distance||0)+speed*travel;q.life-=dt;
  if(!clearLine(this,old,oldY,q.x,q.y)){q.life=0;continue;}
