@@ -1,15 +1,23 @@
+import {heroPalette,matchHeroPalette} from './hero-palette.js';
 import {HERO_BASE_SIZE} from './hero-rig.js';
 import {STEEL} from './cuts.js';
 import {registeredPose} from './blade.js';
 import {PATTERNS} from './bosses.js';
 export const SHEETS={'cut-light1':[6,4,128],'cut-light2':[6,4,128],'cut-light3':[6,4,128],'cut-heavy':[6,4,128],'cut-air':[6,4,128],'cut-plunge':[6,4,128],'cut-thrust':[6,4,128],'cut-body':[8,4,128],'steel-blade':[1,1,128],tutor:[6,4,128],swordplay:[8,4,128],'motion-extras':[8,4,128],'echo-blade':[4,2,128],arkein:[6,4,128],traps:[4,3,128],repairman:[8,8,64],remnants:[8,6,64],edran:[6,4,128],marie:[6,4,128],brag:[6,4,128],leonel:[6,4,128],services:[4,2,128],'archive-objects':[4,2,128],objects:[4,4,128],masonry:[4,4,128]};
 const sheets=new Map(),cache=new Map();
+let palette;
+const heroSheets=new Set(['repairman','cut-body','motion-extras','swordplay',...Object.keys(SHEETS).filter(k=>k.startsWith('cut-'))]);
+function matchHero(id,data){
+ if(!heroSheets.has(id))return;
+ if(!palette){const im=sheets.get('cut-body'),c=document.createElement('canvas');c.width=c.height=128;const ctx=c.getContext('2d');ctx.imageSmoothingEnabled=false;ctx.drawImage(im,0,im.height*3/4,im.width/8,im.height/4,0,0,128,128);palette=heroPalette(ctx.getImageData(0,0,128,128).data);}
+ matchHeroPalette(data,palette);
+}
 export async function loadArt(progress=()=>{}){let n=0;const ids=[...Object.keys(SHEETS),'kingdom','ruins','cathedral','foundry','archive','palace'];await Promise.all(ids.map(id=>new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>{sheets.set(id,image);progress(++n/ids.length);resolve();};image.onerror=()=>reject(Error(id));image.src=new URL('../assets/'+id+'.png',import.meta.url).href+new URL(import.meta.url).search;})));}
 export function sheet(id){return sheets.get(id);}
 export function cell(id,col,row){const key=[id,col,row].join(':');if(cache.has(key))return cache.get(key);const im=sheets.get(id);if(!im)throw Error('Missing artwork '+id);const [cols,rows,size]=SHEETS[id],c=document.createElement('canvas');c.width=c.height=size;const ctx=c.getContext('2d',{willReadFrequently:true});ctx.imageSmoothingEnabled=false;let sx=col*im.width/cols,sy=row*im.height/rows,sw=im.width/cols,sh=im.height/rows;
  if(id==='objects'||id==='masonry'){const ys=[0,.23,.487,.744,1];sy=im.height*ys[row];sh=im.height*(ys[row+1]-ys[row]);if(row===0){sy+=12;sh-=15;}}
  ctx.drawImage(im,sx,sy,sw,sh,0,0,size,size);let data=ctx.getImageData(0,0,size,size);if(id==='archive-objects'&&row===1&&col<3){let minX=size,minY=size,maxX=0,maxY=0;for(let y=0;y<size;y++)for(let x=0;x<size;x++)if(data.data[(y*size+x)*4+3]>=150){minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x);maxY=Math.max(maxY,y);}if(minX<=maxX){const copy=document.createElement('canvas');copy.width=copy.height=size;copy.getContext('2d').drawImage(c,0,0);ctx.clearRect(0,0,size,size);ctx.drawImage(copy,minX,minY,maxX-minX+1,maxY-minY+1,0,0,size,size);data=ctx.getImageData(0,0,size,size);}}
- for(let i=3;i<data.data.length;i+=4)data.data[i]=id==='masonry'?255:data.data[i]>=150?255:0;let bottom=0;for(let i=3;i<data.data.length;i+=4)if(data.data[i])bottom=Math.floor(i/(size*4))+1;let minX=size,minY=size,maxX=-1,maxY=-1;for(let y=0;y<size;y++)for(let x=0;x<size;x++)if(data.data[(y*size+x)*4+3]){minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x);maxY=Math.max(maxY,y);}c.sourceAspect=sw/sh;c.opaqueBounds={x:minX,y:minY,w:maxX-minX+1,h:maxY-minY+1};c.footPad=size-bottom;ctx.putImageData(data,0,0);cache.set(key,c);return c;}
+ for(let i=3;i<data.data.length;i+=4)data.data[i]=id==='masonry'?255:data.data[i]>=150?255:0;matchHero(id,data.data);let bottom=0;for(let i=3;i<data.data.length;i+=4)if(data.data[i])bottom=Math.floor(i/(size*4))+1;let minX=size,minY=size,maxX=-1,maxY=-1;for(let y=0;y<size;y++)for(let x=0;x<size;x++)if(data.data[(y*size+x)*4+3]){minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x);maxY=Math.max(maxY,y);}c.sourceAspect=sw/sh;c.opaqueBounds={x:minX,y:minY,w:maxX-minX+1,h:maxY-minY+1};c.footPad=size-bottom;ctx.putImageData(data,0,0);cache.set(key,c);return c;}
 export const PROP={arch:[0,1],tower:[1,1],trainingExit:[2,1],shrine:[2,1],gate:[3,1],tree:[0,2],statue:[1,2],columns:[2,2],lift:[3,2],chest:[0,3],lantern:[1,3],lever:[2,3],npc:[3,3],letter:[0,3],bellrope:[2,3],valve:[2,3],ending:[1,1],archiveway:[1,1]};
 export function draw(ctx,id,col,row,x,y,w,h,flip=false,alpha=1,alignFeet=false){const im=cell(id,col,row);ctx.save();ctx.globalAlpha=alpha;ctx.translate(Math.round(x),Math.round(y+(alignFeet?im.footPad*h/im.height:0)));if(flip)ctx.scale(-1,1);ctx.drawImage(im,Math.round(-w/2),Math.round(-h),w,h);ctx.restore();}
 const ARCHIVE_PROP={archiveShelf:[0,0],lectern:[1,0],finalrecord:[1,0],indexwheel:[2,0],archiveLamp:[3,0],archiveChest:[3,1]};

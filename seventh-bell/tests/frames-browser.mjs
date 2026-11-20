@@ -14,13 +14,13 @@ try{
  const clips=await p.evaluate(()=>window.__seventh.poses.CUT_CLIPS);
  for(const clip of clips){
   const report=await p.evaluate(clip=>{
-   const{game:g,art,poses}=window.__seventh,{registeredPose,worldBlade,ATTACKS}=poses;
+   const{game:g,art,poses}=window.__seventh,{registeredPose,worldBlade,ATTACKS,cutFrameTime}=poses;
    const kind=clip==='light2'?'upper':clip==='air'?'light1':clip,spec=ATTACKS[kind];
    const canvas=document.createElement('canvas');canvas.width=960;canvas.height=640;
    const c=canvas.getContext('2d');c.imageSmoothingEnabled=false;
    const body=new Set(),silhouettes=new Set(),drawings=new Set();
    for(let frame=0;frame<24;frame++){
-    const t=frame<4?spec.windup*(frame+.5)/4:frame<6?spec.windup+(spec.end-spec.windup)*(frame-4+.5)/2:spec.end+(spec.duration-spec.end)*(frame-6+.5)/18;
+    const t=cutFrameTime(clip,spec,frame);
     const actor={x:70,y:138,dir:1,grounded:clip!=='air',action:{kind,spec,t,air:clip==='air',landed:clip==='plunge'&&frame>=5,recoveryT:(frame-5+.5)/19*.36}};
     const pose=registeredPose(actor),im=art.cell(pose.sheet,pose.col,pose.row),pixels=im.getContext('2d').getImageData(0,0,128,128).data;
     let visible=0,mask='';for(let i=3;i<pixels.length;i+=4){if(pixels[i]!==0&&pixels[i]!==255)throw Error('Soft alpha '+clip);if(pixels[i])visible++;mask+=pixels[i]?'1':'0';}
@@ -52,7 +52,7 @@ try{
   assert.ok(report.silhouettes>=20,clip+' must change body silhouette, not just texture or blade rotation');
   assert.equal(report.drawings,24);
   assert.ok(report.played.length>=20,clip+' must actually play at least 20 stages at normal 60 Hz');
-  await writeFile(new URL('093-'+clip+'-24-poses.png',out),Buffer.from(report.sheet.split(',')[1],'base64'));
+  await writeFile(new URL('094-'+clip+'-24-poses.png',out),Buffer.from(report.sheet.split(',')[1],'base64'));
   console.log('PASS',clip,JSON.stringify({body:report.body,silhouettes:report.silhouettes,drawings:report.drawings,played:report.played.length}));
  }
  assert.deepEqual(errors,[]);
