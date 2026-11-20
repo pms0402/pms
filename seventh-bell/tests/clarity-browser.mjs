@@ -10,7 +10,7 @@ try{
  await p.goto(base+'?test=1');await p.waitForFunction(()=>window.__seventh,null,{timeout:60000});await p.click('#skip-tutorial');await p.click('#letter-close');
  const colors=await p.evaluate(()=>{
   const{art}=window.__seventh,median=a=>a.sort((a,b)=>a-b)[Math.floor(a.length/2)];
-  const cases=[['cut-body',0,3],...Array.from({length:8},(_,i)=>['repairman',i,1]),...Array.from({length:8},(_,i)=>['repairman',i,2]),...['light1','light2','light3','heavy','air','thrust','plunge'].flatMap(k=>Array.from({length:24},(_,i)=>['cut-'+k,i%6,Math.floor(i/6)])),...Array.from({length:3},(_,r)=>Array.from({length:8},(_,i)=>['motion-extras',i,r+1])).flat()];
+  const cases=[['cut-body',0,3],...Array.from({length:8},(_,i)=>['repairman',i,1]),...Array.from({length:8},(_,i)=>['repairman',i,2]),...['light1','light2','light3','heavy','air','thrust','plunge'].flatMap(k=>Array.from({length:24},(_,i)=>['cut-'+k,i%6,Math.floor(i/6)])),...['gait-walk','gait-run','gait-transitions'].flatMap(id=>Array.from({length:24},(_,i)=>[id,i%6,Math.floor(i/6)])),...Array.from({length:3},(_,r)=>Array.from({length:8},(_,i)=>['motion-extras',i,r+1])).flat()];
   return cases.map(([id,col,row])=>{const im=art.cell(id,col,row),d=im.getContext('2d').getImageData(0,0,im.width,im.height).data,coat=[],scarf=[],colors=new Set();
    for(let i=0;i<d.length;i+=4)if(d[i+3]){const[r,g,b]=d.slice(i,i+3);colors.add([r,g,b].join());if(g>r*1.04&&b>r&&g>=b*.95)coat.push(.2126*r+.7152*g+.0722*b);if(r>g*1.18&&r>b*1.18&&g<b*1.35)scarf.push(.2126*r+.7152*g+.0722*b);}
    return{id,col,row,coat:median(coat),scarf:median(scarf),colors:colors.size};

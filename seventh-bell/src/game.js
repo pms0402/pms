@@ -1,3 +1,4 @@
+import {MOVE,newGait,groundVelocity,updateGait} from './locomotion.js';
 import {ageAfterimages,captureAfterimage,rememberSwing} from './afterimages.js';
 import {createTutorialWorld,newTutorial,trainerOf,tutorialSignal,tutorialHit,updateTutorial} from './tutorial.js';
 import {mapX,chapterAtWorld} from './layout.js';
@@ -13,7 +14,7 @@ export class Game{
  constructor(storage=null){this.storage=storage;this.saveDisabled=false;this.profile=newProfile();try{const p=JSON.parse(storage?.getItem(SAVE_KEY)||'null');const restored=restoreProfile(p);if(restored)this.profile=restored;}catch{}this.world=this.profile.tutorial.state==='active'?createTutorialWorld(this.profile.tutorial):createWorld();this.event=()=>{};this.clock=0;this.paused=true;this.hitstop=0;this.shake=0;this.skillCD=0;this.echoCD=0;this.echoTime=0;this.bossActive=false;this.effects=[];this.projectiles=[];this.notices=[];this.zone='';this.autosave=0;this.lastHits=[];this.bladeEchoes=[];this.attackSerial=0;this.resetPlayer(this.profile.position);this.restoreEnemies();this.selectBoss();}
  get inTutorial(){return this.world.tutorial===true;}
  get maxHp(){return maxHp(this.profile);}get maxStamina(){return maxStamina(this.profile);}get p(){return this.player;}
- resetPlayer(pos){this.bladeEchoes=[];this.player={x:pos.x,y:pos.y,w:18,h:43,vx:0,vy:0,dir:1,hp:this.profile.hp,stamina:this.maxStamina,brake:0,counterReady:0,riposte:0,grounded:false,coyote:0,jumpBuffer:0,jumps:0,action:null,comboQueued:false,invulnerable:.8,hurt:0,dashCD:0,land:0,walk:0,deathT:0,dead:false,deathShown:false};this.attachToFloor();}
+ resetPlayer(pos){this.bladeEchoes=[];this.player={x:pos.x,y:pos.y,w:18,h:43,vx:0,vy:0,dir:1,hp:this.profile.hp,stamina:this.maxStamina,gait:newGait(),brake:0,counterReady:0,riposte:0,grounded:false,coyote:0,jumpBuffer:0,jumps:0,action:null,comboQueued:false,invulnerable:.8,hurt:0,dashCD:0,land:0,walk:0,deathT:0,dead:false,deathShown:false};this.attachToFloor();}
  attachToFloor(){const p=this.p,q=solids(this).find(q=>Math.abs(q.y-p.y)<.01&&p.x+p.w/2>q.x&&p.x-p.w/2<q.x+q.w);if(q){p.grounded=true;p.support=q;p.coyote=.11;p.vy=0;if(!q.echo)p.lastSafe={x:p.x,y:p.y};}}
  selectBoss(){if(this.bossActive||this.inTutorial)return;this.world.boss=this.world.bosses[chapterAtWorld(this.p.x)-1];}
  restoreEnemies(){if(this.profile.flags.edran==='slain'&&!this.world.enemies.some(e=>e.id==='e8'))this.world.enemies.push(enemy('e8','wisp',mapX(1100),280));for(const e of this.world.enemies)if(this.profile.killed.includes(e.id)){e.dead=true;e.deathT=5;}for(const b of this.world.bosses)if(this.profile.flags[b.id]){b.dead=true;b.deathT=5;}}
@@ -65,11 +66,11 @@ export class Game{
  if(p.jumpBuffer>0&&p.hurt===0&&this.canRecover()&&(p.coyote>0||this.profile.flags.echo&&p.jumps<2)){p.vy=-390;p.jumps=p.coyote>0?1:2;p.grounded=false;p.coyote=0;p.jumpBuffer=0;p.land=0;if(p.action){p.action=null;p.comboQueued=false;this.bladeEchoes=[];}this.sound('jump');if(this.inTutorial)tutorialSignal(this,'jump');this.fx(p.x,p.y,'dust',.32);}
  if(!input.jump&&p.vy<-160)p.vy=approach(p.vy,-160,2100*dt);
  if(p.action?.kind==='dash'){p.action.t+=dt;p.vx=p.dir*310;if(p.action.t>=.03&&p.action.t<=.23)p.invulnerable=Math.max(p.invulnerable,.035);if(p.action.t>=.28)p.action=null;}
- else if(p.hurt===0){const move=Number(!!input.right)-Number(!!input.left),speed=input.run?178:124,oldVX=p.vx;
+ else if(p.hurt===0){const move=Number(!!input.right)-Number(!!input.left),oldVX=p.vx;
  if(p.action&&p.grounded){p.vx=p.action.spec?(rootStep(p.action,p.action.t+dt)-rootStep(p.action,p.action.t))/dt*p.dir:0;p.brake=0;}
- else{const accel=!p.grounded&&has(this.profile,'airstep')?1312:1050;p.vx=approach(p.vx,move*speed,(move?accel:1450)*dt);if(!p.action){if(move&&oldVX*move<0&&Math.abs(oldVX)>18)p.brake+=dt;else p.brake=0;if(Math.abs(p.vx)>8)p.dir=Math.sign(p.vx);else if(move)p.dir=move;}}}
+ else{if(p.grounded)p.vx=groundVelocity(p.vx,move,dt);else{const accel=has(this.profile,'airstep')?1312:1050;p.vx=approach(p.vx,move*MOVE.speed,(move?accel:1450)*dt);}if(!p.action){if(move&&oldVX*move<0&&Math.abs(oldVX)>18)p.brake+=dt;else p.brake=0;if(Math.abs(p.vx)>8)p.dir=Math.sign(p.vx);else if(move&&Math.abs(oldVX)<8)p.dir=move;}}}
  else p.vx=approach(p.vx,0,380*dt);
- if(p.action?.kind==='plunge'&&!p.action.landed&&p.action.t>=p.action.spec.windup){p.vy=720;p.vx=0;}else p.vy=Math.min(560,p.vy+1100*dt);moveBody(p,dt,solids(this));p.x=Math.max(15,Math.min(this.world.w-20,p.x));p.walk+=Math.abs(p.vx)*dt;
+ if(p.action?.kind==='plunge'&&!p.action.landed&&p.action.t>=p.action.spec.windup){p.vy=720;p.vx=0;}else p.vy=Math.min(560,p.vy+1100*dt);const oldX=p.x;moveBody(p,dt,solids(this));p.x=Math.max(15,Math.min(this.world.w-20,p.x));p.walk+=Math.abs(p.x-oldX);updateGait(p,p.x-oldX,dt,Number(!!input.right)-Number(!!input.left));
  if(p.grounded&&!p.support?.echo)p.lastSafe={x:p.x,y:p.y};
  if(!wasGrounded&&p.grounded){p.land=.12;this.fx(p.x,p.y,'dust',.35);this.sound('land');}
  if(p.action&&p.action.kind!=='dash'){

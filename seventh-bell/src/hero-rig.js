@@ -6,6 +6,10 @@ export const HERO_HEIGHT=60;
 export const HERO_BASE_SIZE=Math.round(HERO_HEIGHT*64/(62-2));
 const register=(sheet,col,row,crown,foot)=>({sheet,col,row,crown,foot,size:Math.round(HERO_HEIGHT*128/(foot-crown))});
 export const HERO_RIG={
+ gaitWalk:register("gait-walk",0,0,6,125),
+ // Same bones and source scale as walking; don't enlarge a leaning run pose.
+ gaitRun:{sheet:'gait-run',reference:'gait-walk',size:Math.round(HERO_HEIGHT*128/(125-6))},
+ gaitTransitions:register("gait-transitions",0,0,5,123),
  idle:register("cut-body",0,3,19,121),
  light1:register("cut-light1",5,3,7,123),
  light2:register("cut-light2",5,3,10,123),

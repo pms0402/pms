@@ -4,6 +4,9 @@ All visual game assets in this directory were created specifically for **Echoes 
 
 | File | Source output | Use |
 | --- | --- | --- |
+| gait-walk.png | exec-a91acf90-947e-419f-bb16-8198255c4725.png | 24 walking drawings, two 12-pose gait variations; image-tool transparency cleanup of exec-2fd5290b-0280-4ec7-978a-a2f2e26fd62e.png |
+| gait-run.png | exec-4a8dcd82-592a-47ee-957b-3cbd3fa290a5.png | 24 fixed-side-view running drawings with alternating contact and flight; frame origins registered in code |
+| gait-transitions.png | exec-320f2367-8007-459e-8fbe-182ff88cfc86.png | 24 source start/stop drawings; the first eight and final twelve are used; image-tool transparency cleanup of exec-e3f42ecc-ae65-4646-b435-128d4a71c497.png |
 | repairman.png | exec-74828ce7-6ba3-4f92-985d-dbdf0e7bbc98.png | Original bell repairman, 8×8 animation sheet |
 | remnants.png | exec-7b81e666-e1ad-4be2-a00f-6109578c0b96.png | Three original enemies, 8×6 sheet |
 | edran.png | exec-c4c0a47d-05b8-4bfd-964a-2783e100a958.png | Original dedicated Edran boss, 6×4 sheet |
@@ -40,6 +43,8 @@ All visual game assets in this directory were created specifically for **Echoes 
 The six 0.9.0 attack sheets were edited with the image tool from the previous original sheets, preserving tall adult proportions and removing perspective turns. They originally used four anticipation, two impact and eighteen recovery drawings. The downward plunge holds its dive drawing until terrain contact. In 0.9.1 the first cut was replaced with a larger two-handed diagonal motion and thrust received its own 24-drawing sheet with a clear elbow-back chamber. Counter uses the first cut; anti-air uses the rising sequence. Steel is registered at length 48; rendered trails and collision use the same rigid rotating samples.
 
 In 0.9.4 the forehand, overhead finisher, charged overhead and airborne cut were regenerated with six preparation, ten distinct in-between cutting poses and eight recovery drawings. The actual swing now lasts 0.20–0.24 seconds rather than two 60 Hz frames. Runtime material palettes are matched to the original ready stance when each hero cell is cached, preventing changes in clothing exposure between sheets. All four replacements were made with the image tool from the project's own original character references.
+
+In 0.9.5 three locomotion atlases were generated from the original repairman and body references. Walking and running share a distance-integrated foot phase and switch at contact; start/stop use dedicated body drawings. The run atlas has per-cell horizontal registration to close the loop without a body-position reset. All locomotion sheets use a single fixed anatomical scale; running flight is preserved instead of aligning every sole to the floor.
 
 Original generated outputs are retained in `/workspace/generated_images/`. Runtime code crops the explicit grid, rasterizes animation cells and disables interpolation. It does not use a photographic source or apply a photo-to-pixel effect. Alpha is thresholded for crisp sprite outlines. The source sheets are generated artwork, not represented as a manually hand-pixelled commercial pack.
 

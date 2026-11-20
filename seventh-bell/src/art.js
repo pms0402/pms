@@ -3,14 +3,14 @@ import {HERO_BASE_SIZE} from './hero-rig.js';
 import {STEEL} from './cuts.js';
 import {registeredPose} from './blade.js';
 import {PATTERNS} from './bosses.js';
-export const SHEETS={'cut-light1':[6,4,128],'cut-light2':[6,4,128],'cut-light3':[6,4,128],'cut-heavy':[6,4,128],'cut-air':[6,4,128],'cut-plunge':[6,4,128],'cut-thrust':[6,4,128],'cut-body':[8,4,128],'steel-blade':[1,1,128],tutor:[6,4,128],swordplay:[8,4,128],'motion-extras':[8,4,128],'echo-blade':[4,2,128],arkein:[6,4,128],traps:[4,3,128],repairman:[8,8,64],remnants:[8,6,64],edran:[6,4,128],marie:[6,4,128],brag:[6,4,128],leonel:[6,4,128],services:[4,2,128],'archive-objects':[4,2,128],objects:[4,4,128],masonry:[4,4,128]};
+export const SHEETS={'gait-walk':[6,4,128],'gait-run':[6,4,128],'gait-transitions':[6,4,128],'cut-light1':[6,4,128],'cut-light2':[6,4,128],'cut-light3':[6,4,128],'cut-heavy':[6,4,128],'cut-air':[6,4,128],'cut-plunge':[6,4,128],'cut-thrust':[6,4,128],'cut-body':[8,4,128],'steel-blade':[1,1,128],tutor:[6,4,128],swordplay:[8,4,128],'motion-extras':[8,4,128],'echo-blade':[4,2,128],arkein:[6,4,128],traps:[4,3,128],repairman:[8,8,64],remnants:[8,6,64],edran:[6,4,128],marie:[6,4,128],brag:[6,4,128],leonel:[6,4,128],services:[4,2,128],'archive-objects':[4,2,128],objects:[4,4,128],masonry:[4,4,128]};
 const sheets=new Map(),cache=new Map();
 let palette;
-const heroSheets=new Set(['repairman','cut-body','motion-extras','swordplay',...Object.keys(SHEETS).filter(k=>k.startsWith('cut-'))]);
+const heroSheets=new Set(['repairman','cut-body','motion-extras','swordplay',...Object.keys(SHEETS).filter(k=>k.startsWith('cut-')||k.startsWith('gait-'))]);
 function matchHero(id,data){
  if(!heroSheets.has(id))return;
  if(!palette){const im=sheets.get('cut-body'),c=document.createElement('canvas');c.width=c.height=128;const ctx=c.getContext('2d');ctx.imageSmoothingEnabled=false;ctx.drawImage(im,0,im.height*3/4,im.width/8,im.height/4,0,0,128,128);palette=heroPalette(ctx.getImageData(0,0,128,128).data);}
- matchHeroPalette(data,palette);
+ matchHeroPalette(data,palette,id.startsWith('gait-'));
 }
 export async function loadArt(progress=()=>{}){let n=0;const ids=[...Object.keys(SHEETS),'kingdom','ruins','cathedral','foundry','archive','palace'];await Promise.all(ids.map(id=>new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>{sheets.set(id,image);progress(++n/ids.length);resolve();};image.onerror=()=>reject(Error(id));image.src=new URL('../assets/'+id+'.png',import.meta.url).href+new URL(import.meta.url).search;})));}
 export function sheet(id){return sheets.get(id);}
@@ -36,4 +36,4 @@ export function boundedProp(ctx,col,row,x,y,w,h,center=false){const im=cell('tra
 export function enemyFrame(e,clock){if(e.boss){if(e.dead)return[3,Math.min(5,3+Math.floor(e.deathT*2))];if(e.state==='weakened')return[3,e.id==='edran'?2:3];if(e.stagger>0)return[3,0];if(e.state==='transition')return[e.id==='edran'?2:3,e.id==='edran'?0:2];const a=PATTERNS[e.pattern];if(a&&e.state==='windup')return[a.row,e.id==='arkein'?Math.min(2,Math.floor(e.t/(e.second?.85:a.windup)*3)):a.prep];if(a&&e.state==='attack')return[a.row,e.id==='arkein'?3+Math.min(1,Math.floor(e.t/a.active*2)):a.strike];if(e.state==='recover'&&e.id==='arkein')return[a?.row||1,5];if(e.state==='recover')return[e.id==='edran'?1:0,e.id==='edran'?5:0];return[0,Math.floor(e.walk*.035||clock*3)%6];}
 
  const base=e.type==='watchman'?0:e.type==='cantor'?2:4;if(e.dead)return[base+1,Math.min(7,6+Math.floor(e.deathT*2))];if(e.stagger>0)return[base+1,4+Math.floor(clock*9)%2];if(e.state==='windup')return[base+1,Math.min(1,Math.floor(e.t*3))];if(e.state==='attack')return[base+1,2+Math.floor(e.t*10)%2];return[base,Math.floor(e.walk*.1||clock*(e.flying?9:5))%8];}
-export function artStats(){return {loaded:[...sheets.keys()],cached:cache.size,heroFrames:328,cutBodyFrames:32,attackClips:7,attackFrames:168,framesPerAttack:24,enemyFrames:48,bossFrames:120,trainingFrames:24};}
+export function artStats(){return {loaded:[...sheets.keys()],cached:cache.size,heroFrames:400,cutBodyFrames:32,attackClips:7,attackFrames:168,framesPerAttack:24,enemyFrames:48,bossFrames:120,trainingFrames:24,locomotionFrames:72};}

@@ -21,9 +21,11 @@ export function heroPalette(pixels){
   });
  });
 }
-export function matchHeroPalette(pixels,palette){
+export function matchHeroPalette(pixels,palette,preserveDark=false){
  const hist=Array.from({length:4},()=>new Uint32Array(256)),totals=[0,0,0,0];
  for(let i=0;i<pixels.length;i+=4)if(pixels[i+3]>=150){const m=heroMaterial(pixels[i],pixels[i+1],pixels[i+2]);if(m>=0){hist[m][light(pixels[i],pixels[i+1],pixels[i+2])]++;totals[m]++;}}
+ // Body-only gait sheets have fewer metal highlights. Keep their dark hair
+ // and cloth shadows from being promoted to bright neutral/brass tones.
  const lut=hist.map((bins,m)=>{let sum=0;return Array.from(bins,count=>{const q=(sum+count*.5)/Math.max(1,totals[m]);sum+=count;return palette[m][Math.min(31,Math.floor(q*32))];});});
- for(let i=0;i<pixels.length;i+=4)if(pixels[i+3]>=150){const m=heroMaterial(pixels[i],pixels[i+1],pixels[i+2]);if(m>=0){const rgb=lut[m][light(pixels[i],pixels[i+1],pixels[i+2])];for(let k=0;k<3;k++)pixels[i+k]=rgb[k];}}
+ for(let i=0;i<pixels.length;i+=4)if(pixels[i+3]>=150){const source=[pixels[i],pixels[i+1],pixels[i+2]],m=heroMaterial(...source);if(m>=0){const rgb=lut[m][light(...source)],sourceLight=light(...source),dark=preserveDark&&Math.max(...source)<90&&Math.max(...source)-Math.min(...source)<28,scale=dark?Math.min(1,Math.max(18,sourceLight*1.12)/Math.max(1,light(...rgb))):1;for(let k=0;k<3;k++)pixels[i+k]=Math.round(rgb[k]*scale);}}
 }
