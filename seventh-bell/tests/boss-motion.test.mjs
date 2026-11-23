@@ -11,7 +11,7 @@ test('every real boss pattern has its own preparation and strike row, including 
   assert.ok(Object.hasOwn(m.rows,pattern));e.pattern=pattern;e.second=false;e.stagger=0;
   const cells=new Set(),sizes=new Set();for(const[state,t]of [['windup',.1],['windup',bossWindup(e)*.4],['windup',bossWindup(e)*.9],['attack',PATTERNS[pattern].active*.25],['attack',PATTERNS[pattern].active*.75],['recover',.2]]){e.state=state;e.t=t;const pose=bossPose(e);assert.equal(pose.sheet,id+'-motion');cells.add(pose.col);sizes.add(pose.size);}
   assert.equal(cells.size,6);assert.equal(sizes.size,1);rows.add(bossPose(e).row);count++;
-  if(PATTERNS[pattern].twice){const first=bossPose(e).row;e.second=true;assert.notEqual(bossPose(e).row,first);assert.equal(bossWindup(e),.85);}
+  if(PATTERNS[pattern].twice){const first=bossPose(e).row;e.second=true;assert.notEqual(bossPose(e).row,first);assert.equal(bossWindup(e),PATTERNS[pattern].secondWindup||.85);}
  }assert.equal(rows.size,Object.keys(m.rows).length);}
  assert.equal(count,Object.keys(PATTERNS).length);
 });

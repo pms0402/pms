@@ -4,6 +4,11 @@ All visual game assets in this directory were created specifically for **Echoes 
 
 | File | Source output | Use |
 | --- | --- | --- |
+| harbor.png | exec-b57528c4-328b-4def-8a65-9d3ced066661.png | Original stopped-tide harbor panorama, chapter six |
+| belltower.png | exec-cb5555b8-9f8d-4c3f-a437-40a4c43cf2ca.png | Original mechanical seventh-bell interior, chapter seven |
+| neris-motion.png | exec-d8807ab7-0acf-484a-bfcf-8e979796226a.png | Original lighthouse captain: 6×8 atlas, 48 actual walk/attack/death/story drawings; image-tool padded repack of exec-10b75d68-8f93-491f-89b7-29d3a46d257a.png |
+| carillon-motion.png | exec-20041a1d-7528-43c4-afc5-744e61992441.png | Original nonhuman bell automaton: 6×8 atlas, 48 walk/attack/death/story drawings; cleanup and padded repack of exec-63696c28-d0b6-4653-b3b5-231f777b09ce.png via exec-701d53c3-d6e2-4749-8532-97b7cb8ed169.png |
+| late-objects.png | exec-15b27c63-6472-4ff5-ae97-ae4eb8259e40.png | 4×3 harbor worker, cargo, winch, beacon, resonator, lens, reliquary, machinery and four floor/wall tiles |
 | edran-motion.png | exec-f1db8361-8cc3-4ca0-b636-7ec5727a6274.png | Six 6-frame sequences: walk, four dedicated pattern motions and standing parry; padded image-tool repack of exec-88c38938-a35d-4e3d-9311-3a46da54cbdf.png |
 | marie-motion.png | exec-e0601768-d494-4161-9f66-c132b8ea57ef.png | Walk, four dedicated pattern motions and standing parry, 6×6; padded repack of exec-3fdd6d20-e7d2-4d42-b4e8-9cf7e6eae7ab.png |
 | brag-motion.png | exec-1041c78a-11f6-481a-bdd8-a0b139e9a46e.png | Walk and five dedicated pattern motions, 6×6; padded repack of exec-5722f43a-d775-4b38-a2ca-4fcf3dd960ea.png |
@@ -52,6 +57,8 @@ In 0.9.4 the forehand, overhead finisher, charged overhead and airborne cut were
 In 0.9.5 three locomotion atlases were generated from the original repairman and body references. Walking and running share a distance-integrated foot phase and switch at contact; start/stop use dedicated body drawings. The run atlas has per-cell horizontal registration to close the loop without a body-position reset. All locomotion sheets use a single fixed anatomical scale; running flight is preserved instead of aligning every sole to the floor.
 
 In 0.9.6 five original boss motion atlases add 180 actual drawings: walk cycles, 23 dedicated six-drawing pattern sequences and standing parry poses for the gatekeeper and saint. Chained second blows use the opposing cut sequence. The image tool repacked each atlas with empty gutters and complete weapons to remove adjacent-cell fragments. Runtime crops 192px cells, thresholds alpha and uses fixed per-sequence scale/sole registration; it does not synthesize a character from primitive shapes or distort individual body poses. The earlier boss atlases remain for story stabilization, phase transitions and death.
+
+In 0.10.0 the two new bosses each have their own 48-cell design, including walk, five distinct attacks, death and story poses. Runtime uses 192px extraction, hard alpha, a fixed neutral-body scale per sequence and measured sole anchors. The new panoramas and facilities are generated pixel-style artwork, not photographs. Existing three normal enemy archetypes are reused at higher ranks; no new normal-enemy sprite sheet is claimed.
 
 Original generated outputs are retained in `/workspace/generated_images/`. Runtime code crops the explicit grid, rasterizes animation cells and disables interpolation. It does not use a photographic source or apply a photo-to-pixel effect. Alpha is thresholded for crisp sprite outlines. The source sheets are generated artwork, not represented as a manually hand-pixelled commercial pack.
 

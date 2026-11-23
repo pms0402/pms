@@ -8,6 +8,7 @@ export const EXTENSIONS=[
 export const mapX=x=>x+EXTENSIONS.reduce((n,r)=>n+(x>=r.at?r.length:0),0);
 export function originalX(x){let shift=0;for(const r of EXTENSIONS){const start=r.at+shift;if(x<start)return x-shift;if(x<start+r.length)return r.at;shift+=r.length;}return x-shift;}
 export const roomStart=r=>mapX(r.at)-r.length;
-export const chapterAt=x=>x>=15400?5:x>=11220?4:x>=7700?3:x>=4540?2:1;
+export const chapterAt=x=>x>=27800?7:x>=22400?6:x>=15400?5:x>=11220?4:x>=7700?3:x>=4540?2:1;
 export const chapterAtWorld=x=>chapterAt(originalX(x));
-export const WORLD_WIDTH=mapX(22400);
+export const LEGACY_WORLD_WIDTH=mapX(22400);
+export const WORLD_WIDTH=mapX(33600);

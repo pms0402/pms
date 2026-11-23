@@ -1,3 +1,4 @@
+import {appendLateWorld} from './late-world.js';
 import {mapX,roomStart,EXTENSIONS,WORLD_WIDTH} from './layout.js';
 import {CHECKPOINTS} from './data.js';
 import {makeTrap} from './traps.js';
@@ -55,7 +56,7 @@ export function createWorld(){const bosses=BOSS_ORDER.map(createBoss);const worl
  ground(18580,268,100,0,{oneway:true,h:18}),ground(18700,222,100,0,{oneway:true,h:18}),ground(18820,178,120,0,{oneway:true,h:18}));
  world.gates.push({id:'palace-door',x:16610,y:100,w:46,h:202},{id:'clockwork-door',x:19750,y:100,w:46,h:202});
  world.objects.push({id:'palace-winch',type:'royallever',x:16300,y:430,flag:'palacedoor',label:'지하 권양기 돌리기'},{id:'clockwork',type:'royallever',x:19280,y:478,flag:'clockwork',label:'왕궁 종축 맞추기'},
- {id:'royalorder',type:'chest',x:18870,y:178,royal:true,label:'아르케인의 마지막 명령서'},{id:'palacecache',type:'chest',x:19400,y:478,royal:true,label:'시종의 비상금'},{id:'seventh-bell',type:'ending',x:22100,y:302,label:'일곱 번째 종 앞에 서기'});
+ {id:'royalorder',type:'chest',x:18870,y:178,royal:true,label:'아르케인의 마지막 명령서'},{id:'palacecache',type:'chest',x:19400,y:478,royal:true,label:'시종의 비상금'},{id:'royal-passage',type:'harborway',x:22100,y:302,label:'왕궁 뒤쪽 통로 살펴보기'});
  for(const[id,type,x,y]of [['e23','watchman',15870,302],['e24','cantor',16750,302],['e25','wisp',17680,280],['e26','watchman',18200,302],['e27','cantor',18700,302],['e28','watchman',19880,302],['e29','cantor',20200,302]])world.enemies.push(enemy(id,type,x,y,4));
  // Register all legacy authored positions once. Widths cross only inserted flat rooms.
  for(const p of world.platforms){const right=mapX(p.x+p.w);p.x=mapX(p.x);p.w=right-p.x;}
@@ -76,13 +77,14 @@ export function createWorld(){const bosses=BOSS_ORDER.map(createBoss);const worl
  }
  for(const[a,b]of[[17520,17600],[18100,18185]])cutFloor(mapX(a),mapX(b));
  world.traps.push(makeTrap('royal-spikes','spikes',mapX(15780),302,5),makeTrap('royal-swing','pendulum',mapX(17000),302,5,.6),makeTrap('royal-ram','crusher',mapX(17900),302,5,.8),makeTrap('royal-bolt','emitter',mapX(18500),302,5),makeTrap('royal-ram2','crusher',mapX(20050),302,5,.2));
+ appendLateWorld(world,enemy);
  for(const c of CHECKPOINTS){if(!world.objects.some(o=>o.checkpoint===c.id&&o.type==='shrine'))world.objects.push({id:'shrine-'+c.id,type:'shrine',x:c.x,y:c.y,checkpoint:c.id,label:c.name+' · 기록'});if(!world.objects.some(o=>o.checkpoint===c.id&&o.type==='workshop'))world.objects.push({id:'workshop-'+c.id,type:'workshop',checkpoint:c.id,x:c.x-90,y:c.y,name:c.name+' 정비대',label:'장비 정비 · 종길 이동'});}
  return world;}
 export function enemy(id,type,x,y,rank=0){const flying=type==='wisp',hp=Math.round((type==='watchman'?88:type==='cantor'?72:56)*(1+rank*.18));return{id,type,rank,x,y,homeX:x,homeY:y,w:flying?30:22,h:flying?30:48,hp,maxHp:hp,vx:0,vy:0,dir:-1,state:'idle',t:0,cooldown:1.1,stagger:0,dead:false,deathT:0,hit:0,walk:0,flying};}
 export const overlaps=(a,b)=>a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;
 export const body=e=>({x:e.x-e.w/2,y:e.y-e.h,w:e.w,h:e.h});
-export function gateActive(g,id){const f=g.profile.flags;if(id==='training-door')return g.inTutorial&&g.profile.tutorial.step<8;if(id==='mechanism')return !f.lever;if(id==='first-bell')return !f.edran;if(id==='second-bell')return !f.marie;if(id==='choir-door')return !f.choir;if(id==='furnace-door')return !f.coolant;if(id==='third-bell')return !f.brag;if(id==='archive-index')return !f.index||!f.chronology;if(id==='palace-closed')return !f.leonel||!f.sister;if(id==='palace-door')return !f.palacedoor;if(id==='clockwork-door')return !f.clockwork;if(id==='slag')return !f.slag;return g.bossActive&&(id.startsWith(g.world.boss.id+'-')||g.world.boss.id==='edran'&&id.startsWith('arena-'));}
-export const solids=g=>[...g.world.platforms.filter(p=>(!p.echo||g.echoTime>0)&&(!p.voice||g.profile.flags.voice)&&(!p.memory||g.profile.flags.memory)&&(!p.index||g.profile.flags.index)),g.world.lift,...g.world.gates.filter(p=>gateActive(g,p.id))];
+export function gateActive(g,id){const f=g.profile.flags;if(id==='training-door')return g.inTutorial&&g.profile.tutorial.step<8;if(id==='mechanism')return !f.lever;if(id==='first-bell')return !f.edran;if(id==='second-bell')return !f.marie;if(id==='choir-door')return !f.choir;if(id==='furnace-door')return !f.coolant;if(id==='third-bell')return !f.brag;if(id==='archive-index')return !f.index||!f.chronology;if(id==='palace-closed')return !f.leonel||!f.sister;if(id==='palace-door')return !f.palacedoor;if(id==='clockwork-door')return !f.clockwork;if(id==='slag')return !f.slag;if(id==='royal-harbor')return !f.arkein;if(id==='harbor-lock')return !f.harborLock;if(id==='sixth-bell')return !f.neris;if(id==='tower-seal')return !f.towerSeal;if(id==='tower-lens-gate')return !f.towerLens;return g.bossActive&&(id.startsWith(g.world.boss.id+'-')||g.world.boss.id==='edran'&&id.startsWith('arena-'));}
+export const solids=g=>[...g.world.platforms.filter(p=>(!p.echo||g.echoTime>0)&&(!p.voice||g.profile.flags.voice)&&(!p.memory||g.profile.flags.memory)&&(!p.index||g.profile.flags.index)&&(!p.tide||g.profile.flags.tide)&&(!p.resonance||g.profile.flags.resonance)),g.world.lift,...g.world.gates.filter(p=>gateActive(g,p.id))];
 export function moveBody(e,dt,platforms){const oldY=e.y,oldX=e.x;e.grounded=false;e.x+=e.vx*dt;
  for(const p of platforms){if(p.oneway)continue;if(overlaps(body(e),p)){if(e.vx>0&&oldX+e.w/2<=p.x+2)e.x=p.x-e.w/2;else if(e.vx<0&&oldX-e.w/2>=p.x+p.w-2)e.x=p.x+p.w+e.w/2;else continue;e.vx=0;}}
  e.y+=e.vy*dt;for(const p of platforms){const b=body(e);if(b.x>=p.x+p.w||b.x+b.w<=p.x)continue;if(e.vy>=0&&oldY<=p.y+2&&e.y>=p.y){e.y=p.y;e.vy=0;e.grounded=true;e.support=p;}else if(!p.oneway&&e.vy<0&&oldY-e.h>=p.y+p.h-2&&e.y-e.h<p.y+p.h){e.y=p.y+p.h+e.h;e.vy=0;}}

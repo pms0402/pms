@@ -38,7 +38,7 @@ try{
     proof.push({pattern,heights,drawings:drawings.size,changes:masks[2].split('').filter((v,i)=>v!==masks[4][i]).length});silhouettes.push(masks[2]);
    }
    // Compare the actual character pixels, not a row/size configuration value.
-   const e={...source,x:128,y:220,dead:false,state:'idle',vx:0,stagger:0,hit:0},neutral=render(e),old=document.createElement('canvas');old.width=old.height=256;const ctx=old.getContext('2d');ctx.imageSmoothingEnabled=false;art.draw(ctx,id,0,0,128,220,id==='brag'?156:142,id==='brag'?156:142,false,1,true);const d=ctx.getImageData(0,0,256,256).data;let top=256,bottom=0;for(let y=0;y<256;y++)for(let x=0;x<256;x++)if(d[(y*256+x)*4+3]){top=Math.min(top,y);bottom=Math.max(bottom,y);}
+   const e={...source,x:128,y:220,dead:false,state:'idle',vx:0,stagger:0,hit:0},neutral=render(e),old=document.createElement('canvas');old.width=old.height=256;const ctx=old.getContext('2d');ctx.imageSmoothingEnabled=false;if(['neris','carillon'].includes(id)){const im=art.cell(id+'-motion',0,0),size=bosses.BOSS_RIG[id].size;ctx.drawImage(im,128-size/2,220-(192-im.footPad)*size/192,size,size);}else art.draw(ctx,id,0,0,128,220,id==='brag'?156:142,id==='brag'?156:142,false,1,true);const d=ctx.getImageData(0,0,256,256).data;let top=256,bottom=0;for(let y=0;y<256;y++)for(let x=0;x<256;x++)if(d[(y*256+x)*4+3]){top=Math.min(top,y);bottom=Math.max(bottom,y);}
    return{proof,distinctPreparations:new Set(silhouettes).size,oldHeight:bottom-top+1,newHeight:neutral.height,png:sheet.toDataURL()};
   },id);
   await writeFile(new URL('096-'+id+'-patterns.png',out),Buffer.from(report.png.split(',')[1],'base64'));
@@ -48,7 +48,7 @@ try{
   assert.ok(walk.distance>65);assert.equal(walk.frames,6);assert.equal(walk.state,'idle');assert.equal(walk.stagger,0);assert.deepEqual(walk.before,walk.after);
   await shot(p,id+'-walking');console.log('PASS',id,report.proof.length,'distinct pattern preparations, six actual drawings each, original body height, grounded feet and walking that survives an ordinary hit');
  }
- assert.equal(patterns,23);
+ assert.equal(patterns,33);
  await scene(p,'edran','sweep');await p.evaluate(()=>window.__seventh.game.paused=false);
  await p.waitForFunction(()=>{const{game:g,bosses}=window.__seventh,e=g.world.boss;return e.state==='windup'&&bosses.bossWindup(e)-e.t<.08;});await p.keyboard.press('l');await p.waitForFunction(()=>window.__seventh.game.world.boss.stagger>.5);assert.equal(await p.evaluate(()=>window.__seventh.game.p.hp),100);assert.equal(await p.evaluate(()=>window.__seventh.bosses.bossPose(window.__seventh.game.world.boss).role),'parry');await shot(p,'standing-parry');await p.evaluate(()=>window.__seventh.game.paused=false);await p.keyboard.press('j');assert.equal(await p.evaluate(()=>window.__seventh.game.p.action.kind),'counter');await p.waitForFunction(()=>window.__seventh.game.world.boss.hp<window.__seventh.game.world.boss.maxHp);await shot(p,'standing-counter');
  console.log('PASS actual L parry, upright stagger and J counter against a real boss attack');

@@ -1,6 +1,6 @@
 {
   "name": "echoes-of-the-seventh-bell",
-  "version": "0.9.6",
+  "version": "0.10.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -23,6 +23,8 @@
     "test:size": "node tests/size-browser.mjs",
     "test:clarity": "node tests/clarity-browser.mjs",
     "test:locomotion": "node tests/locomotion-browser.mjs",
-    "test:boss-motion": "node tests/boss-motion-browser.mjs"
+    "test:boss-motion": "node tests/boss-motion-browser.mjs",
+    "test:seven": "node tests/chapters-browser.mjs && node tests/archive-browser.mjs && node tests/palace-browser.mjs && node tests/seven-browser.mjs && node tests/late-mobile-browser.mjs",
+    "test:late-encounters": "node tests/late-encounters-browser.mjs"
   }
 }
