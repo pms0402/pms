@@ -1,6 +1,7 @@
 import {body,overlaps} from './world.js';
 export const makeTrap=(id,type,x,y=302,chapter=1,offset=0)=>({id,type,x,y,chapter,offset,lastCycle:-1});
 export function trapPose(t,clock){const time=clock+t.offset;if(t.type==='spikes'){const f=((time%3.5)+3.5)%3.5;return{frame:f<1.2?0:f<2.1?1:f<2.3?2:f<2.95?3:2,active:f>=2.3&&f<2.95,x:t.x,y:t.y,w:80,h:30,warning:f>=1.2&&f<2.3};}
+ if(t.type==='steam'){const f=((time%4)+4)%4;return{x:t.x,y:t.y-40,w:64,h:82,frame:0,warning:f>=.9&&f<1.8,active:f>=1.8&&f<2.6};}
  if(t.type==='pendulum'){const a=Math.sin(time*1.45)*.84;return {x:t.x+Math.sin(a)*168,y:t.y-204+Math.cos(a)*168,pivotX:t.x,pivotY:t.y-204,w:36,h:40,active:true};}
  if(t.type==='crusher'){const f=((time%4)+4)%4,drop=f<1.5?0:f<1.8?(f-1.5)/.3:f<2.3?1:f<3?(3-f)/.7:0;return{x:t.x,y:t.y-195+drop*160,w:56,h:70,active:f>=1.5&&f<2.3,warning:f>=.5&&f<1.5,chain:true};}
  const cycle=Math.floor(time/3),f=((time%3)+3)%3;return{x:t.x,y:t.y-30,w:40,h:38,warning:f>.8&&f<1.65,fire:f>=1.65&&f<1.8,cycle,active:false};}

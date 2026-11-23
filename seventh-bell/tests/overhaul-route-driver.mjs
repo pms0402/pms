@@ -1,0 +1,10 @@
+// Test helpers advance the real game with inputs. Positions, switches and rewards
+// are never assigned by the route driver.
+export async function installRouteDriver(page){await page.evaluate(()=>{
+ const g=window.__seventh.game;
+ window.routeStep=(n,held={})=>{g.paused=false;for(let i=0;i<n;i++){if(g.p.dead)throw Error('Died on route '+g.p.x+','+g.p.y);g.update(1/120,held);}g.paused=true;window.__seventh.render.snap();};
+ window.routeWalk=(x,max=2400)=>{let last=g.p.x,stuck=0;for(let i=0;i<max;i++){const d=x-g.p.x;if(Math.abs(d)<5&&Math.abs(g.p.vx)<22)return;window.routeStep(1,{left:d<-4,right:d>4,jump:true});if(Math.abs(g.p.x-last)<.02)stuck++;else stuck=0;last=g.p.x;if(stuck>180)throw Error('Walk blocked '+g.p.x+','+g.p.y+' -> '+x);}throw Error('Walk timeout '+g.p.x+','+g.p.y+' -> '+x);};
+ window.routeJump=(x,y,double=false)=>{const q=g.p.support,d=x-g.p.x;if(g.p.grounded&&q&&Math.abs(d)>110){const edge=d>0?Math.min(x-85,q.x+q.w-15):Math.max(x+85,q.x+15);if((edge-g.p.x)*d>0)window.routeWalk(edge);}g.paused=false;g.press('jump');g.paused=true;let second=false;for(let i=0;i<260;i++){const d=x-g.p.x;if(double&&!second&&i>25&&g.p.vy>-40&&!g.p.grounded){g.paused=false;g.press('jump');g.paused=true;second=true;}window.routeStep(1,{left:d<-5,right:d>5,jump:true});if(i>25&&g.p.grounded){if(Math.abs(g.p.y-y)>2)throw Error('Landed on '+g.p.x+','+g.p.y+' instead of '+x+','+y);window.routeWalk(x);return;}}throw Error('Jump timeout '+g.p.x+','+g.p.y+' -> '+x+','+y);};
+ window.routeUse=id=>{const object=g.nearest();if(object?.id!==id)throw Error('Nearest '+object?.id+' instead of '+id+' at '+g.p.x+','+g.p.y);g.paused=false;const ok=g.press('interact');g.paused=true;if(!ok)throw Error('Could not use '+id);};
+ window.routeLift=(id,seconds)=>{const m=g.world.movers.find(m=>m.id===id);window.routeWalk(m.x+m.w/2);window.routeUse(id);window.routeStep(Math.ceil(seconds*120));if(g.p.support!==m||Math.abs(g.p.y-m.target)>1)throw Error('Lift lost rider '+id+' at '+g.p.x+','+g.p.y+' target '+m.target);};
+ });}

@@ -1,3 +1,4 @@
+import {BOSS_ACTIONS,ACTION_SETS} from './boss-actions.js';
 import {mapX} from './layout.js';
 // Each attack commits its direction and target before its visible windup.
 export const PATTERNS={
@@ -37,17 +38,19 @@ export const PATTERNS={
  forgeDouble:{name:'되돌아오는 망치',windup:1.15,active:.25,recover:1.5,range:135,damage:44,row:2,prep:1,strike:3,twice:true}
 };
 export const BOSS_DEFS={
- edran:{name:'최후의 문지기, 에드란',chapter:1,x:3910,left:3395,right:4235,hp:420,clue:'memento',ability:'echo',patterns:[['sweep','slam','lunge'],['double','slam','lunge','sweep']],intro:'돌아가라. 밖에는 새벽이 오지 않는다.'},
- marie:{name:'침묵의 성녀, 마리에',chapter:2,x:6990,left:6500,right:7380,hp:620,clue:'hymn',ability:'voice',patterns:[['thrust','choir','tide'],['choir','knell','thrust','tide']],intro:'마리에는 입을 열었다. 목에 달린 작은 종만 흔들렸다.'},
- leonel:{name:'기억의 기록관, 레오넬',chapter:4,x:14490,left:14000,right:14900,hp:980,clue:'errata',ability:'memory',patterns:[['quill','folio','footnote'],['finalLine','redaction','folio','footnote']],phaseText:'레오넬이 책의 매듭을 풀었다.',intro:'그 글씨를 알아보는군. …그럼 여기서 멈춰. 다음 장은 읽지 마.'},
- brag:{name:'잿빛 대장장이, 브라그',chapter:3,x:10210,left:9750,right:10740,hp:850,clue:'ledger',ability:'forge',patterns:[['hammer','forgeSweep','furnace'],['charge','hammer','forgeDouble','furnace']],intro:'그 밸브, 네가 잠갔나. …비켜. 아직 안에 사람이 있다.'}
+ edran:{name:'최후의 문지기, 에드란',chapter:1,x:3910,left:3395,right:4235,hp:840,clue:'memento',ability:'echo',patterns:[['sweep','slam','lunge'],['double','slam','lunge','sweep']],intro:'돌아가라. 밖에는 새벽이 오지 않는다.'},
+ marie:{name:'침묵의 성녀, 마리에',chapter:2,x:6990,left:6500,right:7380,hp:1240,clue:'hymn',ability:'voice',patterns:[['thrust','choir','tide'],['choir','knell','thrust','tide']],intro:'마리에는 입을 열었다. 목에 달린 작은 종만 흔들렸다.'},
+ leonel:{name:'기억의 기록관, 레오넬',chapter:4,x:14490,left:14000,right:14900,hp:1960,clue:'errata',ability:'memory',patterns:[['quill','folio','footnote'],['finalLine','redaction','folio','footnote']],phaseText:'레오넬이 책의 매듭을 풀었다.',intro:'그 글씨를 알아보는군. …그럼 여기서 멈춰. 다음 장은 읽지 마.'},
+ brag:{name:'잿빛 대장장이, 브라그',chapter:3,x:10210,left:9750,right:10740,hp:1700,clue:'ledger',ability:'forge',patterns:[['hammer','forgeSweep','furnace'],['charge','hammer','forgeDouble','furnace']],intro:'그 밸브, 네가 잠갔나. …비켜. 아직 안에 사람이 있다.'}
 };
-BOSS_DEFS.arkein={name:'여명을 지키는 왕, 아르케인 3세',chapter:5,x:21200,left:20600,right:21840,hp:1320,clue:'royalorder',ability:'dawn',patterns:[['royalCut','royalFall','royalMarch'],['royalTwice','royalDawn','royalMarch','royalFall']],intro:'종을 끄러 왔나. …그 뒤에 오는 밤도 네가 맡을 테냐.',phaseText:'왕이 망토를 풀었다. 등 뒤의 창에서 새벽빛이 꺼졌다.'};
+BOSS_DEFS.arkein={name:'여명을 지키는 왕, 아르케인 3세',chapter:5,x:21200,left:20600,right:21840,hp:2640,clue:'royalorder',ability:'dawn',patterns:[['royalCut','royalFall','royalMarch'],['royalTwice','royalDawn','royalMarch','royalFall']],intro:'종을 끄러 왔나. …그 뒤에 오는 밤도 네가 맡을 테냐.',phaseText:'왕이 망토를 풀었다. 등 뒤의 창에서 새벽빛이 꺼졌다.'};
 
-BOSS_DEFS.neris={name:'등대를 지키는 자, 네리스',chapter:6,x:26700,left:26100,right:27300,hp:1540,w:46,h:102,artSize:220,clue:'harborLog',ability:'tide',patterns:[['hookCut','anchorFall','harpoonRush'],['twinHook','lanternCall','harpoonRush','anchorFall']],intro:'배는 안 와. 알아. 그래도 불을 끄면… 돌아올 곳마저 없어지잖아.',phaseText:'네리스가 등불의 심지를 올렸다. 물에 비친 배들이 사라졌다.'};
-BOSS_DEFS.carillon={name:'빈 종의 잔향, 카리온',chapter:7,x:32300,left:31700,right:33000,hp:1840,w:62,h:118,artSize:276,clue:'conductorNotes',ability:'resonance',patterns:[['chimeSweep','pendulumFall','frameRush'],['brokenCadence','hollowChorus','frameRush','pendulumFall']],intro:'빈 종 안에서, 여러 사람이 같은 말을 했다. “아직 끄지 마.”',phaseText:'종 안의 목소리가 갈라졌다. 청동 틈에서 빛이 새어 나왔다.'};
+BOSS_DEFS.neris={name:'등대를 지키는 자, 네리스',chapter:6,x:26700,left:26100,right:27300,hp:3080,w:46,h:102,artSize:220,clue:'harborLog',ability:'tide',patterns:[['hookCut','anchorFall','harpoonRush'],['twinHook','lanternCall','harpoonRush','anchorFall']],intro:'배는 안 와. 알아. 그래도 불을 끄면… 돌아올 곳마저 없어지잖아.',phaseText:'네리스가 등불의 심지를 올렸다. 물에 비친 배들이 사라졌다.'};
+BOSS_DEFS.carillon={name:'빈 종의 잔향, 카리온',chapter:7,x:32300,left:31700,right:33000,hp:3680,w:62,h:118,artSize:276,clue:'conductorNotes',ability:'resonance',patterns:[['chimeSweep','pendulumFall','frameRush'],['brokenCadence','hollowChorus','frameRush','pendulumFall']],intro:'빈 종 안에서, 여러 사람이 같은 말을 했다. “아직 끄지 마.”',phaseText:'종 안의 목소리가 갈라졌다. 청동 틈에서 빛이 새어 나왔다.'};
+Object.assign(PATTERNS,BOSS_ACTIONS);
+for(const[id,d]of Object.entries(BOSS_DEFS)){d.patterns=ACTION_SETS[id];}
 for(const d of Object.values(BOSS_DEFS))for(const k of ['x','left','right'])d[k]=mapX(d[k]);
 export const BOSS_ORDER=['edran','marie','brag','leonel','arkein','neris','carillon'];
-export function createBoss(id){const d=BOSS_DEFS[id];return{id,type:id,boss:true,x:d.x,y:302,w:d.w||(id==='brag'?58:48),h:d.h||(id==='marie'?94:id==='leonel'?99:105),hp:d.hp,maxHp:d.hp,vx:0,vy:0,dir:-1,state:'idle',t:0,phase:1,cooldown:1.4,attackIndex:0,stagger:0,dead:false,deathT:0,hit:0,walk:0,targets:[]};}
+export function createBoss(id){const d=BOSS_DEFS[id];return{id,type:id,boss:true,native:true,x:d.x,y:302,w:d.w||(id==='brag'?58:48),h:d.h||(id==='marie'?94:id==='leonel'?99:105),hp:d.hp,maxHp:d.hp,vx:0,vy:0,dir:-1,state:'idle',t:0,phase:1,cooldown:1.4,attackIndex:0,stagger:0,dead:false,deathT:0,hit:0,walk:0,targets:[]};}
 export function attackRect(e,warning=false){const a=PATTERNS[e.pattern];if(!a)return{x:e.x,y:e.y,w:0,h:0};const reach=a.range+(warning?(a.speed||0)*a.active:0);return{x:e.dir>0?e.x-18:e.x-reach,y:e.y-96,w:reach+18,h:96};}
 export function targetRects(e){return(e.targets||[]).map(x=>({x:x-34,y:e.y-104,w:68,h:104}));}

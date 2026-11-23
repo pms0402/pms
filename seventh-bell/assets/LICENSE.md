@@ -4,16 +4,26 @@ All visual game assets in this directory were created specifically for **Echoes 
 
 | File | Source output | Use |
 | --- | --- | --- |
+| foes-1.png | exec-56eb50e5-0408-4541-a930-c164a9613430.png | Original 6×9 atlas with three native enemy species, each with walk, action and reaction/death rows (54 drawings) |
+| foes-2.png | exec-c99bc110-c2e0-403d-9274-75ba544ffada.png | Original 6×9 atlas with three native enemy species, each with walk, action and reaction/death rows (54 drawings) |
+| foes-3.png | exec-57ff2673-aebe-40bc-8df1-34b08a3f6623.png | Original 6×9 atlas with three native enemy species, each with walk, action and reaction/death rows (54 drawings) |
+| foes-4.png | exec-413ee4ba-daa4-4292-95f0-17b7137fcea4.png | Original 6×9 atlas with three native enemy species, each with walk, action and reaction/death rows (54 drawings) |
+| foes-5.png | exec-8d343293-770d-4407-ae67-d9cc353c8429.png | Original 6×9 atlas with three native enemy species, each with walk, action and reaction/death rows (54 drawings) |
+| foes-6.png | exec-55079ebc-b4f0-44a6-8753-412916630c93.png | Original 6×9 atlas with three native enemy species, each with walk, action and reaction/death rows (54 drawings) |
+| foes-7.png | exec-fa22557e-0f4c-4b7c-9a5d-80d18400c8e3.png | Original 6×9 atlas with three native enemy species, each with walk, action and reaction/death rows (54 drawings) |
+| combat-atlas.png | exec-84ad317a-a42d-46e3-b3e8-c8e75d4ded25.png | Original 6×4 atlas of distinct projectiles, chains, floor hazards, water, bookcase, cover and platforms |
+| edran-unshielded.png | exec-a2fbc0d5-52e0-4ac0-a2b3-368543455fc2.png | Original 6×6 phase-two motion atlas: shield discarded |
+| arkein-uncloaked.png | exec-cf646a3b-62e9-4cf9-b80b-19b1651c9c38.png | Original 6×6 phase-two motion atlas: cloak removed |
 | harbor.png | exec-b57528c4-328b-4def-8a65-9d3ced066661.png | Original stopped-tide harbor panorama, chapter six |
 | belltower.png | exec-cb5555b8-9f8d-4c3f-a437-40a4c43cf2ca.png | Original mechanical seventh-bell interior, chapter seven |
-| neris-motion.png | exec-d8807ab7-0acf-484a-bfcf-8e979796226a.png | Original lighthouse captain: 6×8 atlas, 48 actual walk/attack/death/story drawings; image-tool padded repack of exec-10b75d68-8f93-491f-89b7-29d3a46d257a.png |
-| carillon-motion.png | exec-20041a1d-7528-43c4-afc5-744e61992441.png | Original nonhuman bell automaton: 6×8 atlas, 48 walk/attack/death/story drawings; cleanup and padded repack of exec-63696c28-d0b6-4653-b3b5-231f777b09ce.png via exec-701d53c3-d6e2-4749-8532-97b7cb8ed169.png |
+| neris-motion.png | exec-934cda0c-63fa-4e51-891d-0ab188cda4ec.png | Original 6×9 boss atlas: walk, five dedicated actions, phase-two motion, paired combo and story/death poses (54 drawings) |
+| carillon-motion.png | exec-0e6e88d3-18e8-41f7-b293-b563e1d68c5d.png | Original 6×9 boss atlas: walk, five dedicated actions, phase-two motion, paired combo and story/death poses (54 drawings) |
 | late-objects.png | exec-15b27c63-6472-4ff5-ae97-ae4eb8259e40.png | 4×3 harbor worker, cargo, winch, beacon, resonator, lens, reliquary, machinery and four floor/wall tiles |
-| edran-motion.png | exec-f1db8361-8cc3-4ca0-b636-7ec5727a6274.png | Six 6-frame sequences: walk, four dedicated pattern motions and standing parry; padded image-tool repack of exec-88c38938-a35d-4e3d-9311-3a46da54cbdf.png |
-| marie-motion.png | exec-e0601768-d494-4161-9f66-c132b8ea57ef.png | Walk, four dedicated pattern motions and standing parry, 6×6; padded repack of exec-3fdd6d20-e7d2-4d42-b4e8-9cf7e6eae7ab.png |
-| brag-motion.png | exec-1041c78a-11f6-481a-bdd8-a0b139e9a46e.png | Walk and five dedicated pattern motions, 6×6; padded repack of exec-5722f43a-d775-4b38-a2ca-4fcf3dd960ea.png |
-| leonel-motion.png | exec-cf6fd49b-488b-4d7b-8e35-1ccb1bc2c23f.png | Walk and five dedicated pattern motions, 6×6; padded repack of exec-b31e59c3-d3b1-4e33-92af-4dc8e1397531.png |
-| arkein-motion.png | exec-96685c13-ad0c-4640-bb78-9c0cca5378f3.png | Walk and five dedicated pattern motions, 6×6; artifact cleanup of padded exec-05e1e04b-355f-4124-8bf5-b6ab2ffd3469.png from original exec-b45a70d9-6491-4db5-9dc2-9816983c4e98.png |
+| edran-motion.png | exec-5906dd53-d48e-4171-a203-263ae264a4d0.png | Original 6×9 boss atlas: walk, five dedicated actions, phase-two motion, paired combo and story/death poses (54 drawings) |
+| marie-motion.png | exec-83cc3f8a-1643-407e-940d-2963a4598ca7.png | Original 6×9 boss atlas: walk, five dedicated actions, phase-two motion, paired combo and story/death poses (54 drawings) |
+| brag-motion.png | exec-5186c7c0-7ab7-478b-81d8-dc1bc1ec962d.png | Original 6×9 boss atlas: walk, five dedicated actions, phase-two motion, paired combo and story/death poses (54 drawings) |
+| leonel-motion.png | exec-18db5532-675f-46a4-988d-7fc48ba38ca3.png | Original 6×9 boss atlas: walk, five dedicated actions, phase-two motion, paired combo and story/death poses (54 drawings) |
+| arkein-motion.png | exec-3e5f802e-6eca-40ab-84b8-6f0acec4b27e.png | Original 6×9 boss atlas: walk, five dedicated actions, phase-two motion, paired combo and story/death poses (54 drawings) |
 | gait-walk.png | exec-a91acf90-947e-419f-bb16-8198255c4725.png | 24 walking drawings, two 12-pose gait variations; image-tool transparency cleanup of exec-2fd5290b-0280-4ec7-978a-a2f2e26fd62e.png |
 | gait-run.png | exec-4a8dcd82-592a-47ee-957b-3cbd3fa290a5.png | 24 fixed-side-view running drawings with alternating contact and flight; frame origins registered in code |
 | gait-transitions.png | exec-320f2367-8007-459e-8fbe-182ff88cfc86.png | 24 source start/stop drawings; the first eight and final twelve are used; image-tool transparency cleanup of exec-e3f42ecc-ae65-4646-b435-128d4a71c497.png |
@@ -65,3 +75,5 @@ Original generated outputs are retained in `/workspace/generated_images/`. Runti
 The score and sound effects are authored in `src/audio.js` using Web Audio oscillators. There are no sampled recordings or external audio assets. Fonts are the player's installed system fonts.
 
 The supplied world, characters and story belong to the user's project. This provenance note identifies the actual source rather than asserting an unrelated third-party asset license or exclusive ownership of generated images.
+
+Version 0.11.0 replaces all seven boss motion sheets and adds seven native-enemy sheets, two genuinely distinct phase-two sheets and the combat-object atlas. The originals remain PNG assets. `atlas-layout.js` stores measured source gutters and a fixed scale per atlas; `boss-registration.js` stores the measured soles and weapon endpoints. The runtime extracts cells with nearest-neighbour sampling and thresholds alpha without creating new poses. Bosses have 450 distinct motion/story drawings and the 21 ordinary species have 378; the inspection suite verifies all 828 extracted cells independently. These are image-tool-created sprite sheets, not photographs processed with a pixel filter.
