@@ -118,3 +118,6 @@ Version 0.16.0 adds seven original image-tool-created miniboss atlases. Each is 
 | mini-seren.png | exec-cc57cada-c7f9-4825-af87-d2c1f17b1417.png |
 | mini-ballast.png | exec-b7f0bf55-9fc7-4c58-9e5d-5282b2d56462.png |
 | mini-pendulum.png | exec-338c243f-ff71-412d-b9a8-05e446fca822.png |
+
+
+Version 0.16.1 adds derived runtime files in `assets/packed/`. These contain the existing registered pixels, packed into six sheets and encoded with FFmpeg/libwebp in lossless BGRA mode. Opaque backgrounds and narrative atlases use the same lossless encoding. The partially transparent ruins panorama is copied byte-for-byte as PNG to preserve browser premultiplication exactly. Original source PNGs are unchanged. Every one of the 2,753 extracted cells and all ten full backdrops are compared against the original browser-decoded pixels in Chromium and WebKit. These files add no new illustration or outside asset source. Their manifest records input/file hashes and original logical bounds, scale and feet.

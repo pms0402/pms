@@ -1,8 +1,8 @@
 # 잔향: 일곱 번째 종
 
-**ECHOES OF THE SEVENTH BELL · 0.16.0**
+**ECHOES OF THE SEVENTH BELL · 0.16.1**
 
-누나의 흔적을 찾아 일곱 종을 조사하는 횡스크롤 액션 RPG다. 이번 판은 iPad Safari의 메모리 부담을 줄이도록 이미지 로딩과 렌더링을 고치고, 각 장에 독립된 중간보스 한 마리씩을 더했다. 변경점과 검사 범위는 [RUNTIME.md](RUNTIME.md)에 정리했다. 기존 이동 그림은 [CREATURES.md](CREATURES.md), 보스 뒤의 기억과 결말은 [CINEMATICS.md](CINEMATICS.md), 동전 성장은 [GROWTH.md](GROWTH.md), 지역 연결은 [TRAVEL.md](TRAVEL.md)에서 확인할 수 있다.
+누나의 흔적을 찾아 일곱 종을 조사하는 횡스크롤 액션 RPG다. 이번 수정은 초기 로딩을 줄인다. 전 지역 원본을 내려받아 브라우저에서 가공하던 방식을, 미리 준비한 무손실 아틀라스를 읽는 방식으로 바꿨다. 전송량·픽셀 비교·검증 범위는 [LOADING.md](LOADING.md)에 정리했다. 중간보스와 멈춤 대응은 [RUNTIME.md](RUNTIME.md), 이동 그림은 [CREATURES.md](CREATURES.md), 보스 뒤의 기억과 결말은 [CINEMATICS.md](CINEMATICS.md)에서 확인할 수 있다.
 
 ## 실행
 
@@ -12,7 +12,8 @@
 npm ci --no-audit --no-fund
 cd seventh-bell
 npm run dev                 # http://localhost:4191/
-npm test                    # 260개 전투·지형·저장·프레임 복구 검사
+npm test                    # 261개 전투·지형·저장·프레임 복구 검사
+npm run test:loading         # 준비 파일·2,753칸/배경 픽셀·재접속 캐시·저장 차단
 npm run test:runtime         # iPad 화면의 이동·터치·메모리·예외 복구·저장
 npm run test:minibosses      # 7종 실전 처치·보상·재접속·378개 그림
 npm run test:creatures       # 720개 이동 셀·30주기·실제 AI·벽 끼임 재현 지점 처치
@@ -59,7 +60,7 @@ npm run build               # dist/에 독립 정적 사이트 생성
 
 ## 아트와 저장
 
-중간보스 전용 그림 378장(7종 × 54장), 기존 보스 그림 450장과 일반 적 그림 378장을 사용한다. 기존 수리공의 24장 검술 시트와 보행은 유지했다. 원본 PNG의 실제 여백을 측정해 각 셀을 자르고, 한 시트 안에서는 같은 배율을 쓴다. 발 기준점과 무기 끝점은 등록 데이터로 보정한다. 안개는 인물 뒤에 그리며, 순간이동·분신 등 지정된 연출을 제외한 살아 있는 보스는 불투명하다. 생성 원본의 출처는 [assets/LICENSE.md](assets/LICENSE.md)에 있다. 원본 여백을 다시 등록할 때는 Pillow가 있는 환경에서 `python tools/measure-atlases.py`를 실행한 뒤, 개발 서버를 켜고 `node tools/register-bosses.mjs`를 실행한다. 두 도구는 PNG를 수정하지 않고 등록 데이터만 기록한다.
+중간보스 전용 그림 378장(7종 × 54장), 기존 보스 그림 450장과 일반 적 그림 378장을 사용한다. 기존 수리공의 24장 검술 시트와 보행은 유지했다. 원본 PNG의 실제 여백을 측정해 각 셀을 자르고, 한 시트 안에서는 같은 배율을 쓴다. 발 기준점과 무기 끝점은 등록 데이터로 보정한다. 안개는 인물 뒤에 그리며, 순간이동·분신 등 지정된 연출을 제외한 살아 있는 보스는 불투명하다. 생성 원본의 출처는 [assets/LICENSE.md](assets/LICENSE.md)에 있다. 실행용 파생 파일은 `assets/packed/`에 있으며, PNG 원본을 수정하지 않는 무손실 인코딩이다. 원본·추출 코드가 바뀌면 개발 서버를 켜고 `npm run art:pack`으로 다시 만든다. 이 명령은 Chromium과 FFmpeg의 libwebp 인코더를 사용한다. 빌드에서 원본과 준비 파일의 해시가 어긋나면 실패하므로 오래된 그림을 게시하지 않는다. 원본 여백을 다시 등록할 때는 Pillow가 있는 환경에서 `python tools/measure-atlases.py`를 실행한 뒤, 개발 서버를 켜고 `node tools/register-bosses.mjs`를 실행한다. 두 도구는 PNG를 수정하지 않고 등록 데이터만 기록한다.
 
 저장 키는 `seventh-bell.save.v1`, 스키마는 12이다. 버전 1~11의 보스 결과·능력·장비·수첩·동전·체력·약병을 보존한다. 새 지름길과 기계의 위치·위상·목표 높이도 저장한다. 같은 스키마의 선택 필드 `minibosses`에 중간보스 처치 기록을 더하며, 이 필드가 없는 기존 저장은 빈 기록으로 읽는다. 이전 저장 위치가 새 벽 안에 있는 경우 위치만 마지막 종 앞으로 옮기고 안내한다. 기존에 통과한 구역과 완료한 장의 지름길은 다시 막지 않는다.
 

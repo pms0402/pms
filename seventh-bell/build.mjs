@@ -1,6 +1,8 @@
 import {cp,mkdir,rm,readFile,writeFile,readdir} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
+import {validatePacked} from './tools/validate-packed.mjs';
 const root=new URL('.',import.meta.url),out=new URL('dist/',root),pkg=JSON.parse(await readFile(new URL('package.json',root)));
+await validatePacked();
 await rm(out,{recursive:true,force:true});await mkdir(out,{recursive:true});
 for(const name of ['index.html','style.css','src','assets'])await cp(new URL(name,root),new URL(name,out),{recursive:true});
 const stamp=pkg.version+'-'+(process.env.GITHUB_SHA?.slice(0,8)||'local');
