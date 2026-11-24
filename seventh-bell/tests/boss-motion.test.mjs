@@ -22,7 +22,7 @@ test('ordinary damage preserves an approaching boss and a committed attack inste
 test('bosses walk during their approach and later recovery while the full attack opening remains',()=>{
  for(const id of Object.keys(BOSS_DEFS)){const{g,e}=scene(id);g.p.x=e.x-320;e.cooldown=10;const x=e.x;g.updateBoss(.1);assert.ok(e.x<x);assert.equal(bossPose(e).role,'walk');
   Object.assign(e,{state:'recover',pattern:BOSS_DEFS[id].patterns[0][0],t:0,vx:0});const at=e.x;g.updateBoss(.1);assert.equal(e.x,at);assert.equal(bossPose(e).role,'recover');g.updateBoss(.35);assert.ok(e.x<at);assert.equal(e.state,'recover');assert.equal(bossPose(e).role,'walk');assert.ok(e.t<bossRecovery(e));
-  g.p.x=e.x-30;g.updateBoss(.01);assert.equal(e.vx,0);assert.equal(bossPose(e).role,'guard');
+  g.p.x=e.x-30;const speed=Math.abs(e.vx);g.updateBoss(.01);assert.ok(Math.abs(e.vx)<speed,'approach brakes instead of snapping');for(let n=0;n<72;n++)g.updateBoss(1/120);assert.equal(e.vx,0);assert.equal(bossPose(e).role,'guard');
  }
 });
 test('melee damage and ground waves wait for the actual contact drawing and release only once',()=>{

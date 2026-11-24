@@ -2,6 +2,7 @@ import {REGISTERED_WEAPONS} from './boss-registration.js';
 import {BOSS_ACTIONS,selectBossAction} from './boss-actions.js';
 import {BOSS_DEFS} from './bosses.js';
 import {BOSS_MOTION,bossPose,BOSS_RIG} from './boss-motion.js';
+import {advanceCreatureGait} from './creature-motion.js';
 import {body,solids,clearLine} from './world.js';
 import {bladeTouches} from './blade.js';
 import {addField,clearArena} from './combat-fields.js';
@@ -122,7 +123,7 @@ export function updateNativeBoss(g,e,dt){
  if(e.state==='transition'){if(e.t>=1.6){e.state='idle';e.t=0;e.cooldown=.75;}return true;}
  if(e.wasHot&&e.overheatUntil<=g.clock){e.wasHot=false;e.stagger=1.3;finish(e);e.exhaustedUntil=g.clock+1.5;}
  if(e.stagger>.12){e.vx=0;return true;}
- const oldX=e.x;e.vx=0;if(e.vault){const v=e.vault;v.t+=dt;const f=Math.min(1,v.t/1.1),horizontal=clamp((f-.25)/.5,0,1);e.x=v.from+(v.to-v.from)*horizontal;e.y=302-Math.sin(f*Math.PI)*165;e.walk+=Math.abs(e.x-oldX);if(f>=1){e.y=302;e.vault=null;}return true;}
+ const oldX=e.x,oldVX=e.vx;e.vx=0;if(e.vault){const v=e.vault;v.t+=dt;const f=Math.min(1,v.t/1.1),horizontal=clamp((f-.25)/.5,0,1);e.x=v.from+(v.to-v.from)*horizontal;e.y=302-Math.sin(f*Math.PI)*165;e.walk+=Math.abs(e.x-oldX);advanceCreatureGait(e,dt,e.x-oldX,m.stride);if(f>=1){e.y=302;e.vault=null;}return true;}
  if(e.moveTo){e.x=toward(e.x,e.moveTo.x,140*dt);e.y=toward(e.y,e.moveTo.y,120*dt);if(Math.abs(e.x-e.moveTo.x)<2&&Math.abs(e.y-e.moveTo.y)<2)e.moveTo=null;}
  if(e.elevatedUntil>g.clock)e.y=toward(e.y,e.elevation||170,95*dt);else if(!e.moveTo)e.y=toward(e.y,302,110*dt);
  if(e.state==='idle'){
@@ -138,9 +139,10 @@ export function updateNativeBoss(g,e,dt){
   const a=BOSS_ACTIONS[e.pattern];if(e.t>.4&&!e.anchorOut&&Math.abs(p.x-e.x)>m.stop)e.vx=Math.sign(p.x-e.x)*m.speed*.6;
   if(e.t>=(a?.recover||1.5)){if(e.id==='neris'&&e.phase===2&&e.attackIndex%5===0&&e.resetIndex!==e.attackIndex){g.combatFields=g.combatFields.filter(f=>f.owner!==e.id);e.resetIndex=e.attackIndex;g.sound('bell');g.tell('등대의 불이 다시 켜졌다.');}e.state='idle';e.t=0;e.cooldown=e.id==='arkein'&&e.phase===2?.45:.65;e.poseRow=null;e.poseCol=null;}
  }
+ if(e.state==='idle'||e.state==='recover'&&e.t>.4)e.vx=toward(oldVX,e.vx,m.speed*6*dt);else if(e.state==='windup')e.vx=0;
  const proposed=clamp(e.x+e.vx*dt,d.left+75,d.right-70),blocking=solids(g).some(q=>!q.oneway&&q.y<e.y-5&&q.y+q.h>e.y-e.h&&proposed+e.w/2>q.x&&proposed-e.w/2<q.x+q.w);
  const floorAhead=['marie','leonel'].includes(e.id)||e.y<290||solids(g).some(q=>q.x<=proposed-e.w/2&&q.x+q.w>=proposed+e.w/2&&Math.abs(q.y-e.y)<8);if(!blocking&&floorAhead)e.x=proposed;else if(blocking&&e.id==='neris'&&['idle','recover'].includes(e.state)&&Math.abs(p.x-e.x)>120){const cover=(g.world.routeWalls||[]).find(w=>w.owner==='neris');if(cover)e.vault={from:e.x,to:e.x<cover.x?cover.x+cover.w+e.w:cover.x-e.w,t:0};}else if(e.pattern==='gateRush'&&e.state==='attack'){e.wallStun=true;finish(e);e.followup=null;e.stagger=1.8;}
- e.walk+=Math.abs(e.x-oldX);if(Math.abs(e.x-oldX)<1e-6)e.vx=0;
+ e.walk+=Math.abs(e.x-oldX);advanceCreatureGait(e,dt,e.x-oldX,m.stride);if(Math.abs(e.x-oldX)<1e-6)e.vx=0;
  return true;
 }
 

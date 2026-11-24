@@ -4,6 +4,7 @@ import {body,moveBody,solids,clearLine} from './world.js';
 import {bladeTouches} from './blade.js';
 import {spawnEnemyShot} from './projectile-combat.js';
 import {addField} from './combat-fields.js';
+import {advanceCreatureGait} from './creature-motion.js';
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const rangeRoles=new Set(['ranged','notes','paper','mage','harpoon','lantern','resonator']);
 function begin(e,g,mode){if(!canBeginEnemyAttack(g,e)){e.cooldown=.25;return;}const d=SPECIES[e.type];e.mode=mode;e.state='windup';e.t=0;e.beat=0;e.released=false;e.didHit=false;e.dir=Math.sign(g.p.x-e.x)||e.dir;e.aim={x:g.p.x,y:g.p.y-24};e.prep=d.windup*(e.buffedUntil>g.clock?.8:1);e.shielding=['guard','bookguard','duelist'].includes(d.role)&&mode==='guard';}
@@ -22,8 +23,8 @@ function release(g,e){const d=SPECIES[e.type],role=d.role;e.released=true;e.shie
  if(role==='support'&&e.mode==='chant'){for(const ally of g.world.enemies)if(ally!==e&&!ally.dead&&Math.hypot(ally.x-e.x,ally.y-e.y)<230)ally.buffedUntil=g.clock+6;g.fx(e.x,e.y-25,'echo',.5);}
 }
 export function updateNativeEnemy(g,e,dt){
- const d=SPECIES[e.type];if(!d)return false;if(!e.dead&&pacifyEnemy(g,e,dt))return true;e.hit=Math.max(0,e.hit-dt);if(e.dead){e.deathT+=dt;return true;}if(Math.abs(e.x-g.p.x)>1000||Math.abs(e.y-g.p.y)>750)return true;
- e.stagger=Math.max(0,e.stagger-dt);e.cooldown-=dt;e.t+=dt;e.trailClock=(e.trailClock||0)+dt;const p=g.p,dx=p.x-e.x,dy=p.y-e.y,dist=Math.abs(dx);if(Math.abs(e.x-e.homeX)>270)e.returning=true;if(Math.abs(e.x-e.homeX)<40)e.returning=false;const alert=!e.returning&&dist<440&&Math.abs(dy)<(e.flying?300:190),oldX=e.x,oldY=e.y;
+ const d=SPECIES[e.type];if(!d)return false;e.hit=Math.max(0,e.hit-dt);e.stagger=Math.max(0,e.stagger-dt);const startX=e.x,oldVX=e.vx,stride=d.role==='cart'?66:44,period=d.role==='dive'?.85:d.role==='notes'?1.6:d.role==='resonator'?1.8:1.1;if(!e.dead&&pacifyEnemy(g,e,dt)){advanceCreatureGait(e,dt,e.x-startX,stride,period);return true;}if(e.dead){e.deathT+=dt;return true;}if(Math.abs(e.x-g.p.x)>1000||Math.abs(e.y-g.p.y)>750)return true;
+ e.cooldown-=dt;e.t+=dt;e.trailClock=(e.trailClock||0)+dt;const p=g.p,dx=p.x-e.x,dy=p.y-e.y,dist=Math.abs(dx);if(Math.abs(e.x-e.homeX)>270)e.returning=true;if(Math.abs(e.x-e.homeX)<40)e.returning=false;const alert=!e.returning&&dist<440&&Math.abs(dy)<(e.flying?300:190),oldX=e.x,oldY=e.y;
  if(e.unstableUntil>g.clock){e.vx=0;e.t=0;e.stagger=Math.max(e.stagger,.15);e.state='recover';}
  else if(e.stagger>0){e.vx*=Math.max(0,1-dt*8);}
  else if(e.state==='windup'){
@@ -43,12 +44,13 @@ export function updateNativeEnemy(g,e,dt){
   const ranged=rangeRoles.has(d.role)||d.role==='ember',reachable=Math.abs(dy)<(ranged||e.flying?230:65);
   if(d.role==='lantern'&&dist<125||e.retreatUntil>g.clock){e.vx=-e.dir*d.speed;}
   else if(ranged){e.vx=dist<125?-e.dir*d.speed*.8:dist>d.reach?e.dir*d.speed:0;if(e.cooldown<=0&&dist<d.reach+55&&reachable&&clearLine(g,e.x,e.y-25,p.x,p.y-24))begin(e,g,'shoot');}
-  else if(d.role==='support'){const allies=g.world.enemies.some(a=>a!==e&&!a.dead&&Math.abs(a.x-e.x)<230);if(e.cooldown<=0&&(dist<76||allies))begin(e,g,dist<76?'push':'chant');else e.vx=dist<135?-e.dir*d.speed:0;}
+  else if(d.role==='support'){const allies=g.world.enemies.some(a=>a!==e&&!a.dead&&Math.abs(a.x-e.x)<230);if(e.cooldown<=0&&(dist<76||allies))begin(e,g,dist<76?'push':'chant');else e.vx=dist<135?-e.dir*d.speed:dist>220?e.dir*d.speed:0;}
   else if(d.role==='monk'){e.vx=dist>66?e.dir*d.speed:0;if(e.cooldown<=0&&dist<230&&reachable)begin(e,g,dist>94&&e.attackCycle++%2===0?'wave':'staff');}
   else if(d.role==='bookguard'&&e.guardHits>0&&e.cooldown<=0){begin(e,g,'guard');e.prep=1.1;e.guardHits=0;}
   else{e.vx=dist>(d.role==='duelist'?75:d.reach-15)?e.dir*d.speed:0;if(e.cooldown<=0&&dist<d.reach&&reachable&&clearLine(g,e.x,e.y-20,p.x,p.y-20)){begin(e,g,'melee');if(d.role==='dive')e.aim.y=p.y-12;}}
  }else{e.shielding=false;e.vx=Math.abs(e.homeX-e.x)>40?Math.sign(e.homeX-e.x)*22:0;}
 
+ if(e.state==='idle'&&e.stagger===0){const wanted=e.vx;e.vx=oldVX+clamp(wanted-oldVX,-d.speed*6*dt,d.speed*6*dt);}else if(e.state==='windup')e.vx=0;
  if(d.role==='ink'&&e.trailClock>.7&&alert){e.trailClock=0;addField(g,{owner:e.id,kind:'ink',x:e.x-(e.surface==='wall'?4:15),y:e.y-(e.surface==='wall'?20:7),w:e.surface==='wall'?7:30,h:e.surface==='wall'?30:7,warning:.35,duration:2.4,damage:15,color:'#9b80ad'});}
  if(e.flying){
   const yTarget=d.role==='dive'?(e.state==='recover'?p.y-14:e.homeY-82):alert?p.y-27:e.homeY;
@@ -63,7 +65,7 @@ export function updateNativeEnemy(g,e,dt){
   if(d.role==='cart'&&e.state==='attack'&&Math.abs(wanted)>1&&Math.abs(e.x-oldX)<.01){e.state='recover';e.t=0;e.stagger=1.1;e.vx=0;g.fx(e.x+e.dir*30,e.y-20,'hit',.3);}
   if(d.role==='ink'&&wanted&&Math.abs(e.x-oldX)<.01){e.surface='wall';e.y-=Math.min(45*dt,40);e.vy=0;}
  }
- if(sanctuaryAt(g,e)){e.x=oldX;e.y=oldY;e.vx=0;e.state='idle';e.cooldown=1;}e.walk+=Math.abs(e.x-oldX);return true;
+ if(sanctuaryAt(g,e)){e.x=oldX;e.y=oldY;e.vx=0;e.state='idle';e.cooldown=1;}e.walk+=Math.abs(e.x-oldX);advanceCreatureGait(e,dt,e.x-oldX,stride,period);return true;
 }
 export function speciesDamage(g,e,n,kind){const d=SPECIES[e.type];if(!d)return n;
  if(e.shielding&&(g.p.x-e.x)*e.dir>0&&g.p.y>e.y-e.h-12){e.guardHits=(e.guardHits||0)+1;g.fx(e.x+e.dir*18,e.y-28,'parry',.2);return Math.max(1,Math.round(n*(kind==='heavy'?.7:d.role==='bookguard'?.22:.48)));}

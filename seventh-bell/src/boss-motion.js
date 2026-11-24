@@ -1,9 +1,10 @@
 import {REGISTERED_RIG,REGISTERED_FEET} from './boss-registration.js';
 import {BOSS_ACTIONS} from './boss-actions.js';
 import {PATTERNS} from './bosses.js';
+import {creatureGaitPose} from './creature-motion.js';
 
-// Each live boss has its own 6 x 6 atlas. Row zero is a walk cycle; every
-// attack row contains three preparation, two strike and one recovery drawing.
+// Native attacks retain their dedicated preparation/strike/recovery rows.
+// Locomotion uses registered 24-drawing cycles from creature-motion.js.
 export const BOSS_MOTION={
  edran:{speed:43,stop:92,stride:54,rows:{sweep:1,slam:2,lunge:3,double:4},second:{double:1},parry:5},
  marie:{speed:37,stop:94,stride:46,rows:{thrust:1,choir:2,tide:3,knell:4},second:{},parry:5},
@@ -38,6 +39,7 @@ export function bossPose(e){
  else if(e.state==='attack'){row=bossAttackRow(e);col=e.t<PATTERNS[e.pattern].active*.5?3:4;role='strike';}
  else if(e.state==='recover'&&e.t<BOSS_RECOVER_STEP){row=bossAttackRow(e);col=e.t<.10?4:5;role='recover';}
  else if(Math.abs(e.vx)>1){col=Math.floor((e.walk||0)/motion.stride*6)%6;role='walk';}
+ if(role==='walk')return creatureGaitPose(e,e.id+'-gait',0,motion.stride,rig.size);
  return{sheet:e.id+'-motion',row,col,role,size:rig.rows[row],root:96,foot:BOSS_FEET[e.id][row][col]};
 }
 
@@ -52,7 +54,7 @@ export function nativeBossPose(e,rig,feet){
  else if(e.state==='windup'){row=a.row;col=e.t/a.windup<.25?0:e.t/a.windup<.62?1:2;role='prepare';}
  else if(e.state==='attack'){row=e.poseRow??a.row;col=e.poseCol??(e.t<a.active*.5?3:4);role='strike';}
  else if(e.state==='recover'&&e.t<.4){row=a?.row||0;col=5;role='recover';}
- else if(Math.abs(e.vx)>1){col=Math.floor(e.walk/54*6)%6;role='walk';}
+ else if(Math.abs(e.vx)>1||e.gaitSettling){role='walk';return creatureGaitPose(e,e.id+'-gait',e.phase===2&&['edran','arkein'].includes(e.id)?4:0,BOSS_MOTION[e.id].stride,rig.size);}
  let sheet=e.id+'-motion';
  if(e.phase===2&&['edran','arkein'].includes(e.id)&&!e.dead&&!['weakened','transition','freed'].includes(e.state)){
   sheet=e.id==='edran'?'edran-unshielded':'arkein-uncloaked';

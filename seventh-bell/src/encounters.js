@@ -1,6 +1,6 @@
 import {SPECIES,CHAPTER_ENEMIES,makeSpecies} from './enemy-species.js';
 import {safeSpawn,entityBox,pacifyEnemy} from './sanctuary.js';
-import {journeyAt,JOURNEYS,mainChapter} from './journey-data.js';
+import {journeyAt,JOURNEYS} from './journey-data.js';
 const anchors=[
  [[700,302],[840,202],[1450,114],[1730,20],[2040,-100],[3250,478],[3510,478],[3890,478],[4250,302]],
  [[6630,302],[6920,-420],[7370,-420],[7700,430],[7910,430],[8840,230],[9050,188],[9500,302]],
@@ -11,7 +11,17 @@ const anchors=[
  [[36520,-120],[36550,-580],[36620,-1000],[36805,-965],[36850,302],[37230,430],[37550,430],[38740,176],[39030,302],[39200,302]]
 ];
 const overlap=(a,b)=>a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;
-function perch(w,x,y,d){const area=journeyAt(x)?.id;const choices=w.platforms.filter(q=>q.journey===area&&!q.ceiling&&!q.echo&&!q.voice&&!q.memory&&!q.index&&!q.tide&&!q.resonance&&!q.routeMode&&!q.bridge&&x>q.x+d.w/2+2&&x<q.x+q.w-d.w/2-2&&Math.abs(q.y-y)<60).sort((a,b)=>Math.abs(a.y-y)-Math.abs(b.y-y));for(const q of choices){const e={x,y:q.y-(d.flying?24:0),w:d.w,h:d.h};if(!safeSpawn(w,e))continue;if(w.platforms.some(p=>p!==q&&p.journey===area&&!p.oneway&&!p.echo&&!p.voice&&!p.memory&&!p.routeMode&&!p.bridge&&overlap(entityBox(e),p)))continue;return e;}return null;}
+function perch(w,x,y,d,barriers=false){const area=journeyAt(x)?.id;const choices=w.platforms.filter(q=>q.journey===area&&!q.ceiling&&!q.echo&&!q.voice&&!q.memory&&!q.index&&!q.tide&&!q.resonance&&!q.routeMode&&!q.bridge&&x>q.x+d.w/2+2&&x<q.x+q.w-d.w/2-2&&Math.abs(q.y-y)<60).sort((a,b)=>Math.abs(a.y-y)-Math.abs(b.y-y));for(const q of choices){const e={x,y:q.y-(d.flying?24:0),w:d.w,h:d.h};if(!safeSpawn(w,e))continue;if(w.platforms.some(p=>p!==q&&p.journey===area&&!p.oneway&&!p.echo&&!p.voice&&!p.memory&&!p.routeMode&&!p.bridge&&overlap(entityBox(e),p)))continue;if(barriers&&[...w.gates,...(w.routeWalls||[])].some(p=>p.journey===area&&overlap(entityBox(e),p)))continue;return e;}return null;}
+function settleSpawns(w){
+ // Validate after assigning the legacy encounter IDs so existing kill records
+ // keep referring to the same enemies. Include closed doors and route walls,
+ // not just the floor beneath a sprite.
+ for(const e of w.enemies){const d=SPECIES[e.type],area=journeyAt(e.homeX)?.id;let pos=perch(w,e.homeX,e.homeY,d,true);
+  if(!pos)for(let step=1;step<=24&&!pos;step++)for(const side of[-1,1]){const x=e.homeX+side*step*24;if(journeyAt(x)?.id!==area)continue;pos=perch(w,x,e.homeY,d,true);if(pos)break;}
+  if(!pos)throw Error('No clear enemy perch: '+e.id);
+  Object.assign(e,{...pos,homeX:pos.x,homeY:pos.y});
+ }
+}
 export function populateEncounters(w,baseEnemy){
  const points=anchors.flatMap((a,i)=>a.map(([x,y])=>({x,y,chapter:i+1})));
  // Preserve old IDs and kill flags, but move placements out of every new sanctuary.
@@ -20,8 +30,10 @@ export function populateEncounters(w,baseEnemy){
  const add=(type,x,y,pack)=>{const d=SPECIES[type],pos=perch(w,x,y,d);if(!pos||w.enemies.some(e=>e.type===type&&Math.abs(e.homeX-pos.x)<65&&Math.abs(e.homeY-pos.y)<70))return;const e=makeSpecies(baseEnemy('e'+serial++,'watchman',pos.x,pos.y,d.chapter-1),type);e.pack=pack;e.homeX=pos.x;e.homeY=pos.y;w.enemies.push(e);};
  anchors.forEach((list,c)=>list.forEach(([x,y],i)=>{const types=CHAPTER_ENEMIES[c];add(types[i%3],x,y,`main-${c}-${i}`);if(i%2===0)add(types[(i+1)%3],x+85,y,`main-${c}-${i}`);}));
  for(const j of JOURNEYS){const ys=j.kind==='pilgrim'?[422,422]:j.kind==='mine'?[434,434]:j.kind==='crypt'?[434,434]:j.kind==='cliff'?[482,478]:j.kind==='coast'?[122,122]:[302,302];for(let i=0;i<2;i++){const dx=j.kind==='pilgrim'?(i?700:520):j.kind==='crypt'?(i?800:540):j.kind==='coast'?(i?970:620):j.kind==='cliff'?(i?1160:620):i?j.length-470:540;add(CHAPTER_ENEMIES[j.from-1][i?1:0],j.start+dx,ys[i],j.id+'-'+i);add(CHAPTER_ENEMIES[j.to-1][i?0:2],j.start+dx+95,ys[i],j.id+'-'+i);}}
- w.encounterCount=w.enemies.length;return w;
+ settleSpawns(w);w.encounterCount=w.enemies.length;return w;
 }
-export function updateEncounters(g,dt){const area=journeyAt(g.p.x)?.id,near=g.world.enemies.filter(e=>!e.dead&&journeyAt(e.homeX)?.id===area&&Math.abs(e.x-g.p.x)<850&&Math.abs(e.y-g.p.y)<750).sort((a,b)=>(['windup','attack'].includes(b.state)?1000:0)-(['windup','attack'].includes(a.state)?1000:0)+Math.abs(a.x-g.p.x)-Math.abs(b.x-g.p.x));const allowed=new Set(near.slice(0,7));g.activeEnemies=allowed.size;
- for(const e of g.world.enemies){if(e.dead){e.deathT+=dt;continue;}if(!allowed.has(e)){pacifyEnemy(g,e,dt);continue;}g.updateEnemy(e,dt);}
+export function updateEncounters(g,dt){const area=journeyAt(g.p.x)?.id;g.activeEnemies=0;
+ // The attack-start budget still limits simultaneous strikes. It must never
+ // stop the movement, physics or hit reaction of the eighth visible enemy.
+ for(const e of g.world.enemies){if(e.dead){e.deathT+=dt;continue;}if(journeyAt(e.homeX)?.id!==area||Math.abs(e.x-g.p.x)>=850||Math.abs(e.y-g.p.y)>=750){pacifyEnemy(g,e,dt);continue;}g.activeEnemies++;g.updateEnemy(e,dt);}
 }

@@ -1,3 +1,4 @@
+import {creatureGaitPose,FOE_GAIT_SOURCES} from './creature-motion.js';
 const rows=[
  ['patrol','성벽 순찰병','guard',88,22,48,46,.76,2,66],['crossbow','폐허 석궁병','ranged',68,22,46,42,1.05,1,250],['raven','성벽 까마귀','dive',58,32,26,85,.9,1,210],
  ['monk','침묵의 수도사','monk',112,22,51,32,1.05,1,78],['choirghost','성가의 망령','notes',85,28,45,57,1.2,1,260],['devotee','종을 든 신도','support',130,28,42,28,1.15,1,76],
@@ -13,10 +14,10 @@ export function makeSpecies(e,id){const d=SPECIES[id];return{...e,type:id,rank:d
 export function nativeEnemyPose(e){const d=SPECIES[e.type];if(!d)return null;let row=d.slot*3,col=0;
  if(e.dead){row+=2;col=Math.min(5,3+Math.floor(e.deathT*3));}
  else if(e.stagger>0){row+=2;col=2;}
- else if(e.shielding&&['idle','guard'].includes(e.state)){row+=2;col=e.state==='guard'?1:0;}
+ else if(e.shielding&&['idle','guard'].includes(e.state)&&Math.abs(e.vx)<1&&!e.gaitSettling){row+=2;col=e.state==='guard'?1:0;}
  else if(e.state==='windup'){row++;col=Math.min(2,Math.floor(e.t/(e.prep||d.windup)*3));}
  else if(e.state==='attack'){row++;col=e.t<.12?3:4;if(['rhythm','duelist'].includes(d.role))col=Math.min(5,(e.beat||0)*2+1);}
  else if(e.state==='recover'&&e.t<.2){row++;col=5;}
- else col=Math.floor((e.walk||0)/44*6)%6;
+ else return creatureGaitPose(e,FOE_GAIT_SOURCES[d.id]||d.sheet+'-gait',FOE_GAIT_SOURCES[d.id]?0:d.slot*4,d.role==='cart'?66:44,d.role==='cart'?140:d.role==='ink'?96:112);
  return{sheet:d.sheet,row,col,size:d.role==='cart'?140:d.role==='ink'?96:112};
 }

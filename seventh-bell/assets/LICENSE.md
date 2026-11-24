@@ -81,3 +81,27 @@ Version 0.11.0 replaces all seven boss motion sheets and adds seven native-enemy
 Version 0.12.0 adds `journey-objects.png`, an original image-tool-generated 6 × 4 atlas of 24 doorways, mine/rail/cliff facilities and ward posts. Source output: `/workspace/generated_images/exec-1411f8d5-1665-4589-b291-46c8ccb866bf.png`. The file is copied unchanged; `tools/measure-atlases.py` only reads alpha to register gutters. Runtime extraction uses nearest-neighbour sampling and hard alpha. Traversable stairs, foundations and ceilings reuse the existing stone/wood terrain artwork. No photographic or third-party source was introduced.
 
 Version 0.14.0 adds two original image-tool-created narrative atlases. `story-scenes.png` (2 × 3, six guardian memories) is copied unchanged from `/workspace/generated_images/exec-b17faee3-7880-4437-8214-f22a993079e8.png`. `finale-scenes.png` (2 × 2, reunion and three outcomes) is copied unchanged from `/workspace/generated_images/exec-a176d774-67a6-4189-adea-b85eeda7709a.png`. Runtime crops inside panel boundaries and uses nearest-neighbour camera movement, light and captions; these are illustrated cinematics, not new frame-by-frame character animation or recorded voice acting. The scenes and costumes are original to this project. No Skul or other commercial game's artwork, characters, recordings or script is used.
+
+
+Version 0.15.0 adds 18 original image-tool-created locomotion atlases. The game uses 720 distinct movement cells: 21 ordinary species × 24, seven bosses × 24, and two discarded-equipment phase variants × 24. Four rejected mixed-character groups are never rendered; dedicated single-species sheets replace them. Each output below is copied without image-pixel edits. Runtime extracts hard-alpha cells; measurement tools only write source bounds, fixed anatomical scale, soles and pivots. These are generated sprite drawings, not photographs or claims of hand-pixelled commercial artwork. Existing attack/death assets remain in use.
+
+| Asset | Original output |
+| --- | --- |
+| foes-1-gait.png | exec-4f42da5e-fad5-40eb-92be-66090986da26.png |
+| foes-2-gait.png | exec-62cc2ab8-e116-4cd8-981f-a253b7a5dbd6.png |
+| foes-3-gait.png | exec-e8278c3b-cdc6-4389-b27c-0e5c80fb54b0.png |
+| foes-4-gait.png | exec-46889be0-681b-438a-9c2b-22432115e651.png |
+| foes-5-gait.png | exec-be6a8eff-379c-4e8f-8b43-38dc9e429812.png |
+| foes-6-gait.png | exec-84b95339-77d4-48fc-9d0e-eef6dde50eca.png |
+| foes-7-gait.png | exec-e6f8d966-b11e-4101-b17b-42e009ba6cc0.png |
+| edran-gait.png | exec-6e71caed-498f-4395-a6d3-702cf22e99b5.png |
+| marie-gait.png | exec-e5a26243-4b8c-426e-aebb-1c4cbe2780f3.png |
+| brag-gait.png | exec-ecf889a5-0749-42f4-8d9d-062b678d05f0.png |
+| leonel-gait.png | exec-d3f24626-7b79-4435-8cea-e8f8ff5da829.png |
+| arkein-gait.png | exec-f820d075-f5cc-4d0a-aee0-975d88baacc1.png |
+| neris-gait.png | exec-edfcde9c-0080-4a3f-971c-a3bd4d4d2df4.png |
+| carillon-gait.png | exec-ee472da0-6a8a-4246-8d4b-fc1ab1ceba40.png |
+| choirghost-gait.png | exec-235ef57f-1643-45a8-be4e-95a744736890.png |
+| spearman-gait.png | exec-64946f39-caeb-4fab-b26c-b7684c4de37b.png |
+| royalmage-gait.png | exec-acefb2ce-9c9c-47f7-a82b-73cc2998afe7.png |
+| echocopy-gait.png | exec-ec488067-d377-489c-8bd2-0b3606959684.png |

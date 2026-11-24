@@ -1,6 +1,7 @@
 import {BOSS_DEFS} from './bosses.js';
 import {SPECIES} from './enemy-species.js';
 import {journeyAt,JOURNEYS} from './journey-data.js';
+import {moveBody,solids} from './world.js';
 const overlap=(a,b)=>a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;
 export const entityBox=e=>({x:e.x-e.w/2,y:e.y-e.h,w:e.w,h:e.h});
 export function buildSanctuaries(w,checkpoints){
@@ -16,9 +17,9 @@ export function pacifyEnemy(g,e,dt){
  const area=journeyAt(g.p.x)?.id,own=journeyAt(e.homeX)?.id;if(area!==own)return true;
  const resting=sanctuaryAt(g),inward=sanctuaryAt(g,e),far=Math.abs(e.x-g.p.x)>850||Math.abs(e.y-g.p.y)>750;
  if(!resting&&!inward&&!far)return false;
- e.state='idle';e.t=0;e.didHit=false;e.shielding=false;e.cooldown=Math.max(.8,e.cooldown);e.vx=0;e.vy=0;
+ const falling=e.vy;e.state='idle';e.t=0;e.didHit=false;e.shielding=false;e.cooldown=Math.max(.8,e.cooldown);e.vx=0;e.vy=0;
  // Retire offscreen pursuit without simulating geometry in another room.
- if(far||inward){e.x=e.homeX;e.y=e.homeY;e.grounded=false;}else if(resting){const dx=e.homeX-e.x;e.x+=Math.sign(dx)*Math.min(Math.abs(dx),35*dt);}
+ if(far||inward){e.x=e.homeX;e.y=e.homeY;e.grounded=false;}else if(resting){const dx=e.homeX-e.x;e.vx=Math.sign(dx)*Math.min(Math.abs(dx)/dt,35);e.vy=e.flying?Math.max(-60,Math.min(60,(e.homeY-e.y)*3)):Math.min(500,falling+1100*dt);const oldX=e.x;moveBody(e,dt,solids(g));e.walk+=Math.abs(e.x-oldX);}
  return true;
 }
 const ranged=new Set(['ranged','notes','paper','mage','harpoon','lantern','resonator','ember','support']);

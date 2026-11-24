@@ -1,6 +1,6 @@
 {
   "name": "echoes-of-the-seventh-bell",
-  "version": "0.14.0",
+  "version": "0.15.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -36,6 +36,7 @@
     "test:encounters": "node tests/overhaul-encounters-browser.mjs",
     "test:progression": "node tests/overhaul-progression-browser.mjs",
     "test:hazards": "node tests/overhaul-hazards-browser.mjs",
-    "test:foes": "node tests/overhaul-foes-browser.mjs"
+    "test:foes": "node tests/overhaul-foes-browser.mjs",
+    "test:creatures": "node tests/creature-motion-browser.mjs"
   }
 }
