@@ -1,8 +1,8 @@
 # 잔향: 일곱 번째 종
 
-**ECHOES OF THE SEVENTH BELL · 0.13.0**
+**ECHOES OF THE SEVENTH BELL · 0.14.0**
 
-누나의 흔적을 찾아 일곱 종을 조사하는 횡스크롤 액션 RPG다. 기존 1~7장, 수호자의 처치·안정화, 세 결말을 유지하면서 보스, 일반 적, 실제 탐험 지형을 개편했다. 이번 판은 일반 적의 투사체 파괴와 동전 강화를 확장했다. 변경과 검증은 [GROWTH.md](GROWTH.md), 지역 연결은 [TRAVEL.md](TRAVEL.md), 이전 전투 개편은 [OVERHAUL.md](OVERHAUL.md)에 정리했다.
+누나의 흔적을 찾아 일곱 종을 조사하는 횡스크롤 액션 RPG다. 기존 1~7장, 수호자의 처치·안정화, 세 결말을 유지하면서 보스, 일반 적, 실제 탐험 지형을 개편했다. 이번 판은 일곱 보스 뒤의 기억 장면과 세 결말 연출을 연결했다. [CINEMATICS.md](CINEMATICS.md)에 흐름과 검증을 정리했다. 동전 성장과 투사체는 [GROWTH.md](GROWTH.md), 지역 연결은 [TRAVEL.md](TRAVEL.md), 이전 전투 개편은 [OVERHAUL.md](OVERHAUL.md)에 정리했다.
 
 ## 실행
 
@@ -13,6 +13,7 @@ npm ci --no-audit --no-fund
 cd seventh-bell
 npm run dev                 # http://localhost:4190/
 npm test                    # 기존 검사와 전투·지형·저장 회귀 검사
+npm run test:story           # 14가지 보스 기억·재접속·결말·실제 보행·터치
 npm run test:growth          # 8종 정비·무한 단련·모든 검술/Q 파쇄·터치·구형 저장
 npm run test:journeys        # 6통로 왕복·저장·21안전구역·밀도·성능
 npm run test:overhaul        # 새 아트·경로·입력·7보스·경제·엔딩 브라우저 검사
@@ -24,7 +25,7 @@ npm run test:reset           # 초기화·새로고침·저장 실패·다른 �
 npm run build               # dist/에 독립 정적 사이트 생성
 ```
 
-브라우저 검사는 상위 저장소의 Playwright와 `/usr/bin/chromium`을 사용한다. `BASE_URL`로 빌드한 정적 사이트도 검사할 수 있다. `test:art`, `test:routes`, `test:inputs`, `test:encounters`, `test:progression`, `test:hazards`, `test:foes`로 나눠 실행할 수도 있다. 스크린샷과 측정 결과는 무시되는 `test-results/011-*`, `012-*`, `013-*`에 저장한다. 이전 버전의 긴 수평 경로 드라이버는 기록으로 남겨 두고, 공개 검사 명령은 개편된 경로 드라이버를 사용한다.
+브라우저 검사는 상위 저장소의 Playwright와 `/usr/bin/chromium`을 사용한다. `BASE_URL`로 빌드한 정적 사이트도 검사할 수 있다. `test:art`, `test:routes`, `test:inputs`, `test:encounters`, `test:progression`, `test:hazards`, `test:foes`로 나눠 실행할 수도 있다. 스크린샷과 측정 결과는 무시되는 `test-results/011-*`, `012-*`, `013-*`, `014-*`에 저장한다. 이전 버전의 긴 수평 경로 드라이버는 기록으로 남겨 두고, 공개 검사 명령은 개편된 경로 드라이버를 사용한다.
 
 ## 조작
 
@@ -57,7 +58,7 @@ npm run build               # dist/에 독립 정적 사이트 생성
 
 새 보스 그림 450장과 일반 적 그림 378장을 사용한다. 기존 수리공의 24장 검술 시트와 보행은 유지했다. 원본 PNG의 실제 여백을 측정해 각 셀을 자르고, 한 시트 안에서는 같은 배율을 쓴다. 발 기준점과 무기 끝점은 등록 데이터로 보정한다. 안개는 인물 뒤에 그리며, 순간이동·분신 등 지정된 연출을 제외한 살아 있는 보스는 불투명하다. 생성 원본의 출처는 [assets/LICENSE.md](assets/LICENSE.md)에 있다. 원본 여백을 다시 등록할 때는 Pillow가 있는 환경에서 `python tools/measure-atlases.py`를 실행한 뒤, 개발 서버를 켜고 `node tools/register-bosses.mjs`를 실행한다. 두 도구는 PNG를 수정하지 않고 등록 데이터만 기록한다.
 
-저장 키는 `seventh-bell.save.v1`, 스키마는 11이다. 버전 1~10의 보스 결과·능력·장비·수첩·동전·체력·약병을 보존한다. 새 지름길과 기계의 위치·위상·목표 높이도 저장한다. 이전 저장 위치가 새 벽 안에 있는 경우 위치만 마지막 종 앞으로 옮기고 안내한다. 기존에 통과한 구역과 완료한 장의 지름길은 다시 막지 않는다.
+저장 키는 `seventh-bell.save.v1`, 스키마는 12이다. 버전 1~11의 보스 결과·능력·장비·수첩·동전·체력·약병을 보존한다. 새 지름길과 기계의 위치·위상·목표 높이도 저장한다. 이전 저장 위치가 새 벽 안에 있는 경우 위치만 마지막 종 앞으로 옮기고 안내한다. 기존에 통과한 구역과 완료한 장의 지름길은 다시 막지 않는다.
 
 Canvas 2D와 Web Audio로 실행하며 외부 런타임이나 CDN을 요구하지 않는다. VOIDRUN·ELDERMERE의 코드와 저장은 공유하지 않는다. 빌드 시 HTML·모듈·이미지에 같은 버전/커밋 식별자를 붙인다. `verify:live`는 공개 버전, 커밋, 엔트리 해시와 모든 실행 파일의 응답을 검사한다.
 
