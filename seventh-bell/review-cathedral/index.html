@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="ko">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>성당 전투 전후 비교 · 잔향</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#111d25;color:#e4e6dc;font:15px/1.7 system-ui,sans-serif}main{max-width:1480px;margin:auto;padding:24px 20px 40px}h1{font-size:clamp(23px,4vw,36px);font-weight:500;margin:6px 0}p{margin:8px 0;color:#b9c9cc}a{color:#dfca92}header{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}small{color:#a6babe}nav,.controls{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0}button,a.button{font:inherit;color:inherit;background:#1d303a;border:1px solid #52666d;border-radius:3px;padding:8px 14px;cursor:pointer;text-decoration:none}button[aria-pressed=true]{border-color:#ddca9c;background:#384750;color:#fff0c9}button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid #f1d39c;outline-offset:4px}.frame{position:relative;aspect-ratio:1920/900;background:#0a1218;border:1px solid #53666e;overflow:hidden}.frame img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;image-rendering:pixelated}.frame .before{clip-path:inset(0 calc(100% - var(--split,50%)) 0 0)}.line{position:absolute;inset:0 auto 0 var(--split,50%);border-left:2px solid #f4dbab;pointer-events:none}.tag{position:absolute;top:12px;background:#101c25e8;padding:4px 10px;border:1px solid #8b9b9d;pointer-events:none}.old{left:12px}.new{right:12px}.slider{display:block;width:100%;margin:16px 0;accent-color:#e7cc96;min-height:32px}.legend{display:flex;justify-content:space-between;color:#b9c9cc}.note{min-height:3.4em;margin-top:18px}.links{display:flex;gap:22px;flex-wrap:wrap}details{border-top:1px solid #3b505a;padding-top:14px;margin-top:24px}summary{cursor:pointer;color:#dbc99f}.projectile{display:block;max-width:100%;image-rendering:pixelated;margin-top:12px}.changes{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin:24px 0}.changes strong{color:#e1d4b1;font-weight:500}.changes p{font-size:14px}@media(max-width:650px){main{padding:16px 12px}.changes{grid-template-columns:1fr;gap:8px}nav{gap:6px}button{padding:6px 10px}.tag{font-size:12px;top:6px}.old{left:6px}.new{right:6px}}
+</style>
+<main>
+<header><div><small>잔향: 일곱 번째 종 · 0.16.1 → 0.16.2</small><h1>순례자의 회랑</h1></div><a class="button" href="../">게임으로 돌아가기</a></header>
+<p>성당 입구부터 첫 승강 발판까지 다듬었습니다. 같은 위치와 입력으로 찍은 화면입니다. 슬라이더를 움직여 겹쳐 보세요.</p>
+<nav aria-label="비교할 장면">
+<button data-scene="light" aria-pressed="true">기본 베기</button><button data-scene="slam" aria-pressed="false">내려찍기</button><button data-scene="plunge" aria-pressed="false">낙하 공격</button><button data-scene="walk" aria-pressed="false">수도사 · 걷기</button><button data-scene="prepare" aria-pressed="false">준비</button><button data-scene="strike" aria-pressed="false">타격</button><button data-scene="recover" aria-pressed="false">회복</button>
+</nav>
+<div class="frame" id="frame" style="--split:50%" aria-busy="true">
+<img id="after" src="after-light.png" alt="수정 후 기본 베기" width="1920" height="900"><img id="before" class="before" src="before-light.png" alt="수정 전 기본 베기" width="1920" height="900"><div class="line"></div><span class="tag old">수정 전</span><span class="tag new">수정 후</span>
+</div>
+<input class="slider" id="split" aria-label="수정 전 화면의 비율" type="range" min="0" max="100" value="50">
+<div class="legend"><span>← 수정 후만 보기</span><span>수정 전만 보기 →</span></div>
+<p class="note" id="note" role="status">검이 몸에 처음 닿은 프레임입니다. 칼끝 접촉점에 섬광과 타격음을 맞췄습니다.</p>
+<div class="links"><a id="old-full" href="before-light.png" target="_blank" rel="noopener">수정 전 원본</a><a id="new-full" href="after-light.png" target="_blank" rel="noopener">수정 후 원본</a></div>
+<div class="changes"><div><strong>돌과 문</strong><p>푸른 회색 돌과 왼쪽 위의 빛을 기준으로 맞췄습니다. 발판 윗면은 밝게, 옆면은 어둡게 두고 그림을 실제 충돌 경계에 잘랐습니다.</p></div><div><strong>수도사</strong><p>준비·타격·회복 자세를 새 시트로 연결했습니다. 발바닥과 몸 크기를 고정하고, 공격이 끊기면 지팡이를 쥔 준비 자세로 돌아갑니다.</p></div><div><strong>검격과 위험 표시</strong><p>잔상은 얇은 강철색 픽셀 띠로 줄였습니다. 지팡이와 투사체의 닿는 범위를 예고하고, 베인 투사체는 갈라지는 파편으로 표시합니다.</p></div></div>
+<details><summary>투사체를 벤 장면 보기</summary><p>수도사가 실제로 발사한 투사체를 기본 공격으로 벤 직후입니다. 이 화면은 수정 후만 제공하며 전후 비교에 섞지 않았습니다.</p><img class="projectile" loading="lazy" src="after-projectile.png" alt="검에 베인 일반 투사체가 두 조각으로 갈라지는 장면" width="1920" height="900"></details>
+<details><summary>촬영 조건</summary><p>성당 체크포인트의 레벨 3, 검 +1 저장으로 시작했습니다. 수정 전에는 브라우저 키보드로 직접 전투한 뒤, 비교용 입력을 1/120초 단위로 재생해 두 버전에서 같은 프레임을 찍었습니다. 화면은 1920×900이며 이미지 후처리는 하지 않았습니다.</p><p>걷기부터 회복까지의 적 행동, 기본 콤보, 점프 후 낙하 공격을 각각 비교했습니다. 위치·속도·체력·스태미나·공격 시간·적 AI·투사체·적중 기록이 수정 전후 동일합니다. 공격 판정, 피해량, 히트스톱 길이, 지역 구조와 저장 형식은 유지했습니다.</p><p>Chromium과 WebKit에서 확인했습니다. 실제 iPad의 Safari 기기 검증은 포함하지 않습니다.</p><a href="capture-report.json">촬영 좌표와 재생 검증 기록</a></details>
+</main>
+<script type="module">
+const notes={light:'검이 몸에 처음 닿은 프레임입니다. 칼끝 접촉점에 섬광과 타격음을 맞췄습니다.',slam:'기본 콤보의 내려찍기가 닿는 순간입니다. 넓은 범위 그림 대신 얇은 검 잔상과 접촉 섬광을 남깁니다.',plunge:'점프 후 낙하 공격입니다. 실제 접촉점에 큰 섬광이 뜨며, 기존의 짧은 타격 정지와 동시에 소리가 납니다.',walk:'기존 24장 보행을 유지했습니다. 이어지는 준비 자세도 같은 몸 크기와 발바닥 기준을 씁니다.',prepare:'종 지팡이를 당기는 준비 자세입니다. 바닥의 픽셀 표시와 끝점으로 위험 범위를 보여 줍니다.',strike:'지팡이를 내미는 타격 자세입니다. 푸른 회색 그림자와 옅은 금속색으로 배경과 맞췄습니다.',recover:'공격을 거둬들이는 자세입니다. 발과 몸통의 배율을 고정한 채 다음 보행으로 돌아갑니다.'};
+const $=id=>document.getElementById(id),frame=$('frame');let selected='light',request=0;
+$('split').addEventListener('input',e=>{frame.style.setProperty('--split',e.target.value+'%');document.querySelector('.old').hidden=+e.target.value<8;document.querySelector('.new').hidden=+e.target.value>92;});
+for(const b of document.querySelectorAll('[data-scene]'))b.addEventListener('click',async()=>{selected=b.dataset.scene;const scene=selected,token=++request;frame.setAttribute('aria-busy','true');$('note').textContent='화면을 불러오는 중…';const images=await Promise.all(['before','after'].map(kind=>new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>resolve(im);im.onerror=reject;im.src=kind+'-'+scene+'.png';}))).catch(()=>null);if(token!==request)return;if(!images){$('note').textContent='이미지를 불러오지 못했습니다. 다시 눌러 주세요.';frame.setAttribute('aria-busy','false');return;}['before','after'].forEach((kind,i)=>{$(kind).src=images[i].src;$(kind).alt=(kind==='before'?'수정 전 ':'수정 후 ')+b.textContent;});$('old-full').href=images[0].src;$('new-full').href=images[1].src;$('note').textContent=notes[scene];for(const item of document.querySelectorAll('[data-scene]'))item.setAttribute('aria-pressed',String(item===b));frame.setAttribute('aria-busy','false');});
+Promise.all([$('before').decode(),$('after').decode()]).then(()=>frame.setAttribute('aria-busy','false')).catch(()=>{});
+</script>
+</html>

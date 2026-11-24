@@ -7,7 +7,7 @@ const browser=await launchBrowser(),errors=[],samples=[];
 try{const ctx=await browser.newContext({viewport:{width:1024,height:768},deviceScaleFactor:2,isMobile:true,hasTouch:true}),p=await ctx.newPage();p.on('pageerror',e=>errors.push(e.stack));
  await p.goto(base+'?test=1');await p.waitForFunction(()=>window.__seventh,null,{timeout:120000});await p.locator('#skip-tutorial').tap();await p.locator('#letter-close').tap();
  const initial=await p.evaluate(()=>({clock:window.__seventh.game.clock,x:window.__seventh.game.p.x,art:window.__seventh.artStats()}));
- assert.equal(initial.art.loaded.length,82);assert.equal(initial.art.memory.peakDecoding,2);assert.ok(initial.art.memory.sourceBytes+initial.art.memory.cellBytes<160*1024*1024);
+ assert.equal(initial.art.loaded.length,84);assert.equal(initial.art.memory.peakDecoding,2);assert.ok(initial.art.memory.sourceBytes+initial.art.memory.cellBytes<160*1024*1024);
  // Real animation frames and touch pointer capture, without modifying the game.
  for(let i=0;i<6;i++){for(const direction of ['right','left']){const b=await p.locator('[data-hold="'+direction+'"]').boundingBox();assert.ok(b);await p.mouse.move(b.x+b.width/2,b.y+b.height/2);await p.mouse.down();await p.waitForTimeout(450);await p.mouse.up();await p.waitForTimeout(250);}await p.locator('[data-press="attack"]').tap();await p.waitForTimeout(650);samples.push(await p.evaluate(()=>({clock:window.__seventh.game.clock,x:window.__seventh.game.p.x,hp:window.__seventh.game.p.hp,failed:window.__seventh.runtime.state.failed,frames:window.__seventh.runtime.state.frames})));}
  for(let i=0;i<samples.length;i++){assert.equal(samples[i].failed,false);assert.ok(samples[i].clock>(samples[i-1]?.clock??initial.clock)+.5);assert.ok(samples[i].hp>0);}

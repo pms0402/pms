@@ -1,0 +1,14 @@
+{
+  "cycle": {
+    "traceHash": "13a2c08c1a8a4186bebfc9f4c704ff1698e84dd3ea14860a6b3451eadd2fb77f",
+    "canonicalHash": "b6e8500b083e7d64cf304173cc6ca5eb859db4852fcf741c4d48bed30d99b948"
+  },
+  "combo": {
+    "traceHash": "bf3b5ed35a14b9c79548b332c46b6e7175f42aae9741e0b3cf5981f41ab751f6",
+    "canonicalHash": "936fda49e7a6dfe95fa664977bfe9d3fe35b2cf67e35fc5824f32dc50e31d978"
+  },
+  "plunge": {
+    "traceHash": "be16612f732dca70cdb75a306221e06a121e8f0b03d95dd1e19957caf71182e3",
+    "canonicalHash": "4848c65f8666eebcf37f33e6a29cb3995c51a39f28baaf252ba9ca14e427cfe3"
+  }
+}

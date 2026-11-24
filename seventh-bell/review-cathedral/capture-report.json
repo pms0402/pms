@@ -1,0 +1,671 @@
+{
+  "beforeCommit": "c987ac52d63a0c5f42d48399ace678bbd1b7f7c7",
+  "beforeVersion": "0.16.1",
+  "afterVersion": "0.16.2",
+  "viewport": {
+    "width": 1920,
+    "height": 900
+  },
+  "stepSeconds": 0.008333333333333333,
+  "before": {
+    "engine": "chromium",
+    "label": "before",
+    "scenarios": [
+      {
+        "n": 458,
+        "state": {
+          "walk": true,
+          "prep": true,
+          "strike": true,
+          "recover": true
+        },
+        "events": [
+          {
+            "clock": 3.1499999999999915,
+            "name": "swing"
+          },
+          {
+            "clock": 3.1583333333333248,
+            "name": "hurt"
+          },
+          {
+            "clock": 3.358333333333324,
+            "name": "land"
+          }
+        ],
+        "captures": [
+          {
+            "mark": "walk",
+            "n": 92,
+            "clock": 0.7666666666666664,
+            "p": {
+              "x": 6693.200000000008,
+              "y": 302
+            },
+            "enemy": {
+              "x": 6849.266666666667,
+              "y": 302
+            }
+          },
+          {
+            "mark": "prepare",
+            "n": 305,
+            "clock": 2.5416666666666603,
+            "p": {
+              "x": 6733.700000000008,
+              "y": 302
+            },
+            "enemy": {
+              "x": 6807.733333333372,
+              "y": 302
+            }
+          },
+          {
+            "mark": "strike",
+            "n": 395,
+            "clock": 3.2916666666666576,
+            "p": {
+              "x": 6725.650000000008,
+              "y": 299.75
+            },
+            "enemy": {
+              "x": 6807.733333333372,
+              "y": 302
+            }
+          },
+          {
+            "mark": "recover",
+            "n": 458,
+            "clock": 3.8166666666666558,
+            "p": {
+              "x": 6710.729166666675,
+              "y": 302
+            },
+            "enemy": {
+              "x": 6807.733333333372,
+              "y": 302
+            }
+          }
+        ],
+        "mode": "cycle",
+        "traceHash": "13a2c08c1a8a4186bebfc9f4c704ff1698e84dd3ea14860a6b3451eadd2fb77f"
+      },
+      {
+        "n": 594,
+        "state": {
+          "parried": true,
+          "started": true,
+          "light": true,
+          "queued": true,
+          "slam": true
+        },
+        "events": [
+          {
+            "clock": 3.049999999999992,
+            "name": "parry"
+          },
+          {
+            "clock": 3.049999999999992,
+            "name": "parry"
+          },
+          {
+            "clock": 3.1499999999999915,
+            "name": "swing"
+          },
+          {
+            "clock": 3.1499999999999915,
+            "name": "swing"
+          },
+          {
+            "clock": 3.1583333333333248,
+            "name": "parryHit"
+          },
+          {
+            "clock": 3.1583333333333248,
+            "name": "parryHit"
+          },
+          {
+            "clock": 4.233333333333333,
+            "name": "swing"
+          },
+          {
+            "clock": 4.233333333333333,
+            "name": "swing"
+          },
+          {
+            "clock": 4.333333333333338,
+            "name": "hit"
+          },
+          {
+            "clock": 4.333333333333338,
+            "name": "hit"
+          },
+          {
+            "clock": 4.841666666666697,
+            "name": "heavy"
+          },
+          {
+            "clock": 4.841666666666697,
+            "name": "heavy"
+          },
+          {
+            "clock": 4.950000000000036,
+            "name": "slamHit"
+          },
+          {
+            "clock": 4.950000000000036,
+            "name": "slamHit"
+          }
+        ],
+        "captures": [
+          {
+            "mark": "light",
+            "n": 520,
+            "clock": 4.333333333333338,
+            "p": {
+              "x": 6737.149625000008,
+              "y": 302,
+              "action": "light1",
+              "t": 0.275
+            },
+            "enemy": {
+              "x": 6808.433333333372,
+              "y": 302
+            }
+          },
+          {
+            "mark": "slam",
+            "n": 594,
+            "clock": 4.950000000000036,
+            "p": {
+              "x": 6748.927255335737,
+              "y": 302,
+              "action": "light3",
+              "t": 0.3416666666666669
+            },
+            "enemy": {
+              "x": 6819.357469133463,
+              "y": 302
+            }
+          }
+        ],
+        "mode": "combo",
+        "traceHash": "bf3b5ed35a14b9c79548b332c46b6e7175f42aae9741e0b3cf5981f41ab751f6"
+      },
+      {
+        "n": 219,
+        "state": {
+          "plunge": true
+        },
+        "events": [
+          {
+            "clock": 1.4249999999999974,
+            "name": "jump"
+          },
+          {
+            "clock": 1.4249999999999974,
+            "name": "jump"
+          },
+          {
+            "clock": 1.4249999999999974,
+            "name": "jump"
+          },
+          {
+            "clock": 1.824999999999996,
+            "name": "swing"
+          },
+          {
+            "clock": 1.824999999999996,
+            "name": "swing"
+          },
+          {
+            "clock": 1.824999999999996,
+            "name": "swing"
+          },
+          {
+            "clock": 1.824999999999996,
+            "name": "hit"
+          },
+          {
+            "clock": 1.824999999999996,
+            "name": "hit"
+          },
+          {
+            "clock": 1.824999999999996,
+            "name": "hit"
+          }
+        ],
+        "captures": [
+          {
+            "mark": "plunge",
+            "n": 219,
+            "clock": 1.824999999999996,
+            "p": {
+              "x": 6836.89375000003,
+              "y": 246.11805555555554,
+              "action": "plunge",
+              "t": 0.12499999999999999
+            },
+            "enemy": {
+              "x": 6834.705555555571,
+              "y": 302
+            }
+          }
+        ],
+        "mode": "plunge",
+        "traceHash": "be16612f732dca70cdb75a306221e06a121e8f0b03d95dd1e19957caf71182e3"
+      }
+    ]
+  },
+  "after": {
+    "engine": "chromium",
+    "label": "check-chromium",
+    "seed": {
+      "version": 12,
+      "minibosses": [],
+      "story": {
+        "seen": [],
+        "endingSeen": null,
+        "pending": null
+      },
+      "workmanship": {
+        "lining": 0,
+        "reserve": 0,
+        "breath": 0,
+        "boots": 0,
+        "focus": 0
+      },
+      "training": 0,
+      "journeys": {
+        "pilgrim": true,
+        "undermine": false,
+        "freight": false,
+        "undercroft": false,
+        "postern": false,
+        "coast": false
+      },
+      "journeyDevices": {
+        "railLatch": false
+      },
+      "routes": {
+        "wall": true,
+        "cathedralUpper": false,
+        "foundryPower": false,
+        "archiveShift": false,
+        "archivePass": false,
+        "palaceBridge": false,
+        "harborSluice": false,
+        "harborBeacon": false,
+        "towerGear": false,
+        "towerResonator": false,
+        "towerAscent": false
+      },
+      "machines": {},
+      "tutorial": {
+        "state": "done",
+        "step": 0,
+        "combo": 0,
+        "hp": 360
+      },
+      "started": true,
+      "level": 3,
+      "xp": 0,
+      "marks": 160,
+      "upgrade": 1,
+      "talents": [],
+      "points": 0,
+      "checkpoint": "nave",
+      "position": {
+        "x": 6600,
+        "y": 302
+      },
+      "hp": 118,
+      "flasks": 3,
+      "gear": {
+        "armor": 0,
+        "grip": 0
+      },
+      "charm": false,
+      "rested": [
+        "outer",
+        "gate",
+        "nave"
+      ],
+      "quests": {
+        "elma": "available",
+        "dockkeeper": "available"
+      },
+      "flags": {
+        "letter": true,
+        "lever": false,
+        "memento": false,
+        "edran": "freed",
+        "echo": true,
+        "cache": false,
+        "helped": false,
+        "upper": false,
+        "lead": false,
+        "marie": null,
+        "brag": null,
+        "voice": false,
+        "forge": false,
+        "choir": false,
+        "coolant": false,
+        "hymn": false,
+        "ledger": false,
+        "slag": false,
+        "leonel": null,
+        "memory": false,
+        "index": false,
+        "chronology": false,
+        "errata": false,
+        "sister": false,
+        "arkein": null,
+        "dawn": false,
+        "royalorder": false,
+        "palacedoor": false,
+        "clockwork": false,
+        "ending": null,
+        "neris": null,
+        "carillon": null,
+        "tide": false,
+        "resonance": false,
+        "harborLock": false,
+        "harborLog": false,
+        "harborRescue": false,
+        "towerSeal": false,
+        "towerLens": false,
+        "conductorNotes": false,
+        "legacyEnding": false,
+        "epilogue": false
+      },
+      "opened": [],
+      "killed": [],
+      "loss": null,
+      "playtime": 0
+    },
+    "scenarios": [
+      {
+        "n": 458,
+        "state": {
+          "walk": true,
+          "prep": true,
+          "strike": true,
+          "recover": true
+        },
+        "events": [
+          {
+            "clock": 3.1499999999999915,
+            "name": "swing"
+          },
+          {
+            "clock": 3.1583333333333248,
+            "name": "hurt"
+          },
+          {
+            "clock": 3.358333333333324,
+            "name": "land"
+          }
+        ],
+        "captures": [
+          {
+            "mark": "walk",
+            "n": 92,
+            "clock": 0.7666666666666664,
+            "p": {
+              "x": 6693.200000000008,
+              "y": 302
+            },
+            "enemy": {
+              "x": 6849.266666666667,
+              "y": 302
+            },
+            "feedback": [],
+            "pause": {
+              "global": 0,
+              "action": 0
+            }
+          },
+          {
+            "mark": "prepare",
+            "n": 305,
+            "clock": 2.5416666666666603,
+            "p": {
+              "x": 6733.700000000008,
+              "y": 302
+            },
+            "enemy": {
+              "x": 6807.733333333372,
+              "y": 302
+            },
+            "feedback": [],
+            "pause": {
+              "global": 0,
+              "action": 0
+            }
+          },
+          {
+            "mark": "strike",
+            "n": 395,
+            "clock": 3.2916666666666576,
+            "p": {
+              "x": 6725.650000000008,
+              "y": 299.75
+            },
+            "enemy": {
+              "x": 6807.733333333372,
+              "y": 302
+            },
+            "feedback": [],
+            "pause": {
+              "global": 0,
+              "action": 0
+            }
+          },
+          {
+            "mark": "recover",
+            "n": 458,
+            "clock": 3.8166666666666558,
+            "p": {
+              "x": 6710.729166666675,
+              "y": 302
+            },
+            "enemy": {
+              "x": 6807.733333333372,
+              "y": 302
+            },
+            "feedback": [],
+            "pause": {
+              "global": 0,
+              "action": 0
+            }
+          }
+        ],
+        "mode": "cycle",
+        "canonicalHash": "b6e8500b083e7d64cf304173cc6ca5eb859db4852fcf741c4d48bed30d99b948",
+        "traceHash": "13a2c08c1a8a4186bebfc9f4c704ff1698e84dd3ea14860a6b3451eadd2fb77f"
+      },
+      {
+        "n": 594,
+        "state": {
+          "parried": true,
+          "started": true,
+          "light": true,
+          "queued": true,
+          "slam": true
+        },
+        "events": [
+          {
+            "clock": 3.049999999999992,
+            "name": "parry"
+          },
+          {
+            "clock": 3.1499999999999915,
+            "name": "swing"
+          },
+          {
+            "clock": 3.1583333333333248,
+            "name": "parryHit"
+          },
+          {
+            "clock": 4.233333333333333,
+            "name": "swing"
+          },
+          {
+            "clock": 4.333333333333338,
+            "name": "cathedralHit"
+          },
+          {
+            "clock": 4.841666666666697,
+            "name": "heavy"
+          },
+          {
+            "clock": 4.950000000000036,
+            "name": "cathedralSlam"
+          }
+        ],
+        "captures": [
+          {
+            "mark": "light",
+            "n": 520,
+            "clock": 4.333333333333338,
+            "p": {
+              "x": 6737.149625000008,
+              "y": 302,
+              "action": "light1",
+              "t": 0.275
+            },
+            "enemy": {
+              "x": 6808.433333333372,
+              "y": 302
+            },
+            "feedback": [
+              {
+                "kind": "cathedralContact",
+                "x": 6796.733333333372,
+                "y": 252.14606237421353,
+                "life": 0.11,
+                "max": 0.11,
+                "dir": 1,
+                "heavy": false,
+                "seed": 4.333333333333338,
+                "target": {
+                  "x": 6796.733333333372,
+                  "y": 251,
+                  "w": 22,
+                  "h": 51
+                }
+              }
+            ],
+            "pause": {
+              "global": 0.05,
+              "action": 0
+            }
+          },
+          {
+            "mark": "slam",
+            "n": 594,
+            "clock": 4.950000000000036,
+            "p": {
+              "x": 6748.927255335737,
+              "y": 302,
+              "action": "light3",
+              "t": 0.3416666666666669
+            },
+            "enemy": {
+              "x": 6819.357469133463,
+              "y": 302
+            },
+            "feedback": [
+              {
+                "kind": "cathedralContact",
+                "x": 6806.568580244574,
+                "y": 252.11046839497823,
+                "life": 0.15,
+                "max": 0.15,
+                "dir": 1,
+                "heavy": true,
+                "seed": 4.950000000000036,
+                "target": {
+                  "x": 6806.568580244574,
+                  "y": 251,
+                  "w": 22,
+                  "h": 51
+                }
+              }
+            ],
+            "pause": {
+              "global": 0,
+              "action": 0.0825
+            }
+          }
+        ],
+        "mode": "combo",
+        "canonicalHash": "936fda49e7a6dfe95fa664977bfe9d3fe35b2cf67e35fc5824f32dc50e31d978",
+        "traceHash": "bf3b5ed35a14b9c79548b332c46b6e7175f42aae9741e0b3cf5981f41ab751f6"
+      },
+      {
+        "n": 219,
+        "state": {
+          "plunge": true
+        },
+        "events": [
+          {
+            "clock": 1.4249999999999974,
+            "name": "jump"
+          },
+          {
+            "clock": 1.824999999999996,
+            "name": "swing"
+          },
+          {
+            "clock": 1.824999999999996,
+            "name": "cathedralSlam"
+          }
+        ],
+        "captures": [
+          {
+            "mark": "plunge",
+            "n": 219,
+            "clock": 1.824999999999996,
+            "p": {
+              "x": 6836.89375000003,
+              "y": 246.11805555555554,
+              "action": "plunge",
+              "t": 0.12499999999999999
+            },
+            "enemy": {
+              "x": 6834.705555555571,
+              "y": 302
+            },
+            "feedback": [
+              {
+                "kind": "cathedralContact",
+                "x": 6840.03437500003,
+                "y": 251,
+                "life": 0.15,
+                "max": 0.15,
+                "dir": 1,
+                "heavy": true,
+                "seed": 1.824999999999996,
+                "target": {
+                  "x": 6822.733333333348,
+                  "y": 251,
+                  "w": 22,
+                  "h": 51
+                }
+              }
+            ],
+            "pause": {
+              "global": 0.07500000000000001,
+              "action": 0
+            }
+          }
+        ],
+        "mode": "plunge",
+        "canonicalHash": "4848c65f8666eebcf37f33e6a29cb3995c51a39f28baaf252ba9ca14e427cfe3",
+        "traceHash": "be16612f732dca70cdb75a306221e06a121e8f0b03d95dd1e19957caf71182e3"
+      }
+    ]
+  }
+}

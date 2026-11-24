@@ -1,0 +1,30 @@
+import {CATHEDRAL_BAY as BAY,CATHEDRAL_INK as INK,inCathedralBay} from './cathedral-presentation.js';
+import {drawCell} from './art.js';
+import {ECHO_LIFE,ribbonEdges} from './afterimages.js';
+import {SPECIES} from './enemy-species.js';
+import {wardTime} from './sanctuary.js';
+import {projectileWallTime} from './projectile-combat.js';
+
+function pixelLine(c,x0,y0,x1,y1){x0=Math.round(x0);y0=Math.round(y0);x1=Math.round(x1);y1=Math.round(y1);const dx=Math.abs(x1-x0),sx=x0<x1?1:-1,dy=-Math.abs(y1-y0),sy=y0<y1?1:-1;let error=dx+dy;for(let n=0;n<1024;n++){c.fillRect(x0,y0,1,1);if(x0===x1&&y0===y1)break;const twice=2*error;if(twice>=dy){error+=dy;x0+=sx;}if(twice<=dx){error+=dx;y0+=sy;}}}
+function pixelPolygon(c,points){const top=Math.floor(Math.min(...points.map(p=>p.y))),bottom=Math.ceil(Math.max(...points.map(p=>p.y)));for(let y=top;y<=bottom;y++){const xs=[];for(let i=0;i<points.length;i++){const a=points[i],b=points[(i+1)%points.length];if((a.y>y+.5)!==(b.y>y+.5))xs.push(a.x+(y+.5-a.y)*(b.x-a.x)/(b.y-a.y));}xs.sort((a,b)=>a-b);for(let n=0;n+1<xs.length;n+=2){const x=Math.ceil(xs[n]-.5),right=Math.floor(xs[n+1]-.5);if(right>=x)c.fillRect(x,y,right-x+1,1);}}}
+
+export function cathedralTerrain(r,q){const left=Math.max(q.x,BAY.left,r.x),right=Math.min(q.x+q.w,BAY.right,r.x+r.width),top=Math.max(q.y,q.id==='choir-hoist'?-Infinity:BAY.top,r.y),bottom=Math.min(q.y+q.h,q.id==='choir-hoist'?Infinity:BAY.bottom,r.y+r.height);if(left>=right||top>=bottom)return false;const c=r.c;c.save();c.beginPath();c.rect(left,top,right-left,bottom-top);c.clip();c.fillStyle=INK.shadow;c.fillRect(left,top,right-left,bottom-top);
+ for(let y=q.y+7+Math.floor((top-q.y-7)/64)*64;y<bottom;y+=64)for(let x=Math.floor(left/64)*64;x<right;x+=64){const variant=((Math.floor(x/64)+Math.floor(y/64)*3)%4+4)%4;drawCell(c,'cathedral-detail',variant,0,x,y);}
+ if(!q.ceiling&&(q.y>=BAY.top||q.id==='choir-hoist')){for(let x=q.x+Math.max(0,Math.floor((left-q.x)/64))*64;x<right;x+=64)drawCell(c,'cathedral-detail',0,1,0,10,64,8,x,q.y,64,8);if(q.w>=64){drawCell(c,'cathedral-detail',1,1,0,10,64,8,q.x,q.y,64,8);drawCell(c,'cathedral-detail',2,1,0,10,64,8,q.x+q.w-64,q.y,64,8);}c.fillStyle='#8c9b9e';c.fillRect(q.x,q.y,q.w,1);c.fillStyle='#586f78';c.fillRect(q.x,q.y+1,q.w,1);}
+ c.fillStyle='#1a2d37';if(q.x>=BAY.left)c.fillRect(q.x,q.y+2,1,q.h-2);if(q.x+q.w<=BAY.right)c.fillRect(q.x+q.w-1,q.y+2,1,q.h-2);if(q.h<30)c.fillRect(q.x,q.y+q.h-2,q.w,2);if(q.mover){c.fillStyle=INK.gold;c.fillRect(q.x+4,q.y+2,2,2);c.fillRect(q.x+q.w-6,q.y+2,2,2);}c.restore();return true;
+}
+export function cathedralPortal(c,x,y){for(let row=0;row<2;row++)for(let col=0;col<2;col++)drawCell(c,'cathedral-detail',col,row+2,x-64+col*64,y-128+row*64);}
+
+export function cathedralAfterimages(r){const g=r.g;if(!inCathedralBay(g.p.x,g.p.y))return false;const c=r.c,echoes=g.bladeEchoes;c.save();for(let i=Math.max(1,echoes.length-7);i<echoes.length;i++){const a=echoes[i-1],b=echoes[i],age=g.clock-b.time;if(a.swing!==b.swing||a.dir!==b.dir||age>=ECHO_LIFE||Math.hypot(a.x-b.x,a.y-b.y)>96)continue;const edges=ribbonEdges(a.blade,b.blade,.82);if(!edges)continue;c.globalAlpha=.48*(1-age/ECHO_LIFE);c.fillStyle=INK.steel;pixelPolygon(c,[...edges.outer,...edges.inner.slice().reverse()]);c.globalAlpha=.67*(1-age/ECHO_LIFE);c.fillStyle=INK.edge;for(let j=1;j<edges.outer.length;j++)pixelLine(c,edges.outer[j-1].x,edges.outer[j-1].y,edges.outer[j].x,edges.outer[j].y);}c.restore();return true;}
+
+export function cathedralTell(r,e){if(e.type!=='monk'||!inCathedralBay(e.x,e.y))return false;const c=r.c,d=SPECIES.monk,f=Math.min(1,e.t/(e.prep||d.windup));c.save();c.globalAlpha=.4+f*.55;let reach=d.reach,y=e.y-32;if(e.mode==='wave'){const ax=e.x+e.dir*18,bx=ax+e.dir*250;y=e.y-8;const q={radius:5,friendly:false},fraction=Math.min(projectileWallTime(r.g,q,ax,y,bx,y),wardTime(r.g,q,ax,y,bx,y));reach=18+250*fraction;}c.fillStyle=INK.shadow;for(let x=8;x<reach;x+=6)c.fillRect(Math.round(e.x+e.dir*x)-1,Math.round(e.y),5,3);c.fillStyle=f>.8?INK.danger:INK.gold;for(let x=8;x<reach;x+=6)c.fillRect(Math.round(e.x+e.dir*x),Math.round(e.y+1),3,1);const tip=Math.round(e.x+e.dir*reach);y=Math.round(y);c.fillRect(tip,y-3,1,7);c.fillRect(tip-e.dir*3,y-3,3,1);c.fillRect(tip-e.dir*3,y+3,3,1);c.fillStyle=INK.edge;c.fillRect(Math.round(e.x+e.dir*12),Math.round(e.y-43),2,2);c.restore();return true;}
+export function cathedralStaffEcho(r,e){if(e.type!=='monk'||e.state!=='attack'||e.mode==='wave'||!inCathedralBay(e.x,e.y))return;const c=r.c;c.save();c.globalAlpha=.65*(1-e.t/.3);c.fillStyle=INK.gold;for(let n=0;n<3;n++){const x=e.x+e.dir*(54+n*8),y=e.y-32;pixelLine(c,x-e.dir*3,y-4+n,x,y);pixelLine(c,x,y,x-e.dir*3,y+4-n);}c.restore();}
+
+function burst(c,x,y,size,heavy,f){const radius=Math.max(1,Math.round(size*(.35+Math.min(.6,f*2.5)))),rays=heavy?8:4;c.fillStyle=INK.shadow;pixelLine(c,x-radius-1,y+1,x+radius+1,y+1);pixelLine(c,x+1,y-radius-1,x+1,y+radius+1);c.fillStyle=INK.edge;pixelLine(c,x-radius,y,x+radius,y);pixelLine(c,x,y-radius,x,y+radius);if(rays===8){c.fillStyle=INK.gold;for(const d of[-1,1]){pixelLine(c,x-3,y+d*3,x+3,y-d*3);}}c.fillStyle='#f6efda';c.fillRect(Math.round(x)-1,Math.round(y)-1,3,3);}
+export function cathedralEffect(r,e){if(!inCathedralBay(e.x,e.y))return false;const c=r.c,f=1-e.life/e.max;c.save();
+ if(e.kind==='cathedralContact'){c.globalAlpha=Math.min(1,(1-f)*1.8);burst(c,e.x,e.y,e.heavy?12:8,e.heavy,f);c.fillStyle=INK.steel;for(let n=0;n<4;n++){const x=Math.round(e.x+e.dir*(3+f*(10+n*3))),y=Math.round(e.y+(n%2?1:-1)*(2+f*(5+n*2)));c.fillRect(x,y,n%2?2:1,1);}}
+ else if(e.kind==='projectileBreak'){c.globalAlpha=1-f;if(f<.5)burst(c,e.x,e.y,9,true,f);c.fillStyle=INK.edge;for(const dir of[-1,1]){const x=Math.round(e.x+dir*(4+f*15)),y=Math.round(e.y-f*6);pixelLine(c,x,y-3,x+dir*3,y);pixelLine(c,x+dir*3,y,x,y+3);}}
+ else if(e.kind==='parry'){c.globalAlpha=1-f;burst(c,e.x,e.y,15,true,f);}
+ else if(e.kind==='dust'){c.globalAlpha=(1-f)*.7;c.fillStyle='#7c9298';for(let n=0;n<8;n++)c.fillRect(Math.round(e.x+(n-3.5)*f*6),Math.round(e.y-((n*7)%11)*f+f*f*8),n%3?1:2,1);}
+ else{c.restore();return false;}c.restore();return true;
+}

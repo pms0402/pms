@@ -1,8 +1,8 @@
 # 잔향: 일곱 번째 종
 
-**ECHOES OF THE SEVENTH BELL · 0.16.1**
+**ECHOES OF THE SEVENTH BELL · 0.16.2**
 
-누나의 흔적을 찾아 일곱 종을 조사하는 횡스크롤 액션 RPG다. 이번 수정은 초기 로딩을 줄인다. 전 지역 원본을 내려받아 브라우저에서 가공하던 방식을, 미리 준비한 무손실 아틀라스를 읽는 방식으로 바꿨다. 전송량·픽셀 비교·검증 범위는 [LOADING.md](LOADING.md)에 정리했다. 중간보스와 멈춤 대응은 [RUNTIME.md](RUNTIME.md), 이동 그림은 [CREATURES.md](CREATURES.md), 보스 뒤의 기억과 결말은 [CINEMATICS.md](CINEMATICS.md)에서 확인할 수 있다.
+누나의 흔적을 찾아 일곱 종을 조사하는 횡스크롤 액션 RPG다. 이번 수정은 성당 입구의 한 전투 구간에 한정한다. 돌·문·발판을 성당 배경과 맞추고, 수도사의 준비·타격·회복 자세와 접촉 효과를 다듬었다. [전후 화면](review-cathedral/index.html)과 [검증 기록](CATHEDRAL_REVIEW.md)에서 같은 입력으로 찍은 장면을 볼 수 있다. 초기 로딩 개선은 [LOADING.md](LOADING.md), 중간보스와 멈춤 대응은 [RUNTIME.md](RUNTIME.md)에 정리했다.
 
 ## 실행
 
@@ -12,8 +12,10 @@
 npm ci --no-audit --no-fund
 cd seventh-bell
 npm run dev                 # http://localhost:4191/
-npm test                    # 261개 전투·지형·저장·프레임 복구 검사
-npm run test:loading         # 준비 파일·2,753칸/배경 픽셀·재접속 캐시·저장 차단
+npm test                    # 268개 전투·지형·저장·프레임 복구 검사
+npm run test:loading         # 준비 파일·2,793칸/배경 픽셀·재접속 캐시·저장 차단
+npm run test:cathedral       # 성당 전후 입력·충돌 경계·접촉 효과·투사체 베기
+npm run review:cathedral     # 같은 입력의 일곱 장면 재촬영
 npm run test:runtime         # iPad 화면의 이동·터치·메모리·예외 복구·저장
 npm run test:minibosses      # 7종 실전 처치·보상·재접속·378개 그림
 npm run test:creatures       # 720개 이동 셀·30주기·실제 AI·벽 끼임 재현 지점 처치

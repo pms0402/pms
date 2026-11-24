@@ -3,10 +3,10 @@ import {registeredPose,worldBlade,sweptBlades} from './blade.js';
 export const ECHO_LIFE=.14;
 // The crescent follows the same rigid rotating steel as the hit samples.
 // It fades after contact and cannot deal damage again.
-export function ribbonEdges(a,b){
+export function ribbonEdges(a,b,innerFraction=.28){
  const turn=Math.atan2(Math.sin(Math.atan2(b.by-b.ay,b.bx-b.ax)-Math.atan2(a.by-a.ay,a.bx-a.ax)),Math.cos(Math.atan2(b.by-b.ay,b.bx-b.ax)-Math.atan2(a.by-a.ay,a.bx-a.ax)));
  if(Math.abs(turn)<1e-6&&Math.hypot(b.ax-a.ax,b.ay-a.ay)<.1)return null;
- const paths=sweptBlades(a,b),outer=paths.map(p=>({x:p.bx,y:p.by})),inner=paths.map(p=>({x:p.ax+(p.bx-p.ax)*.28,y:p.ay+(p.by-p.ay)*.28}));
+ const paths=sweptBlades(a,b),outer=paths.map(p=>({x:p.bx,y:p.by})),inner=paths.map(p=>({x:p.ax+(p.bx-p.ax)*innerFraction,y:p.ay+(p.by-p.ay)*innerFraction}));
  return{outer,inner};
 }
 const MELEE=['light1','light3','heavy','thrust','upper','counter','plunge'];
