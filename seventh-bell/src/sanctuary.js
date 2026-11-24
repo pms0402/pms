@@ -23,4 +23,4 @@ export function pacifyEnemy(g,e,dt){
  return true;
 }
 const ranged=new Set(['ranged','notes','paper','mage','harpoon','lantern','resonator','ember','support']);
-export function canBeginEnemyAttack(g,e){const isRange=ranged.has(SPECIES[e.type]?.role);const active=g.world.enemies.filter(a=>a!==e&&!a.dead&&['windup','attack'].includes(a.state)&&Math.abs(a.x-g.p.x)<900&&journeyAt(a.x)?.id===journeyAt(g.p.x)?.id);const total=journeyAt(g.p.x)?.from===1||g.p.x<6140?2:3;return active.length<total&&active.filter(a=>ranged.has(SPECIES[a.type]?.role)===isRange).length<2;}
+export function canBeginEnemyAttack(g,e){const isRange=ranged.has(SPECIES[e.type]?.role);const active=[...g.world.enemies,...(g.world.minibosses||[])].filter(a=>a!==e&&!a.dead&&['windup','attack'].includes(a.state)&&Math.abs(a.x-g.p.x)<900&&journeyAt(a.x)?.id===journeyAt(g.p.x)?.id);const total=journeyAt(g.p.x)?.from===1||g.p.x<6140?2:3;return active.length<total&&active.filter(a=>ranged.has(SPECIES[a.type]?.role)===isRange).length<2;}

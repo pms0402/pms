@@ -4,7 +4,7 @@ import {mkdir,writeFile} from 'node:fs/promises';
 import {newProfile,CHECKPOINTS} from '../src/data.js';
 import {JOURNEYS} from '../src/journey-data.js';
 import {installRouteDriver} from './overhaul-route-driver.mjs';
-const base=process.env.BASE_URL||'http://127.0.0.1:4190/',out=new URL('../test-results/',import.meta.url);await mkdir(out,{recursive:true});
+const base=process.env.BASE_URL||'http://127.0.0.1:4191/',out=new URL('../test-results/',import.meta.url);await mkdir(out,{recursive:true});
 const browser=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox']}),errors=[],report=[];
 function seed(x,y=302){const s=newProfile();s.started=true;s.tutorial.state='done';s.flags.letter=true;s.position={x,y};Object.keys(s.routes).forEach(k=>s.routes[k]=true);Object.assign(s.flags,{edran:'freed',marie:'freed',brag:'freed',leonel:'freed',arkein:'freed',neris:'freed',carillon:'freed',sister:true,echo:true,voice:true,forge:true,memory:true,dawn:true,tide:true,resonance:true,lever:true,choir:true,coolant:true,index:true,chronology:true,palacedoor:true,clockwork:true,harborLock:true,towerSeal:true,towerLens:true});return s;}
 async function open(s){const ctx=await browser.newContext({viewport:{width:1440,height:960}}),p=await ctx.newPage();p.on('pageerror',e=>errors.push(e.stack));await p.addInitScript(s=>{if(!localStorage.getItem('seventh-bell.save.v1'))localStorage.setItem('seventh-bell.save.v1',JSON.stringify(s));},s);await p.goto(base+'?test=1');await p.waitForFunction(()=>window.__seventh,null,{timeout:60000});await p.click('#begin');await p.evaluate(()=>window.__seventh.game.paused=true);await installRouteDriver(p);return{p,ctx};}

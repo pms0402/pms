@@ -3,7 +3,7 @@ import {worldBlade,sweptBlades,bladeTouches} from './blade.js';
 import {body,solids,clearLine} from './world.js';
 
 const melee=new Set(['light1','light3','heavy','thrust','upper','counter','plunge']);
-export function ordinaryProjectile(g,q){if(q.friendly||q.source==='boss'||q.source==='trap'||g.world.bosses.some(e=>e.id===q.owner)||g.world.traps.some(e=>e.id===q.owner))return false;const owner=g.world.enemies.find(e=>e.id===q.owner);if(owner?.boss||owner?.training)return false;return !!(owner&&!owner.boss&&!owner.training||q.source==='enemy'||q.destructible===true);}
+export function ordinaryProjectile(g,q){if(q.friendly||q.source==='boss'||q.source==='trap'||g.world.bosses.some(e=>e.id===q.owner)||g.world.traps.some(e=>e.id===q.owner))return false;const owner=[...g.world.enemies,...(g.world.minibosses||[])].find(e=>e.id===q.owner);if(owner?.boss||owner?.training)return false;return !!(owner&&!owner.boss&&!owner.training||q.source==='enemy'||q.destructible===true);}
 function breakShot(g,q,x,y){if(q.destroyed||q.life<=0)return false;q.destroyed=true;q.life=0;q.x=x;q.y=y;g.projectileCuts=(g.projectileCuts||0)+1;g.fx(x,y,'projectileBreak',.3);g.sound('shatter');return true;}
 const activeMelee=a=>a&&melee.has(a.kind)&&a.t>=a.spec.windup&&(a.kind==='plunge'?(!a.landed||a.recoveryT===0):a.t<a.spec.end);
 function pointDistance(x,y,b){const dx=b.bx-b.ax,dy=b.by-b.ay,t=Math.max(0,Math.min(1,((x-b.ax)*dx+(y-b.ay)*dy)/(dx*dx+dy*dy||1)));return Math.hypot(x-b.ax-t*dx,y-b.ay-t*dy);}
@@ -28,7 +28,7 @@ function flight(g,q,dt){const copy={...q};prepareProjectile(g,copy,dt);if(copy.l
 export function echoIntercept(g,dt){if(dt<=0)return;const friendly=g.projectiles.filter(q=>q.friendly&&q.life>0&&q.kind==='echoBlade');if(!friendly.length)return;const hostile=g.projectiles.filter(q=>q.life>0&&ordinaryProjectile(g,q));
  for(const a of friendly){const path=flight(g,a,dt);if(!path)continue;
   // A spent piercing blade cannot clear shots behind its last actual target.
-  const stops=[...g.world.enemies,g.world.boss,...(g.arenaClones||[])].filter(e=>!e.dead&&(!e.boss||g.bossActive&&e===g.world.boss)&&!a.hit.has(e.id)).map(e=>({e,t:boxEntry(path.x-Math.sign(a.vx)*14,path.y,path.x+path.dx+Math.sign(a.vx)*14,path.y+path.dy,body(e),2)})).filter(o=>o.t<=path.limit&&clearLine(g,path.x,path.y,o.e.x,o.e.y-Math.min(35,o.e.h/2))).sort((a,b)=>a.t-b.t),remaining=a.pierce-a.hit.size;if(remaining<=0)continue;if(stops.length>=remaining)path.limit=Math.min(path.limit,stops[remaining-1].t);
+  const stops=[...g.world.enemies,...(g.world.minibosses||[]),g.world.boss,...(g.arenaClones||[])].filter(e=>!e.dead&&(!e.boss||g.bossActive&&e===g.world.boss)&&!a.hit.has(e.id)).map(e=>({e,t:boxEntry(path.x-Math.sign(a.vx)*14,path.y,path.x+path.dx+Math.sign(a.vx)*14,path.y+path.dy,body(e),2)})).filter(o=>o.t<=path.limit&&clearLine(g,path.x,path.y,o.e.x,o.e.y-Math.min(35,o.e.h/2))).sort((a,b)=>a.t-b.t),remaining=a.pierce-a.hit.size;if(remaining<=0)continue;if(stops.length>=remaining)path.limit=Math.min(path.limit,stops[remaining-1].t);
   for(const q of hostile){if(q.life<=0)continue;const b=flight(g,q,dt);if(!b)continue;const x=b.x-path.x,y=b.y-path.y,dx=b.dx-path.dx,dy=b.dy-path.dy,r=(q.radius||5)+14,A=dx*dx+dy*dy,B=2*(x*dx+y*dy),C=x*x+y*y-r*r,D=B*B-4*A*C;let t=C<=0?0:A>1e-9&&D>=0?(-B-Math.sqrt(D))/(2*A):Infinity;
    const playerAt=boxEntry(b.x,b.y,b.x+b.dx,b.y+b.dy,body(g.p),q.radius||5);if(t<0||t>Math.min(path.limit,b.limit)||t>playerAt||!clearLine(g,path.x+path.dx*t,path.y+path.dy*t,b.x+b.dx*t,b.y+b.dy*t))continue;
    breakShot(g,q,b.x+b.dx*t,b.y+b.dy*t);

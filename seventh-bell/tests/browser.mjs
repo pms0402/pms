@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {mkdir} from 'node:fs/promises';
 import {installDriver} from './driver.mjs';
 const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',headless:true,args:['--no-sandbox']});
-const base=process.env.BASE_URL||'http://127.0.0.1:4190/',errors=[];await mkdir(new URL('../test-results/',import.meta.url),{recursive:true});
+const base=process.env.BASE_URL||'http://127.0.0.1:4191/',errors=[];await mkdir(new URL('../test-results/',import.meta.url),{recursive:true});
 const context=await browser.newContext({viewport:{width:1440,height:960}}),p=await context.newPage();p.on('pageerror',e=>errors.push(e.stack));const state=()=>p.evaluate(()=>({profile:window.__seventh.game.profile,p:window.__seventh.game.p,boss:window.__seventh.game.world.boss}));
 const shot=async name=>{const paused=await p.evaluate(()=>{const g=window.__seventh.game,old=g.paused;g.paused=true;return old;});await p.evaluate(()=>{window.__seventh.render.snap();window.__seventh.render.render(0);window.__seventh.updateUI();});await p.waitForTimeout(330);await p.screenshot({path:new URL('../test-results/'+name+'.png',import.meta.url).pathname});await p.evaluate(v=>window.__seventh.game.paused=v,paused);};
 async function boot(){await p.goto(base+'?test=1');await p.waitForFunction(()=>window.__seventh,null,{timeout:60000});}

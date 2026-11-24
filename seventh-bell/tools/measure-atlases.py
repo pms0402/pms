@@ -5,13 +5,13 @@ import json
 out={}
 root=Path(__file__).resolve().parents[1]
 bosses=['edran','marie','brag','leonel','arkein','neris','carillon']
-ids=[n+'-motion' for n in bosses]+['foes-'+str(n) for n in range(1,8)]+['edran-unshielded','arkein-uncloaked','journey-objects']+['foes-'+str(n)+'-gait' for n in range(1,8)]+[n+'-gait' for n in bosses+['choirghost','spearman','royalmage','echocopy']]
+ids=[n+'-motion' for n in bosses]+['foes-'+str(n) for n in range(1,8)]+['edran-unshielded','arkein-uncloaked','journey-objects']+['foes-'+str(n)+'-gait' for n in range(1,8)]+[n+'-gait' for n in bosses+['choirghost','spearman','royalmage','echocopy']]+['mini-'+n for n in ['rook','censer','slag','folio','seren','ballast','pendulum']]
 for id in ids:
  im=Image.open(root/'assets'/f'{id}.png');w,h=im.size;a=im.getchannel('A');px=a.load();ys=[sum(px[x,y]>=150 for x in range(w))>=8 for y in range(h)];bands=[];start=None;last=-100
  for y,on in enumerate(ys):
   if on:
    if start is None:start=y
-   elif y-last>8:bands.append((start,last+1));start=y
+   elif y-last>(4 if id=='mini-rook' else 8):bands.append((start,last+1));start=y
    last=y
  if start is not None:bands.append((start,last+1))
  expected=12 if id.startswith('foes-') and id.endswith('-gait') else (8 if id in ['edran-gait','arkein-gait'] else 4) if id.endswith('-gait') else 4 if id=='journey-objects' else 6 if id.endswith(('unshielded','uncloaked')) else 9

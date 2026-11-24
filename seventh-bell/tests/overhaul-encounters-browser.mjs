@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {mkdir,readFile,writeFile} from 'node:fs/promises';
 import {newProfile,validProfile,maxHp,CHECKPOINTS} from '../src/data.js';
 import {BOSS_DEFS} from '../src/bosses.js';
-const base=process.env.BASE_URL||'http://127.0.0.1:4190/',out=new URL('../test-results/',import.meta.url);await mkdir(out,{recursive:true});
+const base=process.env.BASE_URL||'http://127.0.0.1:4191/',out=new URL('../test-results/',import.meta.url);await mkdir(out,{recursive:true});
 const driver=(await readFile(new URL('overhaul-combat-driver.mjs',import.meta.url),'utf8')).replace(/^import .*\n/gm,'').replaceAll('export ','');
 const browser=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox']}),errors=[],reports=[];
 try{for(const id of ['edran','marie','brag','leonel','arkein','neris','carillon']){

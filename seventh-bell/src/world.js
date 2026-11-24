@@ -1,7 +1,8 @@
 import {buildJourneys,journeyGateActive} from './journey-world.js';
 import {journeyAt} from './journey-data.js';
 import {buildSanctuaries} from './sanctuary.js';
-import {populateEncounters} from './encounters.js';
+import {populateEncounters,reserveMinibossRooms} from './encounters.js';
+import {appendMinibosses} from './miniboss-data.js';
 import {buildRoutes,routeSolids,routeGate} from './world-routes.js';
 import {dynamicSolids} from './combat-fields.js';
 import {SPECIES,CHAPTER_ENEMIES,makeSpecies} from './enemy-species.js';
@@ -91,7 +92,7 @@ export function createWorld(){const bosses=BOSS_ORDER.map(createBoss);const worl
  buildRoutes(world);for(const[chapter,x,y,slot]of world.routeEnemyPoints){const e=world.enemies.find(e=>SPECIES[e.type].chapter===chapter&&SPECIES[e.type].slot===slot);if(e)Object.assign(e,{x,homeX:x,y,homeY:y});}
  const devotees=world.enemies.filter(e=>e.type==='devotee'),monks=world.enemies.filter(e=>e.type==='monk');if(devotees.length&&monks.length>1){const e=monks[1],support=devotees[0];Object.assign(e,{x:support.x-100,homeX:support.x-100,y:support.y,homeY:support.y});}
  const floater=world.enemies.find(e=>e.type==='resonator');if(floater)world.enemies.push(makeSpecies(enemy('e54','wisp',floater.x+185,floater.y+35,6),'resonator'));
- buildJourneys(world);buildSanctuaries(world,CHECKPOINTS);populateEncounters(world,enemy);return world;}
+ buildJourneys(world);buildSanctuaries(world,CHECKPOINTS);populateEncounters(world,enemy);appendMinibosses(world);reserveMinibossRooms(world);return world;}
 export function enemy(id,type,x,y,rank=0){const flying=type==='wisp',hp=Math.round((type==='watchman'?88:type==='cantor'?72:56)*(1+rank*.18));return{id,type,rank,x,y,homeX:x,homeY:y,w:flying?30:22,h:flying?30:48,hp,maxHp:hp,vx:0,vy:0,dir:-1,state:'idle',t:0,cooldown:1.1,stagger:0,dead:false,deathT:0,hit:0,walk:0,flying};}
 export const overlaps=(a,b)=>a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;
 export const body=e=>({x:e.x-e.w/2,y:e.y-e.h,w:e.w,h:e.h});

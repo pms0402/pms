@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile,writeFile,mkdir} from 'node:fs/promises';
 import {installDriver} from './driver.mjs';
 const seed=JSON.parse(await readFile(new URL('../test-results/five-bells.json',import.meta.url),'utf8'));
-const base=process.env.BASE_URL||'http://127.0.0.1:4190/',out=new URL('../test-results/',import.meta.url);await mkdir(out,{recursive:true});
+const base=process.env.BASE_URL||'http://127.0.0.1:4191/',out=new URL('../test-results/',import.meta.url);await mkdir(out,{recursive:true});
 const browser=await chromium.launch({executablePath:'/usr/bin/chromium',headless:true,args:['--no-sandbox']}),p=await browser.newPage({viewport:{width:1440,height:960}}),errors=[];p.on('pageerror',e=>errors.push(e.stack));
 await p.addInitScript(seed=>{if(!localStorage.getItem('seventh-bell.save.v1'))localStorage.setItem('seventh-bell.save.v1',JSON.stringify(seed));},seed);
 const state=()=>p.evaluate(()=>({profile:window.__seventh.game.profile,p:window.__seventh.game.p,boss:window.__seventh.game.world.boss}));

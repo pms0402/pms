@@ -5,7 +5,7 @@ import {newProfile} from '../src/data.js';
 import {BOSS_DEFS} from '../src/bosses.js';
 import {mapX,roomStart,EXTENSIONS} from '../src/layout.js';
 import {installRouteDriver} from './overhaul-route-driver.mjs';
-const base=process.env.BASE_URL||'http://127.0.0.1:4190/',out=new URL('../test-results/',import.meta.url);await mkdir(out,{recursive:true});
+const base=process.env.BASE_URL||'http://127.0.0.1:4191/',out=new URL('../test-results/',import.meta.url);await mkdir(out,{recursive:true});
 const inserted=id=>roomStart(EXTENSIONS.find(r=>r.id===id));
 const browser=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox']}),errors=[],reports=[];
 async function start(chapter,x,y=302){const seed=newProfile();seed.started=true;seed.tutorial.state='done';seed.flags.letter=true;seed.position={x,y};for(const[id,d]of Object.entries(BOSS_DEFS))if(d.chapter<chapter)seed.flags[id]='freed';Object.assign(seed.flags,{echo:chapter>1,voice:chapter>2,forge:chapter>3,memory:chapter>4,tide:chapter>6});const ctx=await browser.newContext({viewport:{width:1440,height:960}}),p=await ctx.newPage();p.on('pageerror',e=>errors.push(e.stack));await p.addInitScript(seed=>{if(!localStorage.getItem('seventh-bell.save.v1'))localStorage.setItem('seventh-bell.save.v1',JSON.stringify(seed));},seed);await p.goto(base+'?test=1');await p.waitForFunction(()=>window.__seventh,null,{timeout:60000});await p.click('#begin');await p.evaluate(()=>{const g=window.__seventh.game;g.paused=true;g.world.enemies=[];g.world.traps=[];});await installRouteDriver(p);return{p,ctx};}

@@ -105,3 +105,16 @@ Version 0.15.0 adds 18 original image-tool-created locomotion atlases. The game 
 | spearman-gait.png | exec-64946f39-caeb-4fab-b26c-b7684c4de37b.png |
 | royalmage-gait.png | exec-acefb2ce-9c9c-47f7-a82b-73cc2998afe7.png |
 | echocopy-gait.png | exec-ec488067-d377-489c-8bd2-0b3606959684.png |
+
+
+Version 0.16.0 adds seven original image-tool-created miniboss atlases. Each is copied unchanged and contains 54 registered drawings: 24 locomotion cells, three six-cell attacks, six reaction/ready poses and six death poses. The 378 cells are distinct; no ordinary enemy is enlarged to stand in for these designs. Runtime trims transparent margins while retaining the original logical crop, registration and hard-alpha pixels. The PNG sources are never modified by the measurement tools. These are generated sprite drawings, not claims of hand-pixelled commercial assets.
+
+| Asset | Original output |
+| --- | --- |
+| mini-rook.png | exec-f5070498-1df8-418f-ae27-fecc677f7cd4.png |
+| mini-censer.png | exec-abb99790-9b79-47c2-8e9d-46abeea45505.png |
+| mini-slag.png | exec-4c0a0738-236e-4518-b573-bfdb60a43754.png |
+| mini-folio.png | exec-00cd10ab-83fb-4da8-8480-788bd6c4953d.png |
+| mini-seren.png | exec-cc57cada-c7f9-4825-af87-d2c1f17b1417.png |
+| mini-ballast.png | exec-b7f0bf55-9fc7-4c58-9e5d-5282b2d56462.png |
+| mini-pendulum.png | exec-338c243f-ff71-412d-b9a8-05e446fca822.png |

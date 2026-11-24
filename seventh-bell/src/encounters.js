@@ -1,6 +1,7 @@
 import {SPECIES,CHAPTER_ENEMIES,makeSpecies} from './enemy-species.js';
 import {safeSpawn,entityBox,pacifyEnemy} from './sanctuary.js';
 import {journeyAt,JOURNEYS} from './journey-data.js';
+import {updateMiniboss} from './miniboss-runtime.js';
 const anchors=[
  [[700,302],[840,202],[1450,114],[1730,20],[2040,-100],[3250,478],[3510,478],[3890,478],[4250,302]],
  [[6630,302],[6920,-420],[7370,-420],[7700,430],[7910,430],[8840,230],[9050,188],[9500,302]],
@@ -36,4 +37,6 @@ export function updateEncounters(g,dt){const area=journeyAt(g.p.x)?.id;g.activeE
  // The attack-start budget still limits simultaneous strikes. It must never
  // stop the movement, physics or hit reaction of the eighth visible enemy.
  for(const e of g.world.enemies){if(e.dead){e.deathT+=dt;continue;}if(journeyAt(e.homeX)?.id!==area||Math.abs(e.x-g.p.x)>=850||Math.abs(e.y-g.p.y)>=750){pacifyEnemy(g,e,dt);continue;}g.activeEnemies++;g.updateEnemy(e,dt);}
+ for(const e of g.world.minibosses||[])updateMiniboss(g,e,dt);
 }
+export function reserveMinibossRooms(w){for(const e of w.enemies){const blocked=p=>(w.minibosses||[]).some(m=>Math.abs(p.x-m.homeX)<255&&Math.abs(p.y-m.homeY)<105);if(!blocked(e))continue;const d=SPECIES[e.type];let pos;for(let step=1;step<=32&&!pos;step++)for(const side of[-1,1]){const p=perch(w,e.homeX+side*step*24,e.homeY,d,true);if(p&&!blocked(p)){pos=p;break;}}if(!pos)throw Error('No ordinary perch outside miniboss room: '+e.id);Object.assign(e,{...pos,homeX:pos.x,homeY:pos.y});}}

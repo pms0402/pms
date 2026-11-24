@@ -1,7 +1,7 @@
 import {chromium} from 'playwright';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-const browser=await chromium.launch({executablePath:'/usr/bin/chromium',headless:true,args:['--no-sandbox']}),p=await browser.newPage({viewport:{width:1440,height:960}}),base=process.env.BASE_URL||'http://127.0.0.1:4190/',errors=[];p.on('pageerror',e=>errors.push(e.stack));
+const browser=await chromium.launch({executablePath:'/usr/bin/chromium',headless:true,args:['--no-sandbox']}),p=await browser.newPage({viewport:{width:1440,height:960}}),base=process.env.BASE_URL||'http://127.0.0.1:4191/',errors=[];p.on('pageerror',e=>errors.push(e.stack));
 async function shot(name){await p.evaluate(()=>{window.__seventh.render.snap();window.__seventh.render.render(0);window.__seventh.updateUI();});await p.screenshot({path:new URL('../test-results/06-'+name+'.png',import.meta.url).pathname});}
 try{
  await p.goto(base+'?test=1');await p.waitForFunction(()=>window.__seventh,null,{timeout:60000});await p.click('#skip-tutorial');await p.click('#letter-close');

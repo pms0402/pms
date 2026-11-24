@@ -7,7 +7,7 @@ const seed=JSON.parse(await readFile(new URL('../test-results/three-bells.json',
 // This is the earned checkpoint produced by test:chapters, not a money grant.
 seed.position.x=originalX(seed.position.x);if(seed.loss)seed.loss.x=originalX(seed.loss.x);seed.version=4;delete seed.gear;delete seed.charm;assert.ok(seed.flags.brag);assert.equal(seed.upgrade,0);assert.equal(seed.marks,440);
 await mkdir(new URL('../test-results/',import.meta.url),{recursive:true});
-const browser=await chromium.launch({executablePath:'/usr/bin/chromium',headless:true,args:['--no-sandbox']}),p=await browser.newPage({viewport:{width:1440,height:960}}),base=process.env.BASE_URL||'http://127.0.0.1:4190/',errors=[];
+const browser=await chromium.launch({executablePath:'/usr/bin/chromium',headless:true,args:['--no-sandbox']}),p=await browser.newPage({viewport:{width:1440,height:960}}),base=process.env.BASE_URL||'http://127.0.0.1:4191/',errors=[];
 p.on('pageerror',e=>errors.push(e.stack));await p.addInitScript(seed=>{if(!localStorage.getItem('seventh-bell.save.v1'))localStorage.setItem('seventh-bell.save.v1',JSON.stringify(seed));},seed);
 const state=()=>p.evaluate(()=>({profile:window.__seventh.game.profile,p:window.__seventh.game.p}));
 async function shot(name){await p.screenshot({path:new URL('../test-results/05-'+name+'.png',import.meta.url).pathname});}

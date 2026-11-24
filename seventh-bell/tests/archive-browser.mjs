@@ -8,7 +8,7 @@ import {installDriver} from './driver.mjs';
 const seed=JSON.parse(await readFile(new URL('../test-results/three-bells.json',import.meta.url),'utf8'));
 for(const id of ['edran','marie','brag'])assert.ok(seed.flags[id]);
 seed.position.x=originalX(seed.position.x);if(seed.loss)seed.loss.x=originalX(seed.loss.x);seed.version=3;for(const k of ['leonel','memory','index','chronology','errata','sister'])delete seed.flags[k];
-const browser=await chromium.launch({executablePath:'/usr/bin/chromium',headless:true,args:['--no-sandbox']}),p=await browser.newPage({viewport:{width:1440,height:960}}),base=process.env.BASE_URL||'http://127.0.0.1:4190/',errors=[];
+const browser=await chromium.launch({executablePath:'/usr/bin/chromium',headless:true,args:['--no-sandbox']}),p=await browser.newPage({viewport:{width:1440,height:960}}),base=process.env.BASE_URL||'http://127.0.0.1:4191/',errors=[];
 p.on('pageerror',e=>errors.push(e.stack));await p.addInitScript(seed=>{if(!localStorage.getItem('seventh-bell.save.v1'))localStorage.setItem('seventh-bell.save.v1',JSON.stringify(seed));},seed);
 const state=()=>p.evaluate(()=>({profile:window.__seventh.game.profile,p:window.__seventh.game.p,boss:window.__seventh.game.world.boss}));
 async function shot(name){const old=await p.evaluate(()=>{const g=window.__seventh.game,old=g.paused;g.paused=true;window.__seventh.render.snap();window.__seventh.render.render(0);window.__seventh.updateUI();return old;});await p.screenshot({path:new URL('../test-results/04-'+name+'.png',import.meta.url).pathname});await p.evaluate(old=>window.__seventh.game.paused=old,old);}

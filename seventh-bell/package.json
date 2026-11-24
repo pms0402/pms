@@ -1,13 +1,13 @@
 {
   "name": "echoes-of-the-seventh-bell",
-  "version": "0.15.0",
+  "version": "0.16.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "node server.mjs",
     "build": "node build.mjs",
     "test": "node --test tests/*.test.mjs",
-    "test:browser": "npm run test:inputs && npm run test:encounters",
+    "test:browser": "npm run test:runtime && npm run test:minibosses && npm run test:inputs && npm run test:encounters",
     "verify:live": "node verify-live.mjs",
     "test:interaction": "node tests/fullscreen-browser.mjs",
     "test:chapters": "npm run test:routes && npm run test:encounters",
@@ -37,6 +37,8 @@
     "test:progression": "node tests/overhaul-progression-browser.mjs",
     "test:hazards": "node tests/overhaul-hazards-browser.mjs",
     "test:foes": "node tests/overhaul-foes-browser.mjs",
+    "test:runtime": "node tests/runtime-browser.mjs",
+    "test:minibosses": "node tests/minibosses-browser.mjs",
     "test:creatures": "node tests/creature-motion-browser.mjs"
   }
 }

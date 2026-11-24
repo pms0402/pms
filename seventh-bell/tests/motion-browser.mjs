@@ -2,7 +2,7 @@ import {chromium} from 'playwright';
 import assert from 'node:assert/strict';
 import {mkdir} from 'node:fs/promises';
 await mkdir(new URL('../test-results/',import.meta.url),{recursive:true});
-const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',headless:true,args:['--no-sandbox']}),p=await browser.newPage({viewport:{width:1440,height:960}}),base=process.env.BASE_URL||'http://127.0.0.1:4190/',errors=[];p.on('pageerror',e=>errors.push(e.stack));
+const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',headless:true,args:['--no-sandbox']}),p=await browser.newPage({viewport:{width:1440,height:960}}),base=process.env.BASE_URL||'http://127.0.0.1:4191/',errors=[];p.on('pageerror',e=>errors.push(e.stack));
 const state=()=>p.evaluate(()=>({hp:window.__seventh.game.world.enemies[0]?.hp,hits:window.__seventh.game.lastHits,echoes:window.__seventh.game.bladeEchoes,action:window.__seventh.game.p.action,dir:window.__seventh.game.p.dir}));
 async function shot(page,name){await page.evaluate(()=>{const{game:g,render:r,updateUI}=window.__seventh;g.paused=true;r.snap();r.render(0);updateUI();});await page.screenshot({path:new URL('../test-results/094-'+name+'.png',import.meta.url).pathname});}
 try{

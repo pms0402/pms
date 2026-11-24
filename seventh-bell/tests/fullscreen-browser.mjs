@@ -1,7 +1,7 @@
 import {chromium} from 'playwright';
 import assert from 'node:assert/strict';
 import {installDriver} from './driver.mjs';
-const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',headless:true,args:['--no-sandbox']}),base=process.env.BASE_URL||'http://127.0.0.1:4190/',errors=[];
+const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',headless:true,args:['--no-sandbox']}),base=process.env.BASE_URL||'http://127.0.0.1:4191/',errors=[];
 const p=await browser.newPage({viewport:{width:1440,height:960}});p.on('pageerror',e=>errors.push(e.stack));
 const state=()=>p.evaluate(()=>({profile:window.__seventh.game.profile,p:window.__seventh.game.p}));
 async function shot(name){await p.screenshot({path:new URL('../test-results/02-'+name+'.png',import.meta.url).pathname});}

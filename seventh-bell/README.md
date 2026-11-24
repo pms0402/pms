@@ -1,8 +1,8 @@
 # 잔향: 일곱 번째 종
 
-**ECHOES OF THE SEVENTH BELL · 0.15.0**
+**ECHOES OF THE SEVENTH BELL · 0.16.0**
 
-누나의 흔적을 찾아 일곱 종을 조사하는 횡스크롤 액션 RPG다. 이번 판은 벽에 끼거나 멈춰 보이던 일반 적을 고치고, 일반 적 21종과 보스 7종의 이동에 24단계 스프라이트를 연결했다. [CREATURES.md](CREATURES.md)에 변경점과 검증 범위를 정리했다. 보스 뒤의 기억과 세 결말 연출은 [CINEMATICS.md](CINEMATICS.md), 동전 성장은 [GROWTH.md](GROWTH.md), 지역 연결은 [TRAVEL.md](TRAVEL.md), 이전 전투 개편은 [OVERHAUL.md](OVERHAUL.md)에 정리했다.
+누나의 흔적을 찾아 일곱 종을 조사하는 횡스크롤 액션 RPG다. 이번 판은 iPad Safari의 메모리 부담을 줄이도록 이미지 로딩과 렌더링을 고치고, 각 장에 독립된 중간보스 한 마리씩을 더했다. 변경점과 검사 범위는 [RUNTIME.md](RUNTIME.md)에 정리했다. 기존 이동 그림은 [CREATURES.md](CREATURES.md), 보스 뒤의 기억과 결말은 [CINEMATICS.md](CINEMATICS.md), 동전 성장은 [GROWTH.md](GROWTH.md), 지역 연결은 [TRAVEL.md](TRAVEL.md)에서 확인할 수 있다.
 
 ## 실행
 
@@ -11,8 +11,10 @@
 ```sh
 npm ci --no-audit --no-fund
 cd seventh-bell
-npm run dev                 # http://localhost:4190/
-npm test                    # 기존 검사와 전투·지형·저장 회귀 검사
+npm run dev                 # http://localhost:4191/
+npm test                    # 260개 전투·지형·저장·프레임 복구 검사
+npm run test:runtime         # iPad 화면의 이동·터치·메모리·예외 복구·저장
+npm run test:minibosses      # 7종 실전 처치·보상·재접속·378개 그림
 npm run test:creatures       # 720개 이동 셀·30주기·실제 AI·벽 끼임 재현 지점 처치
 npm run test:story           # 14가지 보스 기억·재접속·결말·실제 보행·터치
 npm run test:growth          # 8종 정비·무한 단련·모든 검술/Q 파쇄·터치·구형 저장
@@ -26,7 +28,7 @@ npm run test:reset           # 초기화·새로고침·저장 실패·다른 �
 npm run build               # dist/에 독립 정적 사이트 생성
 ```
 
-브라우저 검사는 상위 저장소의 Playwright와 `/usr/bin/chromium`을 사용한다. `BASE_URL`로 빌드한 정적 사이트도 검사할 수 있다. `test:art`, `test:routes`, `test:inputs`, `test:encounters`, `test:progression`, `test:hazards`, `test:foes`로 나눠 실행할 수도 있다. 스크린샷과 측정 결과는 무시되는 `test-results/`에 저장한다. 이전 버전의 긴 수평 경로 드라이버는 기록으로 남겨 두고, 공개 검사 명령은 개편된 경로 드라이버를 사용한다.
+브라우저 검사는 상위 저장소의 Playwright와 `/usr/bin/chromium`을 사용한다. 런타임·중간보스 검사는 `BROWSER_ENGINE=webkit`으로 WebKit에서도 실행할 수 있다. 별도 설치 경로는 `WEBKIT_PATH`로 지정한다. 개발 서버의 기본 포트 4191은 Safari에서도 접근할 수 있다. 4190은 Fetch 금지 포트이므로 사용하지 않는다. `BASE_URL`로 빌드한 정적 사이트도 검사할 수 있다. `test:art`, `test:routes`, `test:inputs`, `test:encounters`, `test:progression`, `test:hazards`, `test:foes`로 나눠 실행할 수도 있다. 스크린샷과 측정 결과는 무시되는 `test-results/`에 저장한다. 이전 버전의 긴 수평 경로 드라이버는 기록으로 남겨 두고, 공개 검사 명령은 개편된 경로 드라이버를 사용한다.
 
 ## 조작
 
@@ -57,12 +59,12 @@ npm run build               # dist/에 독립 정적 사이트 생성
 
 ## 아트와 저장
 
-새 보스 그림 450장과 일반 적 그림 378장을 사용한다. 기존 수리공의 24장 검술 시트와 보행은 유지했다. 원본 PNG의 실제 여백을 측정해 각 셀을 자르고, 한 시트 안에서는 같은 배율을 쓴다. 발 기준점과 무기 끝점은 등록 데이터로 보정한다. 안개는 인물 뒤에 그리며, 순간이동·분신 등 지정된 연출을 제외한 살아 있는 보스는 불투명하다. 생성 원본의 출처는 [assets/LICENSE.md](assets/LICENSE.md)에 있다. 원본 여백을 다시 등록할 때는 Pillow가 있는 환경에서 `python tools/measure-atlases.py`를 실행한 뒤, 개발 서버를 켜고 `node tools/register-bosses.mjs`를 실행한다. 두 도구는 PNG를 수정하지 않고 등록 데이터만 기록한다.
+중간보스 전용 그림 378장(7종 × 54장), 기존 보스 그림 450장과 일반 적 그림 378장을 사용한다. 기존 수리공의 24장 검술 시트와 보행은 유지했다. 원본 PNG의 실제 여백을 측정해 각 셀을 자르고, 한 시트 안에서는 같은 배율을 쓴다. 발 기준점과 무기 끝점은 등록 데이터로 보정한다. 안개는 인물 뒤에 그리며, 순간이동·분신 등 지정된 연출을 제외한 살아 있는 보스는 불투명하다. 생성 원본의 출처는 [assets/LICENSE.md](assets/LICENSE.md)에 있다. 원본 여백을 다시 등록할 때는 Pillow가 있는 환경에서 `python tools/measure-atlases.py`를 실행한 뒤, 개발 서버를 켜고 `node tools/register-bosses.mjs`를 실행한다. 두 도구는 PNG를 수정하지 않고 등록 데이터만 기록한다.
 
-저장 키는 `seventh-bell.save.v1`, 스키마는 12이다. 버전 1~11의 보스 결과·능력·장비·수첩·동전·체력·약병을 보존한다. 새 지름길과 기계의 위치·위상·목표 높이도 저장한다. 이전 저장 위치가 새 벽 안에 있는 경우 위치만 마지막 종 앞으로 옮기고 안내한다. 기존에 통과한 구역과 완료한 장의 지름길은 다시 막지 않는다.
+저장 키는 `seventh-bell.save.v1`, 스키마는 12이다. 버전 1~11의 보스 결과·능력·장비·수첩·동전·체력·약병을 보존한다. 새 지름길과 기계의 위치·위상·목표 높이도 저장한다. 같은 스키마의 선택 필드 `minibosses`에 중간보스 처치 기록을 더하며, 이 필드가 없는 기존 저장은 빈 기록으로 읽는다. 이전 저장 위치가 새 벽 안에 있는 경우 위치만 마지막 종 앞으로 옮기고 안내한다. 기존에 통과한 구역과 완료한 장의 지름길은 다시 막지 않는다.
 
 Canvas 2D와 Web Audio로 실행하며 외부 런타임이나 CDN을 요구하지 않는다. VOIDRUN·ELDERMERE의 코드와 저장은 공유하지 않는다. 빌드 시 HTML·모듈·이미지에 같은 버전/커밋 식별자를 붙인다. `verify:live`는 공개 버전, 커밋, 엔트리 해시와 모든 실행 파일의 응답을 검사한다.
 
 ## 확인 범위
 
-지형과 보스 검사는 일반 적·함정을 분리한 독립 장면에서 실제 입력으로 진행한다. 보스전 중 체력·피해량·재화·위치를 바꾸지 않는다. 일반 적, 함정, 성장, 결말과 저장은 별도 자동 검사로 확인한다. 모든 적과 함정을 켠 상태의 1~7장 장시간 수동 완주나 실제 iPhone·iPad Safari 성능을 확인했다는 뜻은 아니다. 생성 스프라이트는 전용 원본이지만, 짧은 준비·타격 프레임 사이의 관절 연결에는 추가 수작업 여지가 있다.
+지형과 보스 검사는 일반 적·함정을 분리한 독립 장면에서 실제 입력으로 진행한다. 보스전 중 체력·피해량·재화·위치를 바꾸지 않는다. 일반 적, 함정, 성장, 결말과 저장은 별도 자동 검사로 확인한다. WebKit에서도 iPad 크기의 터치 조작·프레임 복구·재접속과 7종 중간보스 실전 처치를 확인했다. 모든 적과 함정을 켠 상태의 1~7장 장시간 수동 완주나 실제 iPhone·iPad 기기의 Safari 성능을 확인했다는 뜻은 아니다. 생성 스프라이트는 전용 원본이지만, 짧은 준비·타격 프레임 사이의 관절 연결에는 추가 수작업 여지가 있다.

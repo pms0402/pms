@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {chromium} from 'playwright';
 import {installDriver} from './driver.mjs';
-const base=process.env.BASE_URL||'http://127.0.0.1:4190/',browser=await chromium.launch({executablePath:'/usr/bin/chromium',headless:true,args:['--no-sandbox']}),p=await browser.newPage({viewport:{width:1440,height:960}}),errors=[];p.on('pageerror',e=>errors.push(e.stack));
+const base=process.env.BASE_URL||'http://127.0.0.1:4191/',browser=await chromium.launch({executablePath:'/usr/bin/chromium',headless:true,args:['--no-sandbox']}),p=await browser.newPage({viewport:{width:1440,height:960}}),errors=[];p.on('pageerror',e=>errors.push(e.stack));
 async function shot(name){await p.evaluate(()=>{window.__seventh.render.snap();window.__seventh.render.render(0);window.__seventh.updateUI();});await p.screenshot({path:new URL('../test-results/010-'+name+'.png',import.meta.url).pathname});}
 async function fresh(){await p.evaluate(async()=>{const {Game}=await import('./src/game.js'),g=window.__seventh.game,event=g.event;Object.assign(g,new Game());g.event=event;g.start();g.paused=true;});}
 try{

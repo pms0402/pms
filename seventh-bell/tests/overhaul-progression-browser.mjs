@@ -5,7 +5,7 @@ import {newProfile,validProfile,CHECKPOINTS} from '../src/data.js';
 import {BOSS_ORDER} from '../src/bosses.js';
 import {mapX} from '../src/layout.js';
 import {installRouteDriver} from './overhaul-route-driver.mjs';
-const base=process.env.BASE_URL||'http://127.0.0.1:4190/',out=new URL('../test-results/',import.meta.url);await mkdir(out,{recursive:true});
+const base=process.env.BASE_URL||'http://127.0.0.1:4191/',out=new URL('../test-results/',import.meta.url);await mkdir(out,{recursive:true});
 const browser=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox']}),errors=[];
 async function boot(seed,options={}){assert.ok(validProfile(seed));const ctx=await browser.newContext({viewport:{width:1440,height:960},...options}),p=await ctx.newPage();p.on('pageerror',e=>errors.push(e.stack));await p.addInitScript(seed=>{if(!localStorage.getItem('seventh-bell.save.v1'))localStorage.setItem('seventh-bell.save.v1',JSON.stringify(seed));localStorage.setItem('voidrun','other-game');localStorage.setItem('eldermere.save.v1','other-game');},seed);await p.goto(base+'?test=1');await p.waitForFunction(()=>window.__seventh,null,{timeout:60000});return{p,ctx};}
 const profile=p=>p.evaluate(()=>window.__seventh.game.profile);

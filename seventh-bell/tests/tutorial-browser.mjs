@@ -5,7 +5,7 @@ import {newProfile} from '../src/data.js';
 import {mapX} from '../src/layout.js';
 import {installTutorialDriver} from './tutorial-driver.mjs';
 await mkdir(new URL('../test-results/',import.meta.url),{recursive:true});
-const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',headless:true,args:['--no-sandbox']}),base=process.env.BASE_URL||'http://127.0.0.1:4190/',errors=[],p=await browser.newPage({viewport:{width:1440,height:960}});p.on('pageerror',e=>errors.push(e.stack));
+const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',headless:true,args:['--no-sandbox']}),base=process.env.BASE_URL||'http://127.0.0.1:4191/',errors=[],p=await browser.newPage({viewport:{width:1440,height:960}});p.on('pageerror',e=>errors.push(e.stack));
 const state=()=>p.evaluate(()=>({profile:window.__seventh.game.profile,p:window.__seventh.game.p,training:window.__seventh.game.inTutorial}));
 async function shot(page,name){const old=await page.evaluate(()=>{const{game:g,render,updateUI}=window.__seventh;const old=g.paused;g.paused=true;render.snap();render.render(0);updateUI();return old;});await page.screenshot({path:new URL('../test-results/07-'+name+'.png',import.meta.url).pathname});await page.evaluate(old=>window.__seventh.game.paused=old,old);}
 try{

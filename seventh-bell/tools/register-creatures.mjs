@@ -2,7 +2,7 @@
 import {chromium} from 'playwright';
 import {writeFile} from 'node:fs/promises';
 const browser=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox']});
-try{const p=await browser.newPage();await p.goto((process.env.BASE_URL||'http://127.0.0.1:4190/')+'?test=1');await p.waitForFunction(()=>window.__seventh,null,{timeout:90000});
+try{const p=await browser.newPage();await p.goto((process.env.BASE_URL||'http://127.0.0.1:4191/')+'?test=1');await p.waitForFunction(()=>window.__seventh,null,{timeout:90000});
  const rig=await p.evaluate(async()=>{
   const{SPECIES}=await import('../src/enemy-species.js'),{FOE_GAIT_SOURCES}=await import('../src/creature-motion.js'),{BOSS_RIG}=await import('../src/boss-motion.js'),{REGISTERED_FEET}=await import('../src/boss-registration.js'),{art}=window.__seventh,out={};
   function landmark(im,kind){const b=im.opaqueBounds,d=im.getContext('2d').getImageData(0,0,im.width,im.height).data,points=[];

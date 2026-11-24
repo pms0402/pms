@@ -8,7 +8,7 @@ const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'
 const p=await browser.newPage({viewport:{width:1440,height:960}}),errors=[];
 p.on('pageerror',e=>errors.push(e.stack));
 try{
- await p.goto((process.env.BASE_URL||'http://127.0.0.1:4190/')+'?test=1');
+ await p.goto((process.env.BASE_URL||'http://127.0.0.1:4191/')+'?test=1');
  await p.waitForFunction(()=>window.__seventh,null,{timeout:60000});
  await p.click('#skip-tutorial');await p.click('#letter-close');
  const clips=await p.evaluate(()=>window.__seventh.poses.CUT_CLIPS);
