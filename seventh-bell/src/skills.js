@@ -1,3 +1,4 @@
+import {workLevel,trainingRank} from './upgrades.js';
 export const BRANCHES=[{id:'steel',name:'검술',text:'검에 힘을 싣는 법'},{id:'survival',name:'생존',text:'맞고도 버티는 법'},{id:'breath',name:'기동',text:'숨을 아껴 움직이는 법'},{id:'echo',name:'잔향',text:'파편의 울림을 다루는 법'}];
 export const TALENTS={
  edge:{branch:'steel',tier:0,name:'손에 익은 검',desc:'검 공격 피해 +3',cost:1,requires:[]},
@@ -23,4 +24,4 @@ export const TALENTS={
 };
 export function learnReason(p,id){const t=TALENTS[id];if(!t)return '없는 기술';if(p.talents.includes(id))return '이미 익힘';const missing=t.requires.filter(k=>!p.talents.includes(k));if(missing.length)return missing.map(k=>TALENTS[k].name).join(' · ')+' 필요';if(p.points<t.cost)return '깨달음이 부족하다';return null;}
 export const has=(p,id)=>p.talents.includes(id);
-export const maxStamina=p=>100+(has(p,'reserve')?20:0);
+export const maxStamina=p=>100+(has(p,'reserve')?20:0)+workLevel(p,'reserve')*10+trainingRank(p);
