@@ -4,7 +4,7 @@ from pathlib import Path
 import json
 out={}
 root=Path(__file__).resolve().parents[1]
-ids=[n+'-motion' for n in ['edran','marie','brag','leonel','arkein','neris','carillon']]+['foes-'+str(n) for n in range(1,8)]+['edran-unshielded','arkein-uncloaked']
+ids=[n+'-motion' for n in ['edran','marie','brag','leonel','arkein','neris','carillon']]+['foes-'+str(n) for n in range(1,8)]+['edran-unshielded','arkein-uncloaked','journey-objects']
 for id in ids:
  im=Image.open(root/'assets'/f'{id}.png');w,h=im.size;a=im.getchannel('A');px=a.load();ys=[sum(px[x,y]>=150 for x in range(w))>=8 for y in range(h)];bands=[];start=None;last=-100
  for y,on in enumerate(ys):
@@ -13,7 +13,7 @@ for id in ids:
    elif y-last>8:bands.append((start,last+1));start=y
    last=y
  if start is not None:bands.append((start,last+1))
- assert len(bands)==(6 if id.endswith(('unshielded','uncloaked')) else 9),(id,bands)
+ assert len(bands)==(4 if id=='journey-objects' else 6 if id.endswith(('unshielded','uncloaked')) else 9),(id,bands)
  cells=[];maxhalf=0;maxheight=0
  for row,(top,bot) in enumerate(bands):
   top=max(0,top-3);bot=min(h,bot+3);counts=[sum(px[x,y]>=150 for y in range(top,bot)) for x in range(w)];bounds=[0]

@@ -1,6 +1,6 @@
 {
   "name": "echoes-of-the-seventh-bell",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -28,6 +28,7 @@
     "test:late-encounters": "npm run test:art && npm run test:encounters",
     "test:overhaul": "node tests/overhaul-art-browser.mjs && node tests/overhaul-routes-browser.mjs && node tests/overhaul-input-browser.mjs && node tests/overhaul-encounters-browser.mjs && node tests/overhaul-progression-browser.mjs && npm run test:hazards && npm run test:foes",
     "test:art": "node tests/overhaul-art-browser.mjs",
+    "test:journeys": "node tests/journeys-browser.mjs && node tests/density-browser.mjs",
     "test:routes": "node tests/overhaul-routes-browser.mjs",
     "test:inputs": "node tests/overhaul-input-browser.mjs",
     "test:encounters": "node tests/overhaul-encounters-browser.mjs",

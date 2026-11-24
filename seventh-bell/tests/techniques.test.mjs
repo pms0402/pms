@@ -6,7 +6,7 @@ import {enemy} from '../src/world.js';
 import {registeredPose,worldBlade} from '../src/blade.js';
 
 const tick=(g,t,input={})=>{for(let i=0;i<Math.ceil(t*120);i++)g.update(1/120,input);};
-function scene(distance=45){const g=new Game();g.start();g.world.traps=[];const e=enemy('e90','watchman',g.p.x+distance,302);e.hp=e.maxHp=500;g.world.enemies=[e];g.updateEnemy=()=>{};return{g,e};}
+function scene(distance=45){const g=new Game();g.start();g.world.sanctuaries=[];g.world.traps=[];const e=enemy('e90','watchman',g.p.x+distance,302);e.hp=e.maxHp=500;g.world.enemies=[e];g.updateEnemy=()=>{};return{g,e};}
 
 test('readable broad cuts run through a full swing and damage each target only once',()=>{for(const kind of ['light1','upper','light3','heavy']){const{g,e}=scene();const s=ATTACKS[kind];if(kind!=='upper')assert.ok(s.end-s.windup>=.19,'the visible cut must not snap through in two frames');g.startAttack(kind);tick(g,s.windup-.01);assert.equal(e.hp,500);tick(g,1.2);assert.equal(e.hp,500-s.damage);assert.equal(g.lastHits.length,1);assert.ok(g.hitstop<=.1);}});
 test('recovery jump and dodge cancel immediately, but cannot cancel live steel or a flask',()=>{for(const cancel of ['jump','dash']){const{g}=scene();g.world.enemies=[];g.press('attack');tick(g,ATTACKS.light1.windup+.01);assert.equal(g.canRecover(),false);if(cancel==='jump'){g.press('jump');g.update(1/120,{jump:true});assert.equal(g.p.action.kind,'light1');assert.equal(g.p.grounded,true);}else assert.equal(g.dash(),false);tick(g,ATTACKS.light1.end-g.p.action.t+.01);assert.equal(g.canRecover(),true);g.press(cancel);g.update(1/120,{jump:true});assert.equal(g.p.action?.kind,cancel==='dash'?'dash':undefined);if(cancel==='jump')assert.ok(g.p.vy<0);}

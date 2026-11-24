@@ -1,3 +1,4 @@
+import {journeyAt} from './journey-data.js';
 import {mapX,roomStart,EXTENSIONS,chapterAtWorld} from './layout.js';
 import {ROUTE_GATES,ROUTE_AREAS} from './route-data.js';
 import {BOSS_DEFS} from './bosses.js';
@@ -105,7 +106,7 @@ export function buildRoutes(world){
 }
 
 export function routeWallActive(g,w){return w.water?!g.profile.routes.harborSluice&&!g.profile.flags.harborLock:w.owner?g.bossActive&&g.world.boss.id===w.owner:w.closedWhen===g.profile.routes[w.routeKey];}
-export function routeSolids(g,base){return[...base.filter(p=>(!p.routeMode||g.profile.routes.archiveShift||g.p?.support===p)&&(!p.bridge||g.profile.routes[p.bridge])),...(g.world.movers||[]).filter(m=>!m.enabled||g.profile.routes[m.enabled]),...(g.world.waterPlatforms||[]),...(g.world.routeWalls||[]).filter(w=>routeWallActive(g,w))];}
+export function routeSolids(g,base){return[...base.filter(p=>(!p.routeMode||g.profile.routes.archiveShift||g.p?.support===p)&&(!p.bridge||g.profile.routes[p.bridge])),...(g.world.movers||[]).filter(m=>m.journey===journeyAt(g.p.x)?.id&&(!m.enabled||g.profile.routes[m.enabled])),...(g.world.waterPlatforms||[]),...(g.world.routeWalls||[]).filter(w=>routeWallActive(g,w))].filter(q=>q.journey===journeyAt(g.p.x)?.id);}
 export function routeGate(g,id){const gate=g.world.gates.find(o=>o.id===id&&o.route);if(!gate)return null;return !g.profile.routes[gate.key]&&!g.profile.flags[gate.owner];}
 export function restoreMachines(profile,world){for(const m of world.movers||[]){const v=profile.machines?.[m.id];if(v){m.phase=v.time||0;m.target=Math.max(Math.min(m.top,m.bottom),Math.min(Math.max(m.top,m.bottom),v.target));m.x=v.x;m.y=v.y;}}}
 export function updateRoutes(g,dt){
@@ -115,7 +116,7 @@ export function updateRoutes(g,dt){
   if(p.grounded&&p.support===m){p.x+=m.x-ox;p.y+=m.y-oy;}
   const obj=g.world.objects.find(o=>o.machine===m.id);if(obj){obj.x=m.x+m.w/2;obj.y=m.y;}
  }
- for(const water of g.world.waterAreas||[])water.level=g.profile.routes.harborSluice||g.profile.flags.harborLock?478:398+Math.sin(g.clock*.2)*17;
+ for(const water of g.world.waterAreas||[])if(!water.journey)water.level=g.profile.routes.harborSluice||g.profile.flags.harborLock?478:398+Math.sin(g.clock*.2)*17;
  for(const floating of g.world.waterPlatforms||[]){const water=g.world.waterAreas.find(w=>w.id===floating.water),old=floating.y;floating.y=water.level-12;if(p.grounded&&p.support===floating)p.y+=floating.y-old;}
  if(g.world.waterAreas?.some(w=>p.x>w.x&&p.x<w.x+w.w&&p.y>w.level+5))p.vx*=Math.pow(.55,dt*4);
 }

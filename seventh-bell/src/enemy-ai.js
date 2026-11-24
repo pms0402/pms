@@ -1,3 +1,4 @@
+import {pacifyEnemy,canBeginEnemyAttack,sanctuaryAt} from './sanctuary.js';
 import {SPECIES} from './enemy-species.js';
 import {body,moveBody,solids,clearLine} from './world.js';
 import {bladeTouches} from './blade.js';
@@ -5,7 +6,7 @@ import {spawnEnemyShot} from './projectile-combat.js';
 import {addField} from './combat-fields.js';
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const rangeRoles=new Set(['ranged','notes','paper','mage','harpoon','lantern','resonator']);
-function begin(e,g,mode){const d=SPECIES[e.type];e.mode=mode;e.state='windup';e.t=0;e.beat=0;e.released=false;e.didHit=false;e.dir=Math.sign(g.p.x-e.x)||e.dir;e.aim={x:g.p.x,y:g.p.y-24};e.prep=d.windup*(e.buffedUntil>g.clock?.8:1);e.shielding=['guard','bookguard','duelist'].includes(d.role)&&mode==='guard';}
+function begin(e,g,mode){if(!canBeginEnemyAttack(g,e)){e.cooldown=.25;return;}const d=SPECIES[e.type];e.mode=mode;e.state='windup';e.t=0;e.beat=0;e.released=false;e.didHit=false;e.dir=Math.sign(g.p.x-e.x)||e.dir;e.aim={x:g.p.x,y:g.p.y-24};e.prep=d.windup*(e.buffedUntil>g.clock?.8:1);e.shielding=['guard','bookguard','duelist'].includes(d.role)&&mode==='guard';}
 function fire(g,e,kind,offset=0,extra={}){const angle=Math.atan2(e.aim.y-(e.y-Math.min(e.h*.65,35)),e.aim.x-e.x)+offset;return spawnEnemyShot(g,e,kind,angle,extra.speed||170,extra);}
 function strike(g,e,reach,height=32){const n=SPECIES[e.type],start={ax:e.x,ay:e.y-height,bx:e.x+e.dir*reach,by:e.y-height};if(!e.didHit&&bladeTouches(start,body(g.p),5)&&clearLine(g,e.x,e.y-25,g.p.x,g.p.y-24)){e.didHit=true;g.hurt(26+(n.chapter-1)*4+(e.elite?4:0),e);}}
 function release(g,e){const d=SPECIES[e.type],role=d.role;e.released=true;e.shielding=false;
@@ -21,8 +22,8 @@ function release(g,e){const d=SPECIES[e.type],role=d.role;e.released=true;e.shie
  if(role==='support'&&e.mode==='chant'){for(const ally of g.world.enemies)if(ally!==e&&!ally.dead&&Math.hypot(ally.x-e.x,ally.y-e.y)<230)ally.buffedUntil=g.clock+6;g.fx(e.x,e.y-25,'echo',.5);}
 }
 export function updateNativeEnemy(g,e,dt){
- const d=SPECIES[e.type];if(!d)return false;e.hit=Math.max(0,e.hit-dt);if(e.dead){e.deathT+=dt;return true;}if(Math.abs(e.x-g.p.x)>1000||Math.abs(e.y-g.p.y)>750)return true;
- e.stagger=Math.max(0,e.stagger-dt);e.cooldown-=dt;e.t+=dt;e.trailClock=(e.trailClock||0)+dt;const p=g.p,dx=p.x-e.x,dy=p.y-e.y,dist=Math.abs(dx),alert=dist<440&&Math.abs(dy)<(e.flying?300:190),oldX=e.x,oldY=e.y;
+ const d=SPECIES[e.type];if(!d)return false;if(!e.dead&&pacifyEnemy(g,e,dt))return true;e.hit=Math.max(0,e.hit-dt);if(e.dead){e.deathT+=dt;return true;}if(Math.abs(e.x-g.p.x)>1000||Math.abs(e.y-g.p.y)>750)return true;
+ e.stagger=Math.max(0,e.stagger-dt);e.cooldown-=dt;e.t+=dt;e.trailClock=(e.trailClock||0)+dt;const p=g.p,dx=p.x-e.x,dy=p.y-e.y,dist=Math.abs(dx);if(Math.abs(e.x-e.homeX)>270)e.returning=true;if(Math.abs(e.x-e.homeX)<40)e.returning=false;const alert=!e.returning&&dist<440&&Math.abs(dy)<(e.flying?300:190),oldX=e.x,oldY=e.y;
  if(e.unstableUntil>g.clock){e.vx=0;e.t=0;e.stagger=Math.max(e.stagger,.15);e.state='recover';}
  else if(e.stagger>0){e.vx*=Math.max(0,1-dt*8);}
  else if(e.state==='windup'){
@@ -62,7 +63,7 @@ export function updateNativeEnemy(g,e,dt){
   if(d.role==='cart'&&e.state==='attack'&&Math.abs(wanted)>1&&Math.abs(e.x-oldX)<.01){e.state='recover';e.t=0;e.stagger=1.1;e.vx=0;g.fx(e.x+e.dir*30,e.y-20,'hit',.3);}
   if(d.role==='ink'&&wanted&&Math.abs(e.x-oldX)<.01){e.surface='wall';e.y-=Math.min(45*dt,40);e.vy=0;}
  }
- e.walk+=Math.abs(e.x-oldX);return true;
+ if(sanctuaryAt(g,e)){e.x=oldX;e.y=oldY;e.vx=0;e.state='idle';e.cooldown=1;}e.walk+=Math.abs(e.x-oldX);return true;
 }
 export function speciesDamage(g,e,n,kind){const d=SPECIES[e.type];if(!d)return n;
  if(e.shielding&&(g.p.x-e.x)*e.dir>0&&g.p.y>e.y-e.h-12){e.guardHits=(e.guardHits||0)+1;g.fx(e.x+e.dir*18,e.y-28,'parry',.2);return Math.max(1,Math.round(n*(kind==='heavy'?.7:d.role==='bookguard'?.22:.48)));}

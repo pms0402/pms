@@ -5,7 +5,7 @@ import {Game} from '../src/game.js';
 import {ATTACKS,SAVE_KEY,newProfile,validProfile} from '../src/data.js';
 import {body,solids,overlaps} from '../src/world.js';
 import {actionFrame} from '../src/art.js';
-function fixture(){const data=new Map([['voidrun','untouched'],['eldermere.save.v1','untouched']]),storage={getItem:k=>data.get(k)||null,setItem:(k,v)=>data.set(k,v)};const g=new Game(storage);g.start();advance(g,.04);return{g,data,storage};}
+function fixture(){const data=new Map([['voidrun','untouched'],['eldermere.save.v1','untouched']]),storage={getItem:k=>data.get(k)||null,setItem:(k,v)=>data.set(k,v)};const g=new Game(storage);g.start();g.world.sanctuaries=[];advance(g,.04);return{g,data,storage};}
 function advance(g,t,held={}){for(let n=0;n<Math.ceil(t*120);n++)g.update(Math.min(1/120,t-n/120),held);}
 function target(g){const e=g.world.enemies[0];Object.assign(e,{x:g.p.x+38,y:g.p.y,hp:300,maxHp:300});g.updateEnemy=()=>{};g.updateBoss=()=>{};g.p.invulnerable=0;return e;}
 test('acceleration and braking are bounded; walls block walking and dashing',()=>{const{g}=fixture();g.update(.008,{right:true});assert.ok(g.p.vx>0&&g.p.vx<20);advance(g,.3,{right:true});assert.ok(g.p.vx>100&&g.p.vx<120);advance(g,.25,{right:true});assert.equal(g.p.vx,178);advance(g,.12);assert.ok(g.p.vx>100&&g.p.vx<110);advance(g,.20);assert.equal(g.p.vx,0);g.world.platforms.push({x:300,y:150,w:20,h:152});advance(g,1.2,{right:true});assert.ok(g.p.x<=291);g.p.stamina=100;assert.ok(g.dash());advance(g,.27,{right:true});assert.ok(g.p.x<=291);assert.equal(g.p.stamina,80);});
