@@ -1,8 +1,8 @@
 import {cell} from './art.js';
-import {journeyAt,environmentAt} from './journey-data.js';
+import {journeyAt} from './journey-data.js';
 export function journeyProp(c,index,x,y,height=120,alpha=1){const im=cell('journey-objects',index%6,Math.floor(index/6)),b=im.opaqueBounds,w=height*b.w/b.h;c.save();c.globalAlpha=alpha;c.drawImage(im,b.x,b.y,b.w,b.h,Math.round(x-w/2),Math.round(y-height),Math.round(w),Math.round(height));c.restore();}
 export function renderJourneys(r){const g=r.g,c=r.c,j=journeyAt(g.p.x),visible=x=>x>r.x-260&&x<r.x+r.width+260;
- if(j){const env=environmentAt(g.p.x);for(let dx=130;dx<j.length;dx+=210){const x=j.start+dx;if(!visible(x))continue;const floors=g.world.platforms.filter(q=>q.journey===j.id&&q.foundation&&x>=q.x&&x<q.x+q.w),y=floors[0]?.y||302;journeyProp(c,env.mix<.5?(j.kind==='mine'?21:j.kind==='crypt'?9:j.westArt):(j.kind==='crypt'?22:j.eastArt),x,y,env.interior>0?210:180,.24);}
+ if(j){for(let dx=130;dx<j.length;dx+=210){const x=j.start+dx;if(!visible(x))continue;const floors=g.world.platforms.filter(q=>q.journey===j.id&&q.foundation&&x>=q.x&&x<q.x+q.w),y=floors[0]?.y||302;const blend=Math.max(0,Math.min(1,(dx/j.length-.3)/.4)),height=['mine','crypt','rail'].includes(j.kind)?210:180;if(blend<1)journeyProp(c,j.kind==='mine'?21:j.kind==='crypt'?9:j.westArt,x,y,height,.24*(1-blend));if(blend>0)journeyProp(c,j.kind==='crypt'?22:j.eastArt,x,y,height,.24*blend);}
  }
  for(const d of g.world.journeyScenery||[])if(visible(d.x))journeyProp(c,d.art,d.x,d.y,d.size,.82);
  for(const o of g.world.objects){if(!visible(o.x))continue;if(['journey-door','journey-exit'].includes(o.type)){journeyProp(c,o.art,o.x,o.y,220);r.glow(o.x,o.y-75,48,'#b8c7a4');}else if(['journey-call','journey-latch'].includes(o.type))journeyProp(c,o.art,o.x,o.y,54);}
