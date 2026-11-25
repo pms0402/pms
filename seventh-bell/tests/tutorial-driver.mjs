@@ -8,6 +8,7 @@ export function trainUntil(g,step=8){for(let i=0;i<24000;i++){const t=g.profile.
  if(t.step===2){if(near&&!p.action||p.action?.kind.startsWith('light')&&p.action.t>.09)g.press('attack');}
  else if(t.step===3){if(e.state==='windup'&&e.t>1.0&&!p.action)g.press('dash');}
  else if(t.step===4){if(e.state==='windup'&&e.t>1.03&&!p.action)g.press('parry');}
+ else if(t.step===5&&t.healed===false){if(!p.action)g.press('heal');}
  else if(t.step===5){if(near&&!p.action&&(e.state==='recover'||e.stagger>.2))g.press('heavy');}
  else if(t.step===6){if(!p.action&&Math.abs(d)<135)g.press('skill');}
  else if(t.step===7){if(e.state==='windup'&&e.t>(e.pattern==='overhead'?1.29:1.04)&&!p.action)g.press('parry');else if((e.state==='recover'||e.stagger>.2)&&near){if(!p.action)g.press('heavy');}}
