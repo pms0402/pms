@@ -1,10 +1,11 @@
-// The same input-only simulation is replayed before/after the presentation patch.
+// Input-only cathedral regression: movement keeps its original timing; the
+// combo follows the current late-press rule introduced in 0.16.5.
 // No positions, health, AI timers, geometry or damage values change during a run.
 export function reviewStep(g,mode,n,state){const e=g.world.enemies.find(e=>e.id==='e33'),keys={right:n<(mode==='plunge'?182:102),jump:mode==='plunge'&&n>=170&&n<204};
  if(mode==='combo'){
   if(!state.parried&&e.state==='windup'&&e.t>=e.prep-.1){g.press('parry');state.parried=true;}
   if(state.parried&&!state.started&&g.p.counterReady===0&&!g.p.action&&e.stagger>0){g.press('attack');state.started=true;}
-  if(state.started&&!state.queued&&g.p.action?.kind==='light1'&&g.p.action.t>.27){g.press('attack');state.queued=true;}
+  if(state.started&&!state.queued&&g.p.action?.kind==='light1'&&g.p.action.t>=g.p.action.spec.duration-.12){state.queued=g.press('attack');}
  }else if(mode==='plunge'){
   if(n===170)g.press('jump');
   if(n===204)g.press('attack',{down:true});

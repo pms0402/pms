@@ -1,4 +1,5 @@
 import {contactOnBody,localImpact} from './cathedral-presentation.js';
+import {nextBasicAttack,comboWindowOpen} from './combo.js';
 import {WORK_KEYS,workLevel,trainingRank,armorReduction,staminaRecovery,dashCooldown,echoCooldown} from './upgrades.js';
 import {travelBounds} from './journey-data.js';
 import {interactJourney} from './journey-world.js';
@@ -55,7 +56,7 @@ export class Game{
    if(p.action?.kind==='dash')return this.startAttack('thrust',{replace:true});
    if(input.down&&!p.grounded)return this.startAttack('plunge',{replace:this.canRecover()});
    if(input.up)return this.startAttack('upper',{replace:this.canRecover()});
-   if(p.action?.kind.startsWith('light')){if(p.action.t>.05)p.comboQueued=true;return true;}
+   if(nextBasicAttack(p.action?.kind)){const next=nextBasicAttack(p.action.kind);if(!comboWindowOpen(p.action)||p.hurt>0||p.stamina<actionCost(this.profile,ATTACKS[next].stamina))return false;p.comboQueued=true;return true;}
    return this.startAttack('light1',{replace:this.canRecover()});
   }
   if(kind==='upper'||kind==='plunge')return this.startAttack(kind,{replace:this.canRecover()});
@@ -102,8 +103,8 @@ export class Game{
    if(a.kind==='heal'&&a.t>=a.spec.windup&&!a.applied){a.applied=true;p.hp=Math.min(this.maxHp,p.hp+Math.ceil(this.maxHp*POTION.ratio));this.fx(p.x,p.y-25,'heal',.8);tutorialSignal(this,'heal');this.save();}
    else if(a.kind!=='heal'&&a.spec&&a.t>=a.spec.windup&&a.t<a.spec.end)this.resolveAttack(a);
    if(a.impactPause&&a.t>=a.spec.windup+(a.spec.end-a.spec.windup)*.8){this.hitstop=Math.max(this.hitstop,a.impactPause);a.impactPause=0;}
-   const duration=a.kind==='parry'?.55:p.comboQueued&&a.spec.chainAt?a.spec.chainAt:a.spec.duration;
-   if(a.t>=duration){const next=a.kind==='light1'?'light3':null,queued=p.comboQueued;p.action=null;p.comboQueued=false;if(queued&&next)this.startAttack(next);}
+   const duration=a.kind==='parry'?.55:a.spec.duration;
+   if(a.t>=duration){const next=nextBasicAttack(a.kind),queued=p.comboQueued;p.action=null;p.comboQueued=false;if(queued&&next)this.startAttack(next);}
   }
  }
  if(!p.action&&p.hurt===0)p.stamina=Math.min(this.maxStamina,p.stamina+staminaRecovery(this.profile)*dt);

@@ -9,7 +9,7 @@ import {TALENTS} from './skills.js';
 export {TALENTS} from './skills.js';
 export const SAVE_KEY='seventh-bell.save.v1',WIDTH=640,HEIGHT=360;
 export const ATTACKS={
- light1:{duration:.72,windup:.17,end:.37,chainAt:.49,damage:18,reach:56,stamina:8,push:90,row:4,start:0},
+ light1:{duration:.72,windup:.17,end:.37,damage:18,reach:56,stamina:8,push:90,row:4,start:0},
  light3:{duration:.88,windup:.23,end:.45,damage:44,reach:73,stamina:15,push:230,row:5,start:0},
  heavy:{duration:1.04,windup:.34,end:.58,damage:50,reach:78,stamina:23,push:210,row:5,start:4},
  thrust:{duration:.60,windup:.14,end:.173334,damage:26,stamina:12,push:130},

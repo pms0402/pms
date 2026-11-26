@@ -8,7 +8,7 @@ export const newTutorial=(done=false)=>({state:done?'done':'new',step:done?8:0,c
 export const LESSONS=[
  {title:'몸 풀기',key:'A D / ← →',touch:'왼쪽 · 오른쪽 버튼',text:'오는 길에 다친 무릎이 쑤신다. 우선 오른쪽으로 걸으며 몸을 풀자.'},
  {title:'무너진 작업대',key:'Space',touch:'도약 버튼',text:'뛰어서 낮은 돌턱을 넘자. 누르는 길이에 따라 뛰는 높이가 달라진다.'},
- {title:'검을 손에 익히기',key:'좌클릭 / J · 두 번',touch:'공격 버튼 · 두 번',text:'가까이서 공격하고, 검을 휘두를 때 한 번 더 눌러 내려찍기로 잇자.'},
+ {title:'검을 손에 익히기',key:'좌클릭 / J · 끝에 한 번 더',touch:'공격 · 끝에 한 번 더',text:'가까이서 한 번 베자. 검을 거두는 끝부분에 다시 누르면 내려찍기로 이어진다.'},
  {title:'한 걸음 비켜서기',key:'Shift',touch:'회피 버튼',text:'기사가 검을 들면 회피로 공격을 피하자. 공격과 회피에는 집중을 쓴다.'},
  {title:'칼 받아내기',key:'우클릭 / L',touch:'막기 버튼',text:'기사를 바라보고 검을 막자. 닿기 직전에 받아내면 패링이 된다.'},
  {title:'무게를 실어서',key:'K / X',touch:'강타 버튼',text:'강공격을 한 번 맞히자. 준비가 길어서, 기사가 검을 거둘 때가 좋다.'},
