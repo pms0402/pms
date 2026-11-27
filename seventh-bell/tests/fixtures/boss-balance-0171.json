@@ -1,0 +1,339 @@
+{
+  "version": "0.17.1",
+  "bossStats": "192c7cf68ed79a5f86be751096498179c2079e31a09d34abbeaa636d8224b4b0",
+  "actions": "90d642021f972d45688234a6530a578790fa899572d347135a9ea11bc5d61bd6",
+  "minibossStats": "82c1d8a6ad2769c0f325efa190539daeb5ecebc61c51d43f8a345e5cb384e33c",
+  "ordinaryStats": "5cbd0fb9f4d8eb38561eeda853f306507044fb7bfca9d1366bc54dbae8bd26b5",
+  "walking": "2b3cf39735af7fb7a7ba62a0bc2977858358c07d15a430be293c0b1f55c2e940",
+  "mainTimings": {
+    "gateShield": [
+      0.95,
+      1.55,
+      1.2
+    ],
+    "gateBlade": [
+      1.05,
+      0.34,
+      1.4
+    ],
+    "gateRift": [
+      1.4,
+      0.35,
+      1.8
+    ],
+    "gateRush": [
+      1.2,
+      0.95,
+      1.5
+    ],
+    "gateCounter": [
+      1.05,
+      0.32,
+      1.4
+    ],
+    "knightThree": [
+      1.15,
+      2.25,
+      1.85
+    ],
+    "soundRing": [
+      1.2,
+      0.3,
+      1.5
+    ],
+    "choirShards": [
+      1.25,
+      0.55,
+      1.5
+    ],
+    "silentGround": [
+      1.35,
+      0.35,
+      1.55
+    ],
+    "voiceStairs": [
+      1.5,
+      0.5,
+      1.7
+    ],
+    "reversePeal": [
+      1.55,
+      0.4,
+      1.75
+    ],
+    "anvilStrike": [
+      1.45,
+      0.35,
+      1.95
+    ],
+    "moltenFlow": [
+      1.7,
+      0.5,
+      1.8
+    ],
+    "chainCast": [
+      1.35,
+      0.4,
+      1.7
+    ],
+    "metalSpray": [
+      1.4,
+      0.4,
+      1.7
+    ],
+    "overheat": [
+      1.55,
+      0.4,
+      1.75
+    ],
+    "recordBlades": [
+      1.35,
+      0.7,
+      1.6
+    ],
+    "eraseSentence": [
+      1.5,
+      0.4,
+      1.7
+    ],
+    "bookMaze": [
+      1.55,
+      0.4,
+      1.7
+    ],
+    "futureRecord": [
+      1.4,
+      0.4,
+      1.65
+    ],
+    "invertedPage": [
+      1.5,
+      0.4,
+      1.85
+    ],
+    "royalFirst": [
+      1.05,
+      1.25,
+      1.55
+    ],
+    "dawnThrust": [
+      1.1,
+      0.4,
+      1.55
+    ],
+    "royalGuard": [
+      1.05,
+      1.6,
+      1.4
+    ],
+    "royalProcession": [
+      1.35,
+      2.5,
+      1.8
+    ],
+    "artificialDawn": [
+      1.7,
+      0.4,
+      1.9
+    ],
+    "royalFour": [
+      1.25,
+      3.1,
+      2.35
+    ],
+    "anchorThrow": [
+      1.35,
+      0.4,
+      1.7
+    ],
+    "hookPull": [
+      1.3,
+      0.4,
+      1.7
+    ],
+    "risingTide": [
+      1.8,
+      0.5,
+      1.9
+    ],
+    "lighthouseAim": [
+      1.85,
+      0.5,
+      1.95
+    ],
+    "ropeOrbit": [
+      1.4,
+      0.6,
+      1.8
+    ],
+    "bellVibration": [
+      1.5,
+      1.8,
+      1.85
+    ],
+    "leftAttack": [
+      1.45,
+      0.4,
+      1.75
+    ],
+    "resonanceClones": [
+      1.7,
+      0.5,
+      1.85
+    ],
+    "gearRotation": [
+      1.8,
+      0.5,
+      1.9
+    ],
+    "seventhPeal": [
+      1.9,
+      6.4,
+      2.8
+    ]
+  },
+  "miniTimings": {
+    "rook": [
+      [
+        1,
+        0.46,
+        1.2
+      ],
+      [
+        1.22,
+        0.3,
+        1.4
+      ],
+      [
+        1.3,
+        0.26,
+        1.15
+      ]
+    ],
+    "censer": [
+      [
+        1.16,
+        0.3,
+        1.35
+      ],
+      [
+        1.4,
+        0.3,
+        1.5
+      ],
+      [
+        1.4,
+        0.3,
+        1.3
+      ]
+    ],
+    "slag": [
+      [
+        1.15,
+        0.32,
+        1.35
+      ],
+      [
+        1.28,
+        0.5,
+        1.55
+      ],
+      [
+        1.4,
+        0.28,
+        1.4
+      ]
+    ],
+    "folio": [
+      [
+        1.12,
+        0.34,
+        1.25
+      ],
+      [
+        1.35,
+        0.32,
+        1.5
+      ],
+      [
+        1.42,
+        0.32,
+        1.4
+      ]
+    ],
+    "seren": [
+      [
+        1.12,
+        0.36,
+        1.3
+      ],
+      [
+        1.3,
+        0.7,
+        1.65
+      ],
+      [
+        1.35,
+        0.3,
+        1.45
+      ]
+    ],
+    "ballast": [
+      [
+        1.25,
+        0.34,
+        1.4
+      ],
+      [
+        1.5,
+        0.32,
+        1.6
+      ],
+      [
+        1.32,
+        0.5,
+        1.6
+      ]
+    ],
+    "pendulum": [
+      [
+        1.3,
+        0.32,
+        1.4
+      ],
+      [
+        1.5,
+        0.32,
+        1.65
+      ],
+      [
+        1.45,
+        0.72,
+        1.7
+      ]
+    ]
+  },
+  "normal": {
+    "patrol": "5721333c448224d4465828fccfa3a9386917b31f7492f5d76a0bf7459ea50ed0",
+    "crossbow": "15131ea0154ba252cb2f2b5047eae2810beee76fd560edf739fdfcdbe19f7126",
+    "raven": "a0426cd7eaec0bb38994af717e33b8f71cf1d8a4055c10c7b9ffc883b9eeffb2",
+    "monk": "cac594536996956cd3112fe9b417f56cb0dc808f357daa2657314c9f8000252c",
+    "choirghost": "ebd33e87d336bbb52584b1e95eb66729d70b1e75b7a14f98322787c2c9895167",
+    "devotee": "8c1e15be2f81ef2848f0ad23b9031027057dedee30b90e0d280de0880fb33372",
+    "worker": "4f0bd6d1acdfd6c1c34392ec3dc1fc50e7b6cb3881ff0d15444fd93fee045c8e",
+    "orecart": "4c5d2d541cf6ce9c1fba1570ca0e51a5da14bb53d976a49245f4b129bce02c42",
+    "emberling": "482cc22ecb13f41d1cbed07ba2f5a9141054234a08798a3a9e0ca79c7b398e79",
+    "bookguard": "a67fd41dea44c7197a6c4c3296b163f3630511a2dfb69eba199a7f7deb942ca7",
+    "paperghost": "1e0fb47d885c086f78cf0d24893cf09e52b9605093f65ef048b0d9fabdc7b130",
+    "inkworm": "ef69f8e38665735685807e183494a2165817bea90ea21a1388669c4476e3d922",
+    "royalguard": "930c6879bf6e9d12df0214f0325038d4c12e57575b4d7d0264495ace7ba919ad",
+    "spearman": "c3dfbff8b23ab9100494551ec246aa56c3b6d49c049af8719cb3cf965cd2184f",
+    "royalmage": "138b3c1c4a61c6754e291d278eabd21eb7ee2e444287f7de4fa1c5310017a663",
+    "drowned": "fd26aef708ba9ce25d48b3f3a10ea63fe2c16aaf16a72f16cc6c3b2650b9ec16",
+    "harpooner": "4b83cf18cd04ab6f3efc5ab09dbf851159549df3757957d0308bce3be7f32ff6",
+    "lanternwraith": "516c3a602c3ff18cf1339adc65fa4994318bbd8dffd053eabdcc859a9351a3f7",
+    "shaftpuppet": "bd819f520526b5fdaf543f1f2b19db96dc7989b95f623a5988456700c31da31e",
+    "echocopy": "1100c3d3471babce27ee12fbedcdc42c925afbd908807f9a938d4f21d6d1ff5f",
+    "resonator": "c453f80d75aa3ccd81a95c11491c03643b5a4061d3fa0896ebdc75f696b120d6"
+  }
+}

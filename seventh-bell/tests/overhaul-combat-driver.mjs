@@ -1,7 +1,9 @@
+import {attackSeconds} from '../src/boss-tempo.js';
 import {BOSS_ACTIONS} from '../src/boss-actions.js';
 import {fieldTouches} from '../src/combat-fields.js';
 import {BOSS_DEFS} from '../src/bosses.js';
 const hitTimes={gateShield:[0],gateBlade:[.05],gateRift:[.18],gateRush:[.02,.2,.4,.6,.8],gateCounter:[.06],knightThree:[.3,1.03,1.76],anvilStrike:[.18],royalFirst:[.06,.68],dawnThrust:[.05],royalProcession:[.35,1.15,1.95],royalFour:[.33,1.09,1.85,2.61],ropeOrbit:[.1,.3,.5],leftAttack:[.08]};
+for(const key of Object.keys(hitTimes))hitTimes[key]=hitTimes[key].map(attackSeconds);
 export function encounterInputs(g,stats){const e=g.world.boss,p=g.p,dx=e.x-p.x,dist=Math.abs(dx),a=BOSS_ACTIONS[e.pattern],d=BOSS_DEFS[e.id];let evade=0,move=dist>34,jump=false;
  if(e.state==='weakened'){if(dist<80)g.press('interact');return{left:dx<0&&dist>=75,right:dx>0&&dist>=75,jump:true};}
  if(p.dead)return{};

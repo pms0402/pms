@@ -1,6 +1,7 @@
+import {attackSeconds,recoverySeconds} from './boss-tempo.js';
 // Timers describe presentation. Actual behaviour lives in the boss's controller,
 // not in a shared combination of wave/shot/pillars/speed/twice flags.
-const attack=(owner,name,row,windup,active,recover,damage,ideal,extra={})=>({owner,name,row,windup,active,recover,damage,ideal,native:true,...extra});
+const attack=(owner,name,row,windup,active,recover,damage,ideal,extra={})=>({owner,name,row,windup:attackSeconds(windup),active:attackSeconds(active),recover:recoverySeconds(recover),damage,ideal,native:true,...extra});
 export const BOSS_ACTIONS={
  gateShield:attack('edran','성문 방패',1,.95,1.55,1.2,30,90,{guard:true}),
  gateBlade:attack('edran','수평 대검격',2,1.05,.34,1.4,42,95),

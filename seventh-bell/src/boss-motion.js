@@ -1,3 +1,4 @@
+import {attackSeconds} from './boss-tempo.js';
 import {REGISTERED_RIG,REGISTERED_FEET} from './boss-registration.js';
 import {BOSS_ACTIONS} from './boss-actions.js';
 import {PATTERNS} from './bosses.js';
@@ -53,7 +54,7 @@ export function nativeBossPose(e,rig,feet){
  else if(e.stagger>.12){row=8;col=0;role='parry';}
  else if(e.state==='windup'){row=a.row;col=e.t/a.windup<.25?0:e.t/a.windup<.62?1:2;role='prepare';}
  else if(e.state==='attack'){row=e.poseRow??a.row;col=e.poseCol??(e.t<a.active*.5?3:4);role='strike';}
- else if(e.state==='recover'&&e.t<.4){row=a?.row||0;col=5;role='recover';}
+ else if(e.state==='recover'&&e.t<attackSeconds(.4)){row=e.endRow??a?.row??0;col=e.t<attackSeconds(.07)?(e.endCol??4):5;role='recover';}
  else if(Math.abs(e.vx)>1||e.gaitSettling){role='walk';return creatureGaitPose(e,e.id+'-gait',e.phase===2&&['edran','arkein'].includes(e.id)?4:0,BOSS_MOTION[e.id].stride,rig.size);}
  let sheet=e.id+'-motion';
  if(e.phase===2&&['edran','arkein'].includes(e.id)&&!e.dead&&!['weakened','transition','freed'].includes(e.state)){

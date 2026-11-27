@@ -1,3 +1,4 @@
+import {attackSeconds} from './boss-tempo.js';
 import {BOSS_ACTIONS,ACTION_SETS} from './boss-actions.js';
 import {mapX} from './layout.js';
 // Each attack commits its direction and target before its visible windup.
@@ -51,6 +52,6 @@ Object.assign(PATTERNS,BOSS_ACTIONS);
 for(const[id,d]of Object.entries(BOSS_DEFS)){d.patterns=ACTION_SETS[id];}
 for(const d of Object.values(BOSS_DEFS))for(const k of ['x','left','right'])d[k]=mapX(d[k]);
 export const BOSS_ORDER=['edran','marie','brag','leonel','arkein','neris','carillon'];
-export function createBoss(id){const d=BOSS_DEFS[id];return{id,type:id,boss:true,native:true,x:d.x,y:302,w:d.w||(id==='brag'?58:48),h:d.h||(id==='marie'?94:id==='leonel'?99:105),hp:d.hp,maxHp:d.hp,vx:0,vy:0,dir:-1,state:'idle',t:0,phase:1,cooldown:1.4,attackIndex:0,stagger:0,dead:false,deathT:0,hit:0,walk:0,targets:[]};}
+export function createBoss(id){const d=BOSS_DEFS[id];return{id,type:id,boss:true,native:true,x:d.x,y:302,w:d.w||(id==='brag'?58:48),h:d.h||(id==='marie'?94:id==='leonel'?99:105),hp:d.hp,maxHp:d.hp,vx:0,vy:0,dir:-1,state:'idle',t:0,phase:1,cooldown:attackSeconds(1.4),attackIndex:0,stagger:0,dead:false,deathT:0,hit:0,walk:0,targets:[]};}
 export function attackRect(e,warning=false){const a=PATTERNS[e.pattern];if(!a)return{x:e.x,y:e.y,w:0,h:0};const reach=a.range+(warning?(a.speed||0)*a.active:0);return{x:e.dir>0?e.x-18:e.x-reach,y:e.y-96,w:reach+18,h:96};}
 export function targetRects(e){return(e.targets||[]).map(x=>({x:x-34,y:e.y-104,w:68,h:104}));}

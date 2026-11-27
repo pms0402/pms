@@ -1,3 +1,4 @@
+import {attackSeconds,recoverySeconds} from '../src/boss-tempo.js';
 import {mapX,WORLD_WIDTH} from '../src/layout.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -13,7 +14,7 @@ function fixture(){const data=new Map(),storage={getItem:k=>data.get(k)||null,se
 function unlock(g){Object.assign(g.profile.flags,{edran:'freed',marie:'freed',echo:true,voice:true,choir:true,coolant:true});}
 test('three bosses have committed, readable attacks with increased damage and recovery openings',()=>{
  for(const[id,d]of Object.entries(BOSS_DEFS))for(const pattern of d.patterns.flat()){
-  const a=PATTERNS[pattern];assert.ok(a.windup>=.95,pattern);assert.ok(a.recover>=1.15,pattern);assert.ok(a.damage===0||a.damage>=22,pattern);
+  const a=PATTERNS[pattern];assert.ok(a.windup>=attackSeconds(.95),pattern);assert.ok(a.recover>=recoverySeconds(1.15),pattern);assert.ok(a.damage===0||a.damage>=22,pattern);
   const{g}=fixture();unlock(g);const e=g.world.bosses.find(b=>b.id===id);g.world.boss=e;g.bossActive=true;Object.assign(e,{state:'windup',pattern,t:0,dir:1});Object.assign(g.p,{x:e.x+40,y:302,invulnerable:0});
   const hp=g.p.hp;g.updateBoss(a.windup-.02);assert.equal(g.p.hp,hp,pattern+' deals no preparation damage');assert.equal(e.state,'windup');
   g.p.x=e.x-100;g.updateBoss(.01);assert.equal(e.dir,1,pattern+' does not track a player behind it');

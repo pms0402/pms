@@ -1,3 +1,4 @@
+import {quickenBossShot} from './boss-tempo.js';
 import {wardTime} from './sanctuary.js';
 import {worldBlade,sweptBlades,bladeTouches} from './blade.js';
 import {body,solids,clearLine} from './world.js';
@@ -48,7 +49,7 @@ export function prepareProjectile(g,q,dt){
 
 export function spawnEnemyShot(g,e,kind,angle,speed=165,extra={}){
  g.spawnShot(e.x+e.dir*18,e.y-Math.min(e.h*.65,35),Math.cos(angle)*speed,Math.sin(angle)*speed,extra.damage||23+(e.rank||0)*4,e.id,kind,extra.range||340);
- const q=g.projectiles.at(-1);Object.assign(q,{destructible:true,radius:kind==='harpoon'?4:5,...extra});return q;
+ const q=g.projectiles.at(-1);Object.assign(q,{destructible:true,radius:kind==='harpoon'?4:5,...extra});return e.miniboss?quickenBossShot(q,e.type):q;
 }
 
 export const projectileBody=(q,x=q.x,y=q.y)=>({x:x-(q.radius||5),y:y-(q.radius||5),w:(q.radius||5)*2,h:(q.radius||5)*2});

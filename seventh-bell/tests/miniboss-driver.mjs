@@ -1,6 +1,7 @@
+import {attackSeconds} from '../src/boss-tempo.js';
 import {MINIBOSSES} from '../src/miniboss-data.js';
 export function minibossInputs(g,e,stats){const p=g.p,d=MINIBOSSES[e.type],a=d.attacks[Math.max(0,e.attackIndex)],dx=e.x-p.x,dist=Math.abs(dx),can=!p.action||g.canRecover();let move=dist>Math.max(40,e.w*.45+15),direction=Math.sign(dx),jump=false;
- const impact=a.kind==='slam'?a.active*.52:.08,beats=a.kind==='double'?[.08,a.active*.57]:[impact],t=e.state==='windup'?e.t-e.prep:e.state==='attack'?e.t:-99,until=beats.find(at=>at>t+.001)-t;
+ const impact=a.kind==='slam'?a.active*.52:attackSeconds(.08),beats=a.kind==='double'?[attackSeconds(.08),a.active*.57]:[impact],t=e.state==='windup'?e.t-e.prep:e.state==='attack'?e.t:-99,until=beats.find(at=>at>t+.001)-t;
  if(until>0&&until<.13&&dist<a.reach+45&&Math.abs(p.y-e.y)<70&&can){if(g.parry())stats.parries++;move=false;}
  const vulnerable=e.state==='recover'||e.state==='idle'||e.stagger>.1;
  if(vulnerable&&p.hp<g.maxHp*.57&&g.profile.flasks&&p.grounded&&dist>75&&(!p.action||p.action.kind==='heal')){move=false;if(!p.action&&Math.abs(p.vx)<12)g.heal();}

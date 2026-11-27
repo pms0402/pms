@@ -1,3 +1,4 @@
+import {attackSeconds,recoverySeconds} from '../src/boss-tempo.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Game} from '../src/game.js';
@@ -39,7 +40,7 @@ test('the tide ability reveals collidable return platforms and the last shard gr
 });
 test('new bosses have distinct designs and five readable attacks each, release at contact, save one shard',()=>{
  for(const id of ['neris','carillon']){const{g,storage}=fixture();if(id==='carillon')Object.assign(g.profile.flags,{neris:'freed',tide:true});const e=g.world.bosses.find(b=>b.id===id),d=BOSS_DEFS[id];g.world.boss=e;g.bossActive=true;g.profile.flags[d.clue]=true;assert.equal(new Set(d.patterns.flat()).size,5);
-  for(const pattern of new Set(d.patterns.flat())){const a=PATTERNS[pattern];assert.ok(a.windup>=1.15&&a.recover>=1.55);Object.assign(e,{state:'attack',pattern,t:0,dir:-1,didHit:false,released:false});g.p.x=e.x-40;g.p.hp=g.maxHp;g.p.invulnerable=0;g.projectiles=[];g.updateBoss(bossImpactAt(pattern)-.001);assert.equal(g.p.hp,g.maxHp);g.updateBoss(.002);assert.equal(bossPose(e).role,'strike');if(a.range)assert.ok(g.p.hp<g.maxHp);if(a.wave)assert.equal(g.projectiles.length,2);}
+  for(const pattern of new Set(d.patterns.flat())){const a=PATTERNS[pattern];assert.ok(a.windup>=attackSeconds(1.15)&&a.recover>=recoverySeconds(1.55));Object.assign(e,{state:'attack',pattern,t:0,dir:-1,didHit:false,released:false});g.p.x=e.x-40;g.p.hp=g.maxHp;g.p.invulnerable=0;g.projectiles=[];g.updateBoss(bossImpactAt(pattern)-.001);assert.equal(g.p.hp,g.maxHp);g.updateBoss(.002);assert.equal(bossPose(e).role,'strike');if(a.range)assert.ok(g.p.hp<g.maxHp);if(a.wave)assert.equal(g.projectiles.length,2);}
   Object.assign(e,{hp:e.maxHp*.5,state:'idle'});g.updateBoss(.01);assert.equal(e.phase,2);assert.equal(e.state,'transition');Object.assign(e,{hp:30,state:'recover'});g.damageEnemy(e,30,1);assert.equal(e.state,'weakened');g.p.x=e.x-45;assert.ok(g.interact());assert.equal(g.profile.flags[id],'freed');assert.equal(g.profile.flags[d.ability],true);const money=g.profile.marks;assert.equal(g.clearBoss('slain'),false);assert.equal(g.profile.marks,money);assert.equal(new Game(storage).profile.flags[id],'freed');
  }
 });

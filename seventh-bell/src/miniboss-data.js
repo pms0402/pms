@@ -1,4 +1,5 @@
-const attack=(kind,windup,active,recover,reach,damage,extra={})=>({kind,windup,active,recover,reach,damage,...extra});
+import {attackSeconds,recoverySeconds} from './boss-tempo.js';
+const attack=(kind,windup,active,recover,reach,damage,extra={})=>({kind,windup:attackSeconds(windup),active:attackSeconds(active),recover:recoverySeconds(recover),reach,damage,...extra});
 export const MINIBOSSES={
  rook:{id:'rook',chapter:1,name:'종을 삼킨 사냥개, 로크',x:1745,y:302,w:76,h:45,hp:360,speed:56,half:210,stride:64,shot:'lowNote',lore:'목줄 안쪽에는 성벽 밖 주소가 새겨져 있었다. 사냥개는 그 집으로 돌아가려 했던 모양이다.',attacks:[attack('rush',1.0,.46,1.2,76,24,{speed:195}),attack('slam',1.22,.3,1.4,100,29),attack('cast',1.3,.26,1.15,0,18,{shots:1})]},
  censer:{id:'censer',chapter:2,name:'향로를 놓지 못한 자',x:7190,y:302,w:42,h:78,hp:480,speed:32,half:210,stride:48,shot:'ember',lore:'식은 재 속에서 이름표가 나왔다. 향로지기는 마지막 장례를 끝내지 못했다.',attacks:[attack('sweep',1.16,.3,1.35,134,29),attack('slam',1.4,.3,1.5,96,35),attack('cast',1.4,.3,1.3,0,23,{shots:3})]},

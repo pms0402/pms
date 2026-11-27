@@ -1,3 +1,4 @@
+import {attackSeconds} from './boss-tempo.js';
 import {body,overlaps,clearLine} from './world.js';
 import {bladeTouches} from './blade.js';
 
@@ -21,16 +22,16 @@ export function updateFields(g,dt){
   if(f.kind==='silence'){if(fieldTouches(f,g.p))g.p.silenced=.15;continue;}
   if(f.damage>0&&fieldTouches(f,g.p)&&(!['beam','ropeOrbit'].includes(f.kind)||clearLine(g,f.ax,f.ay,g.p.x,g.p.y-24))){const source={x:f.sourceX??f.x,unblockable:f.unblockable!==false,stagger:0,state:'idle'};g.hurt(f.damage,source);}
  }
- g.combatFields=g.combatFields.filter(f=>f.age<f.warning+f.duration);
+ for(const f of g.combatFields)if(f.age>=f.warning+f.duration&&g.world.bosses.some(e=>e.id===f.owner))g.effects.push({kind:'bossDisperse',field:{...f},life:.18,max:.18});g.combatFields=g.combatFields.filter(f=>f.age<f.warning+f.duration);
  for(const p of g.arenaPlatforms){p.age+=dt;const oldX=p.x,oldY=p.y;if(p.orbit){const angle=p.angle+p.age*p.rate;p.x=p.cx+Math.cos(angle)*p.rx-p.w/2;p.y=p.cy+Math.sin(angle)*p.ry;}if(g.p.grounded&&g.p.support===p){g.p.x+=p.x-oldX;g.p.y+=p.y-oldY;}}
  // A platform flashes for 1.4 seconds before retirement and stays while occupied
  // until a short hard cap; an adjacent permanent ledge is always available.
  g.arenaPlatforms=g.arenaPlatforms.filter(p=>p.age<p.life||g.p.support===p&&p.age<p.life+2);
  for(const o of g.arenaObstacles)o.age+=dt;g.arenaObstacles=g.arenaObstacles.filter(o=>o.age<o.life);
- for(const c of g.arenaClones){c.age+=dt;c.t+=dt;const boss=g.world.boss;if(c.hp<=0||c.age>=c.life)continue;
-  if(c.t>=1.5&&!c.warned){c.warned=true;c.ax=c.x;c.ay=c.y-35;c.bx=c.x+c.dir*75;c.by=c.y-25;}
-  if(c.t>=2.3&&!c.struck){c.struck=true;if(bladeTouches({ax:c.ax,ay:c.ay,bx:c.bx,by:c.by},body(g.p),4))g.hurt(35,{x:c.x,unblockable:false,stagger:0,state:'idle'});}
-  if(c.t>3.1){c.t=0;c.warned=false;c.struck=false;c.dir=Math.sign(g.p.x-c.x)||c.dir;}
+ for(const c of g.arenaClones){if(c.steel)c.steel.life-=dt;c.age+=dt;c.t+=dt;const boss=g.world.boss;if(c.hp<=0||c.age>=c.life)continue;
+  if(c.t>=attackSeconds(1.5)&&!c.warned){c.warned=true;c.ax=c.x;c.ay=c.y-35;c.bx=c.x+c.dir*75;c.by=c.y-25;}
+  if(c.t>=attackSeconds(2.3)&&!c.struck){c.struck=true;c.steel={ax:c.ax,ay:c.ay,bx:c.bx,by:c.by,at:g.clock,life:.14,max:.14,radius:4};if(bladeTouches({ax:c.ax,ay:c.ay,bx:c.bx,by:c.by},body(g.p),4))g.hurt(35,{x:c.x,unblockable:false,stagger:0,state:'idle'});}
+  if(c.t>attackSeconds(3.1)){c.t=0;c.warned=false;c.struck=false;c.dir=Math.sign(g.p.x-c.x)||c.dir;}
  }
  const had=g.arenaClones.length,allKilled=had>0&&g.arenaClones.every(c=>c.hp<=0);g.arenaClones=g.arenaClones.filter(c=>c.hp>0&&c.age<c.life);if(allKilled&&!g.arenaClones.length&&g.world.boss.id==='carillon'&&!g.world.boss.dead){g.world.boss.stagger=Math.max(g.world.boss.stagger,.95);g.world.boss.state='recover';g.world.boss.t=0;}
 }
