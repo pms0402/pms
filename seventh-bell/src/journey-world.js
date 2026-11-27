@@ -1,3 +1,4 @@
+import {buildPassageBoundaries} from './passage-layout.js';
 import {callLift} from './lift-controls.js';
 import {JOURNEYS,JOURNEY_LIFTS} from './journey-data.js';
 import {clearArena} from './combat-fields.js';
@@ -15,22 +16,19 @@ export function buildJourneys(world){
   const west=world.objects.find(o=>o.id===j.object);if(west)Object.assign(west,{type:'journey-door',connection:j.id,side:'west',art:j.westArt,label:j.name+' · 들어가기'});else world.objects.push({id:j.object,type:'journey-door',x:j.west,y:302,connection:j.id,side:'west',art:j.westArt,label:j.name+' · 들어가기'});
   world.objects.push({id:j.id+'-return',type:'journey-door',x:j.east,y:302,connection:j.id,side:'east',art:j.eastArt,label:j.name+'으로 돌아가기'});
   world.gates.push({id:'journey-road-'+j.id,x:j.border-65,y:-1480,w:20,h:1980,travelBarrier:true,hidden:true});
-  world.gates.push({id:'journey-door-'+j.id,x:j.west-22,y:82,w:44,h:220,travelBarrier:true,hidden:true});
   for(const dx of [-20,j.length-8])world.platforms.push({x:j.start+dx,y:-1480,w:28,h:2200,tile:0,journey:j.id,ceiling:true});
   const lastY=j.kind==='cliff'?478:302;
   object(j,j.id+'-leave-west','journey-exit',50,302,'지나온 길로 나가기',{connection:j.id,side:'west',art:j.westArt});
   object(j,j.id+'-leave-east','journey-exit',j.length-50,lastY,'통로 끝의 문 열기',{connection:j.id,side:'east',art:j.eastArt});
-  world.gates.push({id:'journey-inside-west-'+j.id,x:j.start+28,y:82,w:44,h:220,travelBarrier:true,hidden:true,journey:j.id});
-  world.gates.push({id:'journey-inside-east-'+j.id,x:j.end-72,y:lastY-220,w:44,h:220,travelBarrier:true,hidden:true,journey:j.id});
   if(j.kind==='pilgrim'){
    floor(j,0,302,200);steps(j,200,302,10,true);floor(j,440,422,380);steps(j,820,422,10,false);floor(j,1060,302,j.length-1060);
    for(const dx of [180,540,870])prop(j,dx,dx<200?302:422,1,76);
-   prop(j,580,422,0,240);prop(j,1120,302,2,210);
+   prop(j,580,422,22,170);prop(j,1120,302,23,150);
   }else if(j.kind==='mine'){
    floor(j,0,302,180);steps(j,180,302,11,true);floor(j,444,434,806);floor(j,1250,302,j.length-1250);
    lift(j,JOURNEY_LIFTS[0],1195,434,302);
    for(let dx=240;dx<1120;dx+=150){const y=dx<444?302+Math.ceil((dx-180)/24)*12:434;world.platforms.push({x:j.start+dx,y:-100,w:Math.min(150,1120-dx),h:y-5,ceiling:true,journey:j.id,tile:0});prop(j,dx+60,y,21,170);}
-   prop(j,490,434,4,220);prop(j,950,434,5,145);
+   prop(j,490,434,6,125);prop(j,950,434,5,145);
   }else if(j.kind==='rail'){
    floor(j,0,302,680);floor(j,680,410,82);floor(j,762,302,j.length-762);
    floor(j,670,280,110,{oneway:true,h:18,foundation:false,tile:3});
@@ -39,11 +37,11 @@ export function buildJourneys(world){
    object(j,j.id+'-rail-latch','journey-latch',565,302,'철도 차단기 열기',{art:20});
    object(j,j.id+'-rail-latch-return','journey-latch',725,302,'철도 차단기 열기',{art:20});
    world.gates.push({id:'journey-rail-latch',x:j.start+635,y:82,w:32,h:220,journey:j.id,journeyLatch:true});
-   prop(j,1160,302,8,230);
+   prop(j,1160,302,23,160);
   }else if(j.kind==='crypt'){
    floor(j,0,302,180);steps(j,180,302,11,true);floor(j,444,434,550);steps(j,994,434,11,false);floor(j,1258,302,j.length-1258);
-   for(let dx=430;dx<1040;dx+=160){world.platforms.push({x:j.start+dx,y:-100,w:160,h:429,ceiling:true,journey:j.id,tile:0});prop(j,dx+70,434,dx<750?9:22,180);}
-   prop(j,1350,302,10,220);
+   for(let dx=430;dx<1040;dx+=160){world.platforms.push({x:j.start+dx,y:-100,w:160,h:429,ceiling:true,journey:j.id,tile:0});prop(j,dx+70,434,dx<750?22:23,180);}
+   prop(j,1350,302,22,170);
   }else if(j.kind==='cliff'){
    floor(j,0,302,180);steps(j,180,302,15,true);floor(j,540,482,250);floor(j,790,482,660,{h:28,foundation:false,material:'harbor',tile:1});floor(j,1450,482,j.length-1450,{stair:true});
    for(const dx of [530,750,1070,1410])prop(j,dx,478,dx===750||dx===1410?13:12,dx===750||dx===1410?135:210);
@@ -52,12 +50,12 @@ export function buildJourneys(world){
    floor(j,0,302,180);steps(j,180,302,15,false);floor(j,540,122,650);floor(j,1190,302,j.length-1190);
    lift(j,JOURNEY_LIFTS[1],1240,302,122);
    for(const dx of [200,540,990])prop(j,dx,dx<540?302:122,dx===200?15:13,dx===200?140:150);
-   prop(j,1440,302,16,260);world.waterAreas.push({id:'journey-coast-sea',x:j.start+180,w:j.length-180,level:510,bottom:620,journey:j.id,sea:true});
+   prop(j,1440,302,12,160);world.waterAreas.push({id:'journey-coast-sea',x:j.start+180,w:j.length-180,level:510,bottom:620,journey:j.id,sea:true});
   }
   // End landings remain clear for preparation and turning back.
   prop(j,105,302,18,68);prop(j,j.length-105,lastY,19,68);
  }
- return world;
+ return buildPassageBoundaries(world);
 }
 export const journeyGateActive=(g,gate)=>gate.travelBarrier?true:gate.journeyLatch?!g.profile.journeyDevices?.railLatch&&!g.profile.journeys?.freight:null;
 export function enterJourney(g,j,side,exiting=false){
