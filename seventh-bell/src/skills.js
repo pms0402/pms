@@ -1,6 +1,13 @@
 import {workLevel,trainingRank} from './upgrades.js';
-export const BRANCHES=[{id:'steel',name:'검술',text:'검에 힘을 싣는 법'},{id:'survival',name:'생존',text:'맞고도 버티는 법'},{id:'breath',name:'기동',text:'숨을 아껴 움직이는 법'},{id:'echo',name:'잔향',text:'파편의 울림을 다루는 법'}];
+export const BRANCHES=[{id:'steel',name:'검술',text:'검에 힘을 싣는 법'},{id:'survival',name:'생존',text:'맞고도 버티는 법'},{id:'breath',name:'기동',text:'숨을 아껴 움직이는 법'},{id:'echo',name:'잔향',text:'파편의 울림을 다루는 법'},{id:'bellcraft',name:'종의 기술',text:'검을 거두고 파편의 힘을 쓰는 법'}];
 export const TALENTS={
+ resonantSeal:{branch:'bellcraft',tier:3,name:'맞물린 울림',desc:'속박·취약 상태의 적에게 종격 피해 +25%',cost:2,requires:['pulseEcho','chainSeal']},
+ bellPulse:{branch:'bellcraft',tier:0,name:'종격 · F',desc:'주변 충격파 · 기본 피해 28 · 일반 투사체 파괴 · 집중 24 · 재사용 8초',cost:1,requires:[]},
+ blackChain:{branch:'bellcraft',tier:0,name:'검은 사슬 · G',desc:'전방 180 내 일반 적 2초 속박 · 보스는 4초간 받는 피해 +10% · 집중 20 · 재사용 10초',cost:1,requires:[]},
+ pulsePower:{branch:'bellcraft',tier:1,name:'무거운 종소리',desc:'종격 기본 피해 +18',cost:1,requires:['bellPulse']},
+ chainRange:{branch:'bellcraft',tier:1,name:'뻗어가는 사슬',desc:'검은 사슬 거리 180 → 260',cost:1,requires:['blackChain']},
+ pulseEcho:{branch:'bellcraft',tier:2,name:'되울리는 종',desc:'종격 범위 140 → 180 · 재사용 8 → 5.5초',cost:2,requires:['pulsePower']},
+ chainSeal:{branch:'bellcraft',tier:2,name:'검은 매듭',desc:'일반 적 속박 2 → 3.2초 · 보스 취약 4 → 6초',cost:2,requires:['chainRange']},
  edge:{branch:'steel',tier:0,name:'손에 익은 검',desc:'검 공격 피해 +3',cost:1,requires:[]},
  edge2:{branch:'steel',tier:1,name:'날 세우기',desc:'검 공격 피해 추가 +4',cost:1,requires:['edge']},
  cutweight:{branch:'steel',tier:2,name:'무게 싣기',desc:'강공격의 준비와 회수 시간 15% 단축',cost:2,requires:['edge2']},

@@ -1,3 +1,4 @@
+import {callLift} from './lift-controls.js';
 import {JOURNEYS,JOURNEY_LIFTS} from './journey-data.js';
 import {clearArena} from './combat-fields.js';
 
@@ -66,11 +67,11 @@ export function enterJourney(g,j,side,exiting=false){
  if(exiting&&side==='east')g.profile.journeys[j.id]=true;
  Object.assign(g.p,{x,y,vx:0,vy:0,grounded:false,coyote:0,jumps:0,jumpBuffer:0,action:null,comboQueued:false,dir:side==='east'?1:-1,lastSafe:{x,y}});
  if(!exiting)g.p.dir=side==='west'?1:-1;
- g.projectiles=[];g.bladeEchoes=[];clearArena(g);g.attachToFloor();g.selectBoss();g.save();g.event('journey',{id:j.id,exiting,side});g.sound('mechanism');return true;
+ g.projectiles=[];g.bladeEchoes=[];g.abilityWaves=[];clearArena(g);g.attachToFloor();g.selectBoss();g.save();g.event('journey',{id:j.id,exiting,side});g.sound('mechanism');return true;
 }
 export function interactJourney(g,o){
  if(o.type==='journey-door'||o.type==='journey-exit')return enterJourney(g,JOURNEYS.find(j=>j.id===o.connection),o.side,o.type==='journey-exit');
  if(o.type==='journey-latch'){if(!g.profile.journeyDevices.railLatch){g.profile.journeyDevices.railLatch=true;g.tell('레일 위의 차단기가 올라갔다.');g.sound('mechanism');g.save();}return true;}
- if(o.type==='journey-call'){const m=g.world.movers.find(m=>m.id===o.machine);m.target=o.target;g.tell('사슬이 움직이기 시작했다.');g.sound('mechanism');g.save();return true;}
+ if(o.type==='journey-call')return callLift(g,o);
  return null;
 }

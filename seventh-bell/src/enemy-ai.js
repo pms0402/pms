@@ -1,3 +1,4 @@
+import {holdBoundEnemy} from './abilities.js';
 import {pacifyEnemy,canBeginEnemyAttack,sanctuaryAt} from './sanctuary.js';
 import {SPECIES} from './enemy-species.js';
 import {body,moveBody,solids,clearLine} from './world.js';
@@ -23,7 +24,7 @@ function release(g,e){const d=SPECIES[e.type],role=d.role;e.released=true;e.shie
  if(role==='support'&&e.mode==='chant'){for(const ally of g.world.enemies)if(ally!==e&&!ally.dead&&Math.hypot(ally.x-e.x,ally.y-e.y)<230)ally.buffedUntil=g.clock+6;g.fx(e.x,e.y-25,'echo',.5);}
 }
 export function updateNativeEnemy(g,e,dt){
- const d=SPECIES[e.type];if(!d)return false;e.hit=Math.max(0,e.hit-dt);e.stagger=Math.max(0,e.stagger-dt);const startX=e.x,oldVX=e.vx,stride=d.role==='cart'?66:44,period=d.role==='dive'?.85:d.role==='notes'?1.6:d.role==='resonator'?1.8:1.1;if(!e.dead&&pacifyEnemy(g,e,dt)){advanceCreatureGait(e,dt,e.x-startX,stride,period);return true;}if(e.dead){e.deathT+=dt;return true;}if(Math.abs(e.x-g.p.x)>1000||Math.abs(e.y-g.p.y)>750)return true;
+ const d=SPECIES[e.type];if(!d)return false;e.hit=Math.max(0,e.hit-dt);e.stagger=Math.max(0,e.stagger-dt);const startX=e.x,oldVX=e.vx,stride=d.role==='cart'?66:44,period=d.role==='dive'?.85:d.role==='notes'?1.6:d.role==='resonator'?1.8:1.1;if(holdBoundEnemy(g,e,dt))return true;if(!e.dead&&pacifyEnemy(g,e,dt)){advanceCreatureGait(e,dt,e.x-startX,stride,period);return true;}if(e.dead){e.deathT+=dt;return true;}if(Math.abs(e.x-g.p.x)>1000||Math.abs(e.y-g.p.y)>750)return true;
  e.cooldown-=dt;e.t+=dt;e.trailClock=(e.trailClock||0)+dt;const p=g.p,dx=p.x-e.x,dy=p.y-e.y,dist=Math.abs(dx);if(Math.abs(e.x-e.homeX)>270)e.returning=true;if(Math.abs(e.x-e.homeX)<40)e.returning=false;const alert=!e.returning&&dist<440&&Math.abs(dy)<(e.flying?300:190),oldX=e.x,oldY=e.y;
  if(e.unstableUntil>g.clock){e.vx=0;e.t=0;e.stagger=Math.max(e.stagger,.15);e.state='recover';}
  else if(e.stagger>0){e.vx*=Math.max(0,1-dt*8);}

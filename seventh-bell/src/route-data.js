@@ -12,7 +12,7 @@ export const ROUTE_GATES=[
  {key:'towerAscent',boss:'carillon',x:mapX(28740)}
 ];
 export const ROUTE_CACHES=['wall','cathedral','foundry','archive','palace','harbor','tower'].map(k=>'route-'+k+'-cache');
-export const MACHINE_IDS=['choir-hoist','ore-carrier','foundry-hoist','wall-hoist','archive-booklift','tower-gear-a','tower-gear-b','tower-gear-c','palace-hoist','tower-lower','tower-middle','tower-upper','tower-return'];
+export const MACHINE_IDS=['crypt-lift','choir-hoist','ore-carrier','foundry-hoist','wall-hoist','archive-booklift','tower-gear-a','tower-gear-b','tower-gear-c','palace-hoist','tower-lower','tower-middle','tower-upper','tower-return'];
 export const ROUTE_AREAS=[
  {chapter:1,name:'버려진 성벽 마을',kind:'village'},{chapter:1,name:'외벽 순찰로',kind:'climb'},{chapter:1,name:'갈라진 순례교와 병영',kind:'detour'},
  {chapter:2,name:'중앙 종 승강로',kind:'vertical'},{chapter:2,name:'지하 묘실',kind:'crypt'},{chapter:2,name:'상층 성가 회랑',kind:'voice'},

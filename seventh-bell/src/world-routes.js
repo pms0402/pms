@@ -1,3 +1,4 @@
+import {operateLift} from './lift-controls.js';
 import {journeyAt} from './journey-data.js';
 import {mapX,roomStart,EXTENSIONS,chapterAtWorld} from './layout.js';
 import {ROUTE_GATES,ROUTE_AREAS} from './route-data.js';
@@ -108,7 +109,7 @@ export function buildRoutes(world){
 export function routeWallActive(g,w){return w.water?!g.profile.routes.harborSluice&&!g.profile.flags.harborLock:w.owner?g.bossActive&&g.world.boss.id===w.owner:w.closedWhen===g.profile.routes[w.routeKey];}
 export function routeSolids(g,base){return[...base.filter(p=>(!p.routeMode||g.profile.routes.archiveShift||g.p?.support===p)&&(!p.bridge||g.profile.routes[p.bridge])),...(g.world.movers||[]).filter(m=>m.journey===journeyAt(g.p.x)?.id&&(!m.enabled||g.profile.routes[m.enabled])),...(g.world.waterPlatforms||[]),...(g.world.routeWalls||[]).filter(w=>routeWallActive(g,w))].filter(q=>q.journey===journeyAt(g.p.x)?.id);}
 export function routeGate(g,id){const gate=g.world.gates.find(o=>o.id===id&&o.route);if(!gate)return null;return !g.profile.routes[gate.key]&&!g.profile.flags[gate.owner];}
-export function restoreMachines(profile,world){for(const m of world.movers||[]){const v=profile.machines?.[m.id];if(v){m.phase=v.time||0;m.target=Math.max(Math.min(m.top,m.bottom),Math.min(Math.max(m.top,m.bottom),v.target));m.x=v.x;m.y=v.y;}}}
+export function restoreMachines(profile,world){for(const m of [world.lift,...(world.movers||[])]){const v=profile.machines?.[m.id];if(v){m.phase=v.time||0;m.target=Math.max(Math.min(m.top,m.bottom),Math.min(Math.max(m.top,m.bottom),v.target));m.x=v.x;m.y=v.y;}}}
 export function updateRoutes(g,dt){
  const p=g.p;for(const m of g.world.movers||[]){if(m.enabled&&!g.profile.routes[m.enabled])continue;const ox=m.x,oy=m.y;m.phase+=dt;
   if(m.periodic==='orbit'){const angle=m.angle+m.phase*m.rate;m.x=m.cx+Math.cos(angle)*m.rx-m.w/2;m.y=m.cy+Math.sin(angle)*m.ry;}else if(m.periodic==='horizontal')m.x=m.left+(m.right-m.left)*(.5+.5*Math.sin(m.phase*Math.PI*2/m.period));
@@ -127,10 +128,7 @@ export function interactRoute(g,o){const f=g.profile;
   else{f.routes[o.key]=true;g.tell(o.key==='towerAscent'?'아래층까지 귀환 승강기가 연결됐다.':'쇠사슬이 움직였다. 다음 통로가 열렸다.');}
   g.sound('mechanism');g.save();return true;
  }
- if(o.type==='route-lift'){
-  const m=g.world.movers.find(m=>m.id===o.machine);if(!m||m.enabled&&!f.routes[m.enabled]){g.tell('연결 장치를 먼저 맞춰야 한다.');return false;}
-  if(Math.abs(g.p.y-m.y)<20){g.p.y=m.y;g.p.support=m;g.p.grounded=true;g.p.vy=0;m.target=Math.abs(m.y-m.bottom)<15?m.top:m.bottom;g.sound('mechanism');g.save();return true;}return false;
- }
+ if(o.type==='route-lift')return operateLift(g,g.world.movers.find(m=>m.id===o.machine));
  if(o.type==='cooling-valve'){
   const e=g.world.boss;if(e.id!=='brag'||e.dead){g.tell('냉각수는 흐르고 있다.');return true;}if(e.cooledUntil>g.clock){g.tell('밸브는 이미 열려 있다.');return false;}
   e.cooledUntil=g.clock+7;e.overheatUntil=0;e.wasHot=false;e.stagger=1.25;e.state='recover';e.t=0;g.combatFields=g.combatFields.filter(f=>f.owner!==e.id||f.kind!=='heat');g.sound('mechanism');g.tell('찬물이 흘렀다. 망치의 열기가 가라앉는다.');return true;
