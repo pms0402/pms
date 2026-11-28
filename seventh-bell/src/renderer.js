@@ -1,4 +1,5 @@
 import {bossPreparation,bossSteelEffect,bossRetirementEffect} from './boss-fx.js';
+import {renderLostCoins} from './lost-coin-renderer.js';
 import {passageWall,solidTerrainBase} from './passage-renderer.js';
 import {renderAbilities,abilityEffect} from './ability-renderer.js';
 import {inCathedralBay} from './cathedral-presentation.js';
@@ -40,7 +41,7 @@ export class Renderer{
  renderJourneys(this);
  for(const o of g.world.objects){if(o.type.startsWith('journey-')||o.type==='route-lift'&&inCathedralBay(o.x,o.y))continue;if(o.x<this.x-140||o.x>this.x+WIDTH+140||o.echo&&(g.echoTime<=0||o.voice&&!g.profile.flags.voice||o.memory&&!g.profile.flags.memory||o.tide&&!g.profile.flags.tide)||o.resonance&&!g.profile.flags.resonance||o.type==='lift')continue;let size=['dockkeeper','dockworker'].includes(o.type)?76:['dockwinch','resonator','towerlens'].includes(o.type)?88:o.type==='beacon'?106:o.type==='workshop'?72:['shrine','trainingExit'].includes(o.type)?98:o.type==='npc'?66:o.type==='chest'?51:o.type==='letter'?29:['tower','archiveway','palaceway'].includes(o.type)?58:o.type==='ending'?54:['lectern','finalrecord','indexwheel'].includes(o.type)?86:50;const sealed=o.id==='forgecache'&&!g.profile.flags.slag&&!g.profile.opened.includes(o.id),type=o.late?'lateChest':sealed?'lockedChest':['tower','archiveway'].includes(o.type)?'supplycart':o.type==='ending'?'lectern':o.type==='chest'&&o.royal?'royalChest':o.type==='chest'&&o.archive?'archiveChest':o.type;prop(c,type,o.x,o.y,size,o.type==='chest'&&g.profile.opened.includes(o.id)?.47:1);if(['shrine','trainingExit'].includes(o.type))this.glow(o.x+5,o.y-40,54,'#e7bb6d');if(o.type==='letter'&&!g.profile.flags.letter)this.glow(o.x,o.y-12,17,'#b3e1ce');}
  for(let x=70;x<g.world.w;x+=430){if(g.profile.flags.edran==='slain'&&originalX(x)>3390&&originalX(x)<4300)continue;const y=originalX(x)>1500&&originalX(x)<2350?421:246;prop(c,originalX(x)>=11220?'archiveLamp':'lantern',x,y,45,.9);this.glow(x+5,y-18,40,'#dea858');}
- if(g.profile.loss){const l=g.profile.loss;this.glow(l.x,l.y-10,20,'#d5c28b');prop(c,'lantern',l.x,l.y,22);}
+ renderLostCoins(this);
  this.traps();renderArena(this);this.afterimages();for(const e of g.world.enemies)this.actor(e);for(const e of g.world.minibosses||[])this.actor(e);for(const e of g.world.bosses)if(!e.dead||e.deathT<5||g.profile.flags[e.id]==='freed')this.actor(e);renderClones(this);this.threat();renderAbilities(this);
  c.save();if(p.invulnerable>.1&&Math.sin(g.clock*45)>0&&p.hurt>0)c.globalAlpha=.55;drawHero(c,p,g.clock);c.restore();
  if(p.action?.kind==='dash'){for(let i=1;i<4;i++)draw(c,'repairman',Math.min(3,Math.floor(p.action.t/.28*4)),6,p.x-p.dir*i*13,p.y,HERO_BASE_SIZE,HERO_BASE_SIZE,p.dir<0,.08*(4-i));}

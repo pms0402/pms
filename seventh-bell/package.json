@@ -1,13 +1,13 @@
 {
   "name": "echoes-of-the-seventh-bell",
-  "version": "0.18.0",
+  "version": "0.18.1",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "node server.mjs",
     "build": "node build.mjs",
     "test": "node --test tests/*.test.mjs",
-    "test:browser": "npm run test:loading && npm run test:cathedral && npm run test:combo && npm run test:healing && npm run test:tutorial-recovery && npm run test:lifts && npm run test:passages && npm run test:abilities && npm run test:runtime && npm run test:boss-presentation && npm run test:minibosses && npm run test:inputs && npm run test:encounters",
+    "test:browser": "npm run test:loading && npm run test:cathedral && npm run test:combo && npm run test:healing && npm run test:tutorial-recovery && npm run test:lifts && npm run test:passages && npm run test:abilities && npm run test:runtime && npm run test:boss-presentation && npm run test:death-coins && npm run test:minibosses && npm run test:inputs && npm run test:encounters",
     "verify:live": "node verify-live.mjs",
     "test:tutorial-recovery": "node tests/tutorial-recovery-browser.mjs",
     "test:lifts": "node tests/lifts-browser.mjs",
@@ -50,6 +50,7 @@
     "test:minibosses": "node tests/minibosses-browser.mjs",
     "test:creatures": "node tests/creature-motion-browser.mjs",
     "test:passages": "node tests/passages-browser.mjs && node tests/journeys-browser.mjs",
-    "test:boss-presentation": "node tests/boss-presentation-browser.mjs"
+    "test:boss-presentation": "node tests/boss-presentation-browser.mjs",
+    "test:death-coins": "node tests/death-coins-browser.mjs"
   }
 }
